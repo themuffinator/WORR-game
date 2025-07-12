@@ -498,6 +498,9 @@ static bool IsVowel(const char c) {
 static void ClientObituary(gentity_t *victim, gentity_t *inflictor, gentity_t *attacker, mod_t mod) {
 	std::string base{};
 
+	if (!victim || !victim->client)
+		return;
+
 	if (attacker && CooperativeModeOn() && attacker->client)
 		mod.friendly_fire = true;
 
@@ -760,37 +763,37 @@ static void ClientObituary(gentity_t *victim, gentity_t *inflictor, gentity_t *a
 				BroadcastReadyReminderMessage();
 			} else {
 				if (GTF(GTF_ROUNDS) && GTF(GTF_ELIMINATION) && level.roundState == RoundState::ROUND_IN_PROGRESS) {
-					gi.LocClient_Print(victim, PRINT_CENTER, "You were fragged by {}\nYou will respawn next round.", attacker->client->sess.netName);
+					gi.LocClient_Print(victim, PRINT_CENTER, ".You were fragged by {}\nYou will respawn next round.", attacker->client->sess.netName);
 				} else if (GT(GT_FREEZE) && level.roundState == RoundState::ROUND_IN_PROGRESS) {
 					bool last_standing = true;
 					if (victim->client->sess.team == TEAM_RED && level.pop.num_living_red > 1 ||
 						victim->client->sess.team == TEAM_BLUE && level.pop.num_living_blue > 1)
 						last_standing = false;
-					gi.LocClient_Print(victim, PRINT_CENTER, "You were frozen by {}{}",
+					gi.LocClient_Print(victim, PRINT_CENTER, ".You were frozen by {}{}",
 						attacker->client->sess.netName,
 						last_standing ? "" : "\nYou will respawn once thawed.");
 				} else {
-					gi.LocClient_Print(victim, PRINT_CENTER, "You were {} by {}", GT(GT_FREEZE) ? "frozen" : "fragged", attacker->client->sess.netName);
+					gi.LocClient_Print(victim, PRINT_CENTER, ".You were {} by {}", GT(GT_FREEZE) ? "frozen" : "fragged", attacker->client->sess.netName);
 				}
 			}
 		}
 		if (!(attacker->svFlags & SVF_BOT)) {
 			if (Teams() && OnSameTeam(victim, attacker)) {
-				gi.LocClient_Print(attacker, PRINT_CENTER, "You fragged {}, your team mate :(", victim->client->sess.netName);
+				gi.LocClient_Print(attacker, PRINT_CENTER, ".You fragged {}, your team mate :(", victim->client->sess.netName);
 			} else {
 				if (level.matchState == MatchState::MATCH_WARMUP_READYUP) {
 					BroadcastReadyReminderMessage();
 				} else if (attacker->client->killStreakCount && !(attacker->client->killStreakCount % 10)) {
-					gi.LocBroadcast_Print(PRINT_CENTER, "{} is on a rampage\nwith {} frags!", attacker->client->sess.netName, attacker->client->killStreakCount);
+					gi.LocBroadcast_Print(PRINT_CENTER, ".{} is on a rampage\nwith {} frags!", attacker->client->sess.netName, attacker->client->killStreakCount);
 					PushAward(attacker, PlayerMedal::MEDAL_RAMPAGE);
 				} else if (killStreakCount >= 10) {
-					gi.LocBroadcast_Print(PRINT_CENTER, "{} put an end to {}'s\nrampage!", attacker->client->sess.netName, victim->client->sess.netName);
+					gi.LocBroadcast_Print(PRINT_CENTER, ".{} put an end to {}'s\nrampage!", attacker->client->sess.netName, victim->client->sess.netName);
 				} else if (Teams() || level.matchState != MatchState::MATCH_IN_PROGRESS) {
 					if (attacker->client->sess.pc.show_fragmessages)
-						gi.LocClient_Print(attacker, PRINT_CENTER, "You {} {}", GT(GT_FREEZE) ? "froze" : "fragged", victim->client->sess.netName);
+						gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}", GT(GT_FREEZE) ? "froze" : "fragged", victim->client->sess.netName);
 				} else {
 					if (attacker->client->sess.pc.show_fragmessages)
-						gi.LocClient_Print(attacker, PRINT_CENTER, "You {} {}\n{} place with {}", GT(GT_FREEZE) ? "froze" : "fragged",
+						gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}\n{} place with {}", GT(GT_FREEZE) ? "froze" : "fragged",
 							victim->client->sess.netName, PlaceString(attacker->client->pers.currentRank + 1), attacker->client->resp.score);
 				}
 			}
@@ -1198,9 +1201,9 @@ static void GibPlayer(gentity_t *self, int damage) {
 
 	// 2) meatier gibs at deeper overkills (deathmatch only)
 	static constexpr struct { int threshold; int count; } gibStages[] = {
-		{ -240, 16 },
-		{ -160, 12 },
-		{  -80, 10 }
+		{ -300, 16 },
+		{ -200, 12 },
+		{  -100, 10 }
 	};
 	if (deathmatch->integer) {
 		for (auto &stage : gibStages) {
@@ -1594,13 +1597,15 @@ void InitClientPersistant(gentity_t *ent, gclient_t *client) {
 
 		client->pers.health = client->pers.max_health = health;
 
-		int bonus = RS(RS_Q3A) ? 25 : g_starting_health_bonus->integer;
-		if (!(GTF(GTF_ARENA)) && bonus > 0) {
-			client->pers.health += bonus;
-			if (!(RS(RS_Q3A))) {
-				client->pers.healthBonus = bonus;
+		if (deathmatch->integer) {
+			int bonus = RS(RS_Q3A) ? 25 : g_starting_health_bonus->integer;
+			if (!(GTF(GTF_ARENA)) && bonus > 0) {
+				client->pers.health += bonus;
+				if (!(RS(RS_Q3A))) {
+					client->pers.healthBonus = bonus;
+				}
+				ent->client->timeResidual = level.time;
 			}
-			ent->client->timeResidual = level.time;
 		}
 
 		if (armor_type.base_count == armor_stats[game.ruleset][ARMOR_JACKET].base_count)

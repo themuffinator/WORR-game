@@ -3237,6 +3237,11 @@ constexpr spawnflags_t SPAWNFLAG_TRAIN_MOVE_TEAMCHAIN = 8_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_DOOR_REVERSE = 2_spawnflag;
 
 //
+// g_horde.cpp
+//
+void Horde_RunSpawning();
+
+//
 // g_monster.cpp
 //
 void monster_muzzleflash(gentity_t *self, const vec3_t &start, monster_muzzleflash_id_t id);
@@ -4260,6 +4265,23 @@ MAKE_ENUM_BITFLAGS(plat2flags_t);
 
 #include <bitset>
 
+// for respawning ents from sp in mp
+struct saved_spawn_t {
+	vec3_t origin;
+	vec3_t angles;
+	int32_t health;
+	int32_t dmg;
+	float scale;
+	const char *target;
+	const char *targetname;
+	spawnflags_t spawnflags;
+	int32_t mass;
+	const char *className;
+	gvec3_t mins, maxs; // bounding box size
+	const char *model;
+	void (*spawnFunc)(gentity_t *);
+};
+
 struct gentity_t {
 	gentity_t() = delete;
 	gentity_t(const gentity_t &) = delete;
@@ -4500,6 +4522,8 @@ struct gentity_t {
 	Item		*pack_weapon;
 
 	int			arena;	//for RA2 support
+
+	saved_spawn_t *saved = nullptr;
 };
 
 constexpr spawnflags_t SF_SPHERE_DEFENDER	= 0x0001_spawnflag;
@@ -4980,7 +5004,13 @@ inline MenuEntry VoteEntry(const std::string &text, int voteIndex) {
 		if (clientNum >= 0 && clientNum < MAX_CLIENTS) {
 			level.mapSelectorVoteByClient[clientNum] = voteIndex;
 		}
+		
 		MenuSystem::Close(e);
+		e->client->showScores = false;
+		e->client->showInventory = false;
+		gi.LocClient_Print(e, PRINT_HIGH,
+			"Vote for map %s registered.\n",
+			level.mapSelector.candidates[voteIndex]->longName.c_str());
 		gi.local_sound(e, CHAN_AUTO, gi.soundindex("misc/menu3.wav"), 1, ATTN_NONE, 0);
 		});
 }

@@ -595,6 +595,27 @@ void ED_CallSpawn(gentity_t *ent) {
 
 			if (strcmp(ent->className, s.name) == 0)
 				ent->className = s.name;
+
+			if (deathmatch->integer && !ent->saved) {
+				saved_spawn_t *spawn = (saved_spawn_t *)gi.TagMalloc(sizeof(saved_spawn_t), TAG_LEVEL);
+				*spawn = {
+					ent->s.origin,
+					ent->s.angles,
+					ent->health,
+					ent->dmg,
+					ent->s.scale,
+					ent->target,
+					ent->targetname,
+					ent->spawnflags,
+					ent->mass,
+					ent->className,
+					ent->mins,
+					ent->maxs,
+					ent->model,
+					s.spawn
+				};
+				ent->saved = spawn;
+			}
 			return;
 		}
 	}

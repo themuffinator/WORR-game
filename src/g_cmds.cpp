@@ -3111,7 +3111,7 @@ static void Cmd_UnReadyAll_f(gentity_t *ent) {
 }
 
 static void BroadcastReadyStatus(gentity_t *ent) {
-	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
+	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
 }
 
 static void Cmd_Ready_f(gentity_t *ent) {

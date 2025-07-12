@@ -625,8 +625,6 @@ InitGame
 Called after PreInitGame when the game has set up cvars.
 ============
 */
-extern void Horde_Init();
-
 static void InitGame() {
 	gi.Com_Print("==== InitGame ====\n");
 
@@ -888,7 +886,7 @@ static void InitGame() {
 	gt_g_gametype = g_gametype->modified_count;
 	gt_teams_on = Teams();
 
-	Horde_Init();
+	//Horde_Init();
 
 	LoadMotd();
 
@@ -1439,6 +1437,8 @@ static void MapSelectorFinalize() {
 	// close vote menu for all players
 	for (auto ec : active_players()) {
 		CloseActiveMenu(ec);
+		ec->client->showScores = false;
+		ec->client->showInventory = false;
 	}
 
 	// Tally votes
@@ -1482,7 +1482,7 @@ static void MapSelectorFinalize() {
 	if (selectedIndex >= 0 && level.mapSelectorVoteCandidates[selectedIndex]) {
 		const MapEntry *selected = level.mapSelectorVoteCandidates[selectedIndex];
 		level.changeMap = selected->filename.c_str();
-		gi.LocBroadcast_Print(PRINT_HIGH, "Map vote complete! Next map: {} ({})\n",
+		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
 			selected->filename.c_str(),
 			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
 		AnnouncerSound(world, "vote_passed");
@@ -1491,11 +1491,11 @@ static void MapSelectorFinalize() {
 		auto fallback = AutoSelectNextMap();
 		if (fallback) {
 			level.changeMap = fallback->filename.c_str();
-			gi.LocBroadcast_Print(PRINT_HIGH, "Map vote failed. Randomly selected: {} ({})\n",
+			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
 				fallback->filename.c_str(),
 				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
 		} else {
-			gi.Broadcast_Print(PRINT_HIGH, "No maps available for next match.\n");
+			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
 		}
 		AnnouncerSound(world, "vote_failed");
 	}
@@ -1544,7 +1544,7 @@ void MapSelectorBegin() {
 	}
 
 	AnnouncerSound(world, "vote_now");
-	gi.Broadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have 10 seconds to vote.\n");
+	gi.Broadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have 5 seconds to vote.\n");
 }
 
 
@@ -1568,7 +1568,7 @@ static void PreExitLevel() {
 	//for (auto ec : active_players())
 	//	UpdateMapSelectorProgressBar(ec);
 
-	if (level.time < level.mapSelectorVoteStartTime + 10_sec)
+	if (level.time < level.mapSelectorVoteStartTime + 5_sec)
 		return;
 
 	if (!level.preExitDelay) {
@@ -1577,7 +1577,7 @@ static void PreExitLevel() {
 		return;
 	}
 
-	if (level.time < level.preExitDelay + 1_sec)
+	if (level.time < level.preExitDelay + 2_sec)
 		return;
 
 	ExitLevel();

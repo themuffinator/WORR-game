@@ -4,6 +4,100 @@
 
 #include "g_local.h"
 
+//=====================================================
+
+/*
+===============
+Respawn_Think
+===============
+*/
+static THINK(Respawn_Think) (gentity_t *ent) -> void {
+	if (!ent->saved)
+		return;
+
+	const vec3_t &spawnOrigin = ent->saved->origin;
+	const vec3_t &origin = ent->saved->origin;
+	const vec3_t &mins = ent->saved->mins;
+	const vec3_t &maxs = ent->saved->maxs;
+
+	// (a) Check player visibility (in PVS and in front)
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		gentity_t *cl = &g_entities[i];
+		if (!cl->inUse || !cl->client)
+			continue;
+
+		if (LocCanSee(ent, cl)) {
+			ent->nextThink = level.time + 1_sec;
+			return;
+		}
+
+		vec3_t forward;
+		AngleVectors(cl->client->ps.viewangles, forward, nullptr, nullptr);
+
+		vec3_t dir = spawnOrigin - cl->s.origin;
+		dir.normalize();
+
+		const float dot = dir.dot(forward);
+		if (dot > 0.15f) {
+			ent->nextThink = level.time + 1_sec;
+			return;
+		}
+	}
+
+	// (b) Telefrag check
+	vec3_t p = origin + vec3_t{ 0.f, 0.f, 9.f };
+	trace_t tr = gi.trace(p, mins, maxs, p, ent, CONTENTS_PLAYER | CONTENTS_MONSTER);
+	if (tr.startsolid) {
+		ent->nextThink = level.time + 1_sec;
+		return;
+	}
+
+	// (c) Proximity check: is any client inside a 128u radius of bbox?
+	vec3_t rangeMins = origin - vec3_t{ 128.f, 128.f, 128.f };
+	vec3_t rangeMaxs = origin + vec3_t{ 128.f, 128.f, 128.f };
+
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		gentity_t *cl = &g_entities[i];
+		if (!cl->inUse || !cl->client)
+			continue;
+
+		vec3_t clientMins = cl->s.origin + cl->mins;
+		vec3_t clientMaxs = cl->s.origin + cl->maxs;
+
+		if (!(clientMins.x > rangeMaxs.x || clientMaxs.x < rangeMins.x ||
+			clientMins.y > rangeMaxs.y || clientMaxs.y < rangeMins.y ||
+			clientMins.z > rangeMaxs.z || clientMaxs.z < rangeMins.z)) {
+			ent->nextThink = level.time + 1_sec;
+			return;
+		}
+	}
+
+	// Spawn new entity
+	gentity_t *newEnt = Spawn();
+	newEnt->className = ent->saved->className;
+	//Q_strlcpy((char *)newEnt->className, ent->saved->className, sizeof(newEnt->className));
+	newEnt->s.origin = ent->saved->origin;
+	newEnt->s.angles = ent->saved->angles;
+	newEnt->health = ent->saved->health;
+	newEnt->dmg = ent->saved->dmg;
+	newEnt->s.scale = ent->saved->scale;
+	newEnt->target = ent->saved->target;
+	newEnt->targetname = ent->saved->targetname;
+	newEnt->spawnflags = ent->saved->spawnflags;
+	newEnt->mass = ent->saved->mass;
+	newEnt->mins = ent->saved->mins;
+	newEnt->maxs = ent->saved->maxs;
+	newEnt->model = ent->saved->model;
+
+	newEnt->saved = ent->saved;
+	ent->saved = nullptr;
+
+	newEnt->saved->spawnFunc(newEnt);
+	FreeEntity(ent);
+}
+
+//=====================================================
+
 /*QUAKED func_group (0 0 0) ? x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Used to group brushes together just for editor convenience.
 */
@@ -208,7 +302,7 @@ gentity_t *ThrowGib(gentity_t *self, std::string gibname, int damage, gib_type_t
 	gib->svFlags |= SVF_DEADMONSTER;
 	gib->svFlags &= ~SVF_MONSTER;
 	gib->clipMask = MASK_SOLID;
-	gib->s.effects = EF_GIB;
+	gib->s.effects = type ? EF_NONE : EF_GIB;
 	gib->s.renderfx = RF_NONE;	// RF_LOW_PRIORITY | RF_FULLBRIGHT;
 	//gib->s.renderfx = RF_LOW_PRIORITY;
 	gib->s.renderfx |= RF_NOSHADOW;
@@ -275,7 +369,7 @@ gentity_t *ThrowGib(gentity_t *self, std::string gibname, int damage, gib_type_t
 		gib->touch = gib_touch;
 		gib->flags |= FL_ALWAYS_TOUCH;
 	} else {
-		gib->touch = GibTouch;
+		gib->touch = type ? nullptr : GibTouch;
 		gib->flags |= FL_ALWAYS_TOUCH;
 	}
 
@@ -1002,6 +1096,14 @@ static DIE(func_explosive_explode) (gentity_t *self, gentity_t *inflictor, genti
 	if (self->noise_index)
 		gi.positioned_sound(self->s.origin, self, CHAN_AUTO, self->noise_index, 1, ATTN_NORM, 0);
 
+	if (deathmatch->integer && self->saved) {
+		gentity_t *respawner = Spawn();
+		respawner->think = Respawn_Think;
+		respawner->nextThink = level.time + 1_min;
+		respawner->saved = self->saved;
+		self->saved = nullptr;
+	}
+
 	if (self->dmg)
 		BecomeExplosion1(self);
 	else
@@ -1128,6 +1230,14 @@ static THINK(barrel_explode) (gentity_t *self) -> void {
 		{ 4, "models/objects/debris3/tris.md2", GIB_METALLIC | GIB_DEBRIS },
 		{ 8, "models/objects/debris2/tris.md2", GIB_METALLIC | GIB_DEBRIS }
 		});
+
+	if (deathmatch->integer && self->saved) {
+		gentity_t *respawner = Spawn();
+		respawner->think = Respawn_Think;
+		respawner->nextThink = level.time + 1_min;
+		respawner->saved = self->saved;
+		self->saved = nullptr;
+	}
 
 	if (self->groundEntity)
 		BecomeExplosion2(self);

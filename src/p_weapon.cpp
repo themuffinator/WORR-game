@@ -2516,7 +2516,7 @@ RAILGUN
 */
 
 static void Weapon_Railgun_Fire(gentity_t *ent) {
-	int damage = deathmatch->integer ? 100 : 150;
+	int damage = deathmatch->integer ? 80 : 150;
 	int kick = damage;
 
 	if (is_quad) {

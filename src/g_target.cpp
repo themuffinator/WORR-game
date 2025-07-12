@@ -2393,7 +2393,7 @@ If no target set, it will find a player spawn point instead.
 */
 
 static USE(target_teleporter_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
-	if (!activator || !activator->client)
+	if (!activator || (!activator->client && Q_strcasecmp(activator->className, "grenade")))
 		return;
 
 	// no target point to teleport to, teleport to a spawn point
@@ -2406,20 +2406,15 @@ static USE(target_teleporter_use) (gentity_t *ent, gentity_t *other, gentity_t *
 }
 
 void SP_target_teleporter(gentity_t *ent) {
-	
-	if (!ent->target[0]) {
-		//gi.Com_PrintFmt("{}: Couldn't find teleporter destination, removing.\n", ent);
-		//FreeEntity(ent);
-		//return;
+	if (ent->target && ent->target[0]) {
+		ent->target_ent = PickTarget(ent->target);
+		if (!ent->target_ent) {
+			gi.Com_PrintFmt("{}: Couldn't find teleporter destination, removing.\n", *ent);
+			FreeEntity(ent);
+			return;
+		}
 	}
 	
-	ent->target_ent = PickTarget(ent->target);
-	if (!ent->target_ent) {
-		//gi.Com_PrintFmt("{}: Couldn't find teleporter destination, removing.\n", ent);
-		//FreeEntity(ent);
-		//return;
-	}
-
 	ent->use = target_teleporter_use;
 }
 

@@ -1123,8 +1123,8 @@ void BroadcastReadyReminderMessage() {
 			continue;
 		if (ec->client->pers.readyStatus)
 			continue;
-		//gi.LocCenter_Print(ec, "%bind:+wheel2:Use Compass to toggle your ready status.%MATCH IS IN WARMUP\nYou are NOT ready.");
-		gi.LocCenter_Print(ec, "%bind:+wheel2:$map_item_wheel%Use Compass to Ready.\nMATCH IS IN WARMUP\nYou are NOT ready.");
+		//gi.LocCenter_Print(ec, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\nYou are NOT ready.");
+		gi.LocCenter_Print(ec, "%bind:+wheel2:$map_item_wheel%Use Compass to Ready.\n.MATCH IS IN WARMUP\nYou are NOT ready.");
 	}
 }
 

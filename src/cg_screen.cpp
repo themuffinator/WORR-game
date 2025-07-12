@@ -399,7 +399,13 @@ void CG_ParseCenterPrint(const char *str, int isplit, bool instant) {
 		input.remove_prefix(end + 1);
 	}
 
-	const bool suppressPrint = input.starts_with("You fragged");
+	bool suppressPrint = false;
+
+	// Check for suppression condition
+	if (input.starts_with(".")) {
+		suppressPrint = true;
+		input.remove_prefix(1); // skip the period
+	}
 
 	// Optional console centerprint
 	if (!suppressPrint) {

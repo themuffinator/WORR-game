@@ -910,7 +910,7 @@ struct fire_rail_pierce_t : pierce_args_t {
 			self->skip = false;
 			// try to kill it first
 			if ((tr.ent != self) && (tr.ent->takeDamage))
-				Damage(tr.ent, self, self, aimDir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_NONE | DAMAGE_STAT_ONCE, MOD_RAILGUN);
+				Damage(tr.ent, self, self, aimDir, tr.endpos, tr.plane.normal, damage, kick, DAMAGE_ENERGY | DAMAGE_STAT_ONCE, MOD_RAILGUN);
 
 			// dead, so we don't need to care about checking pierce
 			if (!tr.ent->inUse || (!tr.ent->solid || tr.ent->solid == SOLID_TRIGGER))

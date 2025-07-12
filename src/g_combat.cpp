@@ -484,10 +484,6 @@ void Damage(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, const ve
 	if (!targ->takeDamage)
 		return;
 
-	if (g_instagib->integer && attacker->client && targ->client) {
-		// [Kex] always kill no matter what on instagib
-		damage = 9999;
-	}
 	sphere_notified = false;
 
 	// friendly fire avoidance
@@ -554,6 +550,10 @@ void Damage(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, const ve
 		if ((targ->flags & FL_NO_KNOCKBACK) ||
 			((targ->flags & FL_ALIVE_KNOCKBACK_ONLY) && (!targ->deadFlag || targ->dead_time != level.time)))
 			knockback = 0;
+
+	if (g_instagib->integer && attacker->client && targ->client && mod.id == MOD_RAILGUN) {
+		knockback = 100;
+	}
 
 	// figure momentum add, even if the damage won't be taken
 	if (!(dFlags & DAMAGE_NO_KNOCKBACK)) {
@@ -808,6 +808,10 @@ void Damage(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, const ve
 				if (targ->health <= 0 && targ->client->pers.healthBonus > 0)
 					targ->client->pers.healthBonus = 0;
 			}
+		}
+
+		if (g_instagib->integer && attacker->client && targ->client && mod.id == MOD_RAILGUN) {
+			targ->health = -GIB_HEALTH;
 		}
 
 		if ((targ->flags & FL_IMMORTAL) && targ->health <= 0)

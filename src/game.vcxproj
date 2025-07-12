@@ -166,6 +166,7 @@
     <ClCompile Include="cg_screen.cpp" />
     <ClCompile Include="g_ai.cpp" />
     <ClCompile Include="g_ai_new.cpp" />
+    <ClCompile Include="g_horde.cpp" />
     <ClCompile Include="g_spectator.cpp" />
     <ClCompile Include="g_client_cfg.cpp" />
     <ClCompile Include="g_cmds.cpp" />
