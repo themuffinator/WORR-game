@@ -527,7 +527,7 @@ MONSTERINFO_STAND(insane_stand) (gentity_t *self) -> void {
 	if (self->spawnflags.has(SPAWNFLAG_INSANE_CRUCIFIED)) // If crucified
 	{
 		M_SetAnimation(self, &insane_move_cross);
-		self->monsterInfo.aiflags |= AI_STAND_GROUND;
+		self->monsterInfo.aiFlags |= AI_STAND_GROUND;
 	}
 	// If Hold_Ground and Crawl are set
 	else if (self->spawnflags.has_all(SPAWNFLAG_INSANE_CRAWL | SPAWNFLAG_INSANE_STAND_GROUND)) {
@@ -623,12 +623,12 @@ void SP_misc_insane(gentity_t *self) {
 	self->monsterInfo.attack = nullptr;
 	self->monsterInfo.melee = nullptr;
 	self->monsterInfo.sight = nullptr;
-	self->monsterInfo.aiflags |= AI_GOOD_GUY;
+	self->monsterInfo.aiFlags |= AI_GOOD_GUY;
 
 	gi.linkentity(self);
 
 	if (self->spawnflags.has(SPAWNFLAG_INSANE_STAND_GROUND)) // Stand Ground
-		self->monsterInfo.aiflags |= AI_STAND_GROUND;
+		self->monsterInfo.aiFlags |= AI_STAND_GROUND;
 
 	M_SetAnimation(self, &insane_move_stand_normal);
 

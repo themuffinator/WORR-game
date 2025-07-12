@@ -32,9 +32,9 @@ static cached_soundindex sound_death_hit;
 void MakronToss(gentity_t *self);
 
 static void jorg_attack1_end_sound(gentity_t *self) {
-	if (self->monsterInfo.weapon_sound) {
+	if (self->monsterInfo.weaponSound) {
 		gi.sound(self, CHAN_WEAPON, sound_attack1_end, 1, ATTN_NORM, 0);
-		self->monsterInfo.weapon_sound = 0;
+		self->monsterInfo.weaponSound = 0;
 	}
 }
 
@@ -187,7 +187,7 @@ MONSTERINFO_WALK(jorg_walk) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(jorg_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &jorg_move_stand);
 	else
 		M_SetAnimation(self, &jorg_move_run);
@@ -461,7 +461,7 @@ void jorg_firebullet(gentity_t *self) {
 MONSTERINFO_ATTACK(jorg_attack) (gentity_t *self) -> void {
 	if (frandom() <= 0.75f) {
 		gi.sound(self, CHAN_WEAPON, sound_attack1, 1, ATTN_NORM, 0);
-		self->monsterInfo.weapon_sound = gi.soundindex("boss3/w_loop.wav");
+		self->monsterInfo.weaponSound = gi.soundindex("boss3/w_loop.wav");
 		M_SetAnimation(self, &jorg_move_start_attack1);
 	} else {
 		gi.sound(self, CHAN_VOICE, sound_attack2, 1, ATTN_NORM, 0);
@@ -569,7 +569,7 @@ void SP_monster_jorg(gentity_t *self) {
 	self->monsterInfo.search = jorg_search;
 	self->monsterInfo.melee = nullptr;
 	self->monsterInfo.sight = nullptr;
-	self->monsterInfo.checkattack = Jorg_CheckAttack;
+	self->monsterInfo.checkAttack = Jorg_CheckAttack;
 	self->monsterInfo.setskin = jorg_setskin;
 	gi.linkentity(self);
 
@@ -578,7 +578,7 @@ void SP_monster_jorg(gentity_t *self) {
 
 	walkmonster_start(self);
 	// PMM
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 	// pmm
-	self->monsterInfo.aiflags |= AI_DOUBLE_TROUBLE;
+	self->monsterInfo.aiFlags |= AI_DOUBLE_TROUBLE;
 }

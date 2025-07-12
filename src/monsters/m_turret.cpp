@@ -164,7 +164,7 @@ void TurretAim(gentity_t *self) {
 	// adjust pitch
 	//
 	current = self->s.angles[PITCH];
-	speed = self->yaw_speed / (gi.tick_rate / 10);
+	speed = self->yaw_speed / (static_cast<float>(gi.tick_rate) / 10.0f);
 
 	if (idealPitch != current) {
 		move = idealPitch - current;
@@ -288,7 +288,7 @@ MMOVE_T(turret_move_ready_gun) = { FRAME_active01, FRAME_run01, turret_frames_re
 void turret_ready_gun(gentity_t *self) {
 	if (self->monsterInfo.active_move != &turret_move_ready_gun) {
 		M_SetAnimation(self, &turret_move_ready_gun);
-		self->monsterInfo.weapon_sound = sound_moving;
+		self->monsterInfo.weaponSound = sound_moving;
 	}
 }
 
@@ -315,11 +315,11 @@ MONSTERINFO_RUN(turret_run) (gentity_t *self) -> void {
 	if (self->s.frame < FRAME_run01)
 		turret_ready_gun(self);
 	else {
-		self->monsterInfo.aiflags |= AI_HIGH_TICK_RATE;
+		self->monsterInfo.aiFlags |= AI_HIGH_TICK_RATE;
 		M_SetAnimation(self, &turret_move_run);
 
-		if (self->monsterInfo.weapon_sound) {
-			self->monsterInfo.weapon_sound = 0;
+		if (self->monsterInfo.weaponSound) {
+			self->monsterInfo.weaponSound = 0;
 			gi.sound(self, CHAN_WEAPON, sound_moved, 1.0f, ATTN_NORM, 0.f);
 		}
 	}
@@ -346,7 +346,7 @@ static void TurretFire(gentity_t *self) {
 	if (!self->enemy || !self->enemy->inUse)
 		return;
 
-	if (self->monsterInfo.aiflags & AI_LOST_SIGHT)
+	if (self->monsterInfo.aiFlags & AI_LOST_SIGHT)
 		end = self->monsterInfo.blind_fire_target;
 	else
 		end = self->enemy->s.origin;
@@ -370,7 +370,7 @@ static void TurretFire(gentity_t *self) {
 		start = self->s.origin;
 
 		// aim for the head.
-		if (!(self->monsterInfo.aiflags & AI_LOST_SIGHT)) {
+		if (!(self->monsterInfo.aiFlags & AI_LOST_SIGHT)) {
 			if ((self->enemy) && (self->enemy->client))
 				end[2] += self->enemy->viewHeight;
 			else
@@ -382,7 +382,7 @@ static void TurretFire(gentity_t *self) {
 
 		// check for predictive fire
 		// Paril: adjusted to be a bit more fair
-		if (!(self->monsterInfo.aiflags & AI_LOST_SIGHT)) {
+		if (!(self->monsterInfo.aiFlags & AI_LOST_SIGHT)) {
 			// on harder difficulties, randomly fire directly at enemy
 			// more often; makes them more unpredictable
 			if (self->spawnflags.has(SPAWNFLAG_TURRET_MACHINEGUN))
@@ -397,8 +397,8 @@ static void TurretFire(gentity_t *self) {
 			if (self->spawnflags.has(SPAWNFLAG_TURRET_BLASTER))
 				monster_fire_blaster(self, start, dir, TURRET_BLASTER_DAMAGE, rocketSpeed, MZ2_TURRET_BLASTER, EF_BLASTER);
 			else if (self->spawnflags.has(SPAWNFLAG_TURRET_MACHINEGUN)) {
-				if (!(self->monsterInfo.aiflags & AI_HOLD_FRAME)) {
-					self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+				if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME)) {
+					self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 					self->monsterInfo.duck_wait_time = level.time + 2_sec + gtime_t::from_sec(frandom(skill->value));
 					self->monsterInfo.next_duck_time = level.time + 1_sec;
 					gi.sound(self, CHAN_VOICE, gi.soundindex("weapons/chngnu1a.wav"), 1, ATTN_NORM, 0);
@@ -410,7 +410,7 @@ static void TurretFire(gentity_t *self) {
 					}
 
 					if (self->monsterInfo.duck_wait_time < level.time)
-						self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+						self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 				}
 			} else if (self->spawnflags.has(SPAWNFLAG_TURRET_ROCKET)) {
 				if (dist * trace.fraction > 72)
@@ -657,7 +657,7 @@ MOVEINFO_ENDFUNC(turret_wake) (gentity_t *ent) -> void {
 	ent->takeDamage = true;
 	ent->moveType = MOVETYPE_NONE;
 	// prevent counting twice
-	ent->monsterInfo.aiflags |= AI_DO_NOT_COUNT;
+	ent->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
 	gi.linkentity(ent);
 
@@ -670,7 +670,7 @@ MOVEINFO_ENDFUNC(turret_wake) (gentity_t *ent) -> void {
 	}
 
 	// but we do want the death to count
-	ent->monsterInfo.aiflags &= ~AI_DO_NOT_COUNT;
+	ent->monsterInfo.aiFlags &= ~AI_DO_NOT_COUNT;
 }
 
 static USE(turret_activate) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
@@ -720,7 +720,7 @@ static USE(turret_activate) (gentity_t *self, gentity_t *other, gentity_t *activ
 	}
 }
 
-// checkattack .. ignore range, just attack if available
+// checkAttack .. ignore range, just attack if available
 MONSTERINFO_CHECKATTACK(turret_checkattack) (gentity_t *self) -> bool {
 	vec3_t	spot1, spot2;
 	float	chance;
@@ -866,9 +866,9 @@ void SP_monster_turret(gentity_t *self) {
 		M_SetAnimation(self, &turret_move_stand);
 	}
 
-	self->monsterInfo.checkattack = turret_checkattack;
+	self->monsterInfo.checkAttack = turret_checkattack;
 
-	self->monsterInfo.aiflags |= AI_MANUAL_STEERING;
+	self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 	self->monsterInfo.scale = MODEL_SCALE;
 	self->gravity = 0;
 
@@ -912,7 +912,7 @@ void SP_monster_turret(gentity_t *self) {
 		self->takeDamage = false;
 		self->use = turret_activate;
 		turret_wall_spawn(self);
-		if (!(self->monsterInfo.aiflags & AI_DO_NOT_COUNT)) {
+		if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT)) {
 			if (g_debug_monster_kills->integer)
 				level.monstersRegistered[level.totalMonsters] = self;
 			level.totalMonsters++;
@@ -946,7 +946,7 @@ void SP_monster_turret(gentity_t *self) {
 	}
 
 	// turrets don't get mad at monsters, and visa versa
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 	// blindfire
 	if (self->spawnflags.has(SPAWNFLAG_TURRET_ROCKET | SPAWNFLAG_TURRET_BLASTER))
 		self->monsterInfo.blindfire = true;

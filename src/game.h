@@ -2,7 +2,7 @@
 // Licensed under the GNU General Public License 2.0.
 
 // game.h - game API stuff
-#pragma once
+//#pragma once
 
 #include <array>
 #include <limits.h>
@@ -495,7 +495,7 @@ struct pmove_t {
 // that happen constantly on the given entity.
 // An entity that has effects will be sent to the client
 // even if it has a zero index model.
-enum effects_t : uint64_t {
+enum Effect : uint64_t {
 	EF_NONE = 0,           // no effects
 	EF_ROTATE = bit_v<0>,  // rotate (bonus items)
 	EF_GIB = bit_v<1>,  // leave a trail
@@ -537,10 +537,10 @@ enum effects_t : uint64_t {
 	EF_GRENADE_LIGHT = bit_v<37>
 };
 
-MAKE_ENUM_BITFLAGS(effects_t);
+MAKE_ENUM_BITFLAGS(Effect);
 
-constexpr effects_t EF_FIREBALL = EF_ROCKET | EF_GIB;
-constexpr effects_t EF_DM_FIREBALL = EF_GIB;
+constexpr Effect EF_FIREBALL = EF_ROCKET | EF_GIB;
+constexpr Effect EF_DM_FIREBALL = EF_GIB;
 
 // entity_state_t->renderfx flags
 enum renderfx_t : uint32_t {
@@ -1207,13 +1207,17 @@ constexpr size_t CS_MAX_STRING_LENGTH_OLD = 64;
 // for the given configstring at the specified id
 // since vanilla didn't do a very good job of size checking
 constexpr size_t CS_SIZE(int32_t in) {
-	if (in >= CS_STATUSBAR && in < CS_AIRACCEL)
-		return CS_MAX_STRING_LENGTH * (CS_AIRACCEL - in);
-	else if (in >= CS_GENERAL && in < CS_WHEEL_WEAPONS)
-		return CS_MAX_STRING_LENGTH * (MAX_CONFIGSTRINGS - in);
+	if (in >= CS_STATUSBAR && in < CS_AIRACCEL) {
+		return static_cast<size_t>(CS_MAX_STRING_LENGTH) *
+			static_cast<size_t>(CS_AIRACCEL - in);
+	} else if (in >= CS_GENERAL && in < CS_WHEEL_WEAPONS) {
+		return static_cast<size_t>(CS_MAX_STRING_LENGTH) *
+			static_cast<size_t>(MAX_CONFIGSTRINGS - in);
+	}
 
-	return CS_MAX_STRING_LENGTH;
+	return static_cast<size_t>(CS_MAX_STRING_LENGTH);
 }
+
 
 constexpr size_t MAX_MODELS_OLD = 256, MAX_SOUNDS_OLD = 256, MAX_IMAGES_OLD = 256;
 
@@ -1335,7 +1339,7 @@ struct entity_state_t {
 	int32_t        modelindex2, modelindex3, modelindex4; // weapons, CTF flags, etc
 	int32_t        frame;
 	int32_t        skinnum;
-	effects_t      effects; // PGM - we're filling it, so it needs to be unsigned
+	Effect      effects; // PGM - we're filling it, so it needs to be unsigned
 	renderfx_t     renderfx;
 	uint32_t       solid;   // for client side prediction
 	int32_t        sound;   // for looping sounds, to guarantee shutoff
@@ -1646,7 +1650,7 @@ static constexpr int32_t    Item_UnknownRespawnTime = INT_MAX;
 static constexpr int32_t    Item_Invalid = -1;
 static constexpr int32_t    Item_Null = 0;
 
-enum g_ent_flags_t : uint64_t {
+enum sv_ent_flags_t : uint64_t {
 	SVFL_NONE = 0, // no flags
 	SVFL_ONGROUND = bit_v< 0 >,
 	SVFL_HAS_DMG_BOOST = bit_v< 1 >,
@@ -1680,7 +1684,7 @@ enum g_ent_flags_t : uint64_t {
 	SVFL_IS_SPECTATOR = bit_v< 29 >,
 	SVFL_IN_TEAM = bit_v< 30 >
 };
-MAKE_ENUM_BITFLAGS(g_ent_flags_t);
+MAKE_ENUM_BITFLAGS(sv_ent_flags_t);
 
 static constexpr int Max_Armor_Types = 3;
 
@@ -1690,9 +1694,9 @@ struct armorInfo_t {
 };
 
 // Used by AI/Tools on the engine side...
-struct g_entity_t {
+struct sv_entity_t {
 	bool                        init;
-	g_ent_flags_t              ent_flags;
+	sv_ent_flags_t              ent_flags;
 	button_t                    buttons;
 	uint32_t	                spawnflags;
 	int32_t                     item_id;
@@ -1734,13 +1738,13 @@ struct entity_shared_t
 	// of gclient_t to be a player_state_t
 	// but the rest of it is opaque
 
-	g_entity_t sv;        // read only info about this entity for the server
+	sv_entity_t sv;        // read only info about this entity for the server
 
 	bool     inUse;
 
 	// world linkage data
 	bool     linked;
-	int32_t	 linkcount;
+	int32_t	 linkCount;
 	int32_t  areanum, areanum2;
 
 	svflags_t  svFlags;
@@ -1766,7 +1770,7 @@ struct entity_shared_t
     CHECK_INTEGRITY(gentity_t, entity_shared_t, sv);           \
     CHECK_INTEGRITY(gentity_t, entity_shared_t, inUse);        \
     CHECK_INTEGRITY(gentity_t, entity_shared_t, linked);       \
-    CHECK_INTEGRITY(gentity_t, entity_shared_t, linkcount);    \
+    CHECK_INTEGRITY(gentity_t, entity_shared_t, linkCount);    \
     CHECK_INTEGRITY(gentity_t, entity_shared_t, areanum);      \
     CHECK_INTEGRITY(gentity_t, entity_shared_t, areanum2);     \
     CHECK_INTEGRITY(gentity_t, entity_shared_t, svFlags);      \
@@ -2001,7 +2005,7 @@ struct game_export_t {
 	void (*Shutdown)();
 
 	// each new level entered will cause a call to SpawnEntities
-	void (*SpawnEntities)(const char *mapname, const char *entstring, const char *spawnpoint);
+	void (*SpawnEntities)(const char *mapname, const char *entString, const char *spawnpoint);
 
 	// Read/Write Game is for storing persistant cross level information
 	// about the world state and the clients.

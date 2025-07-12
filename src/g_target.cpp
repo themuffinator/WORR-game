@@ -203,7 +203,7 @@ void G_PlayerNotifyGoal(gentity_t *player) {
 
 	if (!player->client->pers.spawned)
 		return;
-	else if ((level.time - player->client->resp.enter_time) < 300_ms)
+	else if ((level.time - player->client->resp.enterTime) < 300_ms)
 		return;
 
 	// N64 goals
@@ -366,52 +366,18 @@ static USE(use_target_changelevel) (gentity_t *self, gentity_t *other, gentity_t
 			return;
 
 	// if noexit, do a ton of damage to other
-	if (deathmatch->integer && notGT(GT_RACE) && other != world) {
+	if (deathmatch->integer && other != world) {
 		Damage(other, self, self, vec3_origin, other->s.origin, vec3_origin, 10 * other->max_health, 1000, DAMAGE_NONE, MOD_EXIT);
 		return;
 	}
 
 	// if multiplayer, let everyone know who hit the exit
 	if (deathmatch->integer) {
-		if (g_gametype->integer == GT_RACE) {
-			if (!CombatIsDisabled()) {
-				if (level.match_state == MatchState::MATCH_IN_PROGRESS) {
-					int oldScore = activator->client->resp.score;
-					int new_score = (level.time - activator->client->respawn_time).milliseconds();
-					bool pb = !oldScore || new_score < oldScore;
-					if (pb) {
-						G_SetPlayerScore(activator->client, (level.time - activator->client->respawn_time).milliseconds());
-						gi.sound(activator, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundindex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
-					}
-					gi.LocClient_Print(activator, PRINT_CENTER, "{}{}", TimeString(new_score, true, false), pb ? " (PB)" : "");
-				} else {
-					gi.LocClient_Print(activator, PRINT_CENTER, "{}", TimeString((level.time - activator->client->respawn_time).milliseconds(), true, false));
-				}
-				ClientSpawn(activator);
-				G_PostRespawn(activator);
-
-				activator->client->pers.last_spawn_time = level.time;
-
-				gtime_t clock = timelimit->value ? (level.matchStartTime + gtime_t::from_min(timelimit->value) + level.overtime - level.time) : level.time - level.matchStartTime;
-				int	t = clock.milliseconds();
-				const char *s, *s1, *s2 = "";
-
-				int t2 = (level.time - activator->client->pers.last_spawn_time).milliseconds();
-				s1 = G_Fmt("{} ({})", TimeString(t, false, false), TimeString(t2, true, false)).data();
-
-				s = G_Fmt("{}{}", s1, s2).data();
-
-				activator->client->ps.stats[STAT_MATCH_STATE] = CONFIG_MATCH_STATE;
-				gi.configstring(CONFIG_MATCH_STATE, s);
-			}
+		if (level.time < 10_sec)
 			return;
-		} else {
-			if (level.time < 10_sec)
-				return;
 
-			if (activator && activator->client)
-				gi.LocBroadcast_Print(PRINT_HIGH, "$g_exited_level", activator->client->sess.netName);
-		}
+		if (activator && activator->client)
+			gi.LocBroadcast_Print(PRINT_HIGH, "$g_exited_level", activator->client->sess.netName);
 	}
 
 	// if going to a new unit, clear cross triggers
@@ -536,7 +502,7 @@ static USE(use_target_spawner) (gentity_t *self, gentity_t *other, gentity_t *ac
 	// [Paril-KEX] although I fixed these in our maps, this is just
 	// in case anybody else does this by accident. Don't count these monsters
 	// so they don't inflate the monster count.
-	ent->monsterInfo.aiflags |= AI_DO_NOT_COUNT;
+	ent->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
 	ED_CallSpawn(ent);
 	gi.linkentity(ent);
@@ -570,7 +536,7 @@ constexpr spawnflags_t SPAWNFLAG_BLASTER_NOTRAIL = 1_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_BLASTER_NOEFFECTS = 2_spawnflag;
 
 static USE(use_target_blaster) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
-	effects_t effect;
+	Effect effect;
 
 	if (self->spawnflags.has(SPAWNFLAG_BLASTER_NOEFFECTS))
 		effect = EF_NONE;
@@ -841,37 +807,29 @@ message		two letters; starting lightlevel and ending lightlevel
 
 constexpr spawnflags_t SPAWNFLAG_LIGHTRAMP_TOGGLE = 1_spawnflag;
 
-static THINK(target_lightramp_think) (gentity_t *self) -> void {
-	char style[2];
+static THINK(Target_Lightramp_Think) (gentity_t *self) -> void {
+	char style[2]{};
 
-	style[0] = (char)('a' + self->movedir[0] + ((level.time - self->timeStamp) / gi.frame_time_s).seconds() * self->movedir[2]);
-	style[1] = 0;
+	const float delta = ((level.time - self->timeStamp) / gi.frame_time_s).seconds();
+	const int step = static_cast<int>(self->movedir[0] + delta * self->movedir[2]);
+
+	style[0] = static_cast<char>('a' + step);
+	style[1] = '\0';
 
 	gi.configstring(CS_LIGHTS + self->enemy->style, style);
 
 	if ((level.time - self->timeStamp).seconds() < self->speed) {
 		self->nextThink = level.time + FRAME_TIME_S;
 	} else if (self->spawnflags.has(SPAWNFLAG_LIGHTRAMP_TOGGLE)) {
-		char temp;
-
-		temp = (char)self->movedir[0];
-		self->movedir[0] = self->movedir[1];
-		self->movedir[1] = temp;
+		std::swap(self->movedir[0], self->movedir[1]);
 		self->movedir[2] *= -1;
 	}
 }
 
-static USE(target_lightramp_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(Target_Lightramp_Use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	if (!self->enemy) {
-		gentity_t *e;
-
-		// check all the targets
-		e = nullptr;
-		while (1) {
-			e = G_FindByString<&gentity_t::targetname>(e, self->target);
-			if (!e)
-				break;
-			if (strcmp(e->className, "light") != 0) {
+		for (gentity_t *e = nullptr; (e = G_FindByString<&gentity_t::targetname>(e, self->target)); ) {
+			if (std::strcmp(e->className, "light") != 0) {
 				gi.Com_PrintFmt("{}: target {} ({}) is not a light\n", *self, self->target, *e);
 			} else {
 				self->enemy = e;
@@ -886,11 +844,14 @@ static USE(target_lightramp_use) (gentity_t *self, gentity_t *other, gentity_t *
 	}
 
 	self->timeStamp = level.time;
-	target_lightramp_think(self);
+	Target_Lightramp_Think(self);
 }
 
 void SP_target_lightramp(gentity_t *self) {
-	if (!self->message || strlen(self->message) != 2 || self->message[0] < 'a' || self->message[0] > 'z' || self->message[1] < 'a' || self->message[1] > 'z' || self->message[0] == self->message[1]) {
+	if (!self->message || std::strlen(self->message) != 2 ||
+		self->message[0] < 'a' || self->message[0] > 'z' ||
+		self->message[1] < 'a' || self->message[1] > 'z' ||
+		self->message[0] == self->message[1]) {
 		gi.Com_PrintFmt("{}: bad ramp ({})\n", *self, self->message ? self->message : "null string");
 		FreeEntity(self);
 		return;
@@ -908,12 +869,14 @@ void SP_target_lightramp(gentity_t *self) {
 	}
 
 	self->svFlags |= SVF_NOCLIENT;
-	self->use = target_lightramp_use;
-	self->think = target_lightramp_think;
+	self->use = Target_Lightramp_Use;
+	self->think = Target_Lightramp_Think;
 
-	self->movedir[0] = (float)(self->message[0] - 'a');
-	self->movedir[1] = (float)(self->message[1] - 'a');
-	self->movedir[2] = (self->movedir[1] - self->movedir[0]) / (self->speed / gi.frame_time_s);
+	const float a = static_cast<float>(self->message[0] - 'a');
+	const float b = static_cast<float>(self->message[1] - 'a');
+	self->movedir[0] = a;
+	self->movedir[1] = b;
+	self->movedir[2] = (b - a) / (self->speed / gi.frame_time_s);
 }
 
 //==========================================================
@@ -980,7 +943,7 @@ static USE(target_earthquake_use) (gentity_t *self, gentity_t *other, gentity_t 
 		else
 			self->nextThink = level.time + FRAME_TIME_S;
 
-		self->style = !self->style;
+		self->style = ~self->style;
 	} else {
 		self->nextThink = level.time + FRAME_TIME_S;
 		self->last_move_time = 0_ms;
@@ -1093,8 +1056,8 @@ static THINK(update_target_camera) (gentity_t *self) -> void {
 			delta *= frac;
 			vec3_t newpos = self->s.origin + delta;
 
-			camera_lookat_pathtarget(self, newpos, &level.intermissionAngle);
-			level.intermissionOrigin = newpos;
+			camera_lookat_pathtarget(self, newpos, &level.intermission.angles);
+			level.intermission.origin = newpos;
 			level.spawnSpots[SPAWN_SPOT_INTERMISSION] = self;
 			level.spawnSpots[SPAWN_SPOT_INTERMISSION]->s.origin += delta;
 
@@ -1110,18 +1073,18 @@ static THINK(update_target_camera) (gentity_t *self) -> void {
 
 			gentity_t *t = nullptr;
 			level.intermissionTime = 0_ms;
-			level.levelIntermissionSet = true;
+			level.intermission.set = true;
 
 			while ((t = G_FindByString<&gentity_t::targetname>(t, self->killtarget))) {
 				t->use(t, self, self->activator);
 			}
 
 			level.intermissionTime = level.time;
-			level.intermission_server_frame = gi.ServerFrame();
+			level.intermission.serverFrame = gi.ServerFrame();
 
 			// end of unit requires a wait
 			if (level.changeMap && !strchr(level.changeMap, '*'))
-				level.intermissionPreExit = true;
+				level.intermission.preExit = true;
 		}
 
 		self->think = nullptr;
@@ -1131,16 +1094,16 @@ static THINK(update_target_camera) (gentity_t *self) -> void {
 	self->nextThink = level.time + FRAME_TIME_S;
 }
 
-void G_SetClientFrame(gentity_t *ent);
+void ClientSetFrame(gentity_t *ent);
 
-extern float xyspeed;
+extern float xySpeed;
 
 static THINK(target_camera_dummy_think) (gentity_t *self) -> void {
 	// bit of a hack, but this will let the dummy
 	// move like a player
 	self->client = self->owner->client;
-	xyspeed = sqrtf(self->velocity[0] * self->velocity[0] + self->velocity[1] * self->velocity[1]);
-	G_SetClientFrame(self);
+	xySpeed = sqrtf(self->velocity[0] * self->velocity[0] + self->velocity[1] * self->velocity[1]);
+	ClientSetFrame(self);
 	self->client = nullptr;
 
 	// alpha fade out for voops
@@ -1165,8 +1128,8 @@ static USE(use_target_camera) (gentity_t *self, gentity_t *other, gentity_t *act
 		return;
 
 	level.intermissionTime = level.time;
-	level.intermission_server_frame = gi.ServerFrame();
-	level.intermissionPreExit = false;
+	level.intermission.serverFrame = gi.ServerFrame();
+	level.intermission.preExit = false;
 
 	// spawn fake player dummy where we were
 	if (activator->client) {
@@ -1176,7 +1139,7 @@ static USE(use_target_camera) (gentity_t *self, gentity_t *other, gentity_t *act
 		dummy->s.origin = activator->s.origin;
 		dummy->s.angles = activator->s.angles;
 		dummy->groundEntity = activator->groundEntity;
-		dummy->groundEntity_linkCount = dummy->groundEntity ? dummy->groundEntity->linkcount : 0;
+		dummy->groundEntity_linkCount = dummy->groundEntity ? dummy->groundEntity->linkCount : 0;
 		dummy->think = target_camera_dummy_think;
 		dummy->nextThink = level.time + 10_hz;
 		dummy->solid = SOLID_BBOX;
@@ -1191,8 +1154,8 @@ static USE(use_target_camera) (gentity_t *self, gentity_t *other, gentity_t *act
 		gi.linkentity(dummy);
 	}
 
-	camera_lookat_pathtarget(self, self->s.origin, &level.intermissionAngle);
-	level.intermissionOrigin = self->s.origin;
+	camera_lookat_pathtarget(self, self->s.origin, &level.intermission.angles);
+	level.intermission.origin = self->s.origin;
 	level.spawnSpots[SPAWN_SPOT_INTERMISSION] = self;
 
 	// move all clients to the intermission point
@@ -1220,7 +1183,7 @@ static USE(use_target_camera) (gentity_t *self, gentity_t *other, gentity_t *act
 	self->moveinfo.distance = self->moveinfo.remaining_distance;
 
 	if (self->hackflags & HACKFLAG_END_OF_UNIT)
-		G_EndOfUnitMessage();
+		EndOfUnitMessage();
 }
 
 void SP_target_camera(gentity_t *self) {
@@ -1324,7 +1287,7 @@ static THINK(target_light_think) (gentity_t *self) -> void {
 	float lerp;
 
 	if (!(self->spawnflags & SPAWNFLAG_TARGET_LIGHT_NO_LERP)) {
-		int32_t next_index = (index + 1) % strlen(style);
+		int32_t next_index = (index + 1) % static_cast<int32_t>(strlen(style));
 		char next_style_value = style[next_index];
 
 		float next_lerp = (float)(next_style_value - 'a') / (float)('z' - 'a');
@@ -1357,7 +1320,7 @@ static THINK(target_light_think) (gentity_t *self) -> void {
 }
 
 static USE(target_light_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
-	self->health = !self->health;
+	self->health = ~self->health;
 
 	if (self->health)
 		self->svFlags &= ~SVF_NOCLIENT;
@@ -1737,8 +1700,8 @@ void SP_target_autosave(gentity_t *self) {
 /*QUAKED target_sky (0 1 0) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Change sky parameters.
 "sky"	environment map name
-"skyaxis"	vector axis for rotating sky
-"skyrotate"	speed of rotation in degrees/second
+"skyAxis"	vector axis for rotating sky
+"skyRotate"	speed of rotation in degrees/second
 */
 
 static USE(use_target_sky) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
@@ -1768,17 +1731,17 @@ void SP_target_sky(gentity_t *self) {
 	self->use = use_target_sky;
 	if (st.was_key_specified("sky"))
 		self->map = st.sky;
-	if (st.was_key_specified("skyaxis")) {
+	if (st.was_key_specified("skyAxis")) {
 		self->count |= 4;
-		self->movedir = st.skyaxis;
+		self->movedir = st.skyAxis;
 	}
-	if (st.was_key_specified("skyrotate")) {
+	if (st.was_key_specified("skyRotate")) {
 		self->count |= 1;
-		self->accel = st.skyrotate;
+		self->accel = st.skyRotate;
 	}
-	if (st.was_key_specified("skyautorotate")) {
+	if (st.was_key_specified("skyAutoRotate")) {
 		self->count |= 2;
-		self->style = st.skyautorotate;
+		self->style = st.skyAutoRotate;
 	}
 }
 
@@ -1981,13 +1944,13 @@ good colors to use:
 
 static USE(use_target_steam) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	// FIXME - this needs to be a global
-	static int nextid;
+	static int nextID;
 	vec3_t	   point;
 
-	if (nextid > 20000)
-		nextid = nextid % 20000;
+	if (nextID > 20000)
+		nextID = nextID % 20000;
 
-	nextid++;
+	nextID++;
 
 	// automagically set wait from func_timer unless they set it already, or
 	// default to 1000 if not called by a func_timer (eek!)
@@ -2008,7 +1971,7 @@ static USE(use_target_steam) (gentity_t *self, gentity_t *other, gentity_t *acti
 	if (self->wait > 100) {
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_STEAM);
-		gi.WriteShort(nextid);
+		gi.WriteShort(nextID);
 		gi.WriteByte(self->count);
 		gi.WritePosition(self->s.origin);
 		gi.WriteDir(self->movedir);
@@ -2085,7 +2048,7 @@ static USE(target_anger_use) (gentity_t *self, gentity_t *other, gentity_t *acti
 	if (target && self->target) {
 		// Make whatever a "good guy" so the monster will try to kill it!
 		if (!(target->svFlags & SVF_MONSTER)) {
-			target->monsterInfo.aiflags |= AI_GOOD_GUY | AI_DO_NOT_COUNT;
+			target->monsterInfo.aiFlags |= AI_GOOD_GUY | AI_DO_NOT_COUNT;
 			target->svFlags |= SVF_MONSTER;
 			target->health = 300;
 		}
@@ -2100,7 +2063,7 @@ static USE(target_anger_use) (gentity_t *self, gentity_t *other, gentity_t *acti
 						return;
 
 					t->enemy = target;
-					t->monsterInfo.aiflags |= AI_TARGET_ANGER;
+					t->monsterInfo.aiFlags |= AI_TARGET_ANGER;
 					FoundTarget(t);
 				}
 			}
@@ -2236,15 +2199,7 @@ static USE(target_remove_powerups_use) (gentity_t *ent, gentity_t *other, gentit
 	if (!activator->client)
 		return;
 
-	activator->client->pu_time_quad = 0_sec;
-	activator->client->pu_time_haste = 0_sec;
-	activator->client->pu_time_double = 0_sec;
-	activator->client->pu_time_battlesuit = 0_sec;
-	activator->client->pu_time_invisibility = 0_sec;
-	activator->client->pu_time_regeneration = 0_sec;
-	activator->client->pu_time_rebreather = 0_sec;
-	activator->client->pu_time_enviro = 0_sec;
-	activator->client->pu_time_spawn_protection = 0_sec;
+	activator->client->powerupTime = {};
 
 	activator->client->pers.ammoMax.fill(50);
 	activator->client->pers.ammoMax[AMMO_SHELLS] = 50;
@@ -2333,7 +2288,7 @@ static USE(target_remove_weapons_use) (gentity_t *ent, gentity_t *other, gentity
 	if (activator->client->newWeapon)
 		activator->client->pers.selected_item = activator->client->newWeapon->id;
 	activator->client->newWeapon = nullptr;
-	activator->client->pers.lastweapon = activator->client->pers.weapon;
+	activator->client->pers.lastWeapon = activator->client->pers.weapon;
 }
 
 void SP_target_remove_weapons(gentity_t *ent) {
@@ -2360,7 +2315,7 @@ void SP_target_give(gentity_t *ent) {
 		return;
 	}
 
-	gitem_t *it = FindItemByClassname(target_ent->className);
+	Item *it = FindItemByClassname(target_ent->className);
 	if (!it || !it->pickup) {
 		gi.Com_PrintFmt("{}: Targetted entity is not an item, removing.\n", *ent);
 		FreeEntity(ent);
@@ -2497,11 +2452,11 @@ static USE(target_cvar_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 	if (!activator || !activator->client)
 		return;
 
-	gi.cvar_set(st.cvar, st.cvarvalue);
+	gi.cvar_set(st.cvar, st.cvarValue);
 }
 
 void SP_target_cvar(gentity_t *ent) {
-	if (!st.cvar[0] || !st.cvarvalue[0]) {
+	if (!st.cvar[0] || !st.cvarValue[0]) {
 		FreeEntity(ent);
 		return;
 	}

@@ -358,7 +358,7 @@ TOUCH(blaster_touch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool 
 	FreeEntity(ent);
 }
 
-void fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect, mod_t mod) {
+void fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, Effect effect, mod_t mod) {
 	gentity_t *bolt;
 	trace_t	 tr;
 
@@ -457,7 +457,7 @@ static TOUCH(blaster2_touch) (gentity_t *self, gentity_t *other, const trace_t &
 	FreeEntity(self);
 }
 
-void fire_greenblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect, bool hyper) {
+void fire_greenblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, Effect effect, bool hyper) {
 	gentity_t *bolt;
 	trace_t	 tr;
 
@@ -502,7 +502,7 @@ void fire_greenblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, 
 fire_blueblaster
 =================
 */
-void fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect) {
+void fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, Effect effect) {
 	gentity_t *bolt;
 	trace_t	 tr;
 
@@ -735,7 +735,7 @@ void fire_handgrenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir
 	grenade->flags |= (FL_DODGE | FL_TRAP);
 
 	if (GT(GT_BALL)) {
-		gitem_t *it = GetItemByIndex(IT_BALL);
+		Item *it = GetItemByIndex(IT_BALL);
 		if (it)
 			Drop_Item(self, it);
 		//return;
@@ -783,7 +783,7 @@ void fire_handgrenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir
 fire_rocket
 =================
 */
-TOUCH(rocket_touch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(rocket_touch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
 	vec3_t origin;
 	if (other == ent->owner)
 		return;
@@ -1450,8 +1450,8 @@ void fire_plasmabeam(gentity_t *self, const vec3_t &start, const vec3_t &aimDir,
 // DISRUPTOR
 // *************************
 
-constexpr damageflags_t DISRUPTOR_DAMAGE_FLAGS = (DAMAGE_NO_POWER_ARMOR | DAMAGE_ENERGY | DAMAGE_NO_KNOCKBACK);
-constexpr damageflags_t DISRUPTOR_IMPACT_FLAGS = (DAMAGE_NO_POWER_ARMOR | DAMAGE_ENERGY);
+constexpr damageFlags_t DISRUPTOR_DAMAGE_FLAGS = (DAMAGE_NO_POWER_ARMOR | DAMAGE_ENERGY | DAMAGE_NO_KNOCKBACK);
+constexpr damageFlags_t DISRUPTOR_IMPACT_FLAGS = (DAMAGE_NO_POWER_ARMOR | DAMAGE_ENERGY);
 
 constexpr gtime_t DISRUPTOR_DAMAGE_TIME = 500_ms;
 
@@ -1934,7 +1934,7 @@ static TOUCH(prox_land) (gentity_t *ent, gentity_t *other, const trace_t &tr, bo
 		// Note that plane can be nullptr
 
 		// PMM - code stolen from g_phys (ClipVelocity)
-		vec3_t out;
+		vec3_t out{};
 		float  backoff, change;
 		int	   i;
 
@@ -2228,7 +2228,7 @@ void Nuke_Explode(gentity_t *ent) {
 	if (ent->teamMaster->client)
 		PlayerNoise(ent->teamMaster, ent->s.origin, PNOISE_IMPACT);
 
-	G_RadiusNukeDamage(ent, ent->teamMaster, dmg, ent, splashRadius, MOD_NUKE);
+	RadiusNukeDamage(ent, ent->teamMaster, dmg, ent, splashRadius, MOD_NUKE);
 
 	if (ent->dmg > NUKE_DAMAGE)
 		gi.sound(ent, CHAN_ITEM, gi.soundindex("items/damage3.wav"), 1, ATTN_NORM, 0);
@@ -2344,10 +2344,10 @@ static TOUCH(nuke_bounce) (gentity_t *ent, gentity_t *other, const trace_t &tr, 
 }
 
 void fire_nuke(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int speed) {
-	gentity_t *nuke;
-	vec3_t	 dir;
-	vec3_t	 forward, right, up;
-	int		 damage_modifier = PlayerDamageModifier(self);
+	gentity_t	*nuke;
+	vec3_t		dir;
+	vec3_t		forward, right, up;
+	uint8_t		damage_modifier = PlayerDamageModifier(self);
 
 	dir = vectoangles(aimDir);
 	AngleVectors(dir, forward, right, up);
@@ -2413,7 +2413,7 @@ static void tesla_remove(gentity_t *self) {
 			FreeEntity(cur);
 			cur = next;
 		}
-	} else if (self->air_finished)
+	} else if (self->airFinished)
 		gi.Com_Print("tesla_mine without a field!\n");
 
 	self->owner = self->teamMaster; // Going away, set the owner correctly.
@@ -2472,7 +2472,7 @@ static THINK(tesla_think_active) (gentity_t *self) -> void {
 	vec3_t	 dir, start;
 	trace_t	 tr;
 
-	if (level.time > self->air_finished) {
+	if (level.time > self->airFinished) {
 		tesla_remove(self);
 		return;
 	}
@@ -2585,7 +2585,7 @@ static THINK(tesla_activate) (gentity_t *self) -> void {
 	self->teamChain = trigger;
 	self->think = tesla_think_active;
 	self->nextThink = level.time + FRAME_TIME_S;
-	self->air_finished = level.time + TESLA_TIME_TO_LIVE;
+	self->airFinished = level.time + TESLA_TIME_TO_LIVE;
 }
 
 static THINK(tesla_think) (gentity_t *ent) -> void {
@@ -2728,7 +2728,7 @@ static TOUCH(ionripper_touch) (gentity_t *self, gentity_t *other, const trace_t 
 	FreeEntity(self);
 }
 
-void fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, effects_t effect) {
+void fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, Effect effect) {
 	gentity_t *ion;
 	trace_t	 tr;
 
@@ -2981,7 +2981,7 @@ static DIE(trap_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker
 }
 
 static void SP_item_foodcube(gentity_t *self) {
-	if (deathmatch->integer && g_no_health->integer) {
+	if (deathmatch->integer && !game.spawnHealth) {
 		FreeEntity(self);
 		return;
 	}

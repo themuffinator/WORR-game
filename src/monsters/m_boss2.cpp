@@ -446,7 +446,7 @@ MONSTERINFO_STAND(boss2_stand) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(boss2_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &boss2_move_stand);
 	else
 		M_SetAnimation(self, &boss2_move_run);
@@ -603,7 +603,7 @@ void SP_monster_boss2(gentity_t *self) {
 	else
 		gi.soundindex("infantry/infatck1.wav");
 
-	self->monsterInfo.weapon_sound = gi.soundindex("bosshovr/bhvengn1.wav");
+	self->monsterInfo.weaponSound = gi.soundindex("bosshovr/bhvengn1.wav");
 
 	self->moveType = MOVETYPE_STEP;
 	self->solid = SOLID_BBOX;
@@ -639,7 +639,7 @@ void SP_monster_boss2(gentity_t *self) {
 	self->monsterInfo.run = boss2_run;
 	self->monsterInfo.attack = boss2_attack;
 	self->monsterInfo.search = boss2_search;
-	self->monsterInfo.checkattack = Boss2_CheckAttack;
+	self->monsterInfo.checkAttack = Boss2_CheckAttack;
 	self->monsterInfo.setskin = boss2_setskin;
 	gi.linkentity(self);
 
@@ -647,7 +647,7 @@ void SP_monster_boss2(gentity_t *self) {
 	self->monsterInfo.scale = MODEL_SCALE;
 
 	// [Paril-KEX]
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 
 	flymonster_start(self);
 }

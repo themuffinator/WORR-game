@@ -2,7 +2,7 @@
 // Licensed under the GNU General Public License 2.0.
 
 // cg_local.h -- local definitions for game module
-#pragma once
+//#pragma once
 
 #include "bg_local.h"
 

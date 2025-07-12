@@ -127,7 +127,7 @@ MONSTERINFO_STAND(mutant_stand) (gentity_t *self) -> void {
 
 static void mutant_idle_loop(gentity_t *self) {
 	if (frandom() < 0.75f)
-		self->monsterInfo.nextframe = FRAME_stand155;
+		self->monsterInfo.nextFrame = FRAME_stand155;
 }
 
 mframe_t mutant_frames_idle[] = {
@@ -203,7 +203,7 @@ mframe_t mutant_frames_run[] = {
 MMOVE_T(mutant_move_run) = { FRAME_run03, FRAME_run08, mutant_frames_run, nullptr };
 
 MONSTERINFO_RUN(mutant_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &mutant_move_stand);
 	else
 		M_SetAnimation(self, &mutant_move_run);
@@ -238,7 +238,7 @@ static void mutant_check_refire(gentity_t *self) {
 		return;
 
 	if ((self->monsterInfo.melee_debounce_time <= level.time) && ((frandom() < 0.5f) || (range_to(self, self->enemy) <= RANGE_MELEE)))
-		self->monsterInfo.nextframe = FRAME_attack09;
+		self->monsterInfo.nextFrame = FRAME_attack09;
 }
 
 mframe_t mutant_frames_attack[] = {
@@ -284,7 +284,7 @@ static TOUCH(mutant_jump_touch) (gentity_t *self, gentity_t *other, const trace_
 
 	if (!M_CheckBottom(self)) {
 		if (self->groundEntity) {
-			self->monsterInfo.nextframe = FRAME_attack02;
+			self->monsterInfo.nextFrame = FRAME_attack02;
 			self->touch = nullptr;
 		}
 		return;
@@ -302,7 +302,7 @@ static void mutant_jump_takeoff(gentity_t *self) {
 	self->velocity = forward * 425;
 	self->velocity[2] = 160;
 	self->groundEntity = nullptr;
-	self->monsterInfo.aiflags |= AI_DUCKED;
+	self->monsterInfo.aiFlags |= AI_DUCKED;
 	self->monsterInfo.attack_finished = level.time + 3_sec;
 	self->style = 1;
 	self->touch = mutant_jump_touch;
@@ -315,8 +315,8 @@ static void mutant_check_landing(gentity_t *self) {
 		gi.sound(self, CHAN_WEAPON, sound_thud, 1, ATTN_NORM, 0);
 		self->monsterInfo.attack_finished = level.time + random_time(500_ms, 1.5_sec);
 
-		if (self->monsterInfo.unduck)
-			self->monsterInfo.unduck(self);
+		if (self->monsterInfo.unDuck)
+			self->monsterInfo.unDuck(self);
 
 		if (range_to(self, self->enemy) <= RANGE_MELEE * 2.f)
 			self->monsterInfo.melee(self);
@@ -325,9 +325,9 @@ static void mutant_check_landing(gentity_t *self) {
 	}
 
 	if (level.time > self->monsterInfo.attack_finished)
-		self->monsterInfo.nextframe = FRAME_attack02;
+		self->monsterInfo.nextFrame = FRAME_attack02;
 	else
-		self->monsterInfo.nextframe = FRAME_attack05;
+		self->monsterInfo.nextFrame = FRAME_attack05;
 }
 
 mframe_t mutant_frames_jump[] = {
@@ -355,7 +355,7 @@ static bool mutant_check_melee(gentity_t *self) {
 }
 
 static bool mutant_check_jump(gentity_t *self) {
-	vec3_t v;
+	vec3_t v{};
 	float  distance;
 
 	// Paril: no harm in letting them jump down if you're below them
@@ -566,9 +566,9 @@ static void mutant_jump_up(gentity_t *self) {
 
 static void mutant_jump_wait_land(gentity_t *self) {
 	if (!monster_jump_finished(self) && self->groundEntity == nullptr)
-		self->monsterInfo.nextframe = self->s.frame;
+		self->monsterInfo.nextFrame = self->s.frame;
 	else
-		self->monsterInfo.nextframe = self->s.frame + 1;
+		self->monsterInfo.nextFrame = self->s.frame + 1;
 }
 
 mframe_t mutant_frames_jump_up[] = {
@@ -644,7 +644,7 @@ void SP_monster_mutant(gentity_t *self) {
 	sound_step3.assign("mutant/step3.wav");
 	sound_thud.assign("mutant/thud1.wav");
 
-	self->monsterInfo.aiflags |= AI_STINKY;
+	self->monsterInfo.aiFlags |= AI_STINKY;
 
 	self->moveType = MOVETYPE_STEP;
 	self->solid = SOLID_BBOX;
@@ -674,7 +674,7 @@ void SP_monster_mutant(gentity_t *self) {
 	self->monsterInfo.sight = mutant_sight;
 	self->monsterInfo.search = mutant_search;
 	self->monsterInfo.idle = mutant_idle;
-	self->monsterInfo.checkattack = mutant_checkattack;
+	self->monsterInfo.checkAttack = mutant_checkattack;
 	self->monsterInfo.blocked = mutant_blocked;
 	self->monsterInfo.setskin = mutant_setskin;
 

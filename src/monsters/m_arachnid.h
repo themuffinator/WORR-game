@@ -139,4 +139,4 @@ enum
 	FRAME_rails_up16
 };
 
-#define MODEL_SCALE	1.000000f
+constexpr float MODEL_SCALE = 1.000000f;

@@ -2,6 +2,8 @@
 // Licensed under the GNU General Public License 2.0.
 
 #include "g_local.h"
+#include <sstream>	// for ent overrides
+#include <fstream>	// for ent overrides
 
 struct spawn_t {
 	const char *name;
@@ -17,9 +19,9 @@ void SP_info_player_coop_lava(gentity_t *self);
 void SP_info_player_intermission(gentity_t *ent);
 void SP_info_teleport_destination(gentity_t *self);
 void SP_info_ctf_teleport_destination(gentity_t *self);
-void SP_info_landmark(gentity_t *self); // [Paril-KEX]
+void SP_info_landmark(gentity_t *self);
 void SP_info_world_text(gentity_t *self);
-void SP_info_nav_lock(gentity_t *self); // [Paril-KEX]
+void SP_info_nav_lock(gentity_t *self);
 
 void SP_func_plat(gentity_t *ent);
 void SP_func_plat2(gentity_t *ent);
@@ -40,9 +42,9 @@ void SP_func_timer(gentity_t *self);
 void SP_func_areaportal(gentity_t *ent);
 void SP_func_clock(gentity_t *ent);
 void SP_func_killbox(gentity_t *ent);
-void SP_func_eye(gentity_t *ent); // [Paril-KEX]
-void SP_func_animation(gentity_t *ent); // [Paril-KEX]
-void SP_func_spinning(gentity_t *ent); // [Paril-KEX]
+void SP_func_eye(gentity_t *ent);
+void SP_func_animation(gentity_t *ent);
+void SP_func_spinning(gentity_t *ent);
 void SP_object_repair(gentity_t *self);
 
 void SP_trigger_always(gentity_t *ent);
@@ -56,10 +58,10 @@ void SP_trigger_counter(gentity_t *ent);
 void SP_trigger_elevator(gentity_t *ent);
 void SP_trigger_gravity(gentity_t *ent);
 void SP_trigger_monsterjump(gentity_t *ent);
-void SP_trigger_flashlight(gentity_t *self); // [Paril-KEX]
-void SP_trigger_fog(gentity_t *self); // [Paril-KEX]
-void SP_trigger_coop_relay(gentity_t *self); // [Paril-KEX]
-void SP_trigger_health_relay(gentity_t *self); // [Paril-KEX]
+void SP_trigger_flashlight(gentity_t *self);
+void SP_trigger_fog(gentity_t *self);
+void SP_trigger_coop_relay(gentity_t *self);
+void SP_trigger_health_relay(gentity_t *self);
 void SP_trigger_teleport(gentity_t *self);
 void SP_trigger_ctf_teleport(gentity_t *self);
 void SP_trigger_disguise(gentity_t *self);
@@ -79,8 +81,8 @@ void SP_target_spawner(gentity_t *ent);
 void SP_target_blaster(gentity_t *ent);
 void SP_target_crosslevel_trigger(gentity_t *ent);
 void SP_target_crosslevel_target(gentity_t *ent);
-void SP_target_crossunit_trigger(gentity_t *ent); // [Paril-KEX]
-void SP_target_crossunit_target(gentity_t *ent); // [Paril-KEX]
+void SP_target_crossunit_trigger(gentity_t *ent);
+void SP_target_crossunit_target(gentity_t *ent);
 void SP_target_laser(gentity_t *self);
 void SP_target_help(gentity_t *ent);
 void SP_target_actor(gentity_t *ent);
@@ -88,17 +90,17 @@ void SP_target_lightramp(gentity_t *self);
 void SP_target_earthquake(gentity_t *ent);
 void SP_target_character(gentity_t *ent);
 void SP_target_string(gentity_t *ent);
-void SP_target_camera(gentity_t *self); // [Sam-KEX]
-void SP_target_gravity(gentity_t *self); // [Sam-KEX]
-void SP_target_soundfx(gentity_t *self); // [Sam-KEX]
-void SP_target_light(gentity_t *self); // [Paril-KEX]
-void SP_target_poi(gentity_t *ent); // [Paril-KEX]
+void SP_target_camera(gentity_t *self);
+void SP_target_gravity(gentity_t *self);
+void SP_target_soundfx(gentity_t *self);
+void SP_target_light(gentity_t *self);
+void SP_target_poi(gentity_t *ent);
 void SP_target_music(gentity_t *ent);
-void SP_target_healthbar(gentity_t *self); // [Paril-KEX]
-void SP_target_autosave(gentity_t *self); // [Paril-KEX]
-void SP_target_sky(gentity_t *self); // [Paril-KEX]
-void SP_target_achievement(gentity_t *self); // [Paril-KEX]
-void SP_target_story(gentity_t *self); // [Paril-KEX]
+void SP_target_healthbar(gentity_t *self);
+void SP_target_autosave(gentity_t *self);
+void SP_target_sky(gentity_t *self);
+void SP_target_achievement(gentity_t *self);
+void SP_target_story(gentity_t *self);
 void SP_target_mal_laser(gentity_t *ent);
 void SP_target_steam(gentity_t *self);
 void SP_target_anger(gentity_t *self);
@@ -138,7 +140,7 @@ void SP_light_mine2(gentity_t *ent);
 void SP_info_null(gentity_t *self);
 void SP_info_notnull(gentity_t *self);
 void SP_misc_player_mannequin(gentity_t *self);
-void SP_misc_model(gentity_t *self); // [Paril-KEX]
+void SP_misc_model(gentity_t *self);
 void SP_path_corner(gentity_t *self);
 void SP_point_combat(gentity_t *self);
 
@@ -168,7 +170,7 @@ void SP_misc_viper_missile(gentity_t *self);
 void SP_misc_amb4(gentity_t *ent);
 void SP_misc_transport(gentity_t *ent);
 void SP_misc_nuke(gentity_t *ent);
-void SP_misc_flare(gentity_t *ent); // [Sam-KEX]
+void SP_misc_flare(gentity_t *ent);
 void SP_misc_hologram(gentity_t *ent);
 void SP_misc_lavaball(gentity_t *ent);
 void SP_misc_nuke_core(gentity_t *self);
@@ -280,10 +282,10 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "trigger_elevator", SP_trigger_elevator },
 	{ "trigger_gravity", SP_trigger_gravity },
 	{ "trigger_monsterjump", SP_trigger_monsterjump },
-	{ "trigger_flashlight", SP_trigger_flashlight }, // [Paril-KEX]
-	{ "trigger_fog", SP_trigger_fog }, // [Paril-KEX]
-	{ "trigger_coop_relay", SP_trigger_coop_relay }, // [Paril-KEX]
-	{ "trigger_health_relay", SP_trigger_health_relay }, // [Paril-KEX]
+	{ "trigger_flashlight", SP_trigger_flashlight },
+	{ "trigger_fog", SP_trigger_fog },
+	{ "trigger_coop_relay", SP_trigger_coop_relay },
+	{ "trigger_health_relay", SP_trigger_health_relay },
 	{ "trigger_teleport", SP_trigger_teleport },
 	{ "trigger_ctf_teleport", SP_trigger_ctf_teleport },
 	{ "trigger_disguise", SP_trigger_disguise },
@@ -300,8 +302,8 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "target_blaster", SP_target_blaster },
 	{ "target_crosslevel_trigger", SP_target_crosslevel_trigger },
 	{ "target_crosslevel_target", SP_target_crosslevel_target },
-	{ "target_crossunit_trigger", SP_target_crossunit_trigger }, // [Paril-KEX]
-	{ "target_crossunit_target", SP_target_crossunit_target }, // [Paril-KEX]
+	{ "target_crossunit_trigger", SP_target_crossunit_trigger },
+	{ "target_crossunit_target", SP_target_crossunit_target },
 	{ "target_laser", SP_target_laser },
 	{ "target_help", SP_target_help },
 	{ "target_actor", SP_target_actor },
@@ -309,17 +311,17 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "target_earthquake", SP_target_earthquake },
 	{ "target_character", SP_target_character },
 	{ "target_string", SP_target_string },
-	{ "target_camera", SP_target_camera }, // [Sam-KEX]
-	{ "target_gravity", SP_target_gravity }, // [Sam-KEX]
-	{ "target_soundfx", SP_target_soundfx }, // [Sam-KEX]
-	{ "target_light", SP_target_light }, // [Paril-KEX]
-	{ "target_poi", SP_target_poi }, // [Paril-KEX]
+	{ "target_camera", SP_target_camera },
+	{ "target_gravity", SP_target_gravity },
+	{ "target_soundfx", SP_target_soundfx },
+	{ "target_light", SP_target_light },
+	{ "target_poi", SP_target_poi },
 	{ "target_music", SP_target_music },
-	{ "target_healthbar", SP_target_healthbar }, // [Paril-KEX]
-	{ "target_autosave", SP_target_autosave }, // [Paril-KEX]
-	{ "target_sky", SP_target_sky }, // [Paril-KEX]
-	{ "target_achievement", SP_target_achievement }, // [Paril-KEX]
-	{ "target_story", SP_target_story }, // [Paril-KEX]
+	{ "target_healthbar", SP_target_healthbar },
+	{ "target_autosave", SP_target_autosave },
+	{ "target_sky", SP_target_sky },
+	{ "target_achievement", SP_target_achievement },
+	{ "target_story", SP_target_story },
 	{ "target_mal_laser", SP_target_mal_laser },
 	{ "target_steam", SP_target_steam },
 	{ "target_anger", SP_target_anger },
@@ -370,7 +372,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "misc_satellite_dish", SP_misc_satellite_dish },
 	{ "misc_actor", SP_misc_actor },
 	{ "misc_player_mannequin", SP_misc_player_mannequin },
-	{ "misc_model", SP_misc_model }, // [Paril-KEX]
+	{ "misc_model", SP_misc_model },
 	{ "misc_gib_arm", SP_misc_gib_arm },
 	{ "misc_gib_leg", SP_misc_gib_leg },
 	{ "misc_gib_head", SP_misc_gib_head },
@@ -386,9 +388,9 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "misc_eastertank", SP_misc_eastertank },
 	{ "misc_easterchick", SP_misc_easterchick },
 	{ "misc_easterchick2", SP_misc_easterchick2 },
-	{ "misc_flare", SP_misc_flare }, // [Sam-KEX]
-	{ "misc_hologram", SP_misc_hologram }, // Paril
-	{ "misc_lavaball", SP_misc_lavaball }, // Paril
+	{ "misc_flare", SP_misc_flare },
+	{ "misc_hologram", SP_misc_hologram },
+	{ "misc_lavaball", SP_misc_lavaball },
 	{ "misc_crashviper", SP_misc_crashviper },
 	{ "misc_viper_missile", SP_misc_viper_missile },
 	{ "misc_amb4", SP_misc_amb4 },
@@ -459,6 +461,13 @@ static void SpawnEnt_MapFixes(gentity_t *ent) {
 	if (!Q_strcasecmp(level.mapname, "bunk1")) {
 		if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 			ent->wait = -1;
+		}
+		return;
+	}
+	if (!Q_strcasecmp(level.mapname, "q64/dm7")) {
+		if (ent->s.origin == vec3_t{ 1056, 1056, 40 } && !Q_strcasecmp(ent->className, "info_player_deathmatch")) {
+			// silly location, move this spawn point back away from the lava trap
+			ent->s.origin = vec3_t{ 1312, 928, 40 };
 		}
 		return;
 	}
@@ -556,7 +565,7 @@ void ED_CallSpawn(gentity_t *ent) {
 	SpawnEnt_MapFixes(ent);
 
 	// check item spawn functions
-	gitem_t	*item;
+	Item	*item;
 	int		 i;
 	for (i = IT_NULL + 1, item = itemList; i < IT_TOTAL; i++, item++) {
 		if (!item->className)
@@ -682,7 +691,7 @@ struct type_loaders_t {
 
 	template<typename T, std::enable_if_t<std::is_same_v<T, vec3_t>, int> = 0>
 	static T load(const char *s) {
-		vec3_t vec;
+		vec3_t vec{};
 		static char vec_buffer[32];
 		const char *token = COM_Parse(&s, vec_buffer, sizeof(vec_buffer));
 		vec.x = atof(token);
@@ -782,12 +791,12 @@ static const std::initializer_list<field_t> entity_fields = {
 		e->s.angles = {};
 		e->s.angles[YAW] = atof(value);
 	} },
-	FIELD_COLOR("rgba", s.skinnum), // [Sam-KEX]
-	FIELD_AUTO(hackflags), // [Paril-KEX] n64
-	FIELD_AUTO_NAMED("alpha", s.alpha), // [Paril-KEX]
-	FIELD_AUTO_NAMED("scale", s.scale), // [Paril-KEX]
+	FIELD_COLOR("rgba", s.skinnum),
+	FIELD_AUTO(hackflags),
+	FIELD_AUTO_NAMED("alpha", s.alpha),
+	FIELD_AUTO_NAMED("scale", s.scale),
 	{ "mangle" }, // editor field
-	FIELD_AUTO_NAMED("dead_frame", monsterInfo.start_frame), // [Paril-KEX]
+	FIELD_AUTO_NAMED("dead_frame", monsterInfo.start_frame),
 	FIELD_AUTO_NAMED("frame", s.frame),
 	FIELD_AUTO_NAMED("effects", s.effects),
 	FIELD_AUTO_NAMED("renderfx", s.renderfx),
@@ -864,6 +873,8 @@ static const std::initializer_list<field_t> entity_fields = {
 	FIELD_AUTO(powerups_off),
 	FIELD_AUTO(bfg_on),
 	FIELD_AUTO(bfg_off),
+	FIELD_AUTO(plasmabeam_on),
+	FIELD_AUTO(plasmabeam_off),
 	FIELD_AUTO(spawnpad),
 //-muff
 
@@ -889,22 +900,22 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(distance),
 	FIELD_AUTO(height),
 	FIELD_AUTO(noise),
-	FIELD_AUTO(pausetime),
+	FIELD_AUTO(pauseTime),
 	FIELD_AUTO(item),
 
 	FIELD_AUTO(gravity),
 	FIELD_AUTO(sky),
-	FIELD_AUTO(skyrotate),
-	FIELD_AUTO(skyaxis),
-	FIELD_AUTO(skyautorotate),
-	FIELD_AUTO(minyaw),
-	FIELD_AUTO(maxyaw),
-	FIELD_AUTO(minpitch),
-	FIELD_AUTO(maxpitch),
-	FIELD_AUTO(nextmap),
+	FIELD_AUTO(skyRotate),
+	FIELD_AUTO(skyAxis),
+	FIELD_AUTO(skyAutoRotate),
+	FIELD_AUTO(minYaw),
+	FIELD_AUTO(maxYaw),
+	FIELD_AUTO(minPitch),
+	FIELD_AUTO(maxPitch),
+	FIELD_AUTO(nextMap),
 	FIELD_AUTO(music),  // [Edward-KEX]
-	FIELD_AUTO(instantitems),
-	FIELD_AUTO(radius), // [Paril-KEX]
+	FIELD_AUTO(instantItems),
+	FIELD_AUTO(radius),
 	FIELD_AUTO(hub_map),
 	FIELD_AUTO(achievement),
 
@@ -915,7 +926,7 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO_NAMED("shadowlightendfadedistance", sl.data.fade_end),
 	FIELD_AUTO_NAMED("shadowlightstyle", sl.data.lightstyle),
 	FIELD_AUTO_NAMED("shadowlightconeangle", sl.data.coneangle),
-	FIELD_AUTO_NAMED("shadowlightstyletarget", sl.lightstyletarget),
+	FIELD_AUTO_NAMED("shadowlightstyletarget", sl.lightStyleTarget),
 
 	FIELD_AUTO(goals),
 
@@ -937,14 +948,15 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 	FIELD_AUTO(loop_count),
 
 	FIELD_AUTO(cvar),
-	FIELD_AUTO(cvarvalue),
+	FIELD_AUTO(cvarValue),
 	FIELD_AUTO(author),
 	FIELD_AUTO(author2),
 
 	FIELD_AUTO(ruleset),
 
-	FIELD_AUTO(nobots),
-	FIELD_AUTO(nohumans),
+	FIELD_AUTO(noBots),
+	FIELD_AUTO(noHumans),
+	FIELD_AUTO(arena)
 
 };
 // clang-format on
@@ -956,13 +968,16 @@ static constexpr const char *gt_spawn_string[GT_NUM_GAMETYPES] = {
 	"team",
 	"ctf",
 	"ca",
+	"1f",
+	"har",
+	"obelisk",
 	"freeze",
 	"strike",
 	"rr",
 	"lms",
 	"horde",
-	"race",
-	"ball"
+	"ball",
+	"gauntlet"
 };
 
 /*
@@ -1191,27 +1206,32 @@ static inline bool G_InhibitEntity(gentity_t *ent) {
 	if (ent->notarena && (GTF(GTF_ARENA)))
 		return true;
 
-	if (ent->powerups_on && g_no_powerups->integer)
+	if (ent->powerups_on && !game.spawnPowerups)
 		return true;
-	if (ent->powerups_off && !g_no_powerups->integer)
+	if (ent->powerups_off && !!game.spawnPowerups)
 		return true;
 
-	if (ent->bfg_on && g_no_bfg->integer)
+	if (ent->bfg_on && !game.spawnBFG)
 		return true;
-	if (ent->bfg_off && !g_no_bfg->integer)
+	if (ent->bfg_off && !!game.spawnBFG)
+		return true;
+
+	if (ent->plasmabeam_on && !game.spawnPlasmaBeam)
+		return true;
+	if (ent->plasmabeam_off && !!game.spawnPlasmaBeam)
 		return true;
 
 	if (ent->spawnpad && ent->spawnpad[0]) {
 		if (!strcmp(ent->spawnpad, "pu")) {
-			if (g_no_powerups->integer)
+			if (!game.spawnPowerups)
 				return true;
 		}
 		if (!strcmp(ent->spawnpad, "ar")) {
-			if (g_no_armor->integer)
+			if (!game.spawnArmor)
 				return true;
 		}
 		if (!strcmp(ent->spawnpad, "ht")) {
-			if (g_no_health->integer || g_vampiric_damage->integer)
+			if (!game.spawnHealth || g_vampiric_damage->integer)
 				return true;
 		}
 	}
@@ -1228,7 +1248,7 @@ static inline bool G_InhibitEntity(gentity_t *ent) {
 	}
 
 	// dm-only
-	if (deathmatch->integer && notGT(GT_RACE))
+	if (deathmatch->integer)
 		return ent->spawnflags.has(SPAWNFLAG_NOT_DEATHMATCH);
 
 	// coop flags
@@ -1273,7 +1293,7 @@ static void PrecacheStartItems() {
 		const char *ptr_copy = token_copy;
 
 		const char *item_name = COM_Parse(&ptr_copy);
-		gitem_t *item = FindItemByClassname(item_name);
+		Item *item = FindItemByClassname(item_name);
 
 		if (!item || !item->pickup)
 			gi.Com_ErrorFmt("Invalid g_start_item entry: {}\n", item_name);
@@ -1333,7 +1353,7 @@ static void PrecachePlayerSounds() {
 	gi.soundindex("*pain75_2.wav");
 	gi.soundindex("*pain100_1.wav");
 	gi.soundindex("*pain100_2.wav");
-	gi.soundindex("*drown1.wav"); // [Paril-KEX]
+	gi.soundindex("*drown1.wav");
 }
 
 void GT_PrecacheAssets() {
@@ -1403,7 +1423,7 @@ static void PrecacheAssets() {
 	gi.soundindex("misc/talk1.wav");
 }
 
-#define	MAX_READ	0x10000		// read in blocks of 64k
+constexpr int MAX_READ = 0x10000;		// read in blocks of 64k
 static void FS_Read(void *buffer, int len, FILE *f) {
 	int		block, remaining;
 	int		read;
@@ -1482,7 +1502,7 @@ static bool VerifyEntityString(const char *entities) {
 }
 
 static void PrecacheForRandomRespawn() {
-	gitem_t *it;
+	Item *it;
 	int		 i;
 	int		 itflags;
 
@@ -1532,13 +1552,13 @@ static void G_LocateSpawnSpots(void) {
 						gentity_t *target = PickTarget(ent->target);
 
 						if (target) {
-							vec3_t	dir = (target->s.origin - level.intermissionOrigin).normalized();
+							vec3_t	dir = (target->s.origin - level.intermission.origin).normalized();
 							AngleVectors(dir);
-							level.intermissionAngle = dir;
+							level.intermission.angles = dir;
 							return;
 						}
 					}
-					level.intermissionAngle = ent->s.angles;
+					level.intermission.angles = ent->s.angles;
 				}
 				continue;
 			}
@@ -1570,125 +1590,11 @@ static void G_LocateSpawnSpots(void) {
 	level.numSpawnSpots = n;
 }
 
-static void ParseWorldEntityString(const char *mapname, bool try_q3) {
-	bool	ent_file_exists = false, ent_valid = true;
-	const char *entities = level.entstring.c_str();
-
-	// load up ent override
-	const char *name = G_Fmt("baseq2/{}/{}.ent", g_entity_override_dir->string[0] ? g_entity_override_dir->string : "maps", mapname).data();
-	FILE *f = fopen(name, "rb");
-	if (f != NULL) {
-		char *buffer = nullptr;
-		size_t length;
-		size_t read_length;
-
-		fseek(f, 0, SEEK_END);
-		length = ftell(f);
-		fseek(f, 0, SEEK_SET);
-
-		if (length > 0x40000) {
-			//gi.Com_PrintFmt("{}: Entities override file length exceeds maximum: \"{}\"\n", __FUNCTION__, name);
-			ent_valid = false;
-		}
-		if (ent_valid) {
-			buffer = (char *)gi.TagMalloc(length + 1, '\0');
-			if (length) {
-				read_length = fread(buffer, 1, length, f);
-
-				if (length != read_length) {
-					//gi.Com_PrintFmt("{}: Entities override file read error: \"{}\"\n", __FUNCTION__, name);
-					ent_valid = false;
-				}
-			}
-		}
-		ent_file_exists = true;
-		fclose(f);
-
-		if (ent_valid) {
-			if (g_entity_override_load->integer && !strstr(level.mapname, ".dm2")) {
-
-				if (VerifyEntityString((const char *)buffer)) {
-					entities = (const char *)buffer;
-					//gi.Com_PrintFmt("Entities override: \"{}\"\n", name);
-				}
-			}
-		} else {
-			gi.Com_PrintFmt("{}: Entities override file load error for \"{}\", discarding.\n", __FUNCTION__, name);
-		}
-	}
-
-	// save ent override
-	if (g_entity_override_save->integer && !strstr(level.mapname, ".dm2")) {
-		if (!ent_file_exists) {
-			f = fopen(name, "w");
-			if (f) {
-				fwrite(entities, 1, strlen(entities), f);
-				if (g_verbose->integer)
-					gi.Com_PrintFmt("{}: Entities override file written to: \"{}\"\n", __FUNCTION__, name);
-				fclose(f);
-			}
-		} else {
-			if (g_verbose->integer)
-				gi.Com_PrintFmt("{}: Entities override file not saved as file already exists: \"{}\"\n", __FUNCTION__, name);
-		}
-	}
-	level.entstring = entities;
-}
-
-static void ParseWorldEntities() {
-	gentity_t		*ent = nullptr;
-	int			inhibit = 0;
-	const char	*com_token;
-	const char	*entities = level.entstring.c_str();
-
-	// parse entities
-	while (1) {
-		// parse the opening brace
-		com_token = COM_Parse(&entities);
-		if (!entities)
-			break;
-		if (com_token[0] != '{')
-			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.", __FUNCTION__, com_token);
-
-		if (!ent)
-			ent = g_entities;
-		else
-			ent = Spawn();
-		entities = ED_ParseEntity(entities, ent);
-
-		// nasty hacks time!
-		if (!strcmp(level.mapname, "bunk1")) {
-			if (!strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
-				ent->wait = -1;
-			}
-		}
-
-		// remove things (except the world) from different skill levels or deathmatch
-		if (ent != g_entities) {
-			if (G_InhibitEntity(ent)) {
-				FreeEntity(ent);
-				inhibit++;
-				continue;
-			}
-
-			ent->spawnflags &= ~SPAWNFLAG_EDITOR_MASK;
-		}
-
-		if (!ent)
-			gi.Com_ErrorFmt("{}: Invalid or empty entity string.", __FUNCTION__);
-
-		// do this before calling the spawn function so it can be overridden.
-		ent->gravityVector = { 0.0, 0.0, -1.0 };
-
-		ED_CallSpawn(ent);
-
-		ent->s.renderfx |= RF_IR_VISIBLE;
-	}
-
-	if (inhibit && g_verbose->integer)
-		gi.Com_PrintFmt("{} entities inhibited.\n", inhibit);
-}
-
+/*
+==============
+ClearWorldEntities
+==============
+*/
 void ClearWorldEntities() {
 	gentity_t *ent = nullptr;
 	//memset(g_entities, 0, game.maxentities * sizeof(g_entities[0]));
@@ -1705,6 +1611,67 @@ void ClearWorldEntities() {
 
 /*
 ==============
+MapPostProcess
+==============
+*/
+static void MapPostProcess(gentity_t *ent) {
+	if (!strcmp(level.mapname, "bunk1") && !strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
+		ent->wait = -1;
+	}
+}
+
+/*
+==============
+TryLoadEntityOverride
+==============
+*/
+static const char *TryLoadEntityOverride(const char *mapname, const char *default_entities) {
+	std::string overridePath = std::string(G_Fmt("baseq2/{}/{}.ent",
+		g_entityOverrideDir->string[0] ? g_entityOverrideDir->string : "maps",
+		mapname).data());
+
+	// Try to load override
+	if (g_entityOverrideLoad->integer && !strstr(mapname, ".dm2")) {
+		std::ifstream in(overridePath, std::ios::binary | std::ios::ate);
+		if (in) {
+			std::streamsize size = in.tellg();
+			if (size > 0 && size <= 0x40000) {
+				in.seekg(0, std::ios::beg);
+				std::vector<char> buffer(size + 1);
+				if (in.read(buffer.data(), size)) {
+					buffer[size] = '\0';
+					if (VerifyEntityString(buffer.data())) {
+						if (g_verbose->integer)
+							gi.Com_PrintFmt("{}: Entities override file verified and loaded: \"{}\"\n", __FUNCTION__, overridePath.c_str());
+						char *out = (char *)gi.TagMalloc(buffer.size(), TAG_GAME);
+						memcpy(out, buffer.data(), buffer.size());
+						return out;
+					}
+				}
+			} else {
+				gi.Com_PrintFmt("{}: Entities override file too large: \"{}\"\n", __FUNCTION__, overridePath.c_str());
+			}
+		}
+	}
+
+	// Save override if not present
+	if (g_entityOverrideSave->integer && !strstr(mapname, ".dm2")) {
+		std::ifstream test(overridePath);
+		if (!test) {
+			std::ofstream out(overridePath, std::ios::binary);
+			if (out) {
+				out.write(default_entities, strlen(default_entities));
+				if (g_verbose->integer)
+					gi.Com_PrintFmt("{}: Entities override file written to: \"{}\"\n", __FUNCTION__, overridePath.c_str());
+			}
+		}
+	}
+
+	return default_entities;
+}
+
+/*
+==============
 SpawnEntities
 
 Creates a server's entity / program execution context by
@@ -1712,73 +1679,8 @@ parsing textual entity definitions out of an ent file.
 ==============
 */
 void SpawnEntities(const char *mapname, const char *entities, const char *spawnpoint) {
-	bool		ent_file_exists = false, ent_valid = true;
-	//const char	*entities = level.entstring.c_str();
-//#if 0
-	// load up ent override
-	//const char *name = G_Fmt("baseq2/maps/{}.ent", mapname).data();
-	const char *name = G_Fmt("baseq2/{}/{}.ent", g_entity_override_dir->string[0] ? g_entity_override_dir->string : "maps", mapname).data();
-	FILE *f = fopen(name, "rb");
-	if (f != NULL) {
-		char *buffer = nullptr;
-		size_t length;
-		size_t read_length;
+	entities = TryLoadEntityOverride(mapname, entities);
 
-		fseek(f, 0, SEEK_END);
-		length = ftell(f);
-		fseek(f, 0, SEEK_SET);
-
-		if (length > 0x40000) {
-			//gi.Com_PrintFmt("{}: Entities override file length exceeds maximum: \"{}\"\n", __FUNCTION__, name);
-			ent_valid = false;
-		}
-		if (ent_valid) {
-			buffer = (char *)gi.TagMalloc(length + 1, '\0');
-			if (length) {
-				read_length = fread(buffer, 1, length, f);
-
-				if (length != read_length) {
-					//gi.Com_PrintFmt("{}: Entities override file read error: \"{}\"\n", __FUNCTION__, name);
-					ent_valid = false;
-				}
-			}
-		}
-		ent_file_exists = true;
-		fclose(f);
-
-		if (ent_valid) {
-			if (g_entity_override_load->integer && !strstr(level.mapname, ".dm2")) {
-
-				if (VerifyEntityString((const char *)buffer)) {
-					entities = (const char *)buffer;
-					if (g_verbose->integer)
-						gi.Com_PrintFmt("{}: Entities override file verified and loaded: \"{}\"\n", __FUNCTION__, name);
-				}
-			}
-		} else {
-			gi.Com_PrintFmt("{}: Entities override file load error for \"{}\", discarding.\n", __FUNCTION__, name);
-		}
-	}
-
-	// save ent override
-	if (g_entity_override_save->integer && !strstr(level.mapname, ".dm2")) {
-		if (!ent_file_exists) {
-			f = fopen(name, "w");
-			if (f) {
-				fwrite(entities, 1, strlen(entities), f);
-				if (g_verbose->integer)
-					gi.Com_PrintFmt("{}: Entities override file written to: \"{}\"\n", __FUNCTION__, name);
-				fclose(f);
-			}
-		} else {
-			//gi.Com_PrintFmt("{}: Entities override file not saved as file already exists: \"{}\"\n", __FUNCTION__, name);
-		}
-	}
-	level.entstring = entities;
-//#endif
-	//ParseWorldEntityString(mapname, RS(RS_Q3A));
-
-	// clear cached indices
 	cached_soundindex::clear_all();
 	cached_modelindex::clear_all();
 	cached_imageindex::clear_all();
@@ -1788,99 +1690,66 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 		gi.cvar_forceset("skill", G_Fmt("{}", skill_level).data());
 
 	SaveClientData();
-
 	gi.FreeTags(TAG_LEVEL);
 
 	memset(&level, 0, sizeof(level));
 	memset(g_entities, 0, game.maxentities * sizeof(g_entities[0]));
-	
-	// all other flags are not important atm
 	globals.server_flags &= SERVER_FLAG_LOADING;
 
 	Q_strlcpy(level.mapname, mapname, sizeof(level.mapname));
-	// Paril: fixes a bug where autosaves will start you at
-	// the wrong spawnpoint if they happen to be non-empty
-	// (mine2 -> mine3)
 	if (!game.autosaved)
 		Q_strlcpy(game.spawnpoint, spawnpoint, sizeof(game.spawnpoint));
 
 	level.isN64 = strncmp(level.mapname, "q64/", 4) == 0;
-
 	level.coopScalePlayers = 0;
 	level.coopHealthScaling = clamp(g_coop_health_scaling->value, 0.f, 1.f);
 
-	// set client fields on player entities
 	for (size_t i = 0; i < game.maxclients; i++) {
 		g_entities[i + 1].client = game.clients + i;
-
-		// "disconnect" all players since the level is switching
 		game.clients[i].pers.connected = false;
 		game.clients[i].pers.spawned = false;
 	}
 
-	// reserve some spots for dead player bodies for coop / deathmatch
 	InitBodyQue();
 
 	gentity_t *ent = nullptr;
-	int			inhibit = 0;
+	int inhibit = 0;
 	const char *com_token;
-	//const char *entities = level.entstring.c_str();
 
-	// parse entities
-	while (1) {
-		// parse the opening brace
+	while (true) {
 		com_token = COM_Parse(&entities);
-		if (!entities)
+		if (!entities || com_token[0] == '\0')
 			break;
 		if (com_token[0] != '{')
 			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", __FUNCTION__, com_token);
 
-		if (!ent)
-			ent = g_entities;
-		else
-			ent = Spawn();
+		ent = ent ? Spawn() : g_entities;
 		entities = ED_ParseEntity(entities, ent);
 
-		// nasty hacks time!
-		if (!strcmp(level.mapname, "bunk1")) {
-			if (!strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
-				ent->wait = -1;
-			}
-		}
+		if (!ent)
+			gi.Com_ErrorFmt("{}: Invalid or empty entity string.\n", __FUNCTION__);
 
-		// remove things (except the world) from different skill levels or deathmatch
 		if (ent != g_entities) {
 			if (G_InhibitEntity(ent)) {
 				FreeEntity(ent);
 				inhibit++;
 				continue;
 			}
-
 			ent->spawnflags &= ~SPAWNFLAG_EDITOR_MASK;
 		}
 
-		if (!ent)
-			gi.Com_ErrorFmt("{}: Invalid or empty entity string.", __FUNCTION__);
-
-		// do this before calling the spawn function so it can be overridden.
-		ent->gravityVector = { 0.0, 0.0, -1.0 };
-
+		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
 		ED_CallSpawn(ent);
-
+		MapPostProcess(ent);
 		ent->s.renderfx |= RF_IR_VISIBLE;
 	}
 
 	if (inhibit && g_verbose->integer)
 		gi.Com_PrintFmt("{} entities inhibited.\n", inhibit);
 
-	// precache start_items
 	PrecacheStartItems();
-
-	// precache player inventory items
 	PrecacheInventoryItems();
-
 	G_FindTeams();
-
 	QuadHog_SetupSpawn(5_sec);
 	Tech_SetupSpawn();
 
@@ -1895,14 +1764,11 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 		game.item_inhibit_am = 0;
 		game.item_inhibit_wp = 0;
 	} else {
-		InitHintPaths(); // if there aren't hintpaths on this map, enable quick aborts
+		InitHintPaths();
 	}
 
 	G_LocateSpawnSpots();
-
-	//SetIntermissionPoint();
 	FindIntermissionPoint();
-
 	setup_shadow_lights();
 
 	level.init = true;
@@ -1913,137 +1779,217 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 #include "g_statusbar.h"
 
 // create & set the statusbar string for the current gamemode
+
+/*
+=========================
+AddCombatHUD
+=========================
+*/
+static void AddCombatHUD(statusbar_t &sb) {
+	// Health, ammo, armor, selected icon
+	sb.ifstat(STAT_SHOW_STATUSBAR)
+		.xv(0).hnum().xv(50).pic(STAT_HEALTH_ICON)
+		.ifstat(STAT_AMMO_ICON).xv(100).anum().xv(150).pic(STAT_AMMO_ICON).endifstat()
+		.ifstat(STAT_ARMOR_ICON).xv(200).rnum().xv(250).pic(STAT_ARMOR_ICON).endifstat()
+		.ifstat(STAT_SELECTED_ICON).xv(296).pic(STAT_SELECTED_ICON).endifstat()
+		.endifstat();
+
+	sb.yb(-50);
+
+	// Pickup + selected item name
+	sb.ifstat(STAT_SHOW_STATUSBAR)
+		.ifstat(STAT_PICKUP_ICON).xv(0).pic(STAT_PICKUP_ICON).xv(26).yb(-42).loc_stat_string(STAT_PICKUP_STRING).yb(-50).endifstat()
+		.ifstat(STAT_SELECTED_ITEM_NAME).yb(-34).xv(319).loc_stat_rstring(STAT_SELECTED_ITEM_NAME).yb(-58).endifstat()
+		.endifstat();
+
+	// Help icon
+	sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_HELPICON).xv(150).pic(STAT_HELPICON).endifstat().endifstat();
+}
+
+/*
+=========================
+AddPowerupsAndTech
+=========================
+*/
+static void AddPowerupsAndTech(statusbar_t &sb) {
+	sb.ifstat(STAT_SHOW_STATUSBAR)
+		.ifstat(STAT_POWERUP_ICON).xv(262).num(2, STAT_POWERUP_TIME).xv(296).pic(STAT_POWERUP_ICON).endifstat()
+		.ifstat(STAT_TECH).yb(-137).xr(-26).pic(STAT_TECH).endifstat()
+		.endifstat();
+}
+
+/*
+=========================
+AddCoopStatus
+=========================
+*/
+static void AddCoopStatus(statusbar_t &sb) {
+	sb.ifstat(STAT_COOP_RESPAWN).xv(0).yt(0).loc_stat_cstring2(STAT_COOP_RESPAWN).endifstat();
+
+	int y = 2;
+	const int step = 26;
+	if (g_coop_enable_lives->integer && g_coop_num_lives->integer > 0)
+		sb.ifstat(STAT_LIVES).xr(-16).yt(y).lives_num(STAT_LIVES).xr(0).yt(y += step).loc_rstring("$g_lives").endifstat();
+
+	if (GT(GT_HORDE)) {
+		int n = level.roundNumber;
+		int chars = n > 99 ? 3 : n > 9 ? 2 : 1;
+		sb.ifstat(STAT_ROUND_NUMBER).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_ROUND_NUMBER).xr(0).yt(y += step).loc_rstring("Wave").endifstat();
+
+		n = level.totalMonsters - level.killedMonsters;
+		chars = n > 99 ? 3 : n > 9 ? 2 : 1;
+		sb.ifstat(STAT_MONSTER_COUNT).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_MONSTER_COUNT).xr(0).yt(y += step).loc_rstring("Monsters").endifstat();
+	}
+}
+
+/*
+=========================
+AddSPExtras
+=========================
+*/
+static void AddSPExtras(statusbar_t &sb) {
+	// Key icons, powerup icon reflow, selected item name offset
+	sb.ifstat(STAT_POWERUP_ICON).yb(-76).endifstat();
+	sb.ifstat(STAT_SELECTED_ITEM_NAME)
+		.yb(-58)
+		.ifstat(STAT_POWERUP_ICON).yb(-84).endifstat()
+		.endifstat();
+
+	sb.ifstat(STAT_KEY_A).xv(296).pic(STAT_KEY_A).endifstat();
+	sb.ifstat(STAT_KEY_B).xv(272).pic(STAT_KEY_B).endifstat();
+	sb.ifstat(STAT_KEY_C).xv(248).pic(STAT_KEY_C).endifstat();
+
+	sb.ifstat(STAT_HEALTH_BARS).yt(24).health_bars().endifstat();
+
+	sb.story();
+}
+
+/*
+=========================
+AddDeathmatchStatus
+=========================
+*/
+static void AddDeathmatchStatus(statusbar_t &sb) {
+	if (Teams()) {
+		if (GTF(GTF_CTF))
+			sb.ifstat(STAT_CTF_FLAG_PIC).xr(-24).yt(26).pic(STAT_CTF_FLAG_PIC).endifstat();
+
+		sb.ifstat(STAT_TEAMPLAY_INFO).xl(0).yb(-88).stat_string(STAT_TEAMPLAY_INFO).endifstat();
+	}
+
+	sb.ifstat(STAT_COUNTDOWN).xv(136).yb(-256).num(3, STAT_COUNTDOWN).endifstat();
+	sb.ifstat(STAT_MATCH_STATE).xv(0).yb(-78).stat_string(STAT_MATCH_STATE).endifstat();
+
+	sb.ifstat(STAT_FOLLOWING).xv(0).yb(-68).string2("FOLLOWING").xv(80).stat_string(STAT_FOLLOWING).endifstat();
+	sb.ifstat(STAT_SPECTATOR).xv(0).yb(-68).string2("SPECTATOR MODE").endifstat();
+
+	sb.ifstat(STAT_MINISCORE_FIRST_PIC).xr(-26).yb(-110).pic(STAT_MINISCORE_FIRST_PIC).xr(-78).num(3, STAT_MINISCORE_FIRST_SCORE).ifstat(STAT_MINISCORE_FIRST_VAL).xr(-24).yb(-94).stat_string(STAT_MINISCORE_FIRST_VAL).endifstat().endifstat();
+	sb.ifstat(STAT_MINISCORE_FIRST_POS).xr(-28).yb(-112).pic(STAT_MINISCORE_FIRST_POS).endifstat();
+	sb.ifstat(STAT_MINISCORE_SECOND_PIC).xr(-26).yb(-83).pic(STAT_MINISCORE_SECOND_PIC).xr(-78).num(3, STAT_MINISCORE_SECOND_SCORE).ifstat(STAT_MINISCORE_SECOND_VAL).xr(-24).yb(-68).stat_string(STAT_MINISCORE_SECOND_VAL).endifstat().endifstat();
+	sb.ifstat(STAT_MINISCORE_SECOND_POS).xr(-28).yb(-85).pic(STAT_MINISCORE_SECOND_POS).endifstat();
+	sb.ifstat(STAT_MINISCORE_FIRST_PIC).xr(-28).yb(-57).stat_string(STAT_SCORELIMIT).endifstat();
+
+	sb.ifstat(STAT_CROSSHAIR_ID_VIEW).xv(122).yb(-128).stat_pname(STAT_CROSSHAIR_ID_VIEW).endifstat();
+	sb.ifstat(STAT_CROSSHAIR_ID_VIEW_COLOR).xv(156).yb(-118).pic(STAT_CROSSHAIR_ID_VIEW_COLOR).endifstat();
+}
+
+/*
+=========================
+G_InitStatusbar
+=========================
+*/
 static void G_InitStatusbar() {
 	statusbar_t sb;
 	bool minhud = g_instagib->integer || g_nadefest->integer;
 
-	// ---- shared stuff that every gamemode uses ----
 	sb.yb(-24);
 
-	// health
-	sb.ifstat(STAT_SHOW_STATUSBAR).xv(minhud ? 100 : 0).hnum().xv(minhud ? 150 : 50).pic(STAT_HEALTH_ICON).endifstat();
-	if (!minhud) {
-		// ammo
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_AMMO_ICON).xv(100).anum().xv(150).pic(STAT_AMMO_ICON).endifstat().endifstat();
+	// Health block - compact for minHUD, full otherwise
+	sb.ifstat(STAT_SHOW_STATUSBAR)
+		.xv(minhud ? 100 : 0).hnum().xv(minhud ? 150 : 50).pic(STAT_HEALTH_ICON)
+		.endifstat();
 
-		// armor
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_ARMOR_ICON).xv(200).rnum().xv(250).pic(STAT_ARMOR_ICON).endifstat().endifstat();
+	if (!minhud) AddCombatHUD(sb);
+	AddPowerupsAndTech(sb);
 
-		// selected inventory item
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_SELECTED_ICON).xv(296).pic(STAT_SELECTED_ICON).endifstat().endifstat();
-
-		sb.yb(-50);
-
-		// picked up item
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_PICKUP_ICON).xv(0).pic(STAT_PICKUP_ICON).xv(26).yb(-42).loc_stat_string(STAT_PICKUP_STRING).yb(-50).endifstat().endifstat();
-
-		// selected item name
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_SELECTED_ITEM_NAME).yb(-34).xv(319).loc_stat_rstring(STAT_SELECTED_ITEM_NAME).yb(-58).endifstat().endifstat();
-	}
-
-	// powerup timer
-	sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_POWERUP_ICON).xv(262).num(2, STAT_POWERUP_TIME).xv(296).pic(STAT_POWERUP_ICON).endifstat().endifstat();
-
-	// tech held
-	sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_TECH).yb(-137).xr(-26).pic(STAT_TECH).endifstat().endifstat();
-
-	sb.yb(-50);
-	if (!minhud) {
-		// help / weapon icon
-		sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_HELPICON).xv(150).pic(STAT_HELPICON).endifstat().endifstat();
-	}
-
-	// ---- gamemode-specific stuff ----
-
-	if (CooperativeModeOn()) {
-		int32_t			y;
-		const int32_t	text_adj = 26;
-
-		// top of screen coop respawn display
-		sb.ifstat(STAT_COOP_RESPAWN).xv(0).yt(0).loc_stat_cstring2(STAT_COOP_RESPAWN).endifstat();
-		
-		// coop lives
-		if (g_coop_enable_lives->integer && g_coop_num_lives->integer > 0)
-			sb.ifstat(STAT_LIVES).xr(-16).yt(y = 2).lives_num(STAT_LIVES).xr(0).yt(y += text_adj).loc_rstring("$g_lives").endifstat();
-
-		// total monsters
-		if (GT(GT_HORDE)) {
-			int num, chars;
-			
-			num = level.round_number;
-			chars = num > 99 ? 3 : num > 9 ? 2 : 1;
-			sb.ifstat(STAT_ROUND_NUMBER).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_ROUND_NUMBER).xr(0).yt(y += text_adj).loc_rstring("Wave").endifstat();
-
-			num = level.totalMonsters - level.killedMonsters;
-			chars = num > 99 ? 3 : num > 9 ? 2 : 1;
-			sb.ifstat(STAT_MONSTER_COUNT).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_MONSTER_COUNT).xr(0).yt(y += text_adj).loc_rstring("Monsters").endifstat();
-		}
-	}
-	if (!deathmatch->integer) {
-		// SP/coop
-		// key display
-		// move up if the timer is active
-		// FIXME: ugly af
-		sb.ifstat(STAT_POWERUP_ICON).yb(-76).endifstat();
-		sb.ifstat(STAT_SELECTED_ITEM_NAME)
-			.yb(-58)
-			.ifstat(STAT_POWERUP_ICON)
-			.yb(-84)
-			.endifstat()
-			.endifstat();
-		sb.ifstat(STAT_KEY_A).xv(296).pic(STAT_KEY_A).endifstat();
-		sb.ifstat(STAT_KEY_B).xv(272).pic(STAT_KEY_B).endifstat();
-		sb.ifstat(STAT_KEY_C).xv(248).pic(STAT_KEY_C).endifstat();
-
-		sb.ifstat(STAT_HEALTH_BARS).yt(24).health_bars().endifstat();
-
-		sb.story();
-	} else {
-		if (Teams()) {
-			// flag carrier indicator
-			if (GTF(GTF_CTF))
-				sb.ifstat(STAT_CTF_FLAG_PIC).xr(-24).yt(26).pic(STAT_CTF_FLAG_PIC).endifstat();
-
-			// teams unbalanced warning
-			sb.ifstat(STAT_TEAMPLAY_INFO).xl(0).yb(-88).stat_string(STAT_TEAMPLAY_INFO).endifstat();
-		}
-
-		// countdown
-		sb.ifstat(STAT_COUNTDOWN).xv(136).yb(-256).num(3, STAT_COUNTDOWN).endifstat();
-
-		// match state/timer
-		sb.ifstat(STAT_MATCH_STATE).xv(0).yb(-78).stat_string(STAT_MATCH_STATE).endifstat();
-
-		// follow cam
-		sb.ifstat(STAT_FOLLOWING).xv(0).yb(-68).string2("FOLLOWING").xv(80).stat_string(STAT_FOLLOWING).endifstat();
-		
-		// spectator
-		sb.ifstat(STAT_SPECTATOR).xv(0).yb(-68).string2("SPECTATOR MODE").endifstat();
-
-		// mini scores...
-		// red/first
-		sb.ifstat(STAT_MINISCORE_FIRST_PIC).xr(-26).yb(-110).pic(STAT_MINISCORE_FIRST_PIC).xr(-78).num(3, STAT_MINISCORE_FIRST_SCORE).ifstat(STAT_MINISCORE_FIRST_VAL).xr(-24).yb(-94).stat_string(STAT_MINISCORE_FIRST_VAL).endifstat().endifstat();
-		sb.ifstat(STAT_MINISCORE_FIRST_POS).xr(-28).yb(-112).pic(STAT_MINISCORE_FIRST_POS).endifstat();
-		// blue/second
-		sb.ifstat(STAT_MINISCORE_SECOND_PIC).xr(-26).yb(-83).pic(STAT_MINISCORE_SECOND_PIC).xr(-78).num(3, STAT_MINISCORE_SECOND_SCORE).ifstat(STAT_MINISCORE_SECOND_VAL).xr(-24).yb(-68).stat_string(STAT_MINISCORE_SECOND_VAL).endifstat().endifstat();
-		sb.ifstat(STAT_MINISCORE_SECOND_POS).xr(-28).yb(-85).pic(STAT_MINISCORE_SECOND_POS).endifstat();
-		// score limit
-		sb.ifstat(STAT_MINISCORE_FIRST_PIC).xr(-28).yb(-57).stat_string(STAT_SCORELIMIT).endifstat();
-
-		// crosshair id
-		sb.ifstat(STAT_CROSSHAIR_ID_VIEW).xv(122).yb(-128).stat_pname(STAT_CROSSHAIR_ID_VIEW).endifstat();	//112 -58
-		sb.ifstat(STAT_CROSSHAIR_ID_VIEW_COLOR).xv(156).yb(-118).pic(STAT_CROSSHAIR_ID_VIEW_COLOR).endifstat();	//106 -160 //96 -58
-	}
+	if (CooperativeModeOn()) AddCoopStatus(sb);
+	if (!deathmatch->integer) AddSPExtras(sb);
+	else AddDeathmatchStatus(sb);
 
 	gi.configstring(CS_STATUSBAR, sb.sb.str().c_str());
+}
+
+/*
+=========================
+ApplyMapSettingOverrides
+=========================
+*/
+static void ApplyMapSettingOverrides() {
+	// Start with base values from cvars
+	game.spawnArmor = !g_no_armor->integer;
+	game.spawnAmmo = true;
+	game.spawnPowerArmor = !g_no_armor->integer;
+	game.spawnPowerups = !g_no_powerups->integer;
+	game.spawnHealth = !g_no_health->integer;
+	game.spawnBFG = !g_mapspawn_no_bfg->integer;
+	game.spawnPlasmaBeam = !g_mapspawn_no_plasmabeam->integer;
+	game.fallingDamage = g_fallingDamage->integer;
+	game.selfDamage = g_selfDamage->integer;
+	game.weaponsStay = match_weaponsStay->integer;
+
+	uint16_t enableFlags = game.overrideEnableFlags;
+	uint16_t disableFlags = game.overrideDisableFlags;
+
+	// Apply overrides
+	if (enableFlags & MAPFLAG_PU)  game.spawnPowerups = true;
+	else if (disableFlags & MAPFLAG_PU) game.spawnPowerups = false;
+
+	if (enableFlags & MAPFLAG_PA)  game.spawnPowerArmor = true;
+	else if (disableFlags & MAPFLAG_PA) game.spawnPowerArmor = false;
+
+	if (enableFlags & MAPFLAG_AR)  game.spawnArmor = true;
+	else if (disableFlags & MAPFLAG_AR) game.spawnArmor = false;
+
+	if (enableFlags & MAPFLAG_AM)  game.spawnAmmo = true;
+	else if (disableFlags & MAPFLAG_AM) game.spawnAmmo = false;
+
+	if (enableFlags & MAPFLAG_HT)  game.spawnHealth = true;
+	else if (disableFlags & MAPFLAG_HT) game.spawnHealth = false;
+
+	if (enableFlags & MAPFLAG_BFG)  game.spawnBFG = true;
+	else if (disableFlags & MAPFLAG_BFG) game.spawnBFG = false;
+
+	if (enableFlags & MAPFLAG_PB)  game.spawnPlasmaBeam = true;
+	else if (disableFlags & MAPFLAG_PB) game.spawnPlasmaBeam = false;
+
+	if (enableFlags & MAPFLAG_FD)   game.fallingDamage = true;
+	else if (disableFlags & MAPFLAG_FD)  game.fallingDamage = false;
+
+	if (enableFlags & MAPFLAG_SD)   game.selfDamage = true;
+	else if (disableFlags & MAPFLAG_SD)  game.selfDamage = false;
+
+	if (enableFlags & MAPFLAG_WS)   game.weaponsStay = true;
+	else if (disableFlags & MAPFLAG_WS)  game.weaponsStay = false;
+}
+
+/*
+===================
+PickRandomArena
+===================
+*/
+static int32_t PickRandomArena() {
+	if (level.arenaTotal <= 0)
+		return 1; // default fallback
+
+	return (irandom(level.arenaTotal) + 1); // irandom is 0-based
 }
 
 /*QUAKED worldspawn (0 0 0) ?
 
 Only used for the world.
 "sky"				environment map name
-"skyaxis"			vector axis for rotating sky
-"skyrotate"			speed of rotation in degrees/second
+"skyAxis"			vector axis for rotating sky
+"skyRotate"			speed of rotation in degrees/second
 "sounds"			music cd track number
 "music"				specific music file to play, overrides "sounds"
 "gravity"			800 is default gravity
@@ -2058,7 +2004,9 @@ Only used for the world.
 "ruleset"			overrides gameplay ruleset (q1/q2/q3a)
 */
 void SP_worldspawn(gentity_t *ent) {
-	Q_strlcpy(level.gamemod_name, G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data(), sizeof(level.gamemod_name));
+	std::string name = fmt::format("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION);
+	std::strncpy(level.gamemod_name.data(), name.c_str(), level.gamemod_name.size() - 1);
+	level.gamemod_name.back() = '\0'; // Ensure null-termination
 
 	ent->moveType = MOVETYPE_PUSH;
 	ent->solid = SOLID_BSP;
@@ -2075,20 +2023,28 @@ void SP_worldspawn(gentity_t *ent) {
 
 		for (auto ec : active_clients()) {
 			ec->client->pers.game_help1changed = ec->client->pers.game_help2changed = 0;
-			ec->client->resp.coop_respawn.game_help1changed = ec->client->resp.coop_respawn.game_help2changed = 0;
+			ec->client->resp.coopRespawn.game_help1changed = ec->client->resp.coopRespawn.game_help2changed = 0;
 		}
+	}
+
+	if (st.arena) {
+		level.arenaTotal = st.arena;
+		level.arenaActive = PickRandomArena();
+		//gi.Com_PrintFmt("st.arena={} arenaTotal={} arenaActive={}\n", st.arena, level.arenaTotal, level.arenaActive);
 	}
 
 	if (st.achievement && st.achievement[0])
 		level.achievement = st.achievement;
+
+	ApplyMapSettingOverrides();
 
 	//---------------
 
 	// set configstrings for items
 	SetItemNames();
 
-	if (st.nextmap && st.nextmap[0])
-		Q_strlcpy(level.nextmap, st.nextmap, sizeof(level.nextmap));
+	if (st.nextMap && st.nextMap[0])
+		Q_strlcpy(level.nextMap, st.nextMap, sizeof(level.nextMap));
 
 	// make some data visible to the server
 
@@ -2103,7 +2059,7 @@ void SP_worldspawn(gentity_t *ent) {
 	if (st.author2 && st.author2[0])
 		Q_strlcpy(level.author2, st.author2, sizeof(level.author2));
 
-	if (st.ruleset && st.ruleset[0] && g_level_ruleset->integer) {
+	if (st.ruleset && st.ruleset[0] && match_levelRulesets->integer) {
 		game.ruleset = RS_IndexFromString(st.ruleset);
 		//gi.Com_PrintFmt("st={} game={}\n", st.ruleset, rs_long_name[(int)game.ruleset]);
 		if (!game.ruleset)
@@ -2117,9 +2073,9 @@ void SP_worldspawn(gentity_t *ent) {
 	else
 		gi.configstring(CS_SKY, "unit1_");
 
-	gi.configstring(CS_SKYROTATE, G_Fmt("{} {}", st.skyrotate, st.skyautorotate).data());
+	gi.configstring(CS_SKYROTATE, G_Fmt("{} {}", st.skyRotate, st.skyAutoRotate).data());
 
-	gi.configstring(CS_SKYAXIS, G_Fmt("{}", st.skyaxis).data());
+	gi.configstring(CS_SKYAXIS, G_Fmt("{}", st.skyAxis).data());
 
 	if (st.music && st.music[0]) {
 		gi.configstring(CS_CDTRACK, st.music);
@@ -2134,7 +2090,7 @@ void SP_worldspawn(gentity_t *ent) {
 	else
 		gi.configstring(CS_CD_LOOP_COUNT, "");
 
-	if (st.instantitems > 0 || level.isN64)
+	if (st.instantItems > 0 || level.isN64)
 		level.instantItems = true;
 
 	// [Paril-KEX]
@@ -2166,7 +2122,7 @@ void SP_worldspawn(gentity_t *ent) {
 	gi.configstring(CS_MAXCLIENTS, G_Fmt("{}", game.maxclients).data());
 
 	if (level.isN64 && !deathmatch->integer) {
-		gi.configstring(CONFIG_N64_PHYSICS, "1");
+		gi.configstring(CONFIG_N64_PHYSICS_MEDAL, "1");
 		pm_config.n64_physics = true;
 	}
 
@@ -2175,10 +2131,10 @@ void SP_worldspawn(gentity_t *ent) {
 
 	// [Paril-KEX] air accel handled by game DLL now, and allow
 	// it to be changed in sp/coop
-	gi.configstring(CS_AIRACCEL, G_Fmt("{}", g_airaccelerate->integer).data());
-	pm_config.airaccel = g_airaccelerate->integer;
+	gi.configstring(CS_AIRACCEL, G_Fmt("{}", g_airAccelerate->integer).data());
+	pm_config.airaccel = g_airAccelerate->integer;
 
-	game.airacceleration_modified = g_airaccelerate->modified_count;
+	game.airacceleration_modified = g_airAccelerate->modified_count;
 
 	//---------------
 

@@ -73,7 +73,7 @@ void G_SetMoveinfoSounds(gentity_t *self, const char *default_start, const char 
 
 static THINK(Move_Done) (gentity_t *ent) -> void {
 	ent->velocity = {};
-	ent->moveinfo.endfunc(ent);
+	ent->moveinfo.endFunc(ent);
 }
 
 static THINK(Move_Final) (gentity_t *ent) -> void {
@@ -111,7 +111,7 @@ static constexpr float AccelerationDistance(float target, float rate) {
 	return (target * ((target / rate) + 1) / 2);
 }
 
-static inline void Move_Regular(gentity_t *ent, const vec3_t &dest, void(*endfunc)(gentity_t *self)) {
+static inline void Move_Regular(gentity_t *ent, const vec3_t &dest, void(*endFunc)(gentity_t *self)) {
 	if (level.currentEntity == ((ent->flags & FL_TEAMSLAVE) ? ent->teamMaster : ent)) {
 		Move_Begin(ent);
 	} else {
@@ -120,15 +120,15 @@ static inline void Move_Regular(gentity_t *ent, const vec3_t &dest, void(*endfun
 	}
 }
 
-void Move_Calc(gentity_t *ent, const vec3_t &dest, void(*endfunc)(gentity_t *self)) {
+void Move_Calc(gentity_t *ent, const vec3_t &dest, void(*endFunc)(gentity_t *self)) {
 	ent->velocity = {};
 	ent->moveinfo.dest = dest;
 	ent->moveinfo.dir = dest - ent->s.origin;
 	ent->moveinfo.remaining_distance = ent->moveinfo.dir.normalize();
-	ent->moveinfo.endfunc = endfunc;
+	ent->moveinfo.endFunc = endFunc;
 
 	if (ent->moveinfo.speed == ent->moveinfo.accel && ent->moveinfo.speed == ent->moveinfo.decel) {
-		Move_Regular(ent, dest, endfunc);
+		Move_Regular(ent, dest, endFunc);
 	} else {
 		// accelerative
 		ent->moveinfo.current_speed = 0;
@@ -216,7 +216,7 @@ THINK(Think_AccelMove_New) (gentity_t *ent) -> void {
 
 static THINK(AngleMove_Done) (gentity_t *ent) -> void {
 	ent->aVelocity = {};
-	ent->moveinfo.endfunc(ent);
+	ent->moveinfo.endFunc(ent);
 }
 
 static THINK(AngleMove_Final) (gentity_t *ent) -> void {
@@ -290,9 +290,9 @@ static THINK(AngleMove_Begin) (gentity_t *ent) -> void {
 	}
 }
 
-static void AngleMove_Calc(gentity_t *ent, void(*endfunc)(gentity_t *self)) {
+static void AngleMove_Calc(gentity_t *ent, void(*endFunc)(gentity_t *self)) {
 	ent->aVelocity = {};
-	ent->moveinfo.endfunc = endfunc;
+	ent->moveinfo.endFunc = endFunc;
 
 	//  if we're supposed to accelerate, this will tell anglemove_begin to do so
 	if (ent->accel != ent->speed)
@@ -571,7 +571,7 @@ static TOUCH(Touch_Plat_Center) (gentity_t *ent, gentity_t *other, const trace_t
 // plat2's change the trigger field
 gentity_t *plat_spawn_inside_trigger(gentity_t *ent) {
 	gentity_t *trigger;
-	vec3_t	 tmin, tmax;
+	vec3_t	 tmin{}, tmax{};
 
 	//
 	// middle trigger
@@ -1412,7 +1412,7 @@ static DIE(button_killed) (gentity_t *self, gentity_t *inflictor, gentity_t *att
 }
 
 void SP_func_button(gentity_t *ent) {
-	vec3_t abs_movedir;
+	vec3_t abs_movedir{};
 	float  dist;
 
 	SetMoveDir(ent->s.angles, ent->movedir);
@@ -1777,7 +1777,7 @@ static THINK(Think_CalcMoveSpeed) (gentity_t *self) -> void {
 	gentity_t *ent;
 	float	 min;
 	float	 time;
-	float	 newspeed;
+	float	 newSpeed;
 	float	 ratio;
 	float	 dist;
 
@@ -1796,17 +1796,17 @@ static THINK(Think_CalcMoveSpeed) (gentity_t *self) -> void {
 
 	// adjust speeds so they will all complete at the same time
 	for (ent = self; ent; ent = ent->teamChain) {
-		newspeed = fabsf(ent->moveinfo.distance) / time;
-		ratio = newspeed / ent->moveinfo.speed;
+		newSpeed = fabsf(ent->moveinfo.distance) / time;
+		ratio = newSpeed / ent->moveinfo.speed;
 		if (ent->moveinfo.accel == ent->moveinfo.speed)
-			ent->moveinfo.accel = newspeed;
+			ent->moveinfo.accel = newSpeed;
 		else
 			ent->moveinfo.accel *= ratio;
 		if (ent->moveinfo.decel == ent->moveinfo.speed)
-			ent->moveinfo.decel = newspeed;
+			ent->moveinfo.decel = newSpeed;
 		else
 			ent->moveinfo.decel *= ratio;
-		ent->moveinfo.speed = newspeed;
+		ent->moveinfo.speed = newSpeed;
 	}
 }
 
@@ -1910,7 +1910,7 @@ static THINK(Think_DoorActivateAreaPortal) (gentity_t *ent) -> void {
 }
 
 void SP_func_door(gentity_t *ent) {
-	vec3_t abs_movedir;
+	vec3_t abs_movedir{};
 
 	if (ent->sounds != 1)
 		G_SetMoveinfoSounds(ent, "doors/dr1_strt.wav", "doors/dr1_mid.wav", "doors/dr1_end.wav");
@@ -1942,7 +1942,7 @@ void SP_func_door(gentity_t *ent) {
 		ent->speed = 100;
 	if (deathmatch->integer)
 		ent->speed *= 2;
-	if (g_fast_doors->integer)
+	if (g_fastDoors->integer)
 		ent->speed *= 2;
 
 	if (g_mover_speed_scale->value != 1.0f) {
@@ -2110,7 +2110,7 @@ void SP_func_door_rotating(gentity_t *ent) {
 
 	if (!ent->speed)
 		ent->speed = 100;
-	if (g_fast_doors->integer)
+	if (g_fastDoors->integer)
 		ent->speed *= 2;
 
 	if (g_mover_speed_scale->value != 1.0f) {
@@ -2239,7 +2239,7 @@ SMART causes the water to adjust its speed depending on distance to player.
 */
 
 void SP_func_water(gentity_t *self) {
-	vec3_t abs_movedir;
+	vec3_t abs_movedir{};
 
 	SetMoveDir(self->s.angles, self->movedir);
 	self->moveType = MOVETYPE_PUSH;
@@ -2686,7 +2686,7 @@ so, the basic time between firing is a random time between
 
 "delay"			delay before first firing when turned on, default is 0
 
-"pausetime"		additional delay used only the very first time
+"pauseTime"		additional delay used only the very first time
 				and only if spawned with START_ON
 
 These can used but not touched.
@@ -2728,7 +2728,7 @@ void SP_func_timer(gentity_t *self) {
 	}
 
 	if (self->spawnflags.has(SPAWNFLAG_TIMER_START_ON)) {
-		self->nextThink = level.time + 1_sec + gtime_t::from_sec(st.pausetime + self->delay + self->wait + crandom() * self->random);
+		self->nextThink = level.time + 1_sec + gtime_t::from_sec(st.pauseTime + self->delay + self->wait + crandom() * self->random);
 		self->activator = self;
 	}
 

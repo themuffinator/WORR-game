@@ -25,21 +25,21 @@ void Bot_SetWeapon(gentity_t *bot, const int weaponIndex, const bool instantSwit
 
 	const item_id_t weaponItemID = static_cast<item_id_t>(weaponIndex);
 
-	const gitem_t *currentGun = client->pers.weapon;
+	const Item *currentGun = client->pers.weapon;
 	if (currentGun != nullptr) {
 		if (currentGun->id == weaponItemID) {
 			return;
 		} // already have the gun in hand.
 	}
 
-	const gitem_t *pendingGun = client->newWeapon;
+	const Item *pendingGun = client->newWeapon;
 	if (pendingGun != nullptr) {
 		if (pendingGun->id == weaponItemID) {
 			return;
 		} // already in the process of switching to that gun, just be patient!
 	}
 
-	gitem_t *item = &itemList[weaponIndex];
+	Item *item = &itemList[weaponIndex];
 	if ((item->flags & IF_WEAPON) == 0) {
 		return;
 	}
@@ -48,15 +48,15 @@ void Bot_SetWeapon(gentity_t *bot, const int weaponIndex, const bool instantSwit
 		return;
 	}
 
-	bot->client->no_weapon_chains = true;
+	bot->client->noWeaponChains = true;
 	item->use(bot, item);
 
 	if (instantSwitch) {
 		// FIXME: ugly, maybe store in client later
-		const int temp_instant_weapon = g_instant_weapon_switch->integer || !!g_frenzy->integer;
-		g_instant_weapon_switch->integer = 1;
+		const bool temp_instant_weapon = g_instantWeaponSwitch->integer || !!g_frenzy->integer;
+		g_instantWeaponSwitch->integer = 1;
 		Change_Weapon(bot);
-		g_instant_weapon_switch->integer = temp_instant_weapon;
+		g_instantWeaponSwitch->integer = temp_instant_weapon;
 	}
 }
 
@@ -111,14 +111,14 @@ void Bot_UseItem(gentity_t *bot, const int32_t itemID) {
 		return;
 	} // the itemID changed on us - don't use it!
 
-	gitem_t *item = &itemList[bot->client->pers.selected_item];
+	Item *item = &itemList[bot->client->pers.selected_item];
 	bot->client->pers.selected_item = IT_NULL;
 
 	if (item->use == nullptr) {
 		return;
 	}
 
-	bot->client->no_weapon_chains = true;
+	bot->client->noWeaponChains = true;
 	item->use(bot, item);
 }
 
@@ -137,7 +137,7 @@ int32_t Bot_GetItemID(const char *className) {
 	}
 
 	for (int i = 0; i < IT_TOTAL; ++i) {
-		const gitem_t *item = itemList + i;
+		const Item *item = itemList + i;
 		if (item->className == nullptr || item->className[0] == '\0') {
 			continue;
 		}
@@ -169,7 +169,7 @@ void Entity_ForceLookAtPoint(gentity_t *entity, gvec3_cref_t point) {
 	}
 
 	if (entity->client != nullptr) {
-		entity->client->ps.pmove.delta_angles = (viewAngles - entity->client->resp.cmd_angles);
+		entity->client->ps.pmove.delta_angles = (viewAngles - entity->client->resp.cmdAngles);
 		entity->client->ps.viewangles = {};
 		entity->client->vAngle = {};
 		entity->s.angles = {};
@@ -184,5 +184,8 @@ Check if the given bot has picked up the given item or not.
 ================
 */
 bool Bot_PickedUpItem(gentity_t *bot, gentity_t *item) {
-	return item->item_picked_up_by[(bot->s.number - 1)];
+	if (bot->s.number == 0 || bot->s.number > MAX_CLIENTS)
+		return false; // invalid or out of range
+
+	return item->item_picked_up_by[static_cast<int>(bot->s.number - 1)];
 }

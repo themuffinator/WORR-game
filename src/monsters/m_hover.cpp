@@ -371,7 +371,7 @@ MONSTERINFO_STAND(hover_stand) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(hover_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &hover_move_stand);
 	else
 		M_SetAnimation(self, &hover_move_run);
@@ -582,6 +582,6 @@ void SP_monster_hover(gentity_t *self) {
 	if (strcmp(self->className, "monster_daedalus") == 0)
 		self->s.skinnum = 2;
 
-	self->monsterInfo.aiflags |= AI_ALTERNATE_FLY;
+	self->monsterInfo.aiFlags |= AI_ALTERNATE_FLY;
 	hover_set_fly_parameters(self);
 }

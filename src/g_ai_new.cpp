@@ -119,7 +119,7 @@ blocked_jump_result_t blocked_checkjump(gentity_t *self, float dist) {
 		return blocked_jump_result_t::NO_JUMP;
 
 	// if we're pathing, the nodes will ensure we can reach the destination.
-	if (self->monsterInfo.aiflags & AI_PATHING) {
+	if (self->monsterInfo.aiFlags & AI_PATHING) {
 		if (self->monsterInfo.nav_path.returnCode != PathReturnCode::TraversalPending)
 			return blocked_jump_result_t::NO_JUMP;
 
@@ -148,7 +148,7 @@ blocked_jump_result_t blocked_checkjump(gentity_t *self, float dist) {
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 
-	if (self->monsterInfo.aiflags & AI_PATHING) {
+	if (self->monsterInfo.aiFlags & AI_PATHING) {
 		if (self->monsterInfo.nav_path.secondMovePoint[2] > (self->absMin[2] + (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = 1;
 		else if (self->monsterInfo.nav_path.secondMovePoint[2] < (self->absMin[2] - (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
@@ -189,7 +189,7 @@ blocked_jump_result_t blocked_checkjump(gentity_t *self, float dist) {
 			}
 
 			if ((self->absMin[2] - trace.endpos[2]) >= 24 && (trace.contents & (MASK_SOLID | CONTENTS_WATER))) {
-				if (self->monsterInfo.aiflags & AI_PATHING) {
+				if (self->monsterInfo.aiFlags & AI_PATHING) {
 					if ((self->monsterInfo.nav_path.secondMovePoint[2] - trace.endpos[2]) > 32)
 						return blocked_jump_result_t::NO_JUMP;
 				} else {
@@ -325,9 +325,9 @@ static void hintpath_go(gentity_t *self, gentity_t *point) {
 
 	self->ideal_yaw = vectoyaw(dir);
 	self->goalentity = self->movetarget = point;
-	self->monsterInfo.pausetime = 0_ms;
-	self->monsterInfo.aiflags |= AI_HINT_PATH;
-	self->monsterInfo.aiflags &= ~(AI_SOUND_TARGET | AI_PURSUIT_LAST_SEEN | AI_PURSUE_NEXT | AI_PURSUE_TEMP);
+	self->monsterInfo.pauseTime = 0_ms;
+	self->monsterInfo.aiFlags |= AI_HINT_PATH;
+	self->monsterInfo.aiFlags &= ~(AI_SOUND_TARGET | AI_PURSUIT_LAST_SEEN | AI_PURSUE_NEXT | AI_PURSUE_TEMP);
 	// run for it
 	self->monsterInfo.search_time = level.time;
 	self->monsterInfo.run(self);
@@ -341,7 +341,7 @@ void hintpath_stop(gentity_t *self) {
 	self->movetarget = nullptr;
 	self->monsterInfo.last_hint_time = level.time;
 	self->monsterInfo.goal_hint = nullptr;
-	self->monsterInfo.aiflags &= ~AI_HINT_PATH;
+	self->monsterInfo.aiFlags &= ~AI_HINT_PATH;
 	if (has_valid_enemy(self)) {
 		// if we can see our target, go nuts
 		if (visible(self, self->enemy)) {
@@ -354,11 +354,11 @@ void hintpath_stop(gentity_t *self) {
 	}
 	// if our enemy is no longer valid, forget about our enemy and go into stand
 	self->enemy = nullptr;
-	// we need the pausetime otherwise the stand code
+	// we need the pauseTime otherwise the stand code
 	// will just revert to walking with no target and
 	// the monsters will wonder around aimlessly trying
 	// to hunt the world entity
-	self->monsterInfo.pausetime = HOLD_FOREVER;
+	self->monsterInfo.pauseTime = HOLD_FOREVER;
 	self->monsterInfo.stand(self);
 }
 
@@ -376,7 +376,7 @@ bool monsterlost_checkhint(gentity_t *self) {
 	int		 count5 = 0;
 	float	 r;
 	int		 i;
-	bool	 hint_path_represented[MAX_HINT_CHAINS];
+	bool	 hint_path_represented[MAX_HINT_CHAINS]{};
 
 	// if there are no hint paths on this map, exit immediately.
 	if (!hint_paths_present)
@@ -386,7 +386,7 @@ bool monsterlost_checkhint(gentity_t *self) {
 		return false;
 
 	// [Paril-KEX] don't do hint paths if we're using nav nodes
-	if (self->monsterInfo.aiflags & (AI_STAND_GROUND | AI_PATHING))
+	if (self->monsterInfo.aiFlags & (AI_STAND_GROUND | AI_PATHING))
 		return false;
 
 	if (!strcmp(self->className, "monster_turret"))
@@ -933,8 +933,8 @@ bool MarkTeslaArea(gentity_t *self, gentity_t *tesla) {
 		mins = trigger->absMin;
 		maxs = trigger->absMax;
 
-		if (tesla->air_finished)
-			area = SpawnBadArea(mins, maxs, tesla->air_finished, tesla);
+		if (tesla->airFinished)
+			area = SpawnBadArea(mins, maxs, tesla->airFinished, tesla);
 		else
 			area = SpawnBadArea(mins, maxs, tesla->nextThink, tesla);
 	}
@@ -1099,9 +1099,9 @@ void drawbbox(gentity_t *self) {
 
 	int starts[4] = { 0, 3, 5, 6 };
 
-	vec3_t pt[8];
+	vec3_t pt[8]{};
 	int	   i, j, k;
-	vec3_t coords[2];
+	vec3_t coords[2]{};
 	vec3_t newbox;
 	vec3_t f, r, u, dir;
 
@@ -1174,9 +1174,9 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 	if (self->health < 1)
 		return;
 
-	if ((self->monsterInfo.duck) && (self->monsterInfo.unduck) && !gravity)
+	if ((self->monsterInfo.duck) && (self->monsterInfo.unDuck) && !gravity)
 		ducker = true;
-	if ((self->monsterInfo.sidestep) && !(self->monsterInfo.aiflags & AI_STAND_GROUND))
+	if ((self->monsterInfo.sideStep) && !(self->monsterInfo.aiFlags & AI_STAND_GROUND))
 		dodger = true;
 
 	if ((!ducker) && (!dodger))
@@ -1199,19 +1199,19 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 	if (ducker && tr) {
 		height = self->absMax[2] - 32 - 1; // the -1 is because the absMax is s.origin + maxs + 1
 
-		if ((!dodger) && ((tr->endpos[2] <= height) || (self->monsterInfo.aiflags & AI_DUCKED)))
+		if ((!dodger) && ((tr->endpos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)))
 			return;
 	} else
 		height = self->absMax[2];
 
 	if (dodger) {
 		// if we're already dodging, just finish the sequence, i.e. don't do anything else
-		if (self->monsterInfo.aiflags & AI_DODGING)
+		if (self->monsterInfo.aiFlags & AI_DODGING)
 			return;
 
 		// if we're ducking already, or the shot is at our knees
-		if ((!ducker || !tr || tr->endpos[2] <= height) || (self->monsterInfo.aiflags & AI_DUCKED)) {
-			// on Easy & Normal, don't sidestep as often (25% on Easy, 50% on Normal)
+		if ((!ducker || !tr || tr->endpos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)) {
+			// on Easy & Normal, don't sideStep as often (25% on Easy, 50% on Normal)
 			if (!G_SkillCheck({ 0.25f, 0.50f, 1.0f, 1.0f, 1.0f })) {
 				gtime_t delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.8_sec, 1.4_sec);
 				self->monsterInfo.dodge_time = level.time + delay;
@@ -1231,12 +1231,12 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 					self->monsterInfo.lefty = brandom();
 
 				// call the monster specific code here
-				if (self->monsterInfo.sidestep(self)) {
-					// if we are currently ducked, unduck
-					if ((ducker) && (self->monsterInfo.aiflags & AI_DUCKED))
-						self->monsterInfo.unduck(self);
+				if (self->monsterInfo.sideStep(self)) {
+					// if we are currently ducked, unDuck
+					if ((ducker) && (self->monsterInfo.aiFlags & AI_DUCKED))
+						self->monsterInfo.unDuck(self);
 
-					self->monsterInfo.aiflags |= AI_DODGING;
+					self->monsterInfo.aiFlags |= AI_DODGING;
 					self->monsterInfo.attack_state = AS_SLIDING;
 
 					gtime_t delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.4_sec, 2.0_sec);
@@ -1274,7 +1274,7 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 }
 
 void monster_duck_down(gentity_t *self) {
-	self->monsterInfo.aiflags |= AI_DUCKED;
+	self->monsterInfo.aiFlags |= AI_DUCKED;
 
 	self->maxs[2] = self->monsterInfo.base_height - 32;
 	self->takeDamage = true;
@@ -1284,16 +1284,16 @@ void monster_duck_down(gentity_t *self) {
 
 void monster_duck_hold(gentity_t *self) {
 	if (level.time >= self->monsterInfo.duck_wait_time)
-		self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+		self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 	else
-		self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+		self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 }
 
 MONSTERINFO_UNDUCK(monster_duck_up) (gentity_t *self) -> void {
-	if (!(self->monsterInfo.aiflags & AI_DUCKED))
+	if (!(self->monsterInfo.aiFlags & AI_DUCKED))
 		return;
 
-	self->monsterInfo.aiflags &= ~AI_DUCKED;
+	self->monsterInfo.aiFlags &= ~AI_DUCKED;
 	self->maxs[2] = self->monsterInfo.base_height;
 	self->takeDamage = true;
 	// we finished a duck-up successfully, so cut the time remaining in half
@@ -1322,10 +1322,10 @@ void TargetTesla(gentity_t *self, gentity_t *tesla) {
 		return;
 
 	// PMM - medic bails on healing things
-	if (self->monsterInfo.aiflags & AI_MEDIC) {
+	if (self->monsterInfo.aiFlags & AI_MEDIC) {
 		if (self->enemy)
 			M_CleanupHealTarget(self->enemy);
-		self->monsterInfo.aiflags &= ~AI_MEDIC;
+		self->monsterInfo.aiFlags &= ~AI_MEDIC;
 	}
 
 	// store the player enemy in case we lose track of him.

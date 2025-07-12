@@ -160,11 +160,11 @@ MMOVE_T(tank_move_run) = { FRAME_walk05, FRAME_walk20, tank_frames_run, nullptr 
 
 MONSTERINFO_RUN(tank_run) (gentity_t *self) -> void {
 	if (self->enemy && self->enemy->client)
-		self->monsterInfo.aiflags |= AI_BRUTAL;
+		self->monsterInfo.aiFlags |= AI_BRUTAL;
 	else
-		self->monsterInfo.aiflags &= ~AI_BRUTAL;
+		self->monsterInfo.aiFlags &= ~AI_BRUTAL;
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &tank_move_stand);
 		return;
 	}
@@ -248,7 +248,7 @@ static PAIN(tank_pain) (gentity_t *self, gentity_t *other, float kick, int damag
 		return; // no pain anims in nightmare
 
 	// PMM - blindfire cleanup
-	self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 	// pmm
 
 	if (damage <= 30)
@@ -312,7 +312,7 @@ static void TankBlaster(gentity_t *self) {
 	if (!self->enemy || !self->enemy->inUse)
 		return;
 
-	bool   blindfire = self->monsterInfo.aiflags & AI_MANUAL_STEERING;
+	bool   blindfire = self->monsterInfo.aiFlags & AI_MANUAL_STEERING;
 
 	if (self->s.frame == FRAME_attak110)
 		flash_number = MZ2_TANK_BLASTER_1;
@@ -356,7 +356,7 @@ static void TankRocket(gentity_t *self) {
 	if (!self->enemy || !self->enemy->inUse)
 		return;
 
-	bool   blindfire = self->monsterInfo.aiflags & AI_MANUAL_STEERING;
+	bool   blindfire = self->monsterInfo.aiFlags & AI_MANUAL_STEERING;
 
 	if (self->s.frame == FRAME_attak324)
 		flash_number = MZ2_TANK_ROCKET_1;
@@ -405,7 +405,7 @@ static void TankRocket(gentity_t *self) {
 
 	dir.normalize();
 
-	// pmm blindfire doesn't check target (done in checkattack)
+	// pmm blindfire doesn't check target (done in checkAttack)
 	// paranoia, make sure we're not shooting a target right next to us
 	if (blindfire) {
 		// blindfire has different fail criteria for the trace
@@ -428,7 +428,7 @@ static void TankRocket(gentity_t *self) {
 }
 
 static void TankMachineGun(gentity_t *self) {
-	vec3_t					 dir;
+	vec3_t					 dir{};
 	vec3_t					 vec;
 	vec3_t					 start;
 	vec3_t					 forward, right;
@@ -464,7 +464,7 @@ static void TankMachineGun(gentity_t *self) {
 }
 
 static void tank_blind_check(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
 		vec3_t aim = self->monsterInfo.blind_fire_target - self->s.origin;
 		self->ideal_yaw = vectoyaw(aim);
 	}
@@ -511,8 +511,8 @@ mframe_t tank_frames_attack_post_blast[] = {
 MMOVE_T(tank_move_attack_post_blast) = { FRAME_attak117, FRAME_attak122, tank_frames_attack_post_blast, tank_run };
 
 void tank_reattack_blaster(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
-		self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
+		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 		M_SetAnimation(self, &tank_move_attack_post_blast);
 		return;
 	}
@@ -529,7 +529,7 @@ void tank_reattack_blaster(gentity_t *self) {
 static void tank_poststrike(gentity_t *self) {
 	self->enemy = nullptr;
 	// [Paril-KEX]
-	self->monsterInfo.pausetime = HOLD_FOREVER;
+	self->monsterInfo.pauseTime = HOLD_FOREVER;
 	self->monsterInfo.stand(self);
 }
 
@@ -679,8 +679,8 @@ MMOVE_T(tank_move_attack_chain) = { FRAME_attak401, FRAME_attak429, tank_frames_
 
 void tank_refire_rocket(gentity_t *self) {
 	// PMM - blindfire cleanup
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
-		self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
+		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 		M_SetAnimation(self, &tank_move_attack_post_rocket);
 		return;
 	}
@@ -710,7 +710,7 @@ MONSTERINFO_ATTACK(tank_attack) (gentity_t *self) -> void {
 
 	if (self->enemy->health <= 0) {
 		M_SetAnimation(self, &tank_move_attack_strike);
-		self->monsterInfo.aiflags &= ~AI_BRUTAL;
+		self->monsterInfo.aiFlags &= ~AI_BRUTAL;
 		return;
 	}
 
@@ -744,13 +744,13 @@ MONSTERINFO_ATTACK(tank_attack) (gentity_t *self) -> void {
 		bool use_rocket = (rocket_visible && blaster_visible) ? brandom() : rocket_visible;
 
 		// turn on manual steering to signal both manual steering and blindfire
-		self->monsterInfo.aiflags |= AI_MANUAL_STEERING;
+		self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 
 		if (use_rocket)
 			M_SetAnimation(self, &tank_move_attack_fire_rocket);
 		else {
 			M_SetAnimation(self, &tank_move_attack_blast);
-			self->monsterInfo.nextframe = FRAME_attak108;
+			self->monsterInfo.nextFrame = FRAME_attak108;
 		}
 
 		self->monsterInfo.attack_finished = level.time + random_time(3_sec, 5_sec);
@@ -990,7 +990,7 @@ void SP_monster_tank(gentity_t *self) {
 
 	walkmonster_start(self);
 
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 	self->monsterInfo.blindfire = true;
 
 	if (strcmp(self->className, "monster_tank_commander") == 0)

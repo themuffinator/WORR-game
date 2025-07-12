@@ -7,33 +7,33 @@ enum {
 	MENU_ALIGN_RIGHT
 };
 
-struct menu_t;
+struct PMenu;
 
-using UpdateFunc_t = void (*)(gentity_t *ent);
+using MenuUpdateFunc = void (*)(Entity *ent);
 
-struct menu_hnd_t {
-	menu_t	*entries;
+struct MenuHandle {
+	PMenu	*entries;
 	int		cur;
 	int		num;
 	void	*arg;
-	UpdateFunc_t UpdateFunc;
+	MenuUpdateFunc UpdateFunc;
 };
 
-using SelectFunc_t = void (*)(gentity_t *ent, menu_hnd_t *hnd);
+using MenuSelectFunc = void (*)(Entity *ent, MenuHandle *hnd);
 
-struct menu_t {
+struct PMenu {
 	char		 text[256];	// 26];	// [64];
 	int			 align;
-	SelectFunc_t SelectFunc;
+	MenuSelectFunc SelectFunc;
 	char         text_arg1[64];
 };
 
 void		P_Menu_Dirty();
-menu_hnd_t	*P_Menu_Open(gentity_t *ent, const menu_t *entries, int cur, int num, void *arg, UpdateFunc_t UpdateFunc);
-void		P_Menu_Close(gentity_t *ent);
-void		P_Menu_UpdateEntry(menu_t *entry, const char *text, int align, SelectFunc_t SelectFunc);
-void		P_Menu_Do_Update(gentity_t *ent);
-void		P_Menu_Update(gentity_t *ent);
-void		P_Menu_Next(gentity_t *ent);
-void		P_Menu_Prev(gentity_t *ent);
-void		P_Menu_Select(gentity_t *ent);
+MenuHandle	*P_Menu_Open(Entity *ent, const PMenu *entries, int cur, int num, void *arg, MenuUpdateFunc UpdateFunc);
+void		P_Menu_Close(Entity *ent);
+void		P_Menu_UpdateEntry(PMenu *entry, const char *text, int align, MenuSelectFunc SelectFunc);
+void		P_Menu_Do_Update(Entity *ent);
+void		P_Menu_Update(Entity *ent);
+void		P_Menu_Next(Entity *ent);
+void		P_Menu_Prev(Entity *ent);
+void		P_Menu_Select(Entity *ent);

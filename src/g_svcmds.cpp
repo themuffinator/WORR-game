@@ -43,90 +43,106 @@ only allows players from your local network.
 ==============================================================================
 */
 
-struct ipfilter_t {
+struct ipFilter_t {
 	unsigned mask;
 	unsigned compare;
 };
 
 constexpr size_t MAX_IPFILTERS = 1024;
 
-ipfilter_t ipfilters[MAX_IPFILTERS];
+ipFilter_t ipfilters[MAX_IPFILTERS];
 int		   numipfilters;
 
 /*
-=================
+===============
 StringToFilter
-=================
+
+Parses an IP string into filter structure.
+===============
 */
-static bool StringToFilter(const char *s, ipfilter_t *f) {
-	char num[128];
-	int	 i, j;
-	byte b[4];
-	byte m[4];
+static bool StringToFilter(const char *s, ipFilter_t *f) {
+	if (!s || !f)
+		return false;
 
-	for (i = 0; i < 4; i++) {
-		b[i] = 0;
-		m[i] = 0;
-	}
+	std::array<uint8_t, 4> b{};
+	std::array<uint8_t, 4> m{};
 
-	for (i = 0; i < 4; i++) {
+	for (int i = 0; i < 4; ++i) {
 		if (*s < '0' || *s > '9') {
 			gi.LocClient_Print(nullptr, PRINT_HIGH, "Bad filter address: {}\n", s);
 			return false;
 		}
 
-		j = 0;
-		while (*s >= '0' && *s <= '9') {
+		char num[4] = {};
+		int j = 0;
+
+		while (*s >= '0' && *s <= '9' && j < 3) {
 			num[j++] = *s++;
 		}
-		num[j] = 0;
-		b[i] = strtoul(num, nullptr, 10);
-		if (b[i] != 0)
-			m[i] = 255;
+		num[j] = '\0';
+
+		const unsigned val = std::strtoul(num, nullptr, 10);
+		b[i] = static_cast<uint8_t>(val);
+		m[i] = (val != 0) ? 255 : 0;
 
 		if (!*s)
 			break;
-		s++;
+		if (*s != '.')
+			return false; // malformed IP segment separator
+		++s;
 	}
 
-	f->mask = *(unsigned *)m;
-	f->compare = *(unsigned *)b;
-
+	std::memcpy(&f->compare, b.data(), sizeof(uint32_t));
+	std::memcpy(&f->mask, m.data(), sizeof(uint32_t));
 	return true;
 }
 
 /*
-=================
+===============
 G_FilterPacket
-=================
+
+Determines whether a given IP address should be blocked.
+===============
 */
 bool G_FilterPacket(const char *from) {
-	int		 i;
-	unsigned in;
-	byte	 m[4];
-	const char *p;
+	if (!from)
+		return false;
 
-	i = 0;
-	p = from;
-	while (*p && i < 4) {
-		m[i] = 0;
-		while (*p >= '0' && *p <= '9') {
-			m[i] = m[i] * 10 + (*p - '0');
-			p++;
+	std::array<uint8_t, 4> m{};
+	int segment = 0;
+	const char *p = from;
+
+	while (*p && segment < 4) {
+		if (*p < '0' || *p > '9') {
+			if (*p == ':' || *p == '\0')
+				break;
+			++p;
+			continue;
 		}
-		if (!*p || *p == ':')
+
+		uint8_t value = 0;
+		while (*p >= '0' && *p <= '9') {
+			value = value * 10 + static_cast<uint8_t>(*p - '0');
+			++p;
+		}
+
+		m[segment++] = value;
+
+		if (*p == '.')
+			++p;
+		else
 			break;
-		i++;
-		p++;
 	}
 
-	in = *(unsigned *)m;
+	uint32_t in = 0;
+	std::memcpy(&in, m.data(), sizeof(uint32_t));
 
-	for (i = 0; i < numipfilters; i++)
+	for (int i = 0; i < numipfilters; ++i) {
 		if ((in & ipfilters[i].mask) == ipfilters[i].compare)
-			return filterban->integer;
+			return filterban->integer != 0;
+	}
 
-	return !filterban->integer;
+	return filterban->integer == 0;
 }
 
 /*
@@ -163,7 +179,7 @@ G_RemoveIP_f
 =================
 */
 static void SVCmd_RemoveIP_f() {
-	ipfilter_t f;
+	ipFilter_t f;
 	int		   i, j;
 
 	if (gi.argc() < 3) {
@@ -186,18 +202,23 @@ static void SVCmd_RemoveIP_f() {
 }
 
 /*
-=================
-G_ListIP_f
-=================
+===============
+SVCmd_ListIP_f
+
+Prints all active IP filter entries.
+===============
 */
 static void SVCmd_ListIP_f() {
-	int	 i;
-	byte b[4];
-
 	gi.LocClient_Print(nullptr, PRINT_HIGH, "Filter list:\n");
-	for (i = 0; i < numipfilters; i++) {
-		*(unsigned *)b = ipfilters[i].compare;
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}.{}.{}.{}\n", b[0], b[1], b[2], b[3]);
+
+	for (int i = 0; i < numipfilters; ++i) {
+		const uint32_t ip = ipfilters[i].compare;
+		const uint8_t b0 = static_cast<uint8_t>(ip & 0xFF);
+		const uint8_t b1 = static_cast<uint8_t>((ip >> 8) & 0xFF);
+		const uint8_t b2 = static_cast<uint8_t>((ip >> 16) & 0xFF);
+		const uint8_t b3 = static_cast<uint8_t>((ip >> 24) & 0xFF);
+
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}.{}.{}.{}\n", b0, b1, b2, b3);
 	}
 }
 
@@ -272,7 +293,7 @@ void ServerCommand() {
 		SVCmd_ListIP_f();
 	else if (Q_strcasecmp(cmd, "writeip") == 0)
 		SVCmd_WriteIP_f();
-	else if (Q_strcasecmp(cmd, "nextmap") == 0)
+	else if (Q_strcasecmp(cmd, "nextMap") == 0)
 		SVCmd_NextMap_f();
 	else
 		gi.LocClient_Print(nullptr, PRINT_HIGH, "Unknown server command \"{}\"\n", cmd);

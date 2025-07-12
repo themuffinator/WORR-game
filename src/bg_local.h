@@ -2,7 +2,7 @@
 // Licensed under the GNU General Public License 2.0.
 
 // g_local.h -- local definitions for game module
-#pragma once
+//#pragma once
 
 #include "q_std.h"
 
@@ -63,7 +63,7 @@ enum {
 	CONFIG_COOP_RESPAWN_STRING_END = CONFIG_COOP_RESPAWN_STRING + (COOP_RESPAWN_TOTAL - 1),
 
 	// [Paril-KEX] if 1, n64 player physics apply
-	CONFIG_N64_PHYSICS,
+	CONFIG_N64_PHYSICS_MEDAL,	// this is also used for medal display in dm
 	CONFIG_HEALTH_BAR_NAME, // active health bar name
 
 	CONFIG_STORY_SCORELIMIT,	// this is also used for scorelimit display in dm
@@ -92,6 +92,7 @@ enum ammo_t : uint8_t {
 
 // powerup IDs
 enum powerup_t : uint8_t {
+	POWERUP_NONE,
 	POWERUP_SCREEN,
 	POWERUP_SHIELD,
 
@@ -122,7 +123,7 @@ enum powerup_t : uint8_t {
 	POWERUP_TECH_TIME_ACCEL,
 	POWERUP_TECH_AUTODOC,
 
-	POWERUP_REGEN,
+	POWERUP_REGENERATION,
 	POWERUP_SPAWN_PROTECTION,
 
 	POWERUP_MAX
@@ -162,11 +163,11 @@ constexpr size_t NUM_AMMO_STATS = num_of_type_for_bits<uint16_t>(NUM_BITS_FOR_AM
 // if this value is set on an STAT_AMMO_INFO_xxx, don't render ammo
 constexpr uint16_t AMMO_VALUE_INFINITE = bit_v<NUM_BITS_FOR_AMMO> -1;
 
-constexpr void G_SetAmmoStat(uint16_t *start, uint8_t ammoID, uint16_t count) {
+constexpr void SetAmmoStat(uint16_t *start, uint8_t ammoID, uint16_t count) {
 	set_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID, count);
 }
 
-constexpr uint16_t G_GetAmmoStat(uint16_t *start, uint8_t ammoID) {
+constexpr uint16_t GetAmmoStat(uint16_t *start, uint8_t ammoID) {
 	return get_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID);
 }
 
@@ -176,11 +177,11 @@ constexpr uint16_t G_GetAmmoStat(uint16_t *start, uint8_t ammoID) {
 constexpr size_t NUM_BITS_PER_POWERUP = 2;
 constexpr size_t NUM_POWERUP_STATS = num_of_type_for_bits<uint16_t>(NUM_BITS_PER_POWERUP * POWERUP_MAX);
 
-constexpr void G_SetPowerupStat(uint16_t *start, uint8_t powerup_id, uint16_t count) {
+constexpr void SetPowerupStat(uint16_t *start, uint8_t powerup_id, uint16_t count) {
 	set_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id, count);
 }
 
-constexpr uint16_t G_GetPowerupStat(uint16_t *start, uint8_t powerup_id) {
+constexpr uint16_t GetPowerupStat(uint16_t *start, uint8_t powerup_id) {
 	return get_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id);
 }
 

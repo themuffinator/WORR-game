@@ -64,7 +64,7 @@ static gentity_t *fixbot_FindDeadMonster(gentity_t *self) {
 			continue;
 		if (!(ent->svFlags & SVF_MONSTER))
 			continue;
-		if (ent->monsterInfo.aiflags & AI_GOOD_GUY)
+		if (ent->monsterInfo.aiFlags & AI_GOOD_GUY)
 			continue;
 		// check to make sure we haven't bailed on this guy already
 		if ((ent->monsterInfo.badMedic1 == self) || (ent->monsterInfo.badMedic2 == self))
@@ -74,7 +74,7 @@ static gentity_t *fixbot_FindDeadMonster(gentity_t *self) {
 			// if the healer is a monster, and it's in medic mode .. continue .. otherwise
 			//   we will override the healer, if it passes all the other tests
 			if ((ent->monsterInfo.healer->inUse) && (ent->monsterInfo.healer->health > 0) &&
-				(ent->monsterInfo.healer->svFlags & SVF_MONSTER) && (ent->monsterInfo.healer->monsterInfo.aiflags & AI_MEDIC))
+				(ent->monsterInfo.healer->svFlags & SVF_MONSTER) && (ent->monsterInfo.healer->monsterInfo.aiFlags & AI_MEDIC))
 				continue;
 		if (ent->health > 0)
 			continue;
@@ -123,7 +123,7 @@ static int fixbot_search(gentity_t *self) {
 			self->oldEnemy = self->enemy;
 			self->enemy = ent;
 			self->enemy->monsterInfo.healer = self;
-			self->monsterInfo.aiflags |= AI_MEDIC;
+			self->monsterInfo.aiFlags |= AI_MEDIC;
 			FoundTarget(self);
 			fixbot_set_fly_parameters(self, true, false);
 			return (1);
@@ -733,7 +733,7 @@ MMOVE_T(fixbot_move_pain3) = { FRAME_freeze_01, FRAME_freeze_01, fixbot_frames_p
 
 void M_MoveToGoal(gentity_t *ent, float dist);
 
-void ai_movetogoal(gentity_t *self, float dist) {
+static void ai_movetogoal(gentity_t *self, float dist) {
 	M_MoveToGoal(self, dist);
 }
 /*
@@ -778,7 +778,7 @@ PRETHINK(fixbot_laser_update) (gentity_t *laser) -> void {
 	if (self->enemy && self->health > 0) {
 		vec3_t point;
 		point = (self->enemy->absMin + self->enemy->absMax) * 0.5f;
-		if (self->monsterInfo.aiflags & AI_MEDIC)
+		if (self->monsterInfo.aiFlags & AI_MEDIC)
 			point[0] += sinf(level.time.seconds()) * 8;
 		dir = point - self->s.origin;
 		dir.normalize();
@@ -794,7 +794,7 @@ static void fixbot_fire_laser(gentity_t *self) {
 	// critter dun got blown up while bein' fixed
 	if (!self->enemy || !self->enemy->inUse || self->enemy->health <= self->enemy->gibHealth) {
 		M_SetAnimation(self, &fixbot_move_stand);
-		self->monsterInfo.aiflags &= ~AI_MEDIC;
+		self->monsterInfo.aiFlags &= ~AI_MEDIC;
 		return;
 	}
 
@@ -803,7 +803,7 @@ static void fixbot_fire_laser(gentity_t *self) {
 	if (self->enemy->health > (self->enemy->mass / 10)) {
 		vec3_t maxs;
 		self->enemy->spawnflags = SPAWNFLAG_NONE;
-		self->enemy->monsterInfo.aiflags &= AI_STINKY | AI_SPAWNED_MASK;
+		self->enemy->monsterInfo.aiFlags &= AI_STINKY | AI_SPAWNED_MASK;
 		self->enemy->target = nullptr;
 		self->enemy->targetname = nullptr;
 		self->enemy->combattarget = nullptr;
@@ -823,7 +823,7 @@ static void fixbot_fire_laser(gentity_t *self) {
 			abortHeal(self, false, true, false);
 			return;
 		} else {
-			self->enemy->monsterInfo.aiflags |= AI_IGNORE_SHOTS | AI_DO_NOT_COUNT;
+			self->enemy->monsterInfo.aiFlags |= AI_IGNORE_SHOTS | AI_DO_NOT_COUNT;
 
 			// backup & restore health stuff, because of multipliers
 			int32_t old_max_health = self->enemy->max_health;
@@ -860,8 +860,8 @@ static void fixbot_fire_laser(gentity_t *self) {
 				self->enemy->nextThink = level.time;
 				self->enemy->think(self->enemy);
 			}
-			self->enemy->monsterInfo.aiflags &= ~AI_RESURRECTING;
-			self->enemy->monsterInfo.aiflags |= AI_IGNORE_SHOTS | AI_DO_NOT_COUNT;
+			self->enemy->monsterInfo.aiFlags &= ~AI_RESURRECTING;
+			self->enemy->monsterInfo.aiFlags |= AI_IGNORE_SHOTS | AI_DO_NOT_COUNT;
 			// turn off flies
 			self->enemy->s.effects &= ~EF_FLIES;
 			self->enemy->monsterInfo.healer = nullptr;
@@ -877,14 +877,14 @@ static void fixbot_fire_laser(gentity_t *self) {
 					self->enemy->enemy = nullptr;
 					if (!FindTarget(self->enemy)) {
 						// no valid enemy, so stop acting
-						self->enemy->monsterInfo.pausetime = HOLD_FOREVER;
+						self->enemy->monsterInfo.pauseTime = HOLD_FOREVER;
 						self->enemy->monsterInfo.stand(self->enemy);
 					}
 					self->enemy = nullptr;
 					self->oldEnemy = nullptr;
 					if (!FindTarget(self)) {
 						// no valid enemy, so stop acting
-						self->monsterInfo.pausetime = HOLD_FOREVER;
+						self->monsterInfo.pauseTime = HOLD_FOREVER;
 						self->monsterInfo.stand(self);
 						return;
 					}
@@ -894,7 +894,7 @@ static void fixbot_fire_laser(gentity_t *self) {
 
 		M_SetAnimation(self, &fixbot_move_stand);
 	} else
-		self->enemy->monsterInfo.aiflags |= AI_RESURRECTING;
+		self->enemy->monsterInfo.aiFlags |= AI_RESURRECTING;
 }
 
 mframe_t fixbot_frames_laserattack[] = {
@@ -1020,7 +1020,7 @@ void fixbot_fire_welder(gentity_t *self) {
 	vec3_t forward, right, up;
 	vec3_t end;
 	vec3_t dir;
-	vec3_t vec;
+	vec3_t vec{};
 	float  r;
 
 	if (!self->enemy)
@@ -1083,7 +1083,7 @@ MONSTERINFO_STAND(fixbot_stand) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(fixbot_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &fixbot_move_stand);
 	else
 		M_SetAnimation(self, &fixbot_move_run);
@@ -1112,7 +1112,7 @@ MONSTERINFO_ATTACK(fixbot_attack) (gentity_t *self) -> void {
 	vec3_t vec;
 	float  len;
 
-	if (self->monsterInfo.aiflags & AI_MEDIC) {
+	if (self->monsterInfo.aiFlags & AI_MEDIC) {
 		if (!visible(self, self->enemy))
 			return;
 		vec = self->s.origin - self->enemy->s.origin;
@@ -1199,7 +1199,7 @@ void SP_monster_fixbot(gentity_t *self) {
 
 	M_SetAnimation(self, &fixbot_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;
-	self->monsterInfo.aiflags |= AI_ALTERNATE_FLY;
+	self->monsterInfo.aiFlags |= AI_ALTERNATE_FLY;
 	fixbot_set_fly_parameters(self, false, false);
 
 	flymonster_start(self);

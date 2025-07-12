@@ -2,22 +2,25 @@
 // Licensed under the GNU General Public License 2.0.
 
 // g_local.h -- local definitions for game module
-#pragma once
+//#pragma once
 
+class Menu;
 #include "bg_local.h"
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset
+#include <random>
+#include <unordered_set>
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
 
 constexpr const char *GAMEMOD_TITLE = "WOR";
-constexpr const char *GAMEMOD_VERSION = "0.20.10 BETA dev";
+constexpr const char *GAMEMOD_VERSION = "0.40.10 BETA dev";
 
 //==================================================================
 
 #ifndef M_PI
-#define M_PI 3.14159265358979323846f
+constexpr float M_PI = 3.14159265358979323846f;
 #endif
 
 constexpr int CORPSE_SINK_TIME = 5;
@@ -151,16 +154,19 @@ enum gametype_t {
 	GT_TDM,
 	GT_CTF,
 	GT_CA,
+	GT_ONEFLAG,
+	GT_HARVESTER,
+	GT_OVERLOAD,
 	GT_FREEZE,
 	GT_STRIKE,
 	GT_RR,
 	GT_LMS,
 	GT_HORDE,
-	GT_RACE,
 	GT_BALL,
 	GT_GAUNTLET,
 	GT_NUM_GAMETYPES
 };
+
 constexpr gametype_t GT_FIRST = GT_FFA;
 constexpr gametype_t GT_LAST = GT_BALL;
 
@@ -182,12 +188,14 @@ constexpr std::array<int, GT_NUM_GAMETYPES> _gt = {
 	GTF_TEAMS | GTF_FRAGS,												// GT_TDM
 	GTF_TEAMS | GTF_CTF,												// GT_CTF
 	GTF_TEAMS | GTF_ARENA | GTF_ROUNDS | GTF_ELIMINATION,				// GT_CA
+	GTF_TEAMS | GTF_CTF,												// GT_ONEFLAG
+	GTF_TEAMS | GTF_CTF,												// GT_HARVESTER
+	GTF_TEAMS | GTF_CTF,												// GT_OVERLOAD
 	GTF_TEAMS | GTF_ELIMINATION,										// GT_FREEZE
 	GTF_TEAMS | GTF_ARENA | GTF_ROUNDS | GTF_CTF | GTF_ELIMINATION,		// GT_STRIKE
 	GTF_TEAMS | GTF_ROUNDS | GTF_ARENA,									// GT_RR
 	GTF_ELIMINATION,													// GT_LMS
 	GTF_ROUNDS,															// GT_HORDE
-	GTF_ARENA,															// GT_RACE
 	GTF_NONE,															// GT_BALL
 	GTF_1V1 | GTF_ROUNDS | GTF_FRAGS									// GT_GAUNTLET
 };
@@ -198,19 +206,20 @@ constexpr std::array<int, GT_NUM_GAMETYPES> _gt = {
 #define notGT( x ) g_gametype->integer != (int)(x)
 
 const std::array<std::string, GT_NUM_GAMETYPES> gt_short_name = {
-//constexpr const char *gt_short_name[GT_NUM_GAMETYPES] = {
 	"cmp",
 	"ffa",
 	"duel",
 	"tdm",
 	"ctf",
 	"ca",
+	"oneflag",
+	"har",
+	"overload",
 	"ft",
 	"strike",
 	"rr",
 	"lms",
 	"horde",
-	"race",
 	"ball",
 	"gauntlet"
 };
@@ -221,12 +230,14 @@ constexpr std::array<const char *, static_cast<size_t>(gametype_t::GT_NUM_GAMETY
 	"TDM",
 	"CTF",
 	"CA",
+	"ONEFLAG",
+	"HAR",
+	"OVLD",
 	"FT",
 	"STRIKE",
 	"REDROVER",
 	"LMS",
 	"HORDE",
-	"RACE",
 	"BALL",
 	"GAUNTLET"
 };
@@ -237,12 +248,14 @@ constexpr std::array<const char *, static_cast<size_t>(gametype_t::GT_NUM_GAMETY
 	"Team Deathmatch",
 	"Capture The Flag",
 	"Clan Arena",
+	"One Flag",
+	"Harvester",
+	"Overload",
 	"Freeze Tag",
 	"CaptureStrike",
 	"Red Rover",
 	"Last Man Standing",
 	"Horde Mode",
-	"Race",
 	"ProBall",
 	"Gauntlet"
 };
@@ -295,7 +308,21 @@ enum class PlayerMedal : uint8_t {
 	MEDAL_TOTAL
 };
 
-#define	RANK_TIED_FLAG		0x4000
+// Medal names for mapping
+const std::array<std::string, static_cast<uint8_t>(PlayerMedal::MEDAL_TOTAL)> awardNames = {
+	"",
+	"Excellent",
+	"Humiliation",
+	"Impressive",
+	"Rampage",
+	"First Frag",
+	"Base Defense",
+	"Carrier Assist",
+	"Flag Capture",
+	"Holy Shit!"
+};
+
+constexpr int RANK_TIED_FLAG = 0x4000;
 
 typedef enum {
 	SPECTATOR_NOT,
@@ -309,16 +336,36 @@ enum grapple_state_t {
 	GRAPPLE_STATE_HANG
 };
 
-struct vcmds_t {
-	const		char *name;
-	bool		(*val_func)(gentity_t *ent);
-	void		(*func)();
-	int32_t		flag;
-	int8_t		min_args;
-	const		char *args;
-	const		char *help;
+struct VoteCommand {
+	std::string_view name;
+	std::function<bool(gentity_t *)> validate;
+	std::function<void()> execute;
+	int32_t flag = 0;
+	int8_t minArgs = 1;
+	std::string_view argsUsage;
+	std::string_view helpText;
+	bool visibleInMenu = true;
+
+	VoteCommand(
+		std::string_view name,
+		bool (*validateFn)(gentity_t *),
+		void (*executeFn)(),
+		int32_t flag,
+		int8_t minArgs,
+		std::string_view argsUsage,
+		std::string_view helpText,
+		bool visibleInMenu = true)
+		: name(name),
+		validate(validateFn),
+		execute(executeFn),
+		flag(flag),
+		minArgs(minArgs),
+		argsUsage(argsUsage),
+		helpText(helpText),
+		visibleInMenu(visibleInMenu) {}
 };
-extern vcmds_t vote_cmds[];
+
+//extern std::vector<VoteCommand> vote_cmds;
 
 extern int ii_highlight;
 extern int ii_duel_header;
@@ -442,40 +489,40 @@ public:
 	}
 
 	// collision detection
-	[[nodiscard]] inline trace_t trace(const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end, const gentity_t *passent, contents_t contentmask) {
+	[[nodiscard]] inline trace_t trace(const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end, const gentity_t *passent, contents_t contentmask) const {
 		return game_import_t::trace(start, &mins, &maxs, end, passent, contentmask);
 	}
 
-	[[nodiscard]] inline trace_t traceline(const vec3_t &start, const vec3_t &end, const gentity_t *passent, contents_t contentmask) {
+	[[nodiscard]] inline trace_t traceline(const vec3_t &start, const vec3_t &end, const gentity_t *passent, contents_t contentmask) const {
 		return game_import_t::trace(start, nullptr, nullptr, end, passent, contentmask);
 	}
 
 	// [Paril-KEX] clip the box against the specified entity
-	[[nodiscard]] inline trace_t clip(gentity_t *entity, const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end, contents_t contentmask) {
+	[[nodiscard]] inline trace_t clip(gentity_t *entity, const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end, contents_t contentmask) const {
 		return game_import_t::clip(entity, start, &mins, &maxs, end, contentmask);
 	}
 
-	[[nodiscard]] inline trace_t clip(gentity_t *entity, const vec3_t &start, const vec3_t &end, contents_t contentmask) {
+	[[nodiscard]] inline trace_t clip(gentity_t *entity, const vec3_t &start, const vec3_t &end, contents_t contentmask) const {
 		return game_import_t::clip(entity, start, nullptr, nullptr, end, contentmask);
 	}
 
-	void unicast(gentity_t *ent, bool reliable, uint32_t dupe_key = 0) {
+	void unicast(gentity_t *ent, bool reliable, uint32_t dupe_key = 0) const {
 		game_import_t::unicast(ent, reliable, dupe_key);
 	}
 
-	void local_sound(gentity_t *target, const vec3_t &origin, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) {
+	void local_sound(gentity_t *target, const vec3_t &origin, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) const {
 		game_import_t::local_sound(target, &origin, ent, channel, soundindex, volume, attenuation, timeofs, dupe_key);
 	}
 
-	void local_sound(gentity_t *target, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) {
+	void local_sound(gentity_t *target, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) const {
 		game_import_t::local_sound(target, nullptr, ent, channel, soundindex, volume, attenuation, timeofs, dupe_key);
 	}
 
-	void local_sound(const vec3_t &origin, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) {
+	void local_sound(const vec3_t &origin, gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) const {
 		game_import_t::local_sound(ent, &origin, ent, channel, soundindex, volume, attenuation, timeofs, dupe_key);
 	}
 
-	void local_sound(gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) {
+	void local_sound(gentity_t *ent, soundchan_t channel, int soundindex, float volume, float attenuation, float timeofs, uint32_t dupe_key = 0) const {
 		game_import_t::local_sound(ent, nullptr, ent, channel, soundindex, volume, attenuation, timeofs, dupe_key);
 	}
 };
@@ -547,7 +594,8 @@ constexpr spawnflags_t	SPAWNFLAG_NOT_EASY	= spawnflags_t(0x00000100),
 				SPAWNFLAG_NOT_DEATHMATCH	= spawnflags_t(0x00000800),
 				SPAWNFLAG_NOT_COOP			= spawnflags_t(0x00001000),
 				SPAWNFLAG_RESERVED1			= spawnflags_t(0x00002000),
-				SPAWNFLAG_COOP_ONLY			= spawnflags_t(0x00004000);
+				SPAWNFLAG_COOP_ONLY			= spawnflags_t(0x00004000),
+						SPAWNFLAG_RESERVED2 = spawnflags_t(0x00008000);
 
 constexpr spawnflags_t SPAWNFLAG_EDITOR_MASK = (SPAWNFLAG_NOT_EASY | SPAWNFLAG_NOT_MEDIUM | SPAWNFLAG_NOT_HARD | SPAWNFLAG_NOT_DEATHMATCH |
 	SPAWNFLAG_NOT_COOP | SPAWNFLAG_RESERVED1 | SPAWNFLAG_COOP_ONLY);
@@ -1098,7 +1146,7 @@ enum movetype_t {
 	MOVETYPE_BOUNCE,
 	MOVETYPE_WALLBOUNCE,
 	MOVETYPE_NEWTOSS, // PGM - for deathball
-	MOVETYPE_FREECAM, // spectator free cam
+	MOVETYPE_FREECAM // spectator free cam
 };
 
 // entity->flags
@@ -1150,7 +1198,7 @@ enum ent_flags_t : uint64_t {
 };
 MAKE_ENUM_BITFLAGS(ent_flags_t);
 
-// gitem_t->flags
+// Item->flags
 enum item_flags_t : uint32_t {
 	IF_NONE				= 0,
 
@@ -1282,6 +1330,7 @@ enum item_id_t : int32_t {
 
 	IT_FLAG_RED,
 	IT_FLAG_BLUE,
+	IT_FLAG_NEUTRAL,
 
 	IT_TECH_DISRUPTOR_SHIELD,
 	IT_TECH_POWER_AMP,
@@ -1356,17 +1405,18 @@ constexpr item_id_t tech_ids[] = { IT_TECH_DISRUPTOR_SHIELD, IT_TECH_POWER_AMP, 
 
 constexpr const char *ITEM_CTF_FLAG_RED = "item_flag_team_red";
 constexpr const char *ITEM_CTF_FLAG_BLUE = "item_flag_team_blue";
+constexpr const char *ITEM_CTF_FLAG_NEUTRAL = "item_flag_team_neutral";
 
-struct gitem_t {
+struct Item {
 	item_id_t		id;		   // matches item list index
 	const char		*className; // spawning name
 	bool			(*pickup)(gentity_t *ent, gentity_t *other);
-	void			(*use)(gentity_t *ent, gitem_t *item);
-	void			(*drop)(gentity_t *ent, gitem_t *item);
+	void			(*use)(gentity_t *ent, Item *item);
+	void			(*drop)(gentity_t *ent, Item *item);
 	void			(*weaponthink)(gentity_t *ent);
 	const char		*pickup_sound;
 	const char		*world_model;
-	effects_t		world_model_flags;
+	Effect		world_model_flags;
 	const char		*view_model;
 
 	// client side info
@@ -1394,7 +1444,7 @@ struct gitem_t {
 
 	// set in InitItems, don't set by hand
 	// circular list of chained weapons
-	gitem_t			*chain_next = nullptr;
+	Item			*chainNext = nullptr;
 
 	// set in SP_worldspawn, don't set by hand
 	// model index for vwep
@@ -1577,9 +1627,6 @@ struct level_entry_t {
 	int32_t visit_order;
 };
 
-#define NUM_SPAWN_SPOTS MAX_ENTITIES
-#define SPAWN_SPOT_INTERMISSION NUM_SPAWN_SPOTS-1
-
 struct game_mapqueue_t {
 	std::string map;
 	std::uint8_t item_inhibit_pu;
@@ -1610,20 +1657,28 @@ struct MapEntry {
 	bool isPopular = false;           // Optional
 	bool isCustom = false;            // Optional
 	bool isCycleable = false;         // Assigned after cycle load
+	bool hasCustomTextures = false;		// Optional
+	bool hasCustomSounds = false;		// Optional
 	uint8_t mapTypeFlags = 0;         // MAP_DM | MAP_SP | MAP_COOP
-	gtime_t lastPlayed = 0_sec;       // Set after play
+	int64_t lastPlayed = 0;				// Set after play
+	bool preferredTDM = false;
+	bool preferredCTF = false;
+	bool preferredDuel = false;
 };
 
-enum MyMapOverride : uint8_t {
+enum MyMapOverride : uint16_t {
 	MAPFLAG_NONE = 0,
 	MAPFLAG_PU = 1 << 0, // powerups
 	MAPFLAG_PA = 1 << 1, // power armor
 	MAPFLAG_AR = 1 << 2, // armor
 	MAPFLAG_AM = 1 << 3, // ammo
 	MAPFLAG_HT = 1 << 4, // health
-	MAPFLAG_BFG = 1 << 5, // bfg
-	MAPFLAG_FD = 1 << 6, // fall damage
-	MAPFLAG_SD = 1 << 7  // self damage
+	MAPFLAG_BFG = 1 << 5,// bfg
+	MAPFLAG_PB = 1 << 6, // plasma beam
+	MAPFLAG_FD = 1 << 7, // fall damage
+	MAPFLAG_SD = 1 << 8, // self damage
+	MAPFLAG_WS = 1 << 9  // weapons stay
+
 };
 
 struct MyMapRequest {
@@ -1645,7 +1700,7 @@ struct MapSystem {
 	std::vector<QueuedMap> playQueue;
 	std::vector<MyMapRequest> myMapQueue;
 
-	bool MapExists(const std::string &mapName) const;
+	bool MapExists(std::string_view mapName) const;
 
 	bool IsMapInQueue(const std::string &mapName) const;
 	bool IsClientInQueue(const std::string &socialID) const;
@@ -1691,7 +1746,7 @@ struct game_locals_t {
 
 	gametype_t	gametype;
 	std::string motd;
-	int motd_mod_count = 0;
+	int motdModificationCount = 0;
 
 	ruleset_t	ruleset;
 
@@ -1710,14 +1765,23 @@ struct game_locals_t {
 	bool spawnHealth;
 	bool spawnAmmo;
 	bool spawnBFG;
+	bool spawnPlasmaBeam;
 	bool fallingDamage;
 	bool selfDamage;
+	bool weaponsStay;
 
 	std::string nextMap;
 	uint8_t overrideEnableFlags = 0;
 	uint8_t overrideDisableFlags = 0;
 
 	MapSystem mapSystem;
+
+	time_t serverStartTime = 0;
+
+	std::mt19937 mapRNG;
+
+	std::unordered_set<std::string> bannedIDs{};
+	std::unordered_set<std::string> adminIDs{};
 };
 
 constexpr size_t MAX_HEALTH_BARS = 2;
@@ -1729,28 +1793,6 @@ enum voting_t {
 	VOTING_MAP
 };
 
-struct ghost_t {
-	char	netName[MAX_NETNAME];
-	char	socialID[MAX_INFO_VALUE];
-	int		number;
-
-	int		code;		// ghost code
-	team_t	team;		// team
-	int		score;		// score at time of disconnect
-	gentity_t *ent;
-
-	gtime_t	time;
-
-	//client_match_stats_t match;
-};
-
-struct ghostly_t {
-	std::string socialID;
-	gentity_t *ent;
-
-	gtime_t	time;
-};
-
 typedef struct {
 	gtime_t		returned_flag_time;
 	gtime_t		flag_pickup_time;
@@ -1758,12 +1800,10 @@ typedef struct {
 
 	int			location;
 
-	int			captures;
 	int			base_defense;
 	int			carrier_defense;
 	int			frag_recovery;
 	int			frag_carrier;
-	int			assists;
 
 	int			hurt_carrier_time;
 } player_team_state_t;
@@ -1786,50 +1826,111 @@ struct match_death_event_t {
 };
 
 struct match_overall_stats_t {
-	//int			totalKills;
-	//int			totalDeaths;
-	//int			totalSuicides;
-	//int			totalSpawnKills;
-
-	//int			modKills[MOD_TOTAL];
-	//int			modDeaths[MOD_TOTAL];
-	//uint32_t	medalCount[static_cast<uint8_t>(PlayerMedal::MEDAL_TOTAL)];
-	//gtime_t		ctf_flag_hold_time[2];
-
 	uint32_t totalKills{ 0 };
 	uint32_t totalDeaths{ 0 };
 	uint32_t totalSuicides{ 0 };
+	uint32_t totalTeamKills{ 0 };
 	uint32_t totalSpawnKills{ 0 };
 
 	std::array<int, MOD_TOTAL>    modKills{};
 	std::array<int, MOD_TOTAL>    modDeaths{};
 
 	std::array<uint32_t, static_cast<size_t>(PlayerMedal::MEDAL_TOTAL)> medalCount{};
-	std::array<gtime_t, 2>        ctfFlagHoldTime{};
 
-	std::vector<match_death_event_t> deathLog;
-	std::vector<match_event_t> eventLog;
+	std::vector<match_death_event_t> deathLog{};
+	std::vector<match_event_t> eventLog{};
 
-	uint32_t pickupCounts[HVI_TOTAL];
-	gtime_t pickupDelay[HVI_TOTAL];
+	uint32_t pickupCounts[HVI_TOTAL]{};
+	gtime_t pickupDelay[HVI_TOTAL]{};
+
+	//CTF stuff
+	int64_t        ctfRedFlagTotalHoldTimeMsec = 0;
+	int64_t        ctfRedFlagShortestHoldTimeMsec = 0;
+	int64_t        ctfRedFlagLongestHoldTimeMsec = 0;
+	int64_t        ctfRedFlagPickupCount = 0;
+	int64_t        ctfRedFlagDropCount = 0;
+
+	int64_t        ctfBlueFlagTotalHoldTimeMsec = 0;
+	int64_t        ctfBlueFlagShortestHoldTimeMsec = 0;
+	int64_t        ctfBlueFlagLongestHoldTimeMsec = 0;
+	int64_t        ctfBlueFlagPickupCount = 0;
+	int64_t        ctfBlueFlagDropCount = 0;
+
+	int64_t        ctfRedTeamTotalCaptures = 0;
+	int64_t        ctfRedTeamTotalDefences = 0;
+	int64_t        ctfRedTeamTotalAssists = 0;
+
+	int64_t        ctfBlueTeamTotalCaptures = 0;
+	int64_t        ctfBlueTeamTotalDefences = 0;
+	int64_t        ctfBlueTeamTotalAssists = 0;
 };
 
 //
 // this structure is cleared as each map is entered
 // it is read/written to the level.sav file for savegames
 //
+
+struct client_match_stats_t {
+	uint32_t	lifeAverage;
+	uint32_t	lifeLongest;
+
+	uint32_t	totalDmgDealt;
+	uint32_t	totalDmgReceived;
+
+	uint32_t	totalShots;
+	uint32_t	totalHits;
+
+	uint32_t	totalKills;
+	uint32_t	totalTeamKills;
+	uint32_t	totalSpawnKills;
+	uint32_t	totalDeaths;
+	uint32_t	totalSpawnDeaths;
+	uint32_t	totalSuicides;
+
+	uint32_t	modTotalKills[MOD_TOTAL];
+	uint32_t	modTotalDeaths[MOD_TOTAL];
+	uint32_t	modTotalDmgD[MOD_TOTAL];
+	uint32_t	modTotalDmgR[MOD_TOTAL];
+	uint32_t	totalShotsPerWeapon[WEAP_MAX];
+	uint32_t	totalHitsPerWeapon[WEAP_MAX];
+
+	//uint32_t	medalCount[static_cast<uint8_t>(PlayerMedal::MEDAL_TOTAL)];
+	std::array<uint32_t, static_cast<size_t>(PlayerMedal::MEDAL_TOTAL)> medalCount{};
+
+	uint32_t pickupCounts[HVI_TOTAL];
+	gtime_t pickupDelay[HVI_TOTAL];
+};
+
+struct Ghosts {
+	char				netName[MAX_NETNAME];
+	char				socialID[MAX_INFO_VALUE]{};		// ent->client->socialID
+	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
+	std::array<int16_t, AMMO_MAX> ammoMax = {};			// ent->client->pers.ammoMax
+	client_match_stats_t match{};						// ent->client->sess.match
+	Item *weapon = nullptr;				// ent->client->pers.weapon
+	Item *lastWeapon = nullptr;			// ent->client->pers.lastWeapon
+	team_t				team = TEAM_NONE;				// ent->client->sess.team
+	int32_t				score;							// ent->client->resp.score
+
+	uint16_t		skillRating = 0;
+	uint16_t		skillRatingChange = 0;
+};
+
+constexpr int NUM_SPAWN_SPOTS = MAX_ENTITIES;
+constexpr int SPAWN_SPOT_INTERMISSION = NUM_SPAWN_SPOTS - 1;
+
 struct level_locals_t {
 	bool		inFrame;
-	gtime_t		time;
-	gtime_t		levelStartTime;
-	gtime_t		matchStartTime;
-	gtime_t		matchEndTime;
-	gtime_t		exitTime;
-	bool		readyToExit;
+	gtime_t		time = 0_sec;
+	gtime_t		levelStartTime = 0_sec;
+	int64_t		matchStartRealTime;
+	int64_t		matchEndRealTime;
+	gtime_t		exitTime = 0_sec;
+	bool		readyToExit = false;
 
 	char		levelName[MAX_QPATH];	// the descriptive name (Outer Base, etc)
 	char		mapname[MAX_QPATH];		// the server name (base1, etc)
-	char		nextmap[MAX_QPATH];		// go here when score limit is hit
+	char		nextMap[MAX_QPATH];		// go here when score limit is hit
 	char		forceMap[MAX_QPATH];	// go here
 
 	// intermission state
@@ -1842,19 +1943,24 @@ struct level_locals_t {
 
 	const char	*changeMap;
 	const char	*achievement;
-	bool		intermissionExit;
-	bool		intermissionPreExit;
-	bool		intermissionEOU;
-	bool		intermissionClear; // [Paril-KEX] clear inventory on switch
-	bool		levelIntermissionSet; // [Paril-KEX] for target_camera switches; don't find intermission point
-	bool		intermissionFade, intermissionFading; // [Paril-KEX] fade on exit instead of immediately leaving
-	gtime_t		intermissionFadeTime;
-	vec3_t		intermissionOrigin;
-	vec3_t		intermissionAngle;
-	bool		intermissionSpot;
-	bool		respawnIntermission; // only set once for respawning players
 
-	gtime_t		preExitTime;
+	struct Intermission {
+		bool		exit = false;
+		bool		preExit = false;
+		bool		endOfUnit = false;
+		bool		clear = false; // [Paril-KEX] clear inventory on switch
+		bool		set = false; // [Paril-KEX] for target_camera switches; don't find intermission point
+		bool		fade = false, fading = false; // [Paril-KEX] fade on exit instead of immediately leaving
+		gtime_t		fadeTime;
+		vec3_t		origin;
+		vec3_t		angles;
+		bool		spot = false;
+		int32_t		serverFrame;
+		std::array<char, 64> victorMessage;
+	};
+	Intermission intermission;
+
+	gtime_t		preExitDelay = 0_sec;
 
 	// spawn spots	//Q3
 	gentity_t	*spawnSpots[NUM_SPAWN_SPOTS];
@@ -1881,7 +1987,7 @@ struct level_locals_t {
 	int32_t		powerCubes; // ugly necessity for coop
 
 	gentity_t	*disguiseViolator;
-	gtime_t		disguiseViolationTime;
+	gtime_t		disguiseViolationTime = 0_sec;
 	int32_t		disguiseIcon; // [Paril-KEX]
 
 	int32_t		shadowLightCount; // [Sam-KEX]
@@ -1895,142 +2001,138 @@ struct level_locals_t {
 
 	// offset for the first vwep model, for
 	// skinnum encoding
-	int32_t		viewWeaponOffset;
+	int32_t		viewWeaponOffset = 0;
 
 	// coop health scaling factor;
 	// this percentage of health is added
 	// to the monster's health per player.
-	float		coopHealthScaling;
+	float		coopHealthScaling = 0;
 	// this isn't saved in the save file, but stores
 	// the amount of players currently active in the
 	// level, compared against monsters' individual 
 	// scale #
-	int32_t		coopScalePlayers;
+	int32_t		coopScalePlayers = 0;
 
 	// [Paril-KEX] current level entry
-	level_entry_t *entry;
+	level_entry_t *entry{};
 
 	// [Paril-KEX] current poi
-	bool		validPOI;
-	vec3_t		currentPOI;
-	int32_t		currentPOIImage;
-	int32_t		currentPOIStage;
+	bool		validPOI = false;
+	vec3_t		currentPOI = vec3_origin;
+	int32_t		currentPOIImage = 0;
+	int32_t		currentPOIStage = 0;
 	gentity_t	*currentDynamicPOI;
-	vec3_t		*poiPoints[MAX_SPLIT_PLAYERS]; // temporary storage for POIs in coop
+	vec3_t		*poiPoints[MAX_SPLIT_PLAYERS]{}; // temporary storage for POIs in coop
 
 	// start items
 	const char	*start_items;
 	// disable grappling hook
-	bool		no_grapple;
+	bool		no_grapple = false;
 	// disable DM spawn pads
-	bool		no_dm_spawnpads;
+	bool		no_dm_spawnpads = false;
 	// disable teleporter pads
-	bool		no_dm_telepads;
+	bool		no_dm_telepads = false;
 
 	// saved gravity
-	float		gravity;
+	float		gravity = 800.0f;
 	// level is a hub map, and shouldn't be included in EOU stuff
-	bool		hub_map;
+	bool		hub_map = false;
 	// active health bar entities
 	std::array<gentity_t *, MAX_HEALTH_BARS> health_bar_entities;
-	int32_t		intermission_server_frame;
-	bool		deadly_kill_box;
-	bool		story_active;
-	gtime_t		next_auto_save;
-	gtime_t		next_match_report;
+	bool		deadly_kill_box = false;
+	bool		story_active = false;
+	gtime_t		next_auto_save = 0_sec;
+	gtime_t		next_match_report = 0_sec;
 
-	char		gamemod_name[64];
-	char		gametype_name[64];
+	std::array<char, 64> gamemod_name{};
+	std::array<char, 64> gametype_name{};
 
-	//voting
-	gclient_t	*vote_client;
-	gtime_t		vote_time;				// level.time vote was called
-	gtime_t		vote_execute_time;		// time the vote is executed
-	int8_t		vote_yes;
-	int8_t		vote_no;
-	int8_t		num_voting_clients;		// set by CalculateRanks
-	vcmds_t		*vote;
-	std::string vote_arg;
+	struct Voting {
+		gclient_t	*client{};
+		gtime_t		time = 0_sec;				// level.time vote was called
+		gtime_t		executeTime = 0_sec;		// time the vote is executed
+		int8_t		countYes = 0;
+		int8_t		countNo = 0;
+		const VoteCommand *cmd{};
+		std::string arg{};
+	};
+	Voting vote;
 
-	uint8_t		num_connected_clients;
-	uint8_t		num_console_clients;
-	uint8_t		num_nonspectator_clients;	// includes connecting clients
-	uint8_t		num_playing_clients;		// connected, non-spectators
-	uint8_t		num_playing_human_clients;	// players, bots excluded
-	int			sorted_clients[MAX_CLIENTS];// sorted by score
-	int			skill_sorted_clients[MAX_CLIENTS];// sorted by skill
-	uint8_t		follow1, follow2;			// clientNums for auto-follow spectators
+	struct Population {
+		uint8_t		num_connected_clients = 0;
+		uint8_t		num_console_clients = 0;
+		uint8_t		num_nonspectator_clients = 0;	// includes connecting clients
+		uint8_t		num_playing_clients = 0;		// connected, non-spectators
+		uint8_t		num_playing_human_clients = 0;	// players, bots excluded
+		uint8_t		num_living_red = 0;
+		uint8_t		num_eliminated_red = 0;
+		uint8_t		num_living_blue = 0;
+		uint8_t		num_eliminated_blue = 0;
+		uint8_t		num_playing_red = 0;
+		uint8_t		num_playing_blue = 0;
+		uint8_t		num_voting_clients = 0;		// set by CalculateRanks
+	};
+	Population pop;
 
-	uint8_t		num_living_red;
-	uint8_t		num_eliminated_red;
-	uint8_t		num_living_blue;
-	uint8_t		num_eliminated_blue;
-	uint8_t		num_playing_red;
-	uint8_t		num_playing_blue;
+	int			sorted_clients[MAX_CLIENTS]{};// sorted by score
+	int			skill_sorted_clients[MAX_CLIENTS]{};// sorted by skill
+	uint8_t		follow1 = 0, follow2 = 0;			// clientNums for auto-follow spectators
 
-	int			team_scores[TEAM_NUM_TEAMS];
-	int			team_old_scores[TEAM_NUM_TEAMS];
+	int			teamScores[TEAM_NUM_TEAMS];
+	int			teamOldScores[TEAM_NUM_TEAMS];
 
-	MatchState	match_state;
-	WarmupState	warmup_requisite;
-	gtime_t		warmup_notice_time;
-	gtime_t		match_state_timer;			// change match state at this time
-	int			warmup_modification_count;	// for detecting if g_warmup_countdown is changed
+	MatchState	matchState = MatchState::MATCH_NONE;
+	WarmupState	warmupState = WarmupState::WARMUP_REQ_NONE;
+	gtime_t		warmupNoticeTime = 0_sec;
+	gtime_t		matchStateTimer = 0_sec;			// change match state at this time
+	int32_t		warmupModificationCount;	// for detecting if g_warmup_countdown is changed
 
-	gtime_t		countdown_check;
-	gtime_t		matchendwarn_check;
+	gtime_t		countdownTimerCheck = 0_sec;
+	gtime_t		matchEndWarnTimerCheck = 0_sec;
 
-	int			round_number;
-	RoundState	round_state;
-	int			round_state_queued;
-	gtime_t		round_state_timer;			// change match state at this time
+	int			roundNumber = 0;
+	RoundState	roundState = RoundState::ROUND_NONE;
+	int			roundStateQueued = 0;
+	gtime_t		roundStateTimer = 0_sec;			// change match state at this time
 
-	bool		restarted;
+	bool		restarted = false;
 
-	gtime_t		overtime;
-	bool		suddendeath;
+	gtime_t		overtime = 0_sec;
+	bool		suddenDeath = false;
 
-	int			count_living[TEAM_NUM_TEAMS];
+	bool		locked[TEAM_NUM_TEAMS]{};
 
-	bool		locked[TEAM_NUM_TEAMS];
+	gtime_t		ctf_last_flag_capture = 0_sec;
+	team_t		ctf_last_capture_team = TEAM_NONE;
 
-	gtime_t		ctf_last_flag_capture;
-	team_t		ctf_last_capture_team;
+	int			weaponCount[LAST_WEAPON - FIRST_WEAPON];
 
-	ghost_t		ghosts[MAX_CLIENTS]; // ghost codes
+	gtime_t		no_players_time = 0_sec;
 
-	int			weapon_count[LAST_WEAPON - FIRST_WEAPON];
+	bool		init = false;
 
-	gtime_t		no_players_time;
+	bool		strike_red_attacks = false;
+	bool		strike_flag_touch = false;
+	bool		strike_turn_red = false;
+	bool		strike_turn_blue = false;
 
-	bool		init;
-
-	std::string	entstring;
-
-	bool		strike_red_attacks;
-	bool		strike_flag_touch;
-	bool		strike_turn_red;
-	bool		strike_turn_blue;
-
-	gtime_t		horde_monster_spawn_time;
-	int8_t		horde_num_monsters_to_spawn;
-	bool		horde_all_spawned;
+	gtime_t		horde_monster_spawn_time = 0_sec;
+	int8_t		horde_num_monsters_to_spawn = 0;
+	bool		horde_all_spawned = true;
 
 	char		author[MAX_QPATH];
 	char		author2[MAX_QPATH];
 
-	char		intermission_victor_msg[64];
+	gtime_t		timeoutActive = 0_sec;
+	gentity_t	*timeoutOwner{};
 
-	gtime_t		timeoutActive;
-	gentity_t	*timeoutOwner;
+	std::string matchID{};
 
-	std::string matchID;
+	bool		fragWarning[3]{};
 
-	bool		frag_warning[3];
+	bool		prepare_to_fight = false;
 
-	bool		prepare_to_fight;
-
-	gtime_t		endmatch_grace;
+	gtime_t		endmatch_grace = 0_sec;
 
 	//overall match stats
 	match_overall_stats_t	match;
@@ -2040,24 +2142,30 @@ struct level_locals_t {
 	uint8_t vote_flags_disable = 0;
 
 	// map selecter
-	struct MapVoteInfo {
-		std::vector<const MapEntry *> candidates;
-		int votes[MAX_CLIENTS] = { 0 };
-		int voteCounts[3] = { 0 };
-		gtime_t voteStartTime = 0_sec;
+	struct MapSelectorVoteInfo {
+		std::vector<const MapEntry *> candidates{};
+		int			votes[MAX_CLIENTS] = { 0 };
+		int			voteCounts[3] = { 0 };
+		gtime_t		voteStartTime = 0_sec;
 	};
+	MapSelectorVoteInfo mapSelector;
 
-	MapVoteInfo mapVote;
+	const MapEntry *mapSelectorVoteCandidates[3] = { nullptr, nullptr, nullptr };
+	bool matchSelectorTried = false;
+	gtime_t mapSelectorVoteStartTime = 0_sec;
+	int mapSelectorVoteCounts[3] = { 0 };
+	int mapSelectorVoteByClient[MAX_CLIENTS] = { -1 }; // -1 = no vote
 
-	const MapEntry *mapVoteCandidates[3] = { nullptr, nullptr, nullptr };
-	gtime_t mapVoteStartTime = 0_sec;
-	int mapVoteCounts[3] = { 0 };
-	int mapVoteByClient[MAX_CLIENTS] = { -1 }; // -1 = no vote
+	//RA2 support
+	int		arenaActive = 0;
+	int		arenaTotal = 0;
+
+	std::array<Ghosts, MAX_CLIENTS> ghosts;
 };
 
 struct shadow_light_temp_t {
 	shadow_light_data_t data;
-	const char *lightstyletarget = nullptr;
+	const char *lightStyleTarget = nullptr;
 };
 
 void G_LoadShadowLights();
@@ -2071,27 +2179,27 @@ void G_LoadShadowLights();
 struct spawn_temp_t {
 	/* world vars */
 	const char			*sky;
-	float				skyrotate;
-	vec3_t				skyaxis;
-	int32_t				skyautorotate;
-	const char			*nextmap;
+	float				skyRotate;
+	vec3_t				skyAxis;
+	int32_t				skyAutoRotate;
+	const char			*nextMap;
 
 	int32_t				lip;
 	int32_t				distance;
 	int32_t				height;
 	const char			*noise;
-	float				pausetime;
+	float				pauseTime;
 	const char			*item;
 	const char			*gravity;
 
-	float				minyaw;
-	float				maxyaw;
-	float				minpitch;
-	float				maxpitch;
+	float				minYaw;
+	float				maxYaw;
+	float				minPitch;
+	float				maxPitch;
 
 	shadow_light_temp_t	sl;				/* [Sam-KEX] */
 	const char			*music;			/* [Edward-KEX] */
-	int					instantitems;
+	int					instantItems;
 	float				radius;			/* [Paril-KEX] */
 	bool				hub_map;		/* [Paril-KEX] */
 	const char			*achievement;	/* [Paril-KEX] */
@@ -2123,19 +2231,18 @@ struct spawn_temp_t {
 	}
 
 	const char			*cvar;
-	const char			*cvarvalue;
+	const char			*cvarValue;
 
 	const char			*author;
 	const char			*author2;
 
 	const char			*ruleset;
 
-	bool				nobots;
-	bool				nohumans;
+	bool				noBots;
+	bool				noHumans;
+
+	int					arena;
 };
-
-
-
 
 enum move_state_t {
 	STATE_TOP,
@@ -2256,7 +2363,7 @@ struct moveinfo_t {
 	float		 next_speed;
 	float		 remaining_distance;
 	float		 decel_distance;
-	save_moveinfo_endfunc_t endfunc;
+	save_moveinfo_endfunc_t endFunc;
 	save_moveinfo_blocked_t blocked;
 
 	// [Paril-KEX] new accel state
@@ -2268,7 +2375,7 @@ struct moveinfo_t {
 };
 
 struct mframe_t {
-	void (*aifunc)(gentity_t *self, float dist) = nullptr;
+	void (*aiFunc)(gentity_t *self, float dist) = nullptr;
 	float dist = 0;
 	void (*thinkfunc)(gentity_t *self) = nullptr;
 	int32_t lerp_frame = -1;
@@ -2283,22 +2390,22 @@ struct mframe_t {
 #endif
 
 struct mmove_t {
-	int32_t	  firstframe;
-	int32_t	  lastframe;
+	int32_t	  firstFrame;
+	int32_t	  lastFrame;
 	const mframe_t *frame;
-	void (*endfunc)(gentity_t *self);
+	void (*endFunc)(gentity_t *self);
 	float sidestep_scale;
 
 #ifdef COMPILE_TIME_MOVE_CHECK
 	template<size_t N>
-	constexpr mmove_t(int32_t firstframe, int32_t lastframe, const mframe_t(&frames)[N], void (*endfunc)(gentity_t *self) = nullptr, float sidestep_scale = 0.0f) :
-		firstframe(firstframe),
-		lastframe(lastframe),
+	constexpr mmove_t(int32_t firstFrame, int32_t lastFrame, const mframe_t(&frames)[N], void (*endFunc)(gentity_t *self) = nullptr, float sidestep_scale = 0.0f) :
+		firstFrame(firstFrame),
+		lastFrame(lastFrame),
 		frame(frames),
-		endfunc(endfunc),
+		endFunc(endFunc),
 		sidestep_scale(sidestep_scale) {
-		if ((lastframe - firstframe + 1) != N)
-			throw std::exception("bad animation frames; check your numbers!");
+		if ((lastFrame - firstFrame + 1) != N)
+			throw std::exception("Bad animation frames; check your numbers!");
 	}
 #endif
 };
@@ -2408,8 +2515,8 @@ struct monsterinfo_t {
 	// others can wait the full frame.
 	// NB: always use `M_SetAnimation` as it handles edge cases.
 	save_mmove_t	   active_move, next_move;
-	monster_ai_flags_t aiflags; // PGM - unsigned, since we're close to the max
-	int32_t			   nextframe; // if next_move is set, this is ignored until a frame is ran
+	monster_ai_flags_t aiFlags; // PGM - unsigned, since we're close to the max
+	int32_t			   nextFrame; // if next_move is set, this is ignored until a frame is ran
 	float			   scale;
 
 	save_monsterinfo_stand_t stand;
@@ -2421,11 +2528,11 @@ struct monsterinfo_t {
 	save_monsterinfo_attack_t attack;
 	save_monsterinfo_melee_t melee;
 	save_monsterinfo_sight_t sight;
-	save_monsterinfo_checkattack_t checkattack;
+	save_monsterinfo_checkattack_t checkAttack;
 	save_monsterinfo_setskin_t setskin;
 	save_monsterinfo_physicschange_t physics_change;
 
-	gtime_t pausetime;
+	gtime_t pauseTime;
 	gtime_t attack_finished;
 	gtime_t fire_wait;
 
@@ -2436,7 +2543,7 @@ struct monsterinfo_t {
 	monster_attack_state_t attack_state;
 	bool				   lefty;
 	gtime_t				   idle_time;
-	int32_t				   linkcount;
+	int32_t				   linkCount;
 
 	item_id_t powerArmorType;
 	int32_t	  powerArmorPower;
@@ -2444,7 +2551,7 @@ struct monsterinfo_t {
 	// for monster revive
 	item_id_t initial_power_armor_type;
 	int32_t	  max_power_armor_power;
-	int32_t	  weapon_sound, engine_sound;
+	int32_t	  weaponSound, engine_sound;
 
 	save_monsterinfo_blocked_t blocked;
 	gtime_t	 last_hint_time; // last time the monster checked for hintpaths.
@@ -2453,8 +2560,8 @@ struct monsterinfo_t {
 	gentity_t *badMedic1, *badMedic2; // these medics have declared this monster "unhealable"
 	gentity_t *healer;				// this is who is healing this monster
 	save_monsterinfo_duck_t duck;
-	save_monsterinfo_unduck_t unduck;
-	save_monsterinfo_sidestep_t sidestep;
+	save_monsterinfo_unduck_t unDuck;
+	save_monsterinfo_sidestep_t sideStep;
 	float	 base_height;
 	gtime_t	 next_duck_time;
 	gtime_t	 duck_wait_time;
@@ -2495,11 +2602,16 @@ struct monsterinfo_t {
 	gtime_t	  nav_path_cache_time; // cache nav_path result for this much time
 	combat_style_t combat_style; // pathing style
 
-	gentity_t *damage_attacker;
-	gentity_t *damage_inflictor;
-	int32_t   damageBlood, damageKnockback;
-	vec3_t	  damageFrom;
-	mod_t	  damage_mod;
+	struct dmg {
+		gentity_t	*attacker = nullptr;
+		gentity_t	*inflictor = nullptr;
+		mod_t		mod = MOD_UNKNOWN;
+
+		int32_t		blood = 0;
+		int32_t		knockback = 0;
+		vec3_t		origin = vec3_origin;
+	};
+	dmg damage;
 
 	// alternate flying mechanics
 	float fly_max_distance, fly_min_distance; // how far we should try to stay
@@ -2709,20 +2821,20 @@ extern cvar_t *gun_x, *gun_y, *gun_z;
 extern cvar_t *run_pitch;
 extern cvar_t *run_roll;
 
-extern cvar_t *g_airaccelerate;
-extern cvar_t *g_allow_admin;
-extern cvar_t *g_allow_custom_skins;
-extern cvar_t *g_allow_forfeit;
+extern cvar_t *g_airAccelerate;
+extern cvar_t *g_allowAdmin;
+extern cvar_t *g_allowCustomSkins;
+extern cvar_t *g_allowForfeit;
 extern cvar_t *g_allow_grapple;
 extern cvar_t *g_allow_kill;
-extern cvar_t *g_allow_mymap;
-extern cvar_t *g_allow_spec_vote;
-extern cvar_t *g_allow_techs;
-extern cvar_t *g_allow_vote_midgame;
-extern cvar_t *g_allow_voting;
-extern cvar_t *g_arena_dmg_armor;
-extern cvar_t *g_arena_start_armor;
-extern cvar_t *g_arena_start_health;
+extern cvar_t *g_allowMymap;
+extern cvar_t *g_allowSpecVote;
+extern cvar_t *g_allowTechs;
+extern cvar_t *g_allowVoteMidGame;
+extern cvar_t *g_allowVoting;
+extern cvar_t *g_arenaSelfDmgArmor;
+extern cvar_t *g_arenaStartingArmor;
+extern cvar_t *g_arenaStartingHealth;
 extern cvar_t *g_cheats;
 extern cvar_t *g_coop_enable_lives;
 extern cvar_t *g_coop_health_scaling;
@@ -2735,44 +2847,43 @@ extern cvar_t *g_debug_monster_kills;
 extern cvar_t *g_debug_monster_paths;
 extern cvar_t *g_dedicated;
 extern cvar_t *g_disable_player_collision;
-extern cvar_t *g_dm_allow_no_humans;
-extern cvar_t *g_dm_auto_join;
-extern cvar_t *g_dm_crosshair_id;
-extern cvar_t *g_dm_do_readyup;
-extern cvar_t *g_dm_do_warmup;
+extern cvar_t *match_startNoHumans;
+extern cvar_t *match_autoJoin;
+extern cvar_t *match_crosshairIDs;
+extern cvar_t *warmup_doReadyUp;
+extern cvar_t *warmup_enabled;
 extern cvar_t *g_dm_exec_level_cfg;
-extern cvar_t *g_dm_force_join;
-extern cvar_t *g_dm_force_respawn;
-extern cvar_t *g_dm_force_respawn_time;
-extern cvar_t *g_dm_holdable_adrenaline;
-extern cvar_t *g_dm_instant_items;
-extern cvar_t *g_dm_intermission_shots;
-extern cvar_t *g_dm_item_respawn_rate;
-extern cvar_t *g_dm_no_fall_damage;
-extern cvar_t *g_dm_no_quad_drop;
-extern cvar_t *g_dm_no_self_damage;
-extern cvar_t *g_dm_overtime;
-extern cvar_t *g_dm_powerup_drop;
-extern cvar_t *g_dm_powerups_minplayers;
+extern cvar_t *match_forceJoin;
+extern cvar_t *match_doForceRespawn;
+extern cvar_t *match_forceRespawnTime;
+extern cvar_t *match_holdableAdrenaline;
+extern cvar_t *match_instantItems;
+extern cvar_t *owner_intermissionShots;
+extern cvar_t *match_itemsRespawnRate;
+extern cvar_t *g_fallingDamage;
+extern cvar_t *g_selfDamage;
+extern cvar_t *match_doOvertime;
+extern cvar_t *match_powerupDrops;
+extern cvar_t *match_powerupMinPlayerLock;
 extern cvar_t *g_dm_random_items;
-extern cvar_t *g_dm_respawn_delay_min;
-extern cvar_t *g_dm_respawn_point_min_dist;
-extern cvar_t *g_dm_respawn_point_min_dist_debug;
-extern cvar_t *g_dm_same_level;
-extern cvar_t *g_dm_spawnpads;
+extern cvar_t *match_playerRespawnMinDelay;
+extern cvar_t *match_playerRespawnMinDistance;
+extern cvar_t *match_playerRespawnMinDistanceDebug;
+extern cvar_t *match_map_sameLevel;
+extern cvar_t *match_allowSpawnPads;
 extern cvar_t *g_dm_strong_mines;
-extern cvar_t *g_dm_telepads;
-extern cvar_t *g_dm_timeout_length;
-extern cvar_t *g_dm_weapons_stay;
-extern cvar_t *g_drop_cmds;
-extern cvar_t *g_entity_override_dir;
-extern cvar_t *g_entity_override_load;
-extern cvar_t *g_entity_override_save;
+extern cvar_t *match_allowTeleporterPads;
+extern cvar_t *match_timeoutLength;
+extern cvar_t *match_weaponsStay;
+extern cvar_t *match_dropCmdFlags;
+extern cvar_t *g_entityOverrideDir;
+extern cvar_t *g_entityOverrideLoad;
+extern cvar_t *g_entityOverrideSave;
 extern cvar_t *g_eyecam;
-extern cvar_t *g_fast_doors;
+extern cvar_t *g_fastDoors;
 extern cvar_t *g_frag_messages;
 extern cvar_t *g_frenzy;
-extern cvar_t *g_friendly_fire;
+extern cvar_t *g_friendlyFireScale;
 extern cvar_t *g_frozen_time;
 extern cvar_t *g_grapple_damage;
 extern cvar_t *g_grapple_fly_speed;
@@ -2782,19 +2893,18 @@ extern cvar_t *g_gravity;
 extern cvar_t *g_horde_starting_wave;
 extern cvar_t *g_huntercam;
 extern cvar_t *g_inactivity;
-extern cvar_t *g_infinite_ammo;
+extern cvar_t *g_infiniteAmmo;
 extern cvar_t *g_instagib;
 extern cvar_t *g_instagib_splash;
-extern cvar_t *g_instant_weapon_switch;
-extern cvar_t *g_item_bobbing;
-extern cvar_t *g_knockback_scale;
-extern cvar_t *g_ladder_steps;
-extern cvar_t *g_lag_compensation;
-extern cvar_t *g_level_ruleset;
-extern cvar_t *g_map_list;
-extern cvar_t *g_map_list_shuffle;
-extern cvar_t *g_map_pool;
-extern cvar_t *g_match_lock;
+extern cvar_t *g_instantWeaponSwitch;
+extern cvar_t *g_itemBobbing;
+extern cvar_t *g_knockbackScale;
+extern cvar_t *g_ladderSteps;
+extern cvar_t *g_lagCompensation;
+extern cvar_t *match_levelRulesets;
+extern cvar_t *match_maps_list;
+extern cvar_t *match_maps_listShuffle;
+extern cvar_t *match_lock;
 extern cvar_t *g_matchstats;
 extern cvar_t *g_maxvelocity;
 extern cvar_t *g_motd_filename;
@@ -2802,7 +2912,8 @@ extern cvar_t *g_mover_debug;
 extern cvar_t *g_mover_speed_scale;
 extern cvar_t *g_nadefest;
 extern cvar_t *g_no_armor;
-extern cvar_t *g_no_bfg;
+extern cvar_t *g_mapspawn_no_bfg;
+extern cvar_t *g_mapspawn_no_plasmabeam;
 extern cvar_t *g_no_health;
 extern cvar_t *g_no_items;
 extern cvar_t *g_no_mines;
@@ -2811,7 +2922,6 @@ extern cvar_t *g_no_powerups;
 extern cvar_t *g_no_spheres;
 extern cvar_t *g_owner_auto_join;
 extern cvar_t *g_owner_push_scores;
-extern cvar_t *g_gametype_cfg;
 extern cvar_t *g_quadhog;
 extern cvar_t *g_quick_weapon_switch;
 extern cvar_t *g_rollangle;
@@ -2847,6 +2957,14 @@ extern cvar_t *g_maps_pool_file;
 extern cvar_t *g_maps_cycle_file;
 extern cvar_t *g_maps_selector;
 extern cvar_t *g_maps_mymap;
+extern cvar_t *g_maps_allow_custom_textures;
+extern cvar_t *g_maps_allow_custom_sounds;
+
+extern cvar_t *g_statex_enabled;
+extern cvar_t *g_statex_humans_present;
+
+extern cvar_t *g_blueTeamName;
+extern cvar_t *g_redTeamName;
 
 extern cvar_t *bot_name_prefix;
 
@@ -2867,7 +2985,7 @@ constexpr spawnflags_t SPAWNFLAG_ITEM_DROPPED			= 0x00010000_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_ITEM_DROPPED_PLAYER	= 0x00020000_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_ITEM_TARGETS_USED		= 0x00040000_spawnflag;
 
-extern gitem_t itemList[IT_TOTAL];
+extern Item itemList[IT_TOTAL];
 
 //
 // g_cmds.cpp
@@ -2883,7 +3001,6 @@ int TeamBalance(bool force);
 void Cmd_ReadyUp_f(gentity_t *ent);
 
 void VoteCommandStore(gentity_t *ent);
-vcmds_t *FindVoteCmdByName(const char *name);
 void Vote_Pass_Map();
 void Vote_Pass_RestartMatch();
 void Vote_Pass_Gametype();
@@ -2893,45 +3010,52 @@ void Vote_Pass_Cointoss();
 void Vote_Pass_Random();
 void Vote_Pass_Timelimit();
 void Vote_Pass_Scorelimit();
+bool TryStartVote(gentity_t *ent, const std::string &name, const std::string &arg, bool fromMenu);
 bool TeamShuffle();
 void TimeoutEnd();
 
 //
+// g_cmds_voting.cpp
+//
+extern std::vector<VoteCommand> vote_cmds;
+void Cmd_CallVote_f(gentity_t *ent);
+void Cmd_Vote_f(gentity_t *ent);
+
+//
 // g_items.cpp
 //
-void		Powerup_ApplyRegeneration(gentity_t *ent);
 void		QuadHog_DoSpawn(gentity_t *ent);
 void		QuadHog_DoReset(gentity_t *ent);
 void		QuadHog_SetupSpawn(gtime_t delay);
-void		QuadHog_Spawn(gitem_t *item, gentity_t *spot, bool reset);
+void		QuadHog_Spawn(Item *item, gentity_t *spot, bool reset);
 void		Tech_DeadDrop(gentity_t *ent);
 void		Tech_Reset();
 void		Tech_SetupSpawn();
-gitem_t		*Tech_Held(gentity_t *ent);
+Item		*Tech_Held(gentity_t *ent);
 int			Tech_ApplyDisruptorShield(gentity_t *ent, int dmg);
 bool		Tech_ApplyPowerAmpSound(gentity_t *ent);
 bool		Tech_ApplyTimeAccel(gentity_t *ent);
 void		Tech_ApplyTimeAccelSound(gentity_t *ent);
 void		Tech_ApplyAutoDoc(gentity_t *ent);
 bool		Tech_HasRegeneration(gentity_t *ent);
-void		PrecacheItem(gitem_t *it);
-bool		CheckItemEnabled(gitem_t *item);
-gitem_t		*CheckItemReplacements(gitem_t *item);
+void		PrecacheItem(Item *it);
+bool		CheckItemEnabled(Item *item);
+Item		*CheckItemReplacements(Item *item);
 void		InitItems();
 void		SetItemNames();
-gitem_t		*FindItem(const char *pickup_name);
-gitem_t		*FindItemByClassname(const char *className);
-gentity_t		*Drop_Item(gentity_t *ent, gitem_t *item);
+Item		*FindItem(const char *pickup_name);
+Item		*FindItemByClassname(const char *className);
+gentity_t		*Drop_Item(gentity_t *ent, Item *item);
 void		SetRespawn(gentity_t *ent, gtime_t delay, bool hide_self = true);
 void		Change_Weapon(gentity_t *ent);
-bool		SpawnItem(gentity_t *ent, gitem_t *item);
+bool		SpawnItem(gentity_t *ent, Item *item);
 void		Think_Weapon(gentity_t *ent);
 item_id_t	ArmorIndex(gentity_t *ent);
 item_id_t	PowerArmorType(gentity_t *ent);
-gitem_t		*GetItemByIndex(item_id_t index);
-gitem_t		*GetItemByAmmo(ammo_t ammo);
-gitem_t		*GetItemByPowerup(powerup_t powerup);
-bool		Add_Ammo(gentity_t *ent, gitem_t *item, int count);
+Item		*GetItemByIndex(item_id_t index);
+Item		*GetItemByAmmo(ammo_t ammo);
+Item		*GetItemByPowerup(powerup_t powerup);
+bool		Add_Ammo(gentity_t *ent, Item *item, int count);
 void		CheckPowerArmorState(gentity_t *ent);
 void		Touch_Item(gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf);
 void		P_ToggleFlashlight(gentity_t *ent, bool state);
@@ -2945,6 +3069,8 @@ void		Drop_Backpack(gentity_t *ent);
 //
 // g_utils.cpp
 //
+bool CheckArenaValid(int arenaNum);
+bool ChangeArena(int newArenaNum);
 bool KillBox(gentity_t *ent, bool from_spawning, mod_id_t mod = MOD_TELEFRAG, bool bsp_clipping = true);
 gentity_t *FindEntity(gentity_t *from, std::function<bool(gentity_t *e)> matcher);
 
@@ -3022,7 +3148,13 @@ void CalculateRanks();
 std::string TimeStamp();
 std::string FileTimeStamp();
 std::string DateStamp();
-std::string FormatSeconds(int seconds);
+std::string FormatDuration(int seconds);
+int GetWeaponIndexByAbbrev(const std::string &abbr);
+time_t GetCurrentRealTime();
+int64_t GetCurrentRealTimeMillis();
+double GetRealTimeSeconds();
+bool Vote_Menu_Active(gentity_t *ent);
+void ApplyPlayerStatus(gentity_t *ent, std::string socialID);
 
 //
 // g_spawn.cpp
@@ -3050,7 +3182,7 @@ constexpr spawnflags_t SPAWNFLAG_LASER_LIGHTNING = 0x10000_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_HEALTHBAR_PVS_ONLY = 1_spawnflag;
 
 // damage flags
-enum damageflags_t {
+enum damageFlags_t {
 	DAMAGE_NONE				= 0,			// no damage flags
 	DAMAGE_RADIUS			= 0x00000001,	// damage was indirect
 	DAMAGE_NO_ARMOR			= 0x00000002,	// armour does not protect from this damage
@@ -3065,7 +3197,7 @@ enum damageflags_t {
 	DAMAGE_STAT_ONCE		= 0x00000400	// only add as a hit to player stats once
 };
 
-MAKE_ENUM_BITFLAGS(damageflags_t);
+MAKE_ENUM_BITFLAGS(damageFlags_t);
 
 //
 // g_combat.cpp
@@ -3074,11 +3206,11 @@ bool OnSameTeam(gentity_t *ent1, gentity_t *ent2);
 bool CanDamage(gentity_t *targ, gentity_t *inflictor);
 bool CheckTeamDamage(gentity_t *targ, gentity_t *attacker);
 void Damage(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, const vec3_t &dir, const vec3_t &point,
-	const vec3_t &normal, int damage, int knockback, damageflags_t dflags, mod_t mod);
-bool RadiusDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, damageflags_t dflags, mod_t mod);
+	const vec3_t &normal, int damage, int knockback, damageFlags_t damageFlags, mod_t mod);
+bool RadiusDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, damageFlags_t damageFlags, mod_t mod);
 void Killed(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, mod_t mod);
 
-void G_RadiusNukeDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, mod_t mod);
+void RadiusNukeDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, mod_t mod);
 void M_CleanupHealTarget(gentity_t *ent);
 
 constexpr int32_t DEFAULT_BULLET_HSPREAD = 500;	// 300;
@@ -3093,7 +3225,7 @@ constexpr int32_t DEFAULT_SSHOTGUN_COUNT = 20;
 void train_use(gentity_t *self, gentity_t *other, gentity_t *activator);
 void func_train_find(gentity_t *self);
 gentity_t *plat_spawn_inside_trigger(gentity_t *ent);
-void	 Move_Calc(gentity_t *ent, const vec3_t &dest, void(*endfunc)(gentity_t *self));
+void	 Move_Calc(gentity_t *ent, const vec3_t &dest, void(*endFunc)(gentity_t *self));
 void G_SetMoveinfoSounds(gentity_t *self, const char *default_start, const char *default_mid, const char *default_end);
 
 constexpr spawnflags_t SPAWNFLAG_TRAIN_START_ON = 1_spawnflag;
@@ -3113,7 +3245,7 @@ void monster_fire_bullet(gentity_t *self, const vec3_t &start, const vec3_t &dir
 void monster_fire_shotgun(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick, int hSpread,
 	int vSpread, int count, monster_muzzleflash_id_t flashtype);
 void monster_fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, effects_t effect);
+	monster_muzzleflash_id_t flashtype, Effect effect);
 void monster_fire_flechette(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 	monster_muzzleflash_id_t flashtype);
 void monster_fire_grenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed,
@@ -3156,17 +3288,17 @@ bool monster_start(gentity_t *self);
 void monster_start_go(gentity_t *self);
 
 void monster_fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, effects_t effect);
+	monster_muzzleflash_id_t flashtype, Effect effect);
 void monster_fire_heat(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
 	monster_muzzleflash_id_t flashtype, float lerp_factor);
 void monster_fire_dabeam(gentity_t *self, int damage, bool secondary, void(*update_func)(gentity_t *self));
 void dabeam_update(gentity_t *self, bool damage);
 void monster_fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, effects_t effect);
+	monster_muzzleflash_id_t flashtype, Effect effect);
 void G_Monster_CheckCoopHealthScaling();
 
 void monster_fire_blaster2(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, effects_t effect);
+	monster_muzzleflash_id_t flashtype, Effect effect);
 void monster_fire_disruptor(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, gentity_t *enemy,
 	monster_muzzleflash_id_t flashtype);
 void monster_fire_heatbeam(gentity_t *self, const vec3_t &start, const vec3_t &dir, const vec3_t &offset, int damage,
@@ -3249,15 +3381,15 @@ bool fire_hit(gentity_t *self, vec3_t aim, int damage, int kick);
 void fire_bullet(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick, int hSpread, int vSpread, mod_t mod);
 void fire_shotgun(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick, int hSpread, int vSpread, int count, mod_t mod);
 void blaster_touch(gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf);
-void fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, effects_t effect, mod_t mod);
-void fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, effects_t effect);
-void fire_greenblaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, effects_t effect, bool hyper);
+void fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, Effect effect, mod_t mod);
+void fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, Effect effect);
+void fire_greenblaster(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, Effect effect, bool hyper);
 void fire_grenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, gtime_t timer, float splashRadius, float rightAdjust, float upAdjust, bool monster);
 void fire_handgrenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, gtime_t timer, float splashRadius, bool held);
 gentity_t *fire_rocket(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float splashRadius, int splashDamage);
 void fire_rail(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick);
 void fire_bfg(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float splashRadius);
-void fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, effects_t effect);
+void fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, Effect effect);
 void fire_heat(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float splashRadius, int splashDamage, float turnFraction);
 void fire_phalanx(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, float splashRadius, int splashDamage);
 void fire_trap(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int speed);
@@ -3321,7 +3453,6 @@ constexpr spawnflags_t SPAWNFLAG_CHANGELEVEL_NO_END_OF_UNIT = 16_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_CHANGELEVEL_FADE_OUT = 32_spawnflag;
 constexpr spawnflags_t SPAWNFLAG_CHANGELEVEL_IMMEDIATE_LEAVE = 64_spawnflag;
 
-void ClientSetEliminated(gentity_t *self);
 void ClientRespawn(gentity_t *ent);
 void BeginIntermission(gentity_t *targ);
 void ClientSpawn(gentity_t *ent);
@@ -3330,14 +3461,11 @@ void InitBodyQue();
 void CopyToBodyQue(gentity_t *ent);
 void ClientBeginServerFrame(gentity_t *ent);
 void ClientUserinfoChanged(gentity_t *ent, const char *userInfo);
-void Match_Ghost_Assign(gentity_t *ent);
-void Match_Ghost_DoAssign(gentity_t *ent);
 void P_AssignClientSkinnum(gentity_t *ent);
 void P_ForceFogTransition(gentity_t *ent, bool instant);
 void P_SendLevelPOI(gentity_t *ent);
 unsigned int P_GetLobbyUserNum(const gentity_t *player);
-void G_UpdateLevelEntry();
-void G_EndOfUnitMessage();
+void EndOfUnitMessage();
 bool SelectSpawnPoint(gentity_t *ent, vec3_t &origin, vec3_t &angles, bool force_spawn, bool &landmark);
 
 struct select_spawn_result_t {
@@ -3349,26 +3477,22 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(gentity_t *ent, vec3_t avoid_po
 void G_PostRespawn(gentity_t *self);
 
 //
+// g_client_cfg.cpp
+//
+std::string GetPlayerNameForSocialID(const std::string &socialID);
+
+//
 // g_ctf.cpp
 //
 bool CTF_PickupFlag(gentity_t *ent, gentity_t *other);
-void CTF_DropFlag(gentity_t *ent, gitem_t *item);
+void CTF_DropFlag(gentity_t *ent, Item *item);
 void CTF_ClientEffects(gentity_t *player);
 void CTF_DeadDropFlag(gentity_t *self);
 void CTF_FlagSetup(gentity_t *ent);
-void CTF_ResetTeamFlag(team_t team);
+bool CTF_ResetTeamFlag(team_t team);
 void CTF_ResetFlags();
 void CTF_ScoreBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker);
 void CTF_CheckHurtCarrier(gentity_t *targ, gentity_t *attacker);
-
-
-//
-// g_menu.cpp
-//
-void G_Menu_Join_Open(gentity_t *ent);
-void G_Menu_Vote_Open(gentity_t *ent);
-bool Vote_Menu_Active(gentity_t *ent);
-void G_Menu_ArenaSelector_Open(gentity_t *ent);
 
 //
 // g_player.cpp
@@ -3385,21 +3509,27 @@ bool G_FilterPacket(const char *from);
 // p_view.cpp
 //
 void ClientEndServerFrame(gentity_t *ent);
-void G_LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &dir);
-void G_UnLagCompensate();
+void LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &dir);
+void UnLagCompensate();
 
 //
 // p_hud.cpp
 //
 void MoveClientToIntermission(gentity_t *ent);
-void G_SetStats(gentity_t *ent);
-void G_SetCoopStats(gentity_t *ent);
-void G_SetSpectatorStats(gentity_t *ent);
-void G_CheckChaseStats(gentity_t *ent);
+void SetStats(gentity_t *ent);
+void SetCoopStats(gentity_t *ent);
+void SetSpectatorStats(gentity_t *ent);
+void CheckFollowStats(gentity_t *ent);
 void ValidateSelectedItem(gentity_t *ent);
 void DeathmatchScoreboardMessage(gentity_t *ent, gentity_t *killer);
 void TeamsScoreboardMessage(gentity_t *ent, gentity_t *killer);
-void G_ReportMatchDetails(bool is_end);
+void ReportMatchDetails(bool is_end);
+void UpdateLevelEntry();
+
+//
+// p_hud_scoreboard.cpp
+//
+void MultiplayerScoreboard(gentity_t *ent);
 
 //
 // p_weapon.cpp
@@ -3415,8 +3545,8 @@ void Weapon_Repeating(gentity_t *ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LA
 void Throw_Generic(gentity_t *ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int FRAME_PRIME_SOUND,
 	const char *prime_sound, int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, const int *pause_frames,
 	int EXPLODE, const char *primed_sound, void (*fire)(gentity_t *ent, bool held), bool extra_idle_frame);
-byte PlayerDamageModifier(gentity_t *ent);
-bool InfiniteAmmoOn(gitem_t *item);
+uint8_t PlayerDamageModifier(gentity_t *ent);
+bool InfiniteAmmoOn(Item *item);
 void Weapon_PowerupSound(gentity_t *ent);
 
 // GRAPPLE
@@ -3467,7 +3597,6 @@ void		G_Impact(gentity_t *e1, const trace_t &trace);
 void SaveClientData();
 void FetchClientEntData(gentity_t *ent);
 void Match_Start();
-void Match_End();
 void Match_Reset();
 void Round_End();
 void SetIntermissionPoint(void);
@@ -3475,39 +3604,46 @@ void FindIntermissionPoint(void);
 void G_RevertVote(gclient_t *client);
 void Vote_Passed();
 void ExitLevel();
-void Teams_CalcRankings(std::array<uint32_t, MAX_CLIENTS> &player_ranks); // [Paril-KEX]
+void Teams_CalcRankings(std::array<uint32_t, MAX_CLIENTS> &playerRanks); // [Paril-KEX]
 void ReadyAll();
 void UnReadyAll();
 void QueueIntermission(const char *msg, bool boo, bool reset);
 void Match_Reset();
-int MQ_Count();
-bool MQ_Add(gentity_t *ent, const char *mapname);
 gentity_t *CreateTargetChangeLevel(const char *map);
 bool InAMatch();
 void GT_Changes();
 void SpawnEntities(const char *mapname, const char *entities, const char *spawnpoint);
 void LoadMotd();
+void LoadAdminList();
+void LoadBanList();
+bool AppendIDToFile(const char *filename, const std::string &id);
+bool RemoveIDFromFile(const char *filename, const std::string &id);
 
 //
 // g_maps.cpp
 //
+int PrintMapList(gentity_t *ent, bool cycleOnly);
+bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags, uint8_t &disableFlags);
 void LoadMapPool(gentity_t *ent);
 void LoadMapCycle(gentity_t *ent);
 std::optional<MapEntry> AutoSelectNextMap();
-std::vector<const MapEntry *> SelectVoteCandidates(int maxCandidates = 3);
+std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates = 3);
+int PrintMapListFiltered(gentity_t *ent, bool cycleOnly, const std::string &filterQuery);
 
 //
-// g_match_state.cpp
+// match_state.cpp
 //
 void CheckDMExitRules();
 int GT_ScoreLimit();
 const char *GT_ScoreLimitString();
 void ChangeGametype(gametype_t gt);
+void Match_End();
 
 //
-// g_match_logging.cpp
+// match_logging.cpp
 //
-bool ClientConfig_DoRatingsUpdate(const std::string &playerID);
+void ClientConfig_SaveStats(gclient_t *cl, bool wonMatch);
+void ClientConfig_SaveStatsForGhost(const Ghosts &ghost, bool won);
 //bool ClientConfig_BulkUpdate(const std::string &playerID, const std::initializer_list<std::pair<std::string, json>> &updates);
 
 //
@@ -3592,6 +3728,8 @@ void RemoveAttackingPainDaemons(gentity_t *self);
 bool G_ShouldPlayersCollide(bool weaponry);
 bool P_UseCoopInstancedItems();
 void PushAward(gentity_t *ent, PlayerMedal medal);
+void P_SaveGhostSlot(gentity_t *ent);
+void P_RestoreFromGhostSlot(gentity_t *ent);
 
 constexpr spawnflags_t SPAWNFLAG_LANDMARK_KEEP_Z = 1_spawnflag;
 
@@ -3608,10 +3746,9 @@ constexpr spawnflags_t SPAWNFLAG_LANDMARK_KEEP_Z = 1_spawnflag;
 
 bool ClientIsPlaying(gclient_t *cl);
 
-#include "p_menu.h"
 //============================================================================
 
-// client_t->animPriority
+// client_t->anim.priority
 enum anim_priority_t {
 	ANIM_BASIC, // stand / run
 	ANIM_WAVE,
@@ -3673,35 +3810,7 @@ constexpr int32_t AUTO_SHIELD_MANUAL = -1;
 // if possible.
 constexpr int32_t AUTO_SHIELD_AUTO = 0;
 
-struct client_match_stats_t {
-	uint32_t	lifeAverage;
-	uint32_t	lifeLongest;
-
-	uint32_t	totalDmgDealt;
-	uint32_t	totalDmgReceived;
-
-	uint32_t	totalShots;
-	uint32_t	totalHits;
-
-	uint32_t	totalKills;
-	uint32_t	totalSpawnKills;
-	uint32_t	totalDeaths;
-	uint32_t	totalSpawnDeaths;
-	uint32_t	totalSuicides;
-
-	uint32_t	modTotalKills[MOD_TOTAL];
-	uint32_t	modTotalDeaths[MOD_TOTAL];
-	uint32_t	modTotalDmgD[MOD_TOTAL];
-	uint32_t	modTotalDmgR[MOD_TOTAL];
-	uint32_t	totalShotsPerWeapon[WEAP_MAX];
-	uint32_t	totalHitsPerWeapon[WEAP_MAX];
-
-	//uint32_t	medalCount[static_cast<uint8_t>(PlayerMedal::MEDAL_TOTAL)];
-	std::array<uint32_t, static_cast<size_t>(PlayerMedal::MEDAL_TOTAL)> medalCount = {};
-
-	uint32_t pickupCounts[HVI_TOTAL];
-	gtime_t pickupDelay[HVI_TOTAL];
-};
+static constexpr int MAX_AWARD_QUEUE = 8;
 
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
@@ -3727,8 +3836,8 @@ struct client_persistant_t {
 	// ammo capacities
 	std::array<int16_t, AMMO_MAX> ammoMax;
 
-	gitem_t			*weapon;
-	gitem_t			*lastweapon;
+	Item			*weapon;
+	Item			*lastWeapon;
 
 	int32_t			powerCubes; // used for tracking the cubes in coop games
 	int32_t			score;		 // for calculating total unit score in coop games
@@ -3745,25 +3854,22 @@ struct client_persistant_t {
 	height_fog_t	wanted_heightfog;
 	// relative time value, copied from last touched trigger
 	gtime_t			fog_transition_time;
-	gtime_t			megahealth_time; // relative megahealth time value
+	gtime_t			megaTime; // relative megahealth time value
 	int32_t			lives; // player lives left (1 = no respawns remaining)
 	uint8_t			n64_crouch_warn_times;
 	gtime_t			n64_crouch_warning;
 
 	//q3:
-	bool			ingame;
 
 	int32_t			dmg_scorer;		// for clan arena scoring from damage dealt
 	int32_t			dmg_team;		// for team damage checks and warnings
 
-	int				skin_icon_index;
+	int				skinIconIndex;
 	char			skin[MAX_INFO_VALUE];
 
 	int32_t			vote_count;			// to prevent people from constantly calling votes
-	int				voted;
 
-	int32_t			health_bonus;
-	gtime_t			health_bonus_timer;
+	int32_t			healthBonus;
 
 	bool			timeout_used;
 
@@ -3785,63 +3891,12 @@ struct client_persistant_t {
 	gtime_t			medalTime;
 	PlayerMedal		medalType;
 
-	player_team_state_t	team_state;
-};
+	player_team_state_t	teamState;
 
-static constexpr int MAX_AWARD_QUEUE = 8;
+	int				currentRank, previousRank;
 
-// player config vars:
-struct client_config_t {
-	bool			show_id;
-	bool			show_timer;
-	bool			show_fragmessages;
-	int				killbeep_num;
-
-	bool			follow_killer;
-	bool			follow_leader;
-	bool			follow_powerup;
-};
-
-// client data that stays across deathmatch level changes, handled differently to client_persistent_t
-struct client_session_t {
-	client_config_t	pc;
-
-	char			netName[MAX_NETNAME];
-	char			socialID[MAX_INFO_VALUE];
-
-	char			skin[MAX_INFO_VALUE];
-	int				skin_icon_index;
-
-	bool			initialised;
-
-	team_t			team;
-	spectator_state_t	spectator_state;
-	int8_t			spectator_client;	// for chasecam and follow mode
-
-	// client flags
-	bool			admin;
-	bool			banned;
-	bool			is_888;
-	bool			is_a_bot;
-	bool			console;
-
-	// inactivity timer
-	bool			inactive;
-	gtime_t			inactivity_time;
-	bool			inactivity_warning;
-
-	// duel stats
-	bool			versusQueued;
-	int				wins, losses;
-
-	// real time of team joining
-	gtime_t			teamJoinTime;
-	gtime_t			playStartTime;
-
-	int				motd_mod_count;
-	bool			showed_help;
-
-	uint16_t		skillRating;
+	int				voted;
+	bool			readyStatus;
 
 	client_match_stats_t match;
 
@@ -3852,38 +3907,89 @@ struct client_session_t {
 		int playIndex = 0;
 		gtime_t nextPlayTime = 0_ms;
 	} awardQueue;
-
-	int command_flood_count = 0;
-	gtime_t command_flood_time = 0_ms;
 };
 
-// client data that stays across deathmatch respawns
+// client data that stays across deathmatch level changes, handled differently to client_persistent_t
+struct client_session_t {
+	// player config vars:
+	struct client_config_t {
+		bool		show_id = true;
+		bool		show_timer = true;
+		bool		show_fragmessages = true;
+		int			killbeep_num = 1;
+
+		bool		follow_killer = false;
+		bool		follow_leader = false;
+		bool		follow_powerup = false;
+	};
+	client_config_t	pc;
+
+	char			netName[MAX_NETNAME];
+	char			socialID[MAX_INFO_VALUE];
+	uint16_t		skillRating = 0;
+	uint16_t		skillRatingChange = 0;
+
+	char			skinName[MAX_INFO_VALUE];
+	int				skinIconIndex = 0;
+
+	team_t			team = TEAM_NONE;
+	bool			inGame = false;
+	bool			initialised = false;
+
+	// client flags
+	bool			admin = false;
+	bool			banned = false;
+	bool			is_30day = false;
+	bool			is_888 = false;
+	bool			is_a_bot = false;
+	bool			consolePlayer = false;
+
+	// inactivity timer
+	bool			inactiveStatus = false;
+	gtime_t			inactivityTime = 0_sec;
+	bool			inactivityWarning = false;
+
+	// duel stats
+	bool			matchQueued = false;
+	int				matchWins = 0, matchLosses = 0;
+
+	// real time of team joining
+	gtime_t			teamJoinTime = 0_sec;
+	int64_t			playStartRealTime = 0;
+	int64_t			playEndRealTime = 0;
+
+	int				motdModificationCount = -1;
+	bool			showed_help = false;
+
+	int				command_flood_count = 0;
+	gtime_t			command_flood_time = 0_ms;
+
+	std::vector<std::string> weaponPrefs;
+
+};
+
+// client data that stay across a match
+// to change to clearing on respawn
 struct client_respawn_t {
-	client_persistant_t coop_respawn; // what to set client->pers to on a respawn
-	gtime_t				enter_time;	  // level.time the client entered the game
-	int32_t				score;		  // frags, etc
+	client_persistant_t coopRespawn;	// what to set client->pers to on a respawn
+	gtime_t				enterTime;		// level.time the client entered the game
+	int32_t				score;			// frags, etc
 	int32_t				oldScore;		// track changes in score
-	vec3_t				cmd_angles;	  // angles sent over in the last command
+	vec3_t				cmdAngles;		// angles sent over in the last command
 
 	int32_t				ctf_state;
 	gtime_t				ctf_lasthurtcarrier;
 	gtime_t				ctf_lastreturnedflag;
 	gtime_t				ctf_flagsince;
 	gtime_t				ctf_lastfraggedcarrier;
-	gtime_t				lastIDTime;
-	bool				voted;
-	bool				ready;
-	ghost_t				*ghost; // for ghost codes
+
+	gtime_t				lastIDTime;		// crosshair ID time
 
 /*freeze*/
 	gentity_t			*thawer;
 	int					help;
 	int					thawed;
 /*freeze*/
-
-	int32_t				killStreakCount;	// for rampage award, reset on respawn
-
-	int					rank, oldRank;
 
 	gtime_t				teamDelayTime;
 };
@@ -3942,15 +4048,17 @@ struct gclient_t {
 	bool weaponFireBuffered;
 	bool weaponThunk;
 
-	gitem_t *newWeapon;
+	Item *newWeapon;
 
 	// sum up damage over an entire frame, so
 	// shotgun blasts give a single big kick
-	int32_t damageArmor;		// damage absorbed by armor
-	int32_t damagePArmor;		// damage absorbed by power armor
-	int32_t damageBlood;		// damage taken out of health
-	int32_t damageKnockback;	// impact damage
-	vec3_t	damageFrom;			// origin for vector calculation
+	struct {
+		int32_t		armor		= 0; // damage absorbed by armor
+		int32_t		powerArmor	= 0; // damage absorbed by power armor
+		int32_t		blood		= 0; // damage taken out of health
+		int32_t		knockback	= 0; // impact damage
+		vec3_t		origin		= vec3_origin; // origin for vector calculation
+	} damage;
 
 	damage_indicator_t		  damageIndicators[MAX_DAMAGE_INDICATORS];
 	uint8_t                   numDamageIndicators;
@@ -3976,7 +4084,7 @@ struct gclient_t {
 	vec3_t			oldViewAngles;
 	vec3_t			oldVelocity;
 	gentity_t		*oldGroundEntity; // [Paril-KEX]
-	gtime_t			flash_time; // [Paril-KEX] for high tickrate
+	gtime_t			flashTime; // [Paril-KEX] for high tickrate
 
 	gtime_t			nextDrownTime;
 	water_level_t	oldWaterLevel;
@@ -3985,76 +4093,81 @@ struct gclient_t {
 	int32_t			machinegunShots; // for weapon raising
 
 	// animation vars
-	int32_t			animEnd;
-	anim_priority_t	animPriority;
-	bool			animDuck;
-	bool			animRun;
-	gtime_t			animTime;
+	struct {
+		int32_t			end			= 0;
+		anim_priority_t	priority	= ANIM_BASIC;
+		bool			duck		= false;
+		bool			run			= false;
+		gtime_t			time		= 0_sec;
+	} anim;
 
 	// powerup timers
-	gtime_t pu_time_quad;
-	gtime_t pu_time_haste;
-	gtime_t pu_time_double;
-	gtime_t pu_time_battlesuit;
-	gtime_t pu_time_invisibility;
-	gtime_t pu_time_regeneration;
-	gtime_t pu_time_rebreather;
-	gtime_t pu_time_enviro;
+	struct {
+		gtime_t		quadDamage		= 0_sec;
+		gtime_t		doubleDamage	= 0_sec;
+		gtime_t		battleSuit		= 0_sec;
+		gtime_t		rebreather		= 0_sec;
+		gtime_t		invisibility	= 0_sec;
+		gtime_t		haste			= 0_sec;
+		gtime_t		regeneration	= 0_sec;
+		gtime_t		enviroSuit		= 0_sec;
+		gtime_t		spawnProtection = 0_sec;
+		gtime_t		irGoggles		= 0_sec;
+		uint32_t	silencerShots	= 0;
+	} powerupTime;
 
-	gtime_t	pu_regen_time_regen;
-	gtime_t	pu_regen_time_blip;
+	bool	grenadeBlewUp;
+	gtime_t grenadeTime, grenadeFinishedTime;
+	int32_t weaponSound;
 
-	gtime_t pu_time_spawn_protection;
-	gtime_t pu_time_spawn_protection_blip;
+	gtime_t pickupMessageTime;
 
-	bool	grenade_blew_up;
-	gtime_t grenade_time, grenade_finished_time;
-	int32_t silencer_shots;
-	int32_t weapon_sound;
+	gtime_t respawnMinTime; // can't respawn before time > this
+	gtime_t respawnMaxTime; // can respawn when time > this
 
-	gtime_t pickup_msg_time;
+	gtime_t		pu_regen_time_blip;
+	gtime_t		pu_time_spawn_protection_blip;
 
-	gtime_t flood_locktill; // locked from talking
-	gtime_t flood_when[10]; // when messages were said
-	int32_t flood_whenhead; // head pointer for when said
+	// flood stuff is dm only
+	gtime_t		floodLockTill; // locked from talking
+	gtime_t		floodWhen[10]; // when messages were said
+	int32_t		floodWhenHead; // head pointer for when said
 
-	gtime_t respawn_min_time; // can't respawn before time > this
-	gtime_t respawn_time; // can respawn when time > this
+	// follow cam not required to persist
+	gentity_t	*followQueuedTarget;
+	gtime_t		followQueuedTime;
+	gentity_t	*followTarget; // player we are following
+	bool		followUpdate; // need to update follow info?
 
-	gentity_t *follow_queued_target;
-	gtime_t	follow_queued_time;
-	gentity_t *followTarget; // player we are following
-	bool	 follow_update; // need to update follow info?
+	gtime_t		nukeTime;
+	gtime_t		trackerPainTime;
 
-	gtime_t ir_time;
-	gtime_t nuke_time;
-	gtime_t trackerPainTime;
+	gentity_t	*ownedSphere; // this points to the player's sphere
 
-	gentity_t *ownedSphere; // this points to the player's sphere
+	gtime_t		emptyClickSound;
 
-	gtime_t empty_click_sound;
-
-	bool		inmenu;	  // in menu
-	menu_hnd_t *menu;	  // current menu
+	bool		inMenu;	  // in menu
+	//MenuHandle	*menu;	  // current menu
+	std::shared_ptr<Menu> menu; // Currently open menu, if any
 	gtime_t		menuTime; // time to update menu
-	bool		menudirty;
+	bool		menuDirty;
 
-	gentity_t	*grapple_ent;			// entity of grapple
-	int32_t		grapple_state;			// true if pulling
-	gtime_t		grapple_release_time;	// time of grapple release
+	gentity_t	*grappleEnt;			// entity of grapple
+	int32_t		grappleState;			// true if pulling
+	gtime_t		grappleReleaseTime;		// time of grapple release
 
-	gtime_t		tech_regen_time;			// regen tech
-	gtime_t		tech_sound_time;
-	gtime_t		tech_last_message_time;
+	gtime_t		techRegenTime;			// regen tech
+	gtime_t		techSoundTime;
+	gtime_t		techLastMessageTime;
 
-	gtime_t		frenzy_ammoregentime;
+	gtime_t		frenzyAmmoRegenTime;
 
-	gtime_t		vampire_expiretime;
+	gtime_t		vampiricExpireTime;
 
 	// used for player trails.
 	gentity_t *trail_head, *trail_tail;
 	// whether to use weapon chains
-	bool no_weapon_chains;
+	bool noWeaponChains;
 
 	// seamless level transitions
 	bool landmark_free_fall;
@@ -4110,7 +4223,7 @@ struct gclient_t {
 
 	bool		eliminated;
 /*freeze*/
-	gentity_t		*viewed;
+	gentity_t	*viewed;
 	float		thaw_time;
 	float		frozen_time;
 	float		moan_time;
@@ -4128,7 +4241,9 @@ struct gclient_t {
 
 	gtime_t		last_banned_message_time;
 
-	gtime_t		time_residual;
+	gtime_t		timeResidual;
+
+	int32_t		killStreakCount;	// for rampage award, reset on death or team change
 };
 
 // ==========================================
@@ -4157,13 +4272,13 @@ struct gentity_t {
 	// of gclient_t to be a player_state_t
 	// but the rest of it is opaque
 
-	g_entity_t sv;	       // read only info about this entity for the server
+	sv_entity_t sv;	       // read only info about this entity for the server
 
 	bool     inUse;
 
 	// world linkage data
 	bool     linked;
-	int32_t	 linkcount;
+	int32_t	 linkCount;
 	int32_t  areanum, areanum2;
 
 	svflags_t  svFlags;
@@ -4211,7 +4326,7 @@ struct gentity_t {
 	vec3_t	velocity;
 	vec3_t	aVelocity;
 	int32_t mass;
-	gtime_t air_finished;
+	gtime_t airFinished;
 	float	gravity; // per entity gravity multiplier (1.0 is normal)
 	// use for lowgrav artifact, flares
 
@@ -4285,7 +4400,7 @@ struct gentity_t {
 
 	int32_t style; // also used as areaportal number
 
-	gitem_t *item; // for bonus items
+	Item *item; // for bonus items
 
 	// common data blocks
 	moveinfo_t	  moveinfo;
@@ -4367,6 +4482,8 @@ struct gentity_t {
 	const char *powerups_off;
 	const char *bfg_on;
 	const char *bfg_off;
+	const char *plasmabeam_on;
+	const char *plasmabeam_off;
 
 	const char *spawnpad;
 
@@ -4380,7 +4497,9 @@ struct gentity_t {
 
 	// for q1 backpacks
 	int			pack_ammo_count[AMMO_MAX];
-	gitem_t		*pack_weapon;
+	Item		*pack_weapon;
+
+	int			arena;	//for RA2 support
 };
 
 constexpr spawnflags_t SF_SPHERE_DEFENDER	= 0x0001_spawnflag;
@@ -4638,7 +4757,7 @@ struct fmt::formatter<gentity_t> {
 	}
 
 	template<typename FormatContext>
-	auto format(const gentity_t &p, FormatContext &ctx) -> decltype(ctx.out()) {
+	auto format(const gentity_t &p, FormatContext &ctx) const -> decltype(ctx.out()) {
 		if (p.linked)
 			return fmt::format_to(ctx.out(), FMT_STRING("{} @ {}"), p.className, (p.absMax + p.absMin) * 0.5f);
 		return fmt::format_to(ctx.out(), FMT_STRING("{} @ {}"), p.className, p.s.origin);
@@ -4734,3 +4853,222 @@ template<> cached_imageindex *cached_imageindex::head;
 
 extern cached_modelindex sm_meat_index;
 extern cached_soundindex snd_fry;
+
+// ===========================================================
+// MENU SYSTEM
+// ===========================================================
+
+/*
+===============
+Menu.hpp
+===============
+*/
+
+// Forward declarations
+//struct gentity_t;
+class Menu;
+
+constexpr int MAX_MENU_WIDTH = 28;
+constexpr int MAX_VISIBLE_LINES = 18;
+
+//extern gentity_t *g_entities;
+
+/*
+===============
+MenuAlign
+===============
+*/
+enum class MenuAlign {
+	Left,
+	Center,
+	Right
+};
+
+/*
+===============
+MenuEntry
+===============
+*/
+class MenuEntry {
+public:
+	std::string text;
+	std::string textArg;
+	MenuAlign align;
+	std::function<void(gentity_t *, Menu &)> onSelect;
+	bool scrollable = true;
+
+	MenuEntry(const std::string &txt, MenuAlign a, std::function<void(gentity_t *, Menu &)> cb = nullptr)
+		: text(txt), align(a), onSelect(std::move(cb)) {}
+};
+
+/*
+===============
+Menu
+===============
+*/
+class Menu {
+public:
+	std::vector<MenuEntry> entries;
+	int current = -1;
+	std::function<void(gentity_t *, const Menu &)> onUpdate;
+	std::shared_ptr<void> context;
+
+	void Next();
+	void Prev();
+	void Select(gentity_t *ent);
+	void Render(gentity_t *ent) const;
+};
+
+/*
+===============
+MenuBuilder
+===============
+*/
+class MenuBuilder {
+private:
+	std::unique_ptr<Menu> menu;
+
+public:
+	MenuBuilder() : menu(std::make_unique<Menu>()) {}
+
+	MenuBuilder &add(const std::string &text, MenuAlign align = MenuAlign::Left, std::function<void(gentity_t *, Menu &)> onSelect = nullptr) {
+		menu->entries.emplace_back(text, align, std::move(onSelect));
+		return *this;
+	}
+
+	MenuBuilder &spacer() {
+		menu->entries.emplace_back("", MenuAlign::Left);
+		return *this;
+	}
+
+	MenuBuilder &update(std::function<void(gentity_t *, const Menu &)> updater) {
+		menu->onUpdate = std::move(updater);
+		return *this;
+	}
+
+	MenuBuilder &context(std::shared_ptr<void> data) {
+		menu->context = std::move(data);
+		return *this;
+	}
+
+	std::unique_ptr<Menu> build() {
+		return std::move(menu);
+	}
+};
+
+/*
+===============
+MenuSystem
+===============
+*/
+class MenuSystem {
+public:
+	static void Open(gentity_t *ent, std::unique_ptr<Menu> menu);
+	static void Close(gentity_t *ent);
+	static void Update(gentity_t *ent);
+	static void DirtyAll();
+};
+
+/*
+===============
+VoteEntry
+===============
+*/
+inline MenuEntry VoteEntry(const std::string &text, int voteIndex) {
+	return MenuEntry(text, MenuAlign::Center, [voteIndex](gentity_t *e, Menu &) {
+		const int clientNum = e - g_entities;
+		if (clientNum >= 0 && clientNum < MAX_CLIENTS) {
+			level.mapSelectorVoteByClient[clientNum] = voteIndex;
+		}
+		MenuSystem::Close(e);
+		gi.local_sound(e, CHAN_AUTO, gi.soundindex("misc/menu3.wav"), 1, ATTN_NONE, 0);
+		});
+}
+
+/*
+===============
+Inline Menu Utilities
+===============
+*/
+inline void CloseActiveMenu(gentity_t *ent) {
+	if (ent && ent->client)
+		MenuSystem::Close(ent);
+}
+
+inline void PreviousMenuItem(gentity_t *ent) {
+	if (ent && ent->client && ent->client->menu)
+		ent->client->menu->Prev();
+}
+
+inline void NextMenuItem(gentity_t *ent) {
+	if (ent && ent->client && ent->client->menu)
+		ent->client->menu->Next();
+}
+
+inline void ActivateSelectedMenuItem(gentity_t *ent) {
+	if (ent && ent->client && ent->client->menu)
+		ent->client->menu->Select(ent);
+}
+
+inline void DirtyAllMenus() {
+	MenuSystem::DirtyAll();
+}
+
+inline void UpdateMenu(gentity_t *ent) {
+	MenuSystem::Update(ent);
+}
+
+inline void RenderMenu(gentity_t *ent) {
+	if (ent && ent->client && ent->client->menu)
+		ent->client->menu->Render(ent);
+}
+
+/*
+===============
+Menu Helpers: Toggles and Choosers
+===============
+*/
+inline auto MakeToggle(std::function<bool()> getState, std::function<void()> toggleState)
+-> std::tuple<std::string, MenuAlign, std::function<void(gentity_t *, Menu &)>> {
+	return {
+		"", MenuAlign::Left,
+		[toggleState](gentity_t *, Menu &) {
+			toggleState();
+		}
+	};
+}
+
+inline auto MakeCycle(std::function<int()> getValue, std::function<void()> nextValue)
+-> std::tuple<std::string, MenuAlign, std::function<void(gentity_t *, Menu &)>> {
+	return {
+		"", MenuAlign::Left,
+		[nextValue](gentity_t *, Menu &) {
+			nextValue();
+		}
+	};
+}
+
+inline auto MakeChoice(const std::vector<std::string> &choices, std::function<int()> getIndex, std::function<void()> advance)
+-> std::tuple<std::string, MenuAlign, std::function<void(gentity_t *, Menu &)>> {
+	return {
+		"", MenuAlign::Left,
+		[advance](gentity_t *, Menu &) {
+			advance();
+		}
+	};
+}
+
+/*
+===============
+Menu Entry Points
+===============
+*/
+void OpenJoinMenu(gentity_t *ent);
+void OpenAdminSettingsMenu(gentity_t *ent);
+void OpenVoteMenu(gentity_t *ent);
+void OpenCallvoteMenu(gentity_t *ent);
+void OpenHostInfoMenu(gentity_t *ent);
+void OpenMatchInfoMenu(gentity_t *ent);
+void OpenPlayerMatchStatsMenu(gentity_t *ent);
+
+// ===========================================================

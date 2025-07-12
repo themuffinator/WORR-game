@@ -5,15 +5,15 @@
 #include "monsters/m_player.h"
 #include "bots/bot_includes.h"
 
-static gentity_t *current_player;
-static gclient_t *current_client;
+static gentity_t *currentPlayer;
+static gclient_t *currentClient;
 
 static vec3_t forward, right, up;
-float		  xyspeed;
+float		  xySpeed;
 
-float bobmove;
-int	  bobcycle, bobcycle_run;	  // odd cycles are right foot going forward
-float bobfracsin; // sinf(bobfrac*M_PI)
+float bobMove;
+int	  bobCycle, bobCycleRun;	  // odd cycles are right foot going forward
+float bobFracSin; // sinf(bobfrac*M_PI)
 
 /*
 ===============
@@ -25,13 +25,13 @@ static inline bool SkipViewModifiers() {
 		return true;
 
 	// don't do bobbing, etc on grapple
-	if (current_client->grapple_ent &&
-			current_client->grapple_state > GRAPPLE_STATE_FLY) {
+	if (currentClient->grappleEnt &&
+			currentClient->grappleState > GRAPPLE_STATE_FLY) {
 		return true;
 	}
 
 	// spectator mode
-	if (!ClientIsPlaying(current_client))
+	if (!ClientIsPlaying(currentClient))
 		return true;
 
 	return false;
@@ -39,11 +39,10 @@ static inline bool SkipViewModifiers() {
 
 /*
 ===============
-G_CalcRoll
-
+P_CalcRoll
 ===============
 */
-static float G_CalcRoll(const vec3_t &angles, const vec3_t &velocity) {
+static float P_CalcRoll(const vec3_t &angles, const vec3_t &velocity) {
 	if (SkipViewModifiers()) {
 		return 0.0f;
 	}
@@ -73,7 +72,7 @@ P_DamageFeedback
 Handles color blends and view kicks
 ===============
 */
-void P_DamageFeedback(gentity_t *player) {
+static void P_DamageFeedback(gentity_t *player) {
 	gclient_t *client;
 	float			 side;
 	float			 realcount, count, kick;
@@ -88,55 +87,55 @@ void P_DamageFeedback(gentity_t *player) {
 	// flash the backgrounds behind the status numbers
 	int16_t want_flashes = 0;
 
-	if (client->damageBlood)
+	if (client->damage.blood)
 		want_flashes |= 1;
-	if (client->damageArmor && !(player->flags & FL_GODMODE))
+	if (client->damage.armor && !(player->flags & FL_GODMODE))
 		want_flashes |= 2;
 
 	if (want_flashes) {
-		client->flash_time = level.time + 100_ms;
+		client->flashTime = level.time + 100_ms;
 		client->ps.stats[STAT_FLASHES] = want_flashes;
-	} else if (client->flash_time < level.time)
+	} else if (client->flashTime < level.time)
 		client->ps.stats[STAT_FLASHES] = 0;
 
 	// total points of damage shot at the player this frame
-	count = (float)(client->damageBlood + client->damageArmor + client->damagePArmor);
+	count = (float)(client->damage.blood + client->damage.armor + client->damage.powerArmor);
 	if (count == 0)
 		return; // didn't take any damage
 
 	// start a pain animation if still in the player model
-	if (client->animPriority < ANIM_PAIN && player->s.modelindex == MODELINDEX_PLAYER) {
+	if (client->anim.priority < ANIM_PAIN && player->s.modelindex == MODELINDEX_PLAYER) {
 		static int i;
 
-		client->animPriority = ANIM_PAIN;
+		client->anim.priority = ANIM_PAIN;
 		if (client->ps.pmove.pm_flags & PMF_DUCKED) {
 			player->s.frame = FRAME_crpain1 - 1;
-			client->animEnd = FRAME_crpain4;
+			client->anim.end = FRAME_crpain4;
 		} else {
 			i = (i + 1) % 3;
 			switch (i) {
 			case 0:
 				player->s.frame = FRAME_pain101 - 1;
-				client->animEnd = FRAME_pain104;
+				client->anim.end = FRAME_pain104;
 				break;
 			case 1:
 				player->s.frame = FRAME_pain201 - 1;
-				client->animEnd = FRAME_pain204;
+				client->anim.end = FRAME_pain204;
 				break;
 			case 2:
 				player->s.frame = FRAME_pain301 - 1;
-				client->animEnd = FRAME_pain304;
+				client->anim.end = FRAME_pain304;
 				break;
 			}
 		}
 
-		client->animTime = 0_ms;
+		client->anim.time = 0_ms;
 	}
 
 	realcount = count;
 
 	// if we took health damage, do a minimum clamp
-	if (client->damageBlood) {
+	if (client->damage.blood) {
 		if (count < 10)
 			count = 10; // always make a visible effect
 	} else {
@@ -182,7 +181,7 @@ void P_DamageFeedback(gentity_t *player) {
 
 	// [Paril-KEX] tweak the values to rely less on this
 	// and more on damage indicators
-	if (client->damageBlood || (client->damageAlpha + count * 0.06f) < 0.15f) {
+	if (client->damage.blood || (client->damageAlpha + count * 0.06f) < 0.15f) {
 		client->damageAlpha += count * 0.06f;
 
 		if (client->damageAlpha < 0.06f)
@@ -194,18 +193,18 @@ void P_DamageFeedback(gentity_t *player) {
 	// mix in colors
 	v = {};
 
-	if (client->damagePArmor)
-		v += power_color * (client->damagePArmor / realcount);
-	if (client->damageBlood)
-		v += bcolor * max(15.0f, (client->damageBlood / realcount));
-	if (client->damageArmor)
-		v += armor_color * (client->damageArmor / realcount);
+	if (client->damage.powerArmor)
+		v += power_color * (client->damage.powerArmor / realcount);
+	if (client->damage.blood)
+		v += bcolor * max(15.0f, (client->damage.blood / realcount));
+	if (client->damage.armor)
+		v += armor_color * (client->damage.armor / realcount);
 	client->damageBlend = v.normalized();
 
 	//
 	// calculate view angle kicks
 	//
-	kick = (float)abs(client->damageKnockback);
+	kick = (float)abs(client->damage.knockback);
 	if (kick && player->health > 0) // kick of 0 means no view adjust at all
 	{
 		kick = kick * 100 / player->health;
@@ -215,7 +214,7 @@ void P_DamageFeedback(gentity_t *player) {
 		if (kick > 50)
 			kick = 50;
 
-		v = client->damageFrom - player->s.origin;
+		v = client->damage.origin - player->s.origin;
 		v.normalize();
 
 		side = v.dot(right);
@@ -256,10 +255,10 @@ void P_DamageFeedback(gentity_t *player) {
 	//
 	// clear totals
 	//
-	client->damageBlood = 0;
-	client->damageArmor = 0;
-	client->damagePArmor = 0;
-	client->damageKnockback = 0;
+	client->damage.blood = 0;
+	client->damage.armor = 0;
+	client->damage.powerArmor = 0;
+	client->damage.knockback = 0;
 	client->numDamageIndicators = 0;
 }
 
@@ -351,16 +350,16 @@ static void G_CalcViewOffset(gentity_t *ent) {
 			angles[ROLL] += delta * run_roll->value;
 
 			// add angles based on bob
-			delta = bobfracsin * bob_pitch->value * xyspeed;
+			delta = bobFracSin * bob_pitch->value * xySpeed;
 			if ((ent->client->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
 				delta *= 6; // crouching
 			delta = min(delta, 1.2f);
 			angles[PITCH] += delta;
-			delta = bobfracsin * bob_roll->value * xyspeed;
+			delta = bobFracSin * bob_roll->value * xySpeed;
 			if ((ent->client->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
 				delta *= 6; // crouching
 			delta = min(delta, 1.2f);
-			if (bobcycle & 1)
+			if (bobCycle & 1)
 				delta = -delta;
 			angles[ROLL] += delta;
 		}
@@ -405,7 +404,7 @@ static void G_CalcViewOffset(gentity_t *ent) {
 		}
 
 		// add bob height
-		bob = bobfracsin * xyspeed * bob_up->value;
+		bob = bobFracSin * xySpeed * bob_up->value;
 		if (bob > 6)
 			bob = 6;
 		// gi.DebugGraph (bob *2, 255);
@@ -448,14 +447,14 @@ static void G_CalcGunOffset(gentity_t *ent) {
 		!((ent->client->pers.weapon->id == IT_WEAPON_PLASMABEAM || ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE) && ent->client->weaponState == WEAPON_FIRING)
 		&& !SkipViewModifiers()) {
 		// gun angles from bobbing
-		ent->client->ps.gunangles[ROLL] = xyspeed * bobfracsin * 0.005f;
-		ent->client->ps.gunangles[YAW] = xyspeed * bobfracsin * 0.01f;
-		if (bobcycle & 1) {
+		ent->client->ps.gunangles[ROLL] = xySpeed * bobFracSin * 0.005f;
+		ent->client->ps.gunangles[YAW] = xySpeed * bobFracSin * 0.01f;
+		if (bobCycle & 1) {
 			ent->client->ps.gunangles[ROLL] = -ent->client->ps.gunangles[ROLL];
 			ent->client->ps.gunangles[YAW] = -ent->client->ps.gunangles[YAW];
 		}
 
-		ent->client->ps.gunangles[PITCH] = xyspeed * bobfracsin * 0.005f;
+		ent->client->ps.gunangles[PITCH] = xySpeed * bobFracSin * 0.005f;
 
 		vec3_t viewangles_delta = ent->client->oldViewAngles - ent->client->ps.viewangles;
 
@@ -515,275 +514,225 @@ static void G_CalcGunOffset(gentity_t *ent) {
 G_CalcBlend
 =============
 */
+
+[[nodiscard]] static float G_PowerUpFadeAlpha(gtime_t left, float max_alpha = 0.08f) {
+	if (left.milliseconds() > 3000)
+		return max_alpha;
+
+	float phase = static_cast<float>(left.milliseconds()) * 2.0f * M_PI / 1000.0f;
+	return (std::sin(phase) * 0.5f + 0.5f) * max_alpha;
+}
+
 static void G_CalcBlend(gentity_t *ent) {
 	gtime_t remaining;
-
 	ent->client->ps.damageBlend = ent->client->ps.screen_blend = {};
 
-	// add for powerups
-	if (ent->client->pu_time_spawn_protection > level.time) {
-		remaining = ent->client->pu_time_spawn_protection - level.time;
-		G_AddBlend(1, 0, 0, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_quad > level.time) {
-		remaining = ent->client->pu_time_quad - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/damage2.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(0, 0, 1, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_haste > level.time) {
-		remaining = ent->client->pu_time_haste - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/quadfire2.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(1, 0.2f, 0.5f, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_double > level.time) {
-		remaining = ent->client->pu_time_double - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("misc/ddamage2.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(0.9f, 0.7f, 0, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_battlesuit > level.time) {
-		remaining = ent->client->pu_time_battlesuit - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/protect2.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(1, 0, 0, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_invisibility > level.time) {
-		remaining = ent->client->pu_time_invisibility - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/protect2.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(0.8f, 0.8f, 0.8f, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_regeneration > level.time) {
-		remaining = ent->client->pu_time_regeneration - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/protect2.wav"), 1, ATTN_NORM, 0);
-	} else if (ent->client->pu_time_enviro > level.time) {
-		remaining = ent->client->pu_time_enviro - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/airout.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(0, 1, 0, 0.08f, ent->client->ps.screen_blend);
-	} else if (ent->client->pu_time_rebreather > level.time) {
-		remaining = ent->client->pu_time_rebreather - level.time;
-		if (remaining.milliseconds() == 3000) // beginning to fade
-			gi.sound(ent, CHAN_ITEM, gi.soundindex("items/airout.wav"), 1, ATTN_NORM, 0);
-		if (G_PowerUpExpiringRelative(remaining))
-			G_AddBlend(0.4f, 1, 0.4f, 0.04f, ent->client->ps.screen_blend);
-	}
-/*freeze*/
-	else if (GT(GT_FREEZE) && ent->client->eliminated && !ent->client->followTarget && (!ent->client->resp.thawer)) {	// || level.framenum &8))
-		G_AddBlend(0.6f, 0.6f, 0.6f, 0.4f, ent->client->ps.screen_blend);
-	}
-/*freeze*/
+	auto BlendIfExpiring = [&](gtime_t end_time, float r, float g, float b, float max_alpha, const char *sound = nullptr) {
+		if (end_time > level.time) {
+			remaining = end_time - level.time;
+			if (remaining.milliseconds() == 3000 && sound)
+				gi.sound(ent, CHAN_ITEM, gi.soundindex(sound), 1, ATTN_NORM, 0);
+			if (G_PowerUpExpiringRelative(remaining))
+				G_AddBlend(r, g, b, G_PowerUpFadeAlpha(remaining, max_alpha), ent->client->ps.screen_blend);
+		}
+		};
 
-	if (ent->client->nuke_time > level.time) {
-		float brightness = (ent->client->nuke_time - level.time).seconds() / 2.0f;
+	// Powerups
+	if (ent->client->powerupTime.spawnProtection > level.time) {
+		G_AddBlend(1, 0, 0, 0.05f, ent->client->ps.screen_blend);
+	}
+	BlendIfExpiring(ent->client->powerupTime.quadDamage, 0, 0, 1, 0.08f, "items/damage2.wav");
+	BlendIfExpiring(ent->client->powerupTime.haste, 1, 0.2f, 0.5f, 0.08f, "items/quadfire2.wav");
+	BlendIfExpiring(ent->client->powerupTime.doubleDamage, 0.9f, 0.1f, 0.1f, 0.08f, "misc/ddamage2.wav");
+	BlendIfExpiring(ent->client->powerupTime.battleSuit, 0.9f, 0.7f, 0, 0.08f, "items/protect2.wav");
+	BlendIfExpiring(ent->client->powerupTime.invisibility, 0.8f, 0.8f, 0.8f, 0.08f, "items/protect2.wav");
+	BlendIfExpiring(ent->client->powerupTime.enviroSuit, 0, 1, 0, 0.08f, "items/airout.wav");
+	BlendIfExpiring(ent->client->powerupTime.rebreather, 0.4f, 1, 0.4f, 0.04f, "items/airout.wav");
+
+	// Freeze effect
+	if (GT(GT_FREEZE) && ent->client->eliminated && !ent->client->followTarget && !ent->client->resp.thawer) {
+		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screen_blend);
+	}
+
+	// Nuke effect
+	if (ent->client->nukeTime > level.time) {
+		float brightness = (ent->client->nukeTime - level.time).seconds() / 2.0f;
 		G_AddBlend(1, 1, 1, brightness, ent->client->ps.screen_blend);
 	}
-	if (ent->client->ir_time > level.time) {
-		remaining = ent->client->ir_time - level.time;
+
+	// IR goggles
+	if (ent->client->powerupTime.irGoggles > level.time) {
+		remaining = ent->client->powerupTime.irGoggles - level.time;
 		if (G_PowerUpExpiringRelative(remaining)) {
 			ent->client->ps.rdflags |= RDF_IRGOGGLES;
 			G_AddBlend(1, 0, 0, 0.2f, ent->client->ps.screen_blend);
-		} else
+		} else {
 			ent->client->ps.rdflags &= ~RDF_IRGOGGLES;
+		}
 	} else {
 		ent->client->ps.rdflags &= ~RDF_IRGOGGLES;
 	}
 
-	// add for damage
+	// Damage blend
 	if (ent->client->damageAlpha > 0)
 		G_AddBlend(ent->client->damageBlend[0], ent->client->damageBlend[1], ent->client->damageBlend[2], ent->client->damageAlpha, ent->client->ps.damageBlend);
 
-	// [Paril-KEX] drowning visual indicator
-	if (ent->air_finished < level.time + 9_sec) {
+	// Drowning
+	if (ent->airFinished < level.time + 9_sec) {
 		constexpr vec3_t drown_color = { 0.1f, 0.1f, 0.2f };
 		constexpr float max_drown_alpha = 0.75f;
-		float alpha = (ent->air_finished < level.time) ? 1 : (1.f - ((ent->air_finished - level.time).seconds() / 9.0f));
-		G_AddBlend(drown_color[0], drown_color[1], drown_color[2], min(alpha, max_drown_alpha), ent->client->ps.damageBlend);
+		float alpha = (ent->airFinished < level.time) ? 1 : (1.f - ((ent->airFinished - level.time).seconds() / 9.0f));
+		G_AddBlend(drown_color[0], drown_color[1], drown_color[2], std::min(alpha, max_drown_alpha), ent->client->ps.damageBlend);
 	}
 
-	// drop the damage value
-	ent->client->damageAlpha -= gi.frame_time_s * 0.6f;
-	if (ent->client->damageAlpha < 0)
-		ent->client->damageAlpha = 0;
-
-	// drop the bonus value
-	ent->client->bonusAlpha -= gi.frame_time_s;
-	if (ent->client->bonusAlpha < 0)
-		ent->client->bonusAlpha = 0;
+	// Decay blend values
+	ent->client->damageAlpha = std::max(0.0f, ent->client->damageAlpha - gi.frame_time_s * 0.6f);
+	ent->client->bonusAlpha = std::max(0.0f, ent->client->bonusAlpha - gi.frame_time_s);
 }
-
 /*
 =============
 P_WorldEffects
 =============
 */
 static void P_WorldEffects() {
-	bool		  breather, envirosuit, protection, spawn_protection;
-	water_level_t waterlevel, oldWaterLevel;
-
 	if (level.timeoutActive)
 		return;
 
-	if (current_player->moveType == MOVETYPE_FREECAM) {
-		current_player->air_finished = level.time + 12_sec; // don't need air
+	// Freecam or following
+	if (currentPlayer->moveType == MOVETYPE_FREECAM || currentPlayer->client->followTarget) {
+		currentPlayer->airFinished = level.time + 12_sec;
 		return;
 	}
 
-	waterlevel = current_player->waterlevel;
-	oldWaterLevel = current_client->oldWaterLevel;
-	current_client->oldWaterLevel = waterlevel;
+	constexpr int32_t max_drown_dmg = 15;
 
-	breather = current_client->pu_time_rebreather > level.time;
-	envirosuit = current_client->pu_time_enviro > level.time;
-	protection = current_client->pu_time_battlesuit > level.time;
-	spawn_protection = current_client->pu_time_spawn_protection > level.time;
+	const auto waterLevel = currentPlayer->waterlevel;
+	const auto oldWaterLevel = currentClient->oldWaterLevel;
+	currentClient->oldWaterLevel = waterLevel;
 
-	//
-	// if just entered a water volume, play a sound
-	//
-	if (!oldWaterLevel && waterlevel) {
-		PlayerNoise(current_player, current_player->s.origin, PNOISE_SELF);
-		if (current_player->watertype & CONTENTS_LAVA)
-			gi.sound(current_player, CHAN_BODY, gi.soundindex("player/lava_in.wav"), 1, ATTN_NORM, 0);
-		else if (current_player->watertype & CONTENTS_SLIME)
-			gi.sound(current_player, CHAN_BODY, gi.soundindex("player/watr_in.wav"), 1, ATTN_NORM, 0);
-		else if (current_player->watertype & CONTENTS_WATER)
-			gi.sound(current_player, CHAN_BODY, gi.soundindex("player/watr_in.wav"), 1, ATTN_NORM, 0);
-		current_player->flags |= FL_INWATER;
+	const bool breather = currentClient->powerupTime.rebreather > level.time;
+	const bool enviroSuit = currentClient->powerupTime.enviroSuit > level.time;
+	const bool battleSuit = currentClient->powerupTime.battleSuit > level.time;
+	const bool spawnProtection = currentClient->powerupTime.spawnProtection > level.time;
+	const bool anyProtection = breather || enviroSuit || battleSuit || spawnProtection;
 
-		// clear damage_debounce, so the pain sound will play immediately
-		current_player->damage_debounce_time = level.time - 1_sec;
+	auto PlaySound = [](gentity_t *ent, soundchan_t chan, const char *sfx) {
+		gi.sound(ent, chan, gi.soundindex(sfx), 1, ATTN_NORM, 0);
+		};
+	auto PlayerSfxNoise = []() {
+		PlayerNoise(currentPlayer, currentPlayer->s.origin, PNOISE_SELF);
+		};
+
+	// Water enter
+	if (!oldWaterLevel && waterLevel) {
+		PlayerSfxNoise();
+		const int watertype = currentPlayer->watertype;
+		if (watertype & CONTENTS_LAVA)
+			PlaySound(currentPlayer, CHAN_BODY, "player/lava_in.wav");
+		else if (watertype & (CONTENTS_SLIME | CONTENTS_WATER))
+			PlaySound(currentPlayer, CHAN_BODY, "player/watr_in.wav");
+
+		currentPlayer->flags |= FL_INWATER;
+		currentPlayer->damage_debounce_time = level.time - 1_sec;
 	}
 
-	//
-	// if just completely exited a water volume, play a sound
-	//
-	if (oldWaterLevel && !waterlevel) {
-		PlayerNoise(current_player, current_player->s.origin, PNOISE_SELF);
-		gi.sound(current_player, CHAN_BODY, gi.soundindex("player/watr_out.wav"), 1, ATTN_NORM, 0);
-		current_player->flags &= ~FL_INWATER;
+	// Water exit
+	if (oldWaterLevel && !waterLevel) {
+		PlayerSfxNoise();
+		PlaySound(currentPlayer, CHAN_BODY, "player/watr_out.wav");
+		currentPlayer->flags &= ~FL_INWATER;
 	}
 
-	//
-	// check for head just going under water
-	//
-	if (oldWaterLevel != WATER_UNDER && waterlevel == WATER_UNDER) {
-		gi.sound(current_player, CHAN_BODY, gi.soundindex("player/watr_un.wav"), 1, ATTN_NORM, 0);
+	// Head submerged
+	if (oldWaterLevel != WATER_UNDER && waterLevel == WATER_UNDER) {
+		PlaySound(currentPlayer, CHAN_BODY, "player/watr_un.wav");
 	}
 
-	//
-	// check for head just coming out of water
-	//
-	if (current_player->health > 0 && oldWaterLevel == WATER_UNDER && waterlevel != WATER_UNDER) {
-		if (current_player->air_finished < level.time) { // gasp for air
-			gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/gasp1.wav"), 1, ATTN_NORM, 0);
-			PlayerNoise(current_player, current_player->s.origin, PNOISE_SELF);
-		} else if (current_player->air_finished < level.time + 11_sec) { // just break surface
-			gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/gasp2.wav"), 1, ATTN_NORM, 0);
+	// Head resurfaces
+	if (currentPlayer->health > 0 && oldWaterLevel == WATER_UNDER && waterLevel != WATER_UNDER) {
+		if (currentPlayer->airFinished < level.time) {
+			PlaySound(currentPlayer, CHAN_VOICE, "player/gasp1.wav");
+			PlayerSfxNoise();
+		} else if (currentPlayer->airFinished < level.time + 11_sec) {
+			PlaySound(currentPlayer, CHAN_VOICE, "player/gasp2.wav");
 		}
 	}
 
-	//
-	// check for drowning
-	//
-	if (waterlevel == WATER_UNDER) {
-		// breather or envirosuit give air
-		if (breather || envirosuit) {
-			current_player->air_finished = level.time + 10_sec;
-
-			if (((current_client->pu_time_rebreather - level.time).milliseconds() % 2500) == 0) {
-				if (!current_client->breatherSound)
-					gi.sound(current_player, CHAN_AUTO, gi.soundindex("player/u_breath1.wav"), 1, ATTN_NORM, 0);
-				else
-					gi.sound(current_player, CHAN_AUTO, gi.soundindex("player/u_breath2.wav"), 1, ATTN_NORM, 0);
-				current_client->breatherSound ^= 1;
-				PlayerNoise(current_player, current_player->s.origin, PNOISE_SELF);
-				// FIXME: release a bubble?
+	// Drowning
+	if (waterLevel == WATER_UNDER) {
+		if (anyProtection) {
+			currentPlayer->airFinished = level.time + 10_sec;
+			if (((currentClient->powerupTime.rebreather - level.time).milliseconds() % 2500) == 0) {
+				const char *breathSound = currentClient->breatherSound ? "player/u_breath2.wav" : "player/u_breath1.wav";
+				PlaySound(currentPlayer, CHAN_AUTO, breathSound);
+				currentClient->breatherSound ^= 1;
+				PlayerSfxNoise();
 			}
 		}
 
-		// if out of air, start drowning
-		if (current_player->air_finished < level.time) { // drown!
-			if (current_player->client->nextDrownTime < level.time && current_player->health > 0) {
-				current_player->client->nextDrownTime = level.time + 1_sec;
+		if (currentPlayer->airFinished < level.time && currentPlayer->health > 0) {
+			if (currentClient->nextDrownTime < level.time) {
+				currentClient->nextDrownTime = level.time + 1_sec;
 
-				// take more damage the longer underwater
-				current_player->dmg += 2;
-				if (current_player->dmg > 15)
-					current_player->dmg = 15;
+				currentPlayer->dmg = std::min(currentPlayer->dmg + 2, max_drown_dmg);
+				const char *sfx = (currentPlayer->health <= currentPlayer->dmg)
+					? "*drown1.wav"
+					: (brandom() ? "*gurp1.wav" : "*gurp2.wav");
+				PlaySound(currentPlayer, CHAN_VOICE, sfx);
 
-				// play a gurp sound instead of a normal pain sound
-				if (current_player->health <= current_player->dmg)
-					gi.sound(current_player, CHAN_VOICE, gi.soundindex("*drown1.wav"), 1, ATTN_NORM, 0); // [Paril-KEX]
-				else if (brandom())
-					gi.sound(current_player, CHAN_VOICE, gi.soundindex("*gurp1.wav"), 1, ATTN_NORM, 0);
-				else
-					gi.sound(current_player, CHAN_VOICE, gi.soundindex("*gurp2.wav"), 1, ATTN_NORM, 0);
+				currentPlayer->pain_debounce_time = level.time;
 
-				current_player->pain_debounce_time = level.time;
-
-				Damage(current_player, world, world, vec3_origin, current_player->s.origin, vec3_origin, current_player->dmg, 0, DAMAGE_NO_ARMOR, MOD_WATER);
+				Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin,
+					vec3_origin, currentPlayer->dmg, 0, DAMAGE_NO_ARMOR, MOD_WATER);
 			}
-		}
-		// Paril: almost-drowning sounds
-		else if (current_player->air_finished <= level.time + 3_sec) {
-			if (current_player->client->nextDrownTime < level.time) {
-				gi.sound(current_player, CHAN_VOICE, gi.soundindex(fmt::format("player/wade{}.wav", 1 + ((int32_t)level.time.seconds() % 3)).c_str()), 1, ATTN_NORM, 0);
-				current_player->client->nextDrownTime = level.time + 1_sec;
-			}
+		} else if (currentPlayer->airFinished <= level.time + 3_sec &&
+			currentClient->nextDrownTime < level.time) {
+			std::string name = fmt::format("player/wade{}.wav", 1 + (static_cast<int32_t>(level.time.seconds()) % 3));
+			PlaySound(currentPlayer, CHAN_VOICE, name.c_str());
+			currentClient->nextDrownTime = level.time + 1_sec;
 		}
 	} else {
-		current_player->air_finished = level.time + 12_sec;
-		current_player->dmg = 2;
+		currentPlayer->airFinished = level.time + 12_sec;
+		currentPlayer->dmg = 2;
 	}
 
-	//
-	// check for sizzle damage
-	//
-	if (waterlevel && (current_player->watertype & (CONTENTS_LAVA | CONTENTS_SLIME)) && current_player->slime_debounce_time <= level.time) {
-		if (current_player->watertype & CONTENTS_LAVA) {
-			if (current_player->health > 0 && current_player->pain_debounce_time <= level.time) {
-				if (brandom())
-					gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/burn1.wav"), 1, ATTN_NORM, 0);
-				else
-					gi.sound(current_player, CHAN_VOICE, gi.soundindex("player/burn2.wav"), 1, ATTN_NORM, 0);
+	// Lava or slime damage
+	if (waterLevel && (currentPlayer->watertype & (CONTENTS_LAVA | CONTENTS_SLIME)) &&
+		currentPlayer->slime_debounce_time <= level.time) {
 
-				if (envirosuit || protection || spawn_protection)
-					gi.sound(current_player, CHAN_AUX, gi.soundindex("items/protect3.wav"), 1, ATTN_NORM, 0);
+		const bool immune = enviroSuit || battleSuit || spawnProtection;
+		const int watertype = currentPlayer->watertype;
 
-				current_player->pain_debounce_time = level.time + 1_sec;
+		if (watertype & CONTENTS_LAVA) {
+			if (currentPlayer->health > 0 && currentPlayer->pain_debounce_time <= level.time) {
+				PlaySound(currentPlayer, CHAN_VOICE, brandom() ? "player/burn1.wav" : "player/burn2.wav");
+				if (immune)
+					PlaySound(currentPlayer, CHAN_AUX, "items/protect3.wav");
+				currentPlayer->pain_debounce_time = level.time + 1_sec;
 			}
-
-			int dmg = ((envirosuit || protection) ? 1 : 3) * waterlevel; // take 1/3 damage with envirosuit/protection
-			if (spawn_protection) dmg = 0;
-
-			Damage(current_player, world, world, vec3_origin, current_player->s.origin, vec3_origin, dmg, 0, DAMAGE_NONE, MOD_LAVA);
-			current_player->slime_debounce_time = level.time + 10_hz;
+			const int dmg = (spawnProtection ? 0 : (enviroSuit || battleSuit ? 1 : 3)) * waterLevel;
+			Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin, vec3_origin, dmg, 0, DAMAGE_NONE, MOD_LAVA);
 		}
 
-		if (current_player->watertype & CONTENTS_SLIME) {
-			if (!envirosuit && !protection) { // no damage from slime with envirosuit/protection
-				Damage(current_player, world, world, vec3_origin, current_player->s.origin, vec3_origin, 1 * waterlevel, 0, DAMAGE_NONE, MOD_SLIME);
-				current_player->slime_debounce_time = level.time + 10_hz;
-			} else {
-				if (current_player->health > 0 && current_player->pain_debounce_time <= level.time) {
-					gi.sound(current_player, CHAN_AUX, gi.soundindex("items/protect3.wav"), 1, ATTN_NORM, 0);
-					current_player->pain_debounce_time = level.time + 1_sec;
-				}
+		if (watertype & CONTENTS_SLIME) {
+			if (!(enviroSuit || battleSuit)) {
+				Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin,
+					vec3_origin, 1 * waterLevel, 0, DAMAGE_NONE, MOD_SLIME);
+			} else if (currentPlayer->health > 0 && currentPlayer->pain_debounce_time <= level.time) {
+				PlaySound(currentPlayer, CHAN_AUX, "items/protect3.wav");
+				currentPlayer->pain_debounce_time = level.time + 1_sec;
 			}
 		}
+		currentPlayer->slime_debounce_time = level.time + 10_hz;
 	}
 }
 
 /*
 ===============
-G_SetClientEffects
+ClientSetEffects
 ===============
 */
-static void G_SetClientEffects(gentity_t *ent) {
+static void ClientSetEffects(gentity_t *ent) {
 	int pa_type;
 
 	ent->s.effects = EF_NONE;
@@ -827,23 +776,23 @@ static void G_SetClientEffects(gentity_t *ent) {
 		ent->s.renderfx |= RF_SHELL_RED | RF_SHELL_GREEN;
 	}
 
-	if (ent->client->pu_time_quad > level.time)
-		if (G_PowerUpExpiring(ent->client->pu_time_quad))
+	if (ent->client->powerupTime.quadDamage > level.time)
+		if (G_PowerUpExpiring(ent->client->powerupTime.quadDamage))
 			ent->s.effects |= EF_QUAD;
-	if (ent->client->pu_time_battlesuit > level.time)
-		if (G_PowerUpExpiring(ent->client->pu_time_battlesuit))
+	if (ent->client->powerupTime.battleSuit > level.time)
+		if (G_PowerUpExpiring(ent->client->powerupTime.battleSuit))
 			ent->s.effects |= EF_PENT;
-	if (ent->client->pu_time_haste > level.time)
-		if (G_PowerUpExpiring(ent->client->pu_time_haste))
+	if (ent->client->powerupTime.haste > level.time)
+		if (G_PowerUpExpiring(ent->client->powerupTime.haste))
 			ent->s.effects |= EF_DUALFIRE;
-	if (ent->client->pu_time_double > level.time)
-		if (G_PowerUpExpiring(ent->client->pu_time_double))
+	if (ent->client->powerupTime.doubleDamage > level.time)
+		if (G_PowerUpExpiring(ent->client->powerupTime.doubleDamage))
 			ent->s.effects |= EF_DOUBLE;
 	if ((ent->client->ownedSphere) && (ent->client->ownedSphere->spawnflags == SF_SPHERE_DEFENDER))
 		ent->s.effects |= EF_HALF_DAMAGE;
 	if (ent->client->trackerPainTime > level.time)
 		ent->s.effects |= EF_TRACKERTRAIL;
-	if (ent->client->pu_time_invisibility > level.time) {
+	if (ent->client->powerupTime.invisibility > level.time) {
 		if (ent->client->invisibility_fade_time <= level.time)
 			ent->s.alpha = 0.05f;
 		else {
@@ -855,10 +804,10 @@ static void G_SetClientEffects(gentity_t *ent) {
 
 /*
 ===============
-G_SetClientEvent
+ClientSetEvent
 ===============
 */
-static void G_SetClientEvent(gentity_t *ent) {
+static void ClientSetEvent(gentity_t *ent) {
 	if (level.timeoutActive)
 		return;
 
@@ -869,26 +818,26 @@ static void G_SetClientEvent(gentity_t *ent) {
 		return;
 
 	if (ent->client->ps.pmove.pm_flags & PMF_ON_LADDER) {
-		if (g_ladder_steps->integer > 1 || (g_ladder_steps->integer == 1 && !deathmatch->integer)) {
-			if (current_client->last_ladder_sound < level.time &&
-				(current_client->last_ladder_pos - ent->s.origin).length() > 48.f) {
+		if (g_ladderSteps->integer > 1 || (g_ladderSteps->integer == 1 && !deathmatch->integer)) {
+			if (currentClient->last_ladder_sound < level.time &&
+				(currentClient->last_ladder_pos - ent->s.origin).length() > 48.f) {
 				ent->s.event = EV_LADDER_STEP;
-				current_client->last_ladder_pos = ent->s.origin;
-				current_client->last_ladder_sound = level.time + LADDER_SOUND_TIME;
+				currentClient->last_ladder_pos = ent->s.origin;
+				currentClient->last_ladder_sound = level.time + LADDER_SOUND_TIME;
 			}
 		}
-	} else if (ent->groundEntity && xyspeed > 225) {
-		if ((int)(current_client->bobTime + bobmove) != bobcycle_run)
+	} else if (ent->groundEntity && xySpeed > 225) {
+		if ((int)(currentClient->bobTime + bobMove) != bobCycleRun)
 			ent->s.event = EV_FOOTSTEP;
 	}
 }
 
 /*
 ===============
-G_SetClientSound
+ClientSetSound
 ===============
 */
-static void G_SetClientSound(gentity_t *ent) {
+static void ClientSetSound(gentity_t *ent) {
 	if (level.timeoutActive)
 		return;
 
@@ -913,8 +862,8 @@ static void G_SetClientSound(gentity_t *ent) {
 	if (ent->deadFlag || !ClientIsPlaying(ent->client) || ent->client->eliminated)
 		return;
 
-	if (ent->client->weapon_sound)
-		ent->s.sound = ent->client->weapon_sound;
+	if (ent->client->weaponSound)
+		ent->s.sound = ent->client->weaponSound;
 	else if (ent->client->pers.weapon) {
 		switch (ent->client->pers.weapon->id) {
 		case IT_WEAPON_RAILGUN:
@@ -931,12 +880,12 @@ static void G_SetClientSound(gentity_t *ent) {
 	}
 
 	// [Paril-KEX] if no other sound is playing, play appropriate grapple sounds
-	if (!ent->s.sound && ent->client->grapple_ent) {
-		if (ent->client->grapple_state == GRAPPLE_STATE_PULL)
+	if (!ent->s.sound && ent->client->grappleEnt) {
+		if (ent->client->grappleState == GRAPPLE_STATE_PULL)
 			ent->s.sound = gi.soundindex("weapons/grapple/grpull.wav");
-		else if (ent->client->grapple_state == GRAPPLE_STATE_FLY)
+		else if (ent->client->grappleState == GRAPPLE_STATE_FLY)
 			ent->s.sound = gi.soundindex("weapons/grapple/grfly.wav");
-		else if (ent->client->grapple_state == GRAPPLE_STATE_HANG)
+		else if (ent->client->grappleState == GRAPPLE_STATE_HANG)
 			ent->s.sound = gi.soundindex("weapons/grapple/grhang.wav");
 	}
 
@@ -946,10 +895,10 @@ static void G_SetClientSound(gentity_t *ent) {
 
 /*
 ===============
-G_SetClientFrame
+ClientSetFrame
 ===============
 */
-void G_SetClientFrame(gentity_t *ent) {
+void ClientSetFrame(gentity_t *ent) {
 	gclient_t *client;
 	bool	   duck, run;
 
@@ -959,131 +908,141 @@ void G_SetClientFrame(gentity_t *ent) {
 	client = ent->client;
 
 	duck = client->ps.pmove.pm_flags & PMF_DUCKED ? true : false;
-	run = xyspeed ? true : false;
+	run = xySpeed ? true : false;
 
 	// check for stand/duck and stop/go transitions
-	if (duck != client->animDuck && client->animPriority < ANIM_DEATH)
-		goto newanim;
-	if (run != client->animRun && client->animPriority == ANIM_BASIC)
-		goto newanim;
-	if (!ent->groundEntity && client->animPriority <= ANIM_WAVE)
-		goto newanim;
+	if (duck != client->anim.duck && client->anim.priority < ANIM_DEATH)
+		goto newAnim;
+	if (run != client->anim.run && client->anim.priority == ANIM_BASIC)
+		goto newAnim;
+	if (!ent->groundEntity && client->anim.priority <= ANIM_WAVE)
+		goto newAnim;
 
-	if (client->animTime > level.time)
+	if (client->anim.time > level.time)
 		return;
-	else if ((client->animPriority & ANIM_REVERSED) && (ent->s.frame > client->animEnd)) {
-		if (client->animTime <= level.time) {
+	else if ((client->anim.priority & ANIM_REVERSED) && (ent->s.frame > client->anim.end)) {
+		if (client->anim.time <= level.time) {
 			ent->s.frame--;
-			client->animTime = level.time + 10_hz;
+			client->anim.time = level.time + 10_hz;
 		}
 		return;
-	} else if (!(client->animPriority & ANIM_REVERSED) && (ent->s.frame < client->animEnd)) {
+	} else if (!(client->anim.priority & ANIM_REVERSED) && (ent->s.frame < client->anim.end)) {
 		// continue an animation
-		if (client->animTime <= level.time) {
+		if (client->anim.time <= level.time) {
 			ent->s.frame++;
-			client->animTime = level.time + 10_hz;
+			client->anim.time = level.time + 10_hz;
 		}
 		return;
 	}
 
-	if (client->animPriority == ANIM_DEATH)
+	if (client->anim.priority == ANIM_DEATH)
 		return; // stay there
-	if (client->animPriority == ANIM_JUMP) {
+	if (client->anim.priority == ANIM_JUMP) {
 		if (!ent->groundEntity)
 			return; // stay there
-		ent->client->animPriority = ANIM_WAVE;
+		ent->client->anim.priority = ANIM_WAVE;
 
 		if (duck) {
 			ent->s.frame = FRAME_jump6;
-			ent->client->animEnd = FRAME_jump4;
-			ent->client->animPriority |= ANIM_REVERSED;
+			ent->client->anim.end = FRAME_jump4;
+			ent->client->anim.priority |= ANIM_REVERSED;
 		} else {
 			ent->s.frame = FRAME_jump3;
-			ent->client->animEnd = FRAME_jump6;
+			ent->client->anim.end = FRAME_jump6;
 		}
-		ent->client->animTime = level.time + 10_hz;
+		ent->client->anim.time = level.time + 10_hz;
 		return;
 	}
 
-newanim:
+newAnim:
 	// return to either a running or standing frame
-	client->animPriority = ANIM_BASIC;
-	client->animDuck = duck;
-	client->animRun = run;
-	client->animTime = level.time + 10_hz;
+	client->anim.priority = ANIM_BASIC;
+	client->anim.duck = duck;
+	client->anim.run = run;
+	client->anim.time = level.time + 10_hz;
 
 	if (!ent->groundEntity) {
 		// if on grapple, don't go into jump frame, go into standing
 		// frame
-		if (client->grapple_ent) {
+		if (client->grappleEnt) {
 			if (duck) {
 				ent->s.frame = FRAME_crstnd01;
-				client->animEnd = FRAME_crstnd19;
+				client->anim.end = FRAME_crstnd19;
 			} else {
 				ent->s.frame = FRAME_stand01;
-				client->animEnd = FRAME_stand40;
+				client->anim.end = FRAME_stand40;
 			}
 		} else {
-			client->animPriority = ANIM_JUMP;
+			client->anim.priority = ANIM_JUMP;
 
 			if (duck) {
 				if (ent->s.frame != FRAME_crwalk2)
 					ent->s.frame = FRAME_crwalk1;
-				client->animEnd = FRAME_crwalk2;
+				client->anim.end = FRAME_crwalk2;
 			} else {
 				if (ent->s.frame != FRAME_jump2)
 					ent->s.frame = FRAME_jump1;
-				client->animEnd = FRAME_jump2;
+				client->anim.end = FRAME_jump2;
 			}
 		}
 	} else if (run) { // running
 		if (duck) {
 			ent->s.frame = FRAME_crwalk1;
-			client->animEnd = FRAME_crwalk6;
+			client->anim.end = FRAME_crwalk6;
 		} else {
 			ent->s.frame = FRAME_run1;
-			client->animEnd = FRAME_run6;
+			client->anim.end = FRAME_run6;
 		}
 	} else { // standing
 		if (duck) {
 			ent->s.frame = FRAME_crstnd01;
-			client->animEnd = FRAME_crstnd19;
+			client->anim.end = FRAME_crstnd19;
 		} else {
 			ent->s.frame = FRAME_stand01;
-			client->animEnd = FRAME_stand40;
+			client->anim.end = FRAME_stand40;
 		}
 	}
 }
 
-// [Paril-KEX]
+/*
+=================
+P_RunMegaHealth
+=================
+*/
 static void P_RunMegaHealth(gentity_t *ent) {
-	if (!ent->client->pers.megahealth_time)
+	if (!ent->client->pers.megaTime)
 		return;
 	else if (ent->health <= ent->max_health) {
-		ent->client->pers.megahealth_time = 0_ms;
+		ent->client->pers.megaTime = 0_ms;
 		return;
 	}
 
-	ent->client->pers.megahealth_time -= FRAME_TIME_S;
+	ent->client->pers.megaTime -= FRAME_TIME_S;
 
-	if (ent->client->pers.megahealth_time <= 0_ms) {
+	if (ent->client->pers.megaTime <= 0_ms) {
 		ent->health--;
 
 		if (ent->health > ent->max_health)
-			ent->client->pers.megahealth_time = 1000_ms;
+			ent->client->pers.megaTime = 1000_ms;
 		else
-			ent->client->pers.megahealth_time = 0_ms;
+			ent->client->pers.megaTime = 0_ms;
 	}
 }
 
-// [Paril-KEX] push all players' origins back to match their lag compensation
-void G_LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &dir) {
+/*
+=================
+LagCompensate
+
+[Paril-KEX] push all players' origins back to match their lag compensation
+=================
+*/
+void LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &dir) {
 	uint32_t current_frame = gi.ServerFrame();
 
 	// if you need this to fight monsters, you need help
 	if (!deathmatch->integer)
 		return;
-	else if (!g_lag_compensation->integer)
+	else if (!g_lagCompensation->integer)
 		return;
 	// don't need this
 	else if (from_player->client->cmd.server_frame >= current_frame ||
@@ -1112,7 +1071,7 @@ void G_LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &
 
 		if (lag_id < 0 || lag_id >= player->client->num_lag_origins) {
 			gi.Com_PrintFmt("{}: lag compensation error.\n", __FUNCTION__);
-			G_UnLagCompensate();
+			UnLagCompensate();
 			return;
 		}
 
@@ -1134,8 +1093,14 @@ void G_LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &
 	}
 }
 
-// [Paril-KEX] pop everybody's lag compensation values
-void G_UnLagCompensate() {
+/*
+=================
+UnLagCompensate
+
+[Paril-KEX] pop everybody's lag compensation values
+=================
+*/
+void UnLagCompensate() {
 	for (auto player : active_clients()) {
 		if (player->client->is_lag_compensated) {
 			player->client->is_lag_compensated = false;
@@ -1145,8 +1110,14 @@ void G_UnLagCompensate() {
 	}
 }
 
-// [Paril-KEX] save the current lag compensation value
-static void G_SaveLagCompensation(gentity_t *ent) {
+/*
+=================
+G_SaveLagCompensation
+
+[Paril-KEX] save the current lag compensation value
+=================
+*/
+static inline void G_SaveLagCompensation(gentity_t *ent) {
 	(game.lag_origins + ((ent->s.number - 1) * game.max_lag_origins))[ent->client->next_lag_origin] = ent->s.origin;
 	ent->client->next_lag_origin = (ent->client->next_lag_origin + 1) % game.max_lag_origins;
 
@@ -1154,97 +1125,57 @@ static void G_SaveLagCompensation(gentity_t *ent) {
 		ent->client->num_lag_origins++;
 }
 
-void Frenzy_ApplyAmmoRegen(gentity_t *ent) {
-	gclient_t *client;
-
-	if (!g_frenzy->integer)
+/*
+=================
+Frenzy_ApplyAmmoRegen
+=================
+*/
+static void Frenzy_ApplyAmmoRegen(gentity_t *ent) {
+	if (!g_frenzy->integer || InfiniteAmmoOn(nullptr) || !ent || !ent->client)
 		return;
 
-	if (InfiniteAmmoOn(nullptr))
-		return;
+	gclient_t *client = ent->client;
 
-	client = ent->client;
-	if (!client)
-		return;
-
-	if (!client->frenzy_ammoregentime) {
-		client->frenzy_ammoregentime = level.time;
+	if (!client->frenzyAmmoRegenTime) {
+		client->frenzyAmmoRegenTime = level.time;
 		return;
 	}
 
-	if (client->frenzy_ammoregentime < level.time) {
-		client->frenzy_ammoregentime = level.time;
+	if (client->frenzyAmmoRegenTime > level.time)
+		return;
 
-		if (client->pers.inventory[IT_WEAPON_SHOTGUN] || client->pers.inventory[IT_WEAPON_SSHOTGUN]) {
-			client->pers.inventory[IT_AMMO_SHELLS] += 4;
+	struct RegenEntry {
+		const int weaponBit;  // If zero, always applies
+		const int ammoIndex;
+		const int amount;
+		const int maxIndex;   // same index as ammo unless special
+	};
 
-			if (client->pers.inventory[IT_AMMO_SHELLS] > client->pers.ammoMax[AMMO_SHELLS])
-				client->pers.inventory[IT_AMMO_SHELLS] = client->pers.ammoMax[AMMO_SHELLS];
+	static constexpr RegenEntry regenTable[] = {
+		{ IT_WEAPON_SHOTGUN | IT_WEAPON_SSHOTGUN, IT_AMMO_SHELLS,     4,  AMMO_SHELLS     },
+		{ IT_WEAPON_MACHINEGUN | IT_WEAPON_CHAINGUN, IT_AMMO_BULLETS, 10, AMMO_BULLETS    },
+		{ 0,                        IT_AMMO_GRENADES,   2,  AMMO_GRENADES  },
+		{ IT_WEAPON_RLAUNCHER,      IT_AMMO_ROCKETS,    2,  AMMO_ROCKETS  },
+		{ IT_WEAPON_HYPERBLASTER | IT_WEAPON_BFG | IT_WEAPON_IONRIPPER | IT_WEAPON_PLASMABEAM, IT_AMMO_CELLS, 8, AMMO_CELLS },
+		{ IT_WEAPON_RAILGUN,        IT_AMMO_SLUGS,      1,  AMMO_SLUGS    },
+		{ IT_WEAPON_PHALANX,        IT_AMMO_MAGSLUG,    2,  AMMO_MAGSLUG  },
+		{ IT_WEAPON_ETF_RIFLE,      IT_AMMO_FLECHETTES,10,  AMMO_FLECHETTES },
+		{ IT_WEAPON_PROXLAUNCHER,   IT_AMMO_PROX,       1,  AMMO_PROX     },
+		{ IT_WEAPON_DISRUPTOR,      IT_AMMO_ROUNDS,     1,  AMMO_DISRUPTOR },
+	};
+
+	for (const auto &entry : regenTable) {
+		if (entry.weaponBit == 0 || (client->pers.inventory[entry.weaponBit] != 0)) {
+			int &ammo = client->pers.inventory[entry.ammoIndex];
+			const int max = client->pers.ammoMax[entry.maxIndex];
+
+			ammo += entry.amount;
+			if (ammo > max)
+				ammo = max;
 		}
-
-		if (client->pers.inventory[IT_WEAPON_MACHINEGUN] || client->pers.inventory[IT_WEAPON_CHAINGUN]) {
-			client->pers.inventory[IT_AMMO_BULLETS] += 10;
-
-			if (client->pers.inventory[IT_AMMO_BULLETS] > client->pers.ammoMax[AMMO_BULLETS])
-				client->pers.inventory[IT_AMMO_BULLETS] = client->pers.ammoMax[AMMO_BULLETS];
-		}
-
-		client->pers.inventory[IT_AMMO_GRENADES] += 2;
-
-		if (client->pers.inventory[IT_AMMO_GRENADES] > client->pers.ammoMax[AMMO_GRENADES])
-			client->pers.inventory[IT_AMMO_GRENADES] = client->pers.ammoMax[AMMO_GRENADES];
-
-		if (client->pers.inventory[IT_WEAPON_RLAUNCHER]) {
-			client->pers.inventory[IT_AMMO_ROCKETS] += 2;
-
-			if (client->pers.inventory[IT_AMMO_ROCKETS] > client->pers.ammoMax[AMMO_ROCKETS])
-				client->pers.inventory[IT_AMMO_ROCKETS] = client->pers.ammoMax[AMMO_ROCKETS];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_HYPERBLASTER] || client->pers.inventory[IT_WEAPON_BFG] || client->pers.inventory[IT_WEAPON_IONRIPPER] || client->pers.inventory[IT_WEAPON_PLASMABEAM]) {
-			client->pers.inventory[IT_AMMO_CELLS] += 8;
-
-			if (client->pers.inventory[IT_AMMO_CELLS] > client->pers.ammoMax[AMMO_CELLS])
-				client->pers.inventory[IT_AMMO_CELLS] = client->pers.ammoMax[AMMO_CELLS];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_RAILGUN]) {
-			client->pers.inventory[IT_AMMO_SLUGS] += 1;
-
-			if (client->pers.inventory[IT_AMMO_SLUGS] > client->pers.ammoMax[AMMO_SLUGS])
-				client->pers.inventory[IT_AMMO_SLUGS] = client->pers.ammoMax[AMMO_SLUGS];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_PHALANX]) {
-			client->pers.inventory[IT_AMMO_MAGSLUG] += 2;
-
-			if (client->pers.inventory[IT_AMMO_MAGSLUG] > client->pers.ammoMax[AMMO_MAGSLUG])
-				client->pers.inventory[IT_AMMO_MAGSLUG] = client->pers.ammoMax[AMMO_MAGSLUG];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_ETF_RIFLE]) {
-			client->pers.inventory[IT_AMMO_FLECHETTES] += 10;
-
-			if (client->pers.inventory[IT_AMMO_FLECHETTES] > client->pers.ammoMax[AMMO_FLECHETTES])
-				client->pers.inventory[IT_AMMO_FLECHETTES] = client->pers.ammoMax[AMMO_FLECHETTES];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_PROXLAUNCHER]) {
-			client->pers.inventory[IT_AMMO_PROX] += 1;
-
-			if (client->pers.inventory[IT_AMMO_PROX] > client->pers.ammoMax[AMMO_PROX])
-				client->pers.inventory[IT_AMMO_PROX] = client->pers.ammoMax[AMMO_PROX];
-		}
-
-		if (client->pers.inventory[IT_WEAPON_DISRUPTOR]) {
-			client->pers.inventory[IT_AMMO_ROUNDS] += 1;
-
-			if (client->pers.inventory[IT_AMMO_ROUNDS] > client->pers.ammoMax[AMMO_DISRUPTOR])
-				client->pers.inventory[IT_AMMO_ROUNDS] = client->pers.ammoMax[AMMO_DISRUPTOR];
-		}
-
-		client->frenzy_ammoregentime += 2000_ms;
 	}
+
+	client->frenzyAmmoRegenTime = level.time + 2000_ms;
 }
 
 /*
@@ -1252,9 +1183,9 @@ void Frenzy_ApplyAmmoRegen(gentity_t *ent) {
 PlayQueuedAwardSound
 =================
 */
-void PlayQueuedAwardSound(gentity_t *ent) {
+static void PlayQueuedAwardSound(gentity_t *ent) {
 	auto *cl = ent->client;
-	auto &queue = cl->sess.awardQueue;
+	auto &queue = cl->pers.awardQueue;
 
 	if (queue.queueSize <= 0 || level.time < queue.nextPlayTime)
 		return;
@@ -1264,8 +1195,15 @@ void PlayQueuedAwardSound(gentity_t *ent) {
 		return;
 
 	// Play sound
-	//gi.sound(ent, CHAN_ANNOUNCER, queue.soundIndex[index], 1.0, ATTN_NONE, 0);
-	AnnouncerSound(ent, queue.soundIndex[index]);
+	gi.local_sound(
+		ent,
+		static_cast<soundchan_t>(CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX),
+		queue.soundIndex[index],
+		1.0f,
+		ATTN_NONE,
+		0.0f,
+		0
+	);
 
 	// Schedule next play
 	queue.nextPlayTime = level.time + 1800_ms; // delay between awards
@@ -1290,14 +1228,14 @@ and right after spawning
 static int scorelimit = -1;
 void ClientEndServerFrame(gentity_t *ent) {
 	// no player exists yet (load game)
-	if (!ent->client->pers.spawned)
+	if (!ent->client->pers.spawned && !level.mapSelectorVoteStartTime)
 		return;
 
 	float bobTime, bobtime_run;
 	gentity_t *e = ent;	// g_eyecam->integer &&ent->client->followTarget ? ent->client->followTarget : ent;
 
-	current_player = e;
-	current_client = e->client;
+	currentPlayer = e;
+	currentClient = e->client;
 
 	if (deathmatch->integer) {
 		int limit = GT_ScoreLimit();
@@ -1319,10 +1257,10 @@ void ClientEndServerFrame(gentity_t *ent) {
 	// vampiric damage expiration
 	// don't expire if only 1 player in the match
 	if (g_vampiric_damage->integer && ClientIsPlaying(ent->client) && !CombatIsDisabled() && (ent->health > g_vampiric_exp_min->integer)) {
-		if (level.num_playing_clients > 1 && level.time > ent->client->vampire_expiretime) {
+		if (level.pop.num_playing_clients > 1 && level.time > ent->client->vampiricExpireTime) {
 			int quantity = floor((ent->health - 1) / ent->max_health) + 1;
 			ent->health -= quantity;
-			ent->client->vampire_expiretime = level.time + 1_sec;
+			ent->client->vampiricExpireTime = level.time + 1_sec;
 			if (ent->health <= 0) {
 				G_AdjustPlayerScore(ent->client, -1, GT(GT_TDM), -1);
 
@@ -1341,21 +1279,21 @@ void ClientEndServerFrame(gentity_t *ent) {
 	// If it wasn't updated here, the view position would lag a frame
 	// behind the body position when pushed -- "sinking into plats"
 	//
-	current_client->ps.pmove.origin = ent->s.origin;
-	current_client->ps.pmove.velocity = ent->velocity;
+	currentClient->ps.pmove.origin = ent->s.origin;
+	currentClient->ps.pmove.velocity = ent->velocity;
 
 	//
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
 	//
-	if (level.intermissionTime || ent->client->awaiting_respawn) {
-		if (ent->client->awaiting_respawn || (level.intermissionEOU || level.isN64 || (deathmatch->integer && level.intermissionTime))) {
-			current_client->ps.screen_blend[3] = current_client->ps.damageBlend[3] = 0;
-			current_client->ps.fov = 90;
-			current_client->ps.gunindex = 0;
+	if (!level.mapSelectorVoteStartTime && ((level.intermissionTime && !level.mapSelectorVoteStartTime) || ent->client->awaiting_respawn)) {
+		if (ent->client->awaiting_respawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermissionTime))) {
+			currentClient->ps.screen_blend[3] = currentClient->ps.damageBlend[3] = 0;
+			currentClient->ps.fov = 90;
+			currentClient->ps.gunindex = 0;
 		}
-		G_SetStats(ent);
-		G_SetCoopStats(ent);
+		SetStats(ent);
+		SetCoopStats(ent);
 
 		// if the scoreboard is up, update it if a client leaves
 		if (deathmatch->integer && ent->client->showScores && ent->client->menuTime) {
@@ -1377,9 +1315,6 @@ void ClientEndServerFrame(gentity_t *ent) {
 	// auto doc tech
 	Tech_ApplyAutoDoc(ent);
 
-	// apply regeneration powerup
-	Powerup_ApplyRegeneration(ent);
-
 	// wor: weapons frenzy ammo regen
 	Frenzy_ApplyAmmoRegen(ent);
 
@@ -1400,35 +1335,35 @@ void ClientEndServerFrame(gentity_t *ent) {
 	ent->s.angles[YAW] = ent->client->vAngle[YAW];
 	ent->s.angles[ROLL] = 0;
 	// [Paril-KEX] cl_rollhack
-	ent->s.angles[ROLL] = -G_CalcRoll(ent->s.angles, ent->velocity) * 4;
+	ent->s.angles[ROLL] = -P_CalcRoll(ent->s.angles, ent->velocity) * 4;
 
 	//
 	// calculate speed and cycle to be used for
 	// all cyclic walking effects
 	//
-	xyspeed = sqrt(ent->velocity[0] * ent->velocity[0] + ent->velocity[1] * ent->velocity[1]);
+	xySpeed = sqrt(ent->velocity[0] * ent->velocity[0] + ent->velocity[1] * ent->velocity[1]);
 
-	if (xyspeed < 5) {
-		bobmove = 0;
-		current_client->bobTime = 0; // start at beginning of cycle again
+	if (xySpeed < 5) {
+		bobMove = 0;
+		currentClient->bobTime = 0; // start at beginning of cycle again
 	} else if (ent->groundEntity) { // so bobbing only cycles when on ground
-		if (xyspeed > 210)
-			bobmove = gi.frame_time_ms / 400.f;
-		else if (xyspeed > 100)
-			bobmove = gi.frame_time_ms / 800.f;
+		if (xySpeed > 210)
+			bobMove = gi.frame_time_ms / 400.f;
+		else if (xySpeed > 100)
+			bobMove = gi.frame_time_ms / 800.f;
 		else
-			bobmove = gi.frame_time_ms / 1600.f;
+			bobMove = gi.frame_time_ms / 1600.f;
 	}
 
-	bobTime = (current_client->bobTime += bobmove);
+	bobTime = (currentClient->bobTime += bobMove);
 	bobtime_run = bobTime;
 
-	if ((current_client->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
+	if ((currentClient->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
 		bobTime *= 4;
 
-	bobcycle = (int)bobTime;
-	bobcycle_run = (int)bobtime_run;
-	bobfracsin = fabsf(sinf(bobTime * PIf));
+	bobCycle = (int)bobTime;
+	bobCycleRun = (int)bobtime_run;
+	bobFracSin = fabsf(sinf(bobTime * PIf));
 
 	// apply all the damage taken this frame
 	P_DamageFeedback(e);
@@ -1446,7 +1381,7 @@ void ClientEndServerFrame(gentity_t *ent) {
 
 	// chase cam stuff
 	if (!ClientIsPlaying(ent->client) || ent->client->eliminated) {
-		G_SetSpectatorStats(ent);
+		SetSpectatorStats(ent);
 
 		if (ent->client->followTarget) {
 			ent->client->ps.screen_blend = ent->client->followTarget->client->ps.screen_blend;
@@ -1456,41 +1391,39 @@ void ClientEndServerFrame(gentity_t *ent) {
 			ent->s.renderfx = ent->client->followTarget->s.renderfx;
 		}
 	} else
-		G_SetStats(ent);
+		SetStats(ent);
 
-	G_CheckChaseStats(ent);
+	CheckFollowStats(ent);
 
-	G_SetCoopStats(ent);
+	SetCoopStats(ent);
 
-	G_SetClientEvent(ent);
+	ClientSetEvent(ent);
 
-	G_SetClientEffects(e);
+	ClientSetEffects(e);
 
-	G_SetClientSound(e);
+	ClientSetSound(e);
 
-	G_SetClientFrame(ent);
+	ClientSetFrame(ent);
 	
 	ent->client->oldVelocity = ent->velocity;
 	ent->client->oldViewAngles = ent->client->ps.viewangles;
 	ent->client->oldGroundEntity = ent->groundEntity;
-
-	if (ent->client->menudirty && ent->client->menuTime <= level.time) {
-		if (ent->client->menu) {
-			P_Menu_Do_Update(ent);
+	
+	if (ent->client->menu && ent->client->inMenu) {
+		// In-menu rendering
+		if (ent->client->menuDirty || ent->client->menuTime <= level.time) {
+			ent->client->menu->Render(ent);
 			gi.unicast(ent, true);
+			ent->client->menuDirty = false;
+			ent->client->menuTime = level.time;
+			UpdateMenu(ent);
 		}
-		ent->client->menuTime = level.time;
-		ent->client->menudirty = false;
-	}
-
-	// if the scoreboard is up, update it
-	if (ent->client->showScores && ent->client->menuTime <= level.time) {
+	} else if (ent->client->showScores && ent->client->menuTime <= level.time) {
+		// Scoreboard-only rendering
 		if (ent->client->menu) {
-			P_Menu_Do_Update(ent);
-			ent->client->menudirty = false;
-		} else {
-			DeathmatchScoreboardMessage(e, e->enemy);
+			CloseActiveMenu(ent);
 		}
+		DeathmatchScoreboardMessage(ent, ent->enemy);
 		gi.unicast(ent, false);
 		ent->client->menuTime = level.time + 3_sec;
 	}

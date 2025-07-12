@@ -1,8 +1,8 @@
-# Install script for directory: C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/mymod/src/vcpkg_installed/vcpkg/blds/jsoncpp/src/3918c327b1-034a82149a.clean/src
+# Install script for directory: C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/vcpkg/blds/jsoncpp/src/1.9.6-29ceffc35f.clean/src
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/mymod/src/vcpkg_installed/vcpkg/pkgs/jsoncpp_x64-windows/debug")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/vcpkg/pkgs/jsoncpp_x64-windows/debug")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -34,7 +34,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/mymod/src/vcpkg_installed/vcpkg/blds/jsoncpp/x64-windows-dbg/src/lib_json/cmake_install.cmake")
+  include("C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/vcpkg/blds/jsoncpp/x64-windows-dbg/src/lib_json/cmake_install.cmake")
 
 endif()
 

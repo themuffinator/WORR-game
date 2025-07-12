@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>WOR Server Map System Manual</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 2em; max-width: 900px; margin: auto; background-color: #f9f9f9; }
+    h1, h2, h3 { color: #222; }
+    code, pre { background-color: #eee; padding: 0.2em 0.4em; border-radius: 4px; }
+    pre { padding: 1em; overflow-x: auto; }
+    section { margin-bottom: 2em; }
+  </style>
+</head>
+<body>
+  <h1>WOR Server Map System Manual</h1>
+
+  <section>
+    <h2>Overview</h2>
+    <p>The WOR map system uses a JSON-based map pool and plain-text map cycle list to determine which maps are valid, preferred, and eligible for rotation or voting. This system supports advanced features like MyMap queueing, map voting at match end, and overrideable settings.</p>
+  </section>
+
+  <section>
+    <h2>Map Pool File</h2>
+    <p>The map pool is defined as a JSON file located at <code>baseq2/&lt;filename&gt;</code> and controlled by the <code>g_maps_pool_file</code> cvar.</p>
+    <p>The structure:</p>
+    <pre>{
+  "maps": [
+    {
+      "bsp": "q2dm1",
+      "title": "The Edge",
+      "dm": true,
+      "tdm": true,
+      "ctf": false,
+      "duel": true,
+      "min": 2,
+      "max": 8,
+      "gametype": 0,
+      "ruleset": 0,
+      "scorelimit": 30,
+      "timelimit": 15,
+      "popular": true,
+      "custom": false
+    }
+  ]
+}</pre>
+    <p>Required: <code>bsp</code>, <code>dm</code>. Optional: all others.</p>
+  </section>
+
+  <section>
+    <h2>Map Cycle File</h2>
+    <p>Controlled by <code>g_maps_cycle_file</code>, the map cycle is a plain text file listing BSP names separated by space, comma, or newlines. Supports comments:</p>
+    <pre>// This is a comment
+/* block comment */
+q2dm1 q2dm2, q2dm3</pre>
+    <p>Only maps found in the current map pool and marked <code>dm: true</code> are accepted into the cycle.</p>
+  </section>
+
+  <section>
+    <h2>MyMap System</h2>
+    <p>When <code>g_maps_mymap</code> is enabled, players can queue a map using:</p>
+    <pre>mymap q2dm1 +pu -ht</pre>
+    <p>Only one map per player, max 8 total. Disallows maps played in the last 30 minutes. Override flags:</p>
+    <ul>
+      <li><code>+pu</code>: powerups</li>
+      <li><code>+pa</code>: power armor</li>
+      <li><code>+ar</code>: armor</li>
+      <li><code>+am</code>: ammo</li>
+      <li><code>+ht</code>: health</li>
+      <li><code>+bfg</code>: BFG</li>
+      <li><code>+fd</code>: fall damage</li>
+      <li><code>+sd</code>: self damage</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Map Selector Vote</h2>
+    <p>Enabled via <code>g_maps_selector</code>. At match end, players vote between up to 3 maps based on suitability. If tied or no votes cast, a fallback or random selection is made. Selector filters based on:</p>
+    <ul>
+      <li>Cycleable flag</li>
+      <li>Min/max player range</li>
+      <li>Recent play history</li>
+      <li>Custom map avoidance (if console clients exist)</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Commands</h2>
+    <ul>
+      <li><code>mappool</code>: List all DM maps in the pool</li>
+      <li><code>mapcycle</code>: List all cycleable maps</li>
+      <li><code>mymap &lt;map&gt; [+flag] [-flag]</code>: Queue a map</li>
+      <li><code>loadmappool</code>: Reload map pool</li>
+      <li><code>loadmapcycle</code>: Reload map cycle</li>
+      <li><code>callvote map &lt;map&gt; [+flag]</code>: Vote to change map</li>
+      <li><code>callvote nextmap</code>: Vote to go to next map</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Fallback Behavior</h2>
+    <p>If no valid map pool exists, the system will revert to using <code>g_map_list</code> as a legacy list.</p>
+  </section>
+
+</body>
+</html>

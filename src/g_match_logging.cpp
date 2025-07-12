@@ -31,20 +31,6 @@ static weapon_t getWeaponIndex(const std::string &abbreviation) {
 	return WEAP_NONE; // Default for unknown abbreviations
 }
 
-// Medal names for mapping
-const std::array<std::string, static_cast<uint8_t>(PlayerMedal::MEDAL_TOTAL)> awardNames = {
-	"",
-	"Excellent",
-	"Humiliation",
-	"Impressive",
-	"Rampage",
-	"First Frag",
-	"Base Defense",
-	"Carrier Assist",
-	"Flag Capture",
-	"Holy Shit!"
-};
-
 static inline double GetAveragePickupDelay(uint32_t pickupCount, double totalDelay) {
 	if (pickupCount == 0)
 		return 0.0;
@@ -67,6 +53,7 @@ struct PlayerStats {
 	std::string playerName;
 	int totalKills = 0;
 	int totalSpawnKills = 0;
+	int totalTeamKills = 0;
 	int totalDeaths = 0;
 	int totalSuicides = 0;
 	double totalKDR = 0.0;
@@ -79,8 +66,9 @@ struct PlayerStats {
 	int ratingChange = 0;
 
 	double killsPerMinute = 0;
-	int playTimeSeconds = 0;
+	int64_t playTimeMsec = 0;
 	int skillRating = 0;
+	int skillRatingChange = 0;
 
 	uint32_t pickupCounts[HVI_TOTAL] = {};
 	double pickupDelays[HVI_TOTAL] = {};
@@ -147,6 +135,7 @@ struct PlayerStats {
 		// Conditionally export numeric stats
 		if (totalKills > 0) result["totalKills"] = totalKills;
 		if (totalSpawnKills > 0) result["totalSpawnKills"] = totalSpawnKills;
+		if (totalTeamKills > 0) result["totalTeamKills"] = totalSpawnKills;
 		if (totalDeaths > 0) result["totalDeaths"] = totalDeaths;
 		if (totalSuicides > 0) result["totalSuicides"] = totalSuicides;
 		if (totalKDR > 0.0) result["totalKDR"] = totalKDR;
@@ -157,9 +146,10 @@ struct PlayerStats {
 		if (totalDmgReceived > 0) result["totalDmgReceived"] = totalDmgReceived;
 		if (ratingChange != 0) result["ratingChange"] = ratingChange; // Rating change can be negative
 
-		if (playTimeSeconds > 0) result["playTime"] = playTimeSeconds;
+		if (playTimeMsec > 0) result["playTime"] = playTimeMsec;
 		if (killsPerMinute > 0) result["killsPerMinute"] = killsPerMinute;
 		if (skillRating > 0) result["skillRating"] = skillRating;
+		if (skillRatingChange != 0) result["skillRatingChange"] = skillRatingChange;
 
 		// Filter out zero-value weapons
 		json shotsJson, hitsJson, accuracyJson;
@@ -274,6 +264,7 @@ struct MatchStats {
 	std::string ranked;
 	int totalKills = 0;            // Total kills in the match
 	int totalSpawnKills = 0;        // Total spawn kills in the match
+	int totalTeamKills = 0;        // Total team kills in the match
 	int totalDeaths = 0;            // Total deaths in the match
 	int totalSuicides = 0;            // Total suicides in the match
 	double avKillsPerMinute = 0;
@@ -283,22 +274,36 @@ struct MatchStats {
 	std::map<std::string, int>    totalKillsByMOD;
 	std::map<std::string, int>    totalDeathsByMOD;
 	std::map<std::string, double> totalKDRByMOD;
-	std::time_t startTime;         // Match start time
-	std::time_t endTime;           // Match end time
-	double duration = 0.0;         // Match duration in seconds
+	int64_t durationMS = 0;         // Match duration in msec
 	std::vector<PlayerStats> players; // Individual player stats (for FFA/Duel)
 	std::vector<TeamStats> teams;  // Team stats (for TDM/CTF)
-	
+#if 0
 	// Convert time_t to ISO 8601 string
 	std::string formatTime(std::time_t time) const {
 		std::ostringstream oss;
 		oss << std::put_time(std::gmtime(&time), "%Y-%m-%dT%H:%M:%SZ");
 		return oss.str();
 	}
+#endif
+	std::string formatTime(int64_t msec) const {
+		time_t t = static_cast<time_t>(msec / 1000);
+		if (!t || t <= 0) return "n/a";
+
+		std::tm *tm = std::gmtime(&t);
+		if (!tm) return "invalid";
+
+		char buf[64];
+		if (std::strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", tm)) {
+			return buf;
+		}
+		return "error";
+	}
+
 
 	// Calculate duration based on start and end times
 	void calculateDuration() {
-		duration = std::difftime(endTime, startTime);
+		// level.matchStartRealTime and matchEndRealTime are in milliseconds
+		durationMS = level.matchEndRealTime - level.matchStartRealTime;
 	}
 
 	// Generate JSON object for the match stats
@@ -311,14 +316,15 @@ struct MatchStats {
 			{"matchRanked", ranked},
 			{"totalKills", totalKills},
 			{"totalSpawnKills", totalSpawnKills},
+			{"totalTeamKills", totalTeamKills},
 			{"totalDeaths", totalDeaths},
 			{"avKillsPerMinute", avKillsPerMinute},
 			{"totalFlagsCaptured", ctf_totalFlagsCaptured},
 			{"totalFlagAssists", ctf_totalFlagAssists},
 			{"totalFlagDefends", ctf_totalFlagDefends},
-			{"matchTimeStart", startTime},
-			{"matchTimeEnd", endTime},
-			{"matchTimeDuration", duration},
+			{"matchTimeStart", level.matchStartRealTime},
+			{"matchTimeEnd", level.matchEndRealTime},
+			{"matchTimeDuration", durationMS},
 			{"players", json::array()},
 			{"teams", json::array()}
 		};
@@ -364,7 +370,7 @@ Html_WriteHeader
 static inline void Html_WriteHeader(std::ofstream &html, const MatchStats &matchStats) {
 	html << R"(<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
-<title>Match Summary – )" << matchStats.matchID << R"(</title>
+<title>Match Summary - )" << matchStats.matchID << R"(</title>
 <style>
   body { font-family:Arial,sans-serif; background:#f4f4f4; margin:0; padding:20px; }
   .top-info {
@@ -483,11 +489,11 @@ Html_WriteTopInfo
 */
 static inline void Html_WriteTopInfo(std::ofstream &html, const MatchStats &matchStats) {
 	html << "<div class=\"top-info\">\n"
-		<< "  <h1>Match Summary – " << matchStats.matchID << "</h1>\n"
+		<< "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << matchStats.serverName << "</p>\n"
 		<< "  <p><strong>Type:</strong> " << matchStats.gameType << "</p>\n"
-		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(matchStats.startTime) << " UTC</p>\n"
-		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(matchStats.endTime) << " UTC</p>\n"
+		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(level.matchStartRealTime) << " UTC</p>\n"
+		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(level.matchEndRealTime) << " UTC</p>\n"
 		<< "  <p><strong>Map:</strong>  " << matchStats.mapName << "</p>\n"
 		<< "  <p><strong>Score Limit:</strong> " << GT_ScoreLimit() << "</p>\n";
 	// Time Limit
@@ -505,7 +511,7 @@ static inline void Html_WriteTopInfo(std::ofstream &html, const MatchStats &matc
 	// Duration
 	html << "  <p><strong>Duration:</strong> ";
 	{
-		int secs = (int)matchStats.duration;
+		int secs = matchStats.durationMS / 1000;
 		int h = secs / 3600;
 		int m = (secs % 3600) / 60;
 		int s = secs % 60;
@@ -560,30 +566,29 @@ static inline void Html_WriteOverallScores(std::ofstream &html, const MatchStats
 		<< "  <h2>Overall Scores</h2>\n"
 		<< "  <table>\n"
 		<< "    <tr>"
-		"<th title=\"Player’s in-game name (click to jump)\">Player</th>"
+		"<th title=\"Player's in-game name (click to jump)\">Player</th>"
 		"<th title=\"Percentage of match time played\">%TIME</th>"
-		"<th title=\"Skill Rating\">SR</th>"
-		"<th title=\"Kill-Death Ratio (Kills ÷ Deaths)\">KDR</th>"
-		"<th title=\"Kills Per Minute (Kills ÷ Minutes Played)\">KPM</th>"
-		"<th title=\"Damage Ratio (Damage Dealt ÷ Damage Received)\">DMR</th>"
+		"<th title=\"Skill Rating (and change from match)\">SR</th>"
+		"<th title=\"Kill-Death Ratio (Kills / Deaths)\">KDR</th>"
+		"<th title=\"Kills Per Minute (Kills / Minutes Played)\">KPM</th>"
+		"<th title=\"Damage Ratio (Damage Dealt / Damage Received)\">DMR</th>"
 		"<th>Score</th>"
 		"</tr>\n";
 
-	int   maxSR = 0, maxScore = 0;
+	int maxSR = 0, maxScore = 0;
 	double maxKDR = 0.0, maxKPM = 0.0, maxDMR = 0.0;
 	for (auto *p : allPlayers) {
 		maxSR = std::max(maxSR, p->skillRating);
 		maxScore = std::max(maxScore, p->totalScore);
 		double kdr = p->totalDeaths ? double(p->totalKills) / p->totalDeaths : p->totalKills;
-		double kpm = p->playTimeSeconds > 0 ? (p->totalKills * 60.0) / p->playTimeSeconds : 0.0;
+		double kpm = p->playTimeMsec > 0 ? (p->totalKills * 60.0) / (p->playTimeMsec/1000.0f) : 0.0;
 		double dmr = p->totalDmgReceived ? double(p->totalDmgDealt) / p->totalDmgReceived : p->totalDmgDealt;
 		maxKDR = std::max(maxKDR, kdr);
 		maxKPM = std::max(maxKPM, kpm);
 		maxDMR = std::max(maxDMR, dmr);
 	}
 
-	// Duration in minutes
-	double durationMin = matchStats.duration / 60.0;
+	double durationMin = matchStats.durationMS / 60000.0f;
 
 	for (auto *p : allPlayers) {
 		double kdr = p->totalDeaths
@@ -595,54 +600,46 @@ static inline void Html_WriteOverallScores(std::ofstream &html, const MatchStats
 		double dmr = p->totalDmgReceived
 			? double(p->totalDmgDealt) / p->totalDmgReceived
 			: (p->totalDmgDealt ? double(p->totalDmgDealt) : 0.0);
-		int    mins = p->playTimeSeconds / 60;
+		int tp = p->playTimeMsec > 0
+			? p->playTimeMsec
+			: matchStats.durationMS;
 
 		html << "    <tr>"
-			// Player name w/ tooltip = socialID
 			<< "<td title=\"" << p->socialID << "\">"
-			"<a href=\"#player-" << p->socialID << "\">" << p->playerName << "</a>"
-			"</td>";
+			<< "<a href=\"#player-" << p->socialID << "\">" << p->playerName << "</a>"
+			<< "</td>";
 
-		// % Time Played
-		int tp = p->playTimeSeconds > 0
-			? p->playTimeSeconds
-			: static_cast<int>(matchStats.duration);
-
-		double pct = matchStats.duration > 0
-			? (double(tp) / matchStats.duration) * 100.0
-			: 0.0;
-
-		// -- %TIME cell --
-		double pctTime = (tp > 0) ? (tp / matchStats.duration) * 100.0 : 0.0;
+		double pctTime = (tp > 0) ? (tp / matchStats.durationMS) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"% of match time\">"
 			<< "<div class=\"bar\" style=\"width:" << pctTime << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(1) << pctTime << "%</span></td>";
 
-		// -- SR cell --
+		// Skill Rating and Change (SR delta)
 		double pctSR = maxSR > 0 ? (double(p->skillRating) / maxSR) * 100.0 : 0.0;
-		html << "<td class=\"progress-cell\" title=\"Skill Rating relative to top (" << maxSR << ")\">"
+		html << "<td class=\"progress-cell\" title=\"Skill Rating change from match: "
+			<< (p->skillRatingChange >= 0 ? "+" : "") << p->skillRatingChange << "\">"
 			<< "<div class=\"bar\" style=\"width:" << pctSR << "%\"></div>"
-			<< "<span>" << p->skillRating << "</span></td>";
+			<< "<span>" << p->skillRating;
+		if (p->skillRatingChange != 0) {
+			html << " (" << (p->skillRatingChange >= 0 ? "+" : "") << p->skillRatingChange << ")";
+		}
+		html << "</span></td>";
 
-		// -- KDR cell --
 		double pctKDR = maxKDR > 0 ? (kdr / maxKDR) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"Kills: " << p->totalKills << ", Deaths: " << p->totalDeaths << "\">"
 			<< "<div class=\"bar\" style=\"width:" << pctKDR << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(2) << kdr << "</span></td>";
 
-		// -- KPM cell --
 		double pctKPM = maxKPM > 0 ? (kpm / maxKPM) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"Kills: " << p->totalKills << ", Min: " << int(tp / 60) << "\">"
 			<< "<div class=\"bar\" style=\"width:" << pctKPM << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(2) << kpm << "</span></td>";
 
-		// -- DMR cell --
 		double pctDMR = maxDMR > 0 ? (dmr / maxDMR) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"DmgD: " << p->totalDmgDealt << ", DmgR: " << p->totalDmgReceived << "\">"
 			<< "<div class=\"bar\" style=\"width:" << pctDMR << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(2) << dmr << "</span></td>";
 
-		// -- Score cell --
 		double pctScore = maxScore > 0 ? (double(p->totalScore) / maxScore) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"Score relative to top (" << maxScore << ")\">"
 			<< "<div class=\"bar\" style=\"width:" << pctScore << "%\"></div>"
@@ -650,6 +647,7 @@ static inline void Html_WriteOverallScores(std::ofstream &html, const MatchStats
 
 		html << "</tr>\n";
 	}
+
 	html << "  </table>\n</div>\n";
 }
 
@@ -664,20 +662,19 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 	int redScore, int blueScore,
 	double matchDuration,
 	int maxGlobalScore) {
+
 	// Big header
 	html << "<div class=\"team-score-header\">\n"
 		<< "<span class=\"red\">" << redScore << "</span> | "
 		<< "<span class=\"blue\">" << blueScore << "</span>\n"
 		<< "</div>\n";
 
-	// Make sorted copies
 	std::vector<const PlayerStats *> redPlayers = redPlayersOrig;
 	std::vector<const PlayerStats *> bluePlayers = bluePlayersOrig;
 
 	std::sort(redPlayers.begin(), redPlayers.end(), [](const PlayerStats *a, const PlayerStats *b) {
 		return a->totalScore > b->totalScore;
 		});
-
 	std::sort(bluePlayers.begin(), bluePlayers.end(), [](const PlayerStats *a, const PlayerStats *b) {
 		return a->totalScore > b->totalScore;
 		});
@@ -701,21 +698,31 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 		for (auto *p : teamPlayers) {
 			html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>";
 
-			double pctTime = (matchDuration > 0.0) ? (double(p->playTimeSeconds) / matchDuration) * 100.0 : 0.0;
+			double pctTime = (matchDuration > 0.0) ? (double(p->playTimeMsec) / matchDuration) * 100.0 : 0.0;
 			if (pctTime < 1.0) pctTime = 1.0;
 
 			double kdr = (p->totalDeaths > 0) ? (double(p->totalKills) / p->totalDeaths) : double(p->totalKills);
-			double kpm = (matchDuration > 0.0) ? (p->totalKills / (matchDuration / 60.0)) : 0.0;
+			double kpm = (matchDuration > 0.0) ? (p->totalKills / (matchDuration / 60000.0)) : 0.0;
 			double dmr = (p->totalDmgReceived > 0) ? (double(p->totalDmgDealt) / p->totalDmgReceived) : double(p->totalDmgDealt);
 
 			double pctScore = (maxGlobalScore > 0) ? (double(p->totalScore) / maxGlobalScore) * 100.0 : 0.0;
 			if (pctScore < 1.0) pctScore = 1.0;
 
-			html << "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << pctTime << "%\"></div><span>" << std::fixed << std::setprecision(1) << pctTime << "%</span></td>"
-				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:100%\"></div><span>" << p->skillRating << "</span></td>"
-				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << (std::max(kdr * 10.0, 1.0)) << "%\"></div><span>" << std::fixed << std::setprecision(2) << kdr << "</span></td>"
-				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << (std::max(kpm * 10.0, 1.0)) << "%\"></div><span>" << std::fixed << std::setprecision(2) << kpm << "</span></td>"
-				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << (std::max(dmr * 10.0, 1.0)) << "%\"></div><span>" << std::fixed << std::setprecision(2) << dmr << "</span></td>"
+			html << "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << pctTime << "%\"></div><span>" << std::fixed << std::setprecision(1) << pctTime << "%</span></td>";
+
+			// SR cell with delta
+			html << "<td class=\"progress-cell " << color << "\" title=\"Skill Rating change from match: "
+				<< (p->skillRatingChange >= 0 ? "+" : "") << p->skillRatingChange << "\">"
+				<< "<div class=\"bar\" style=\"width:100%\"></div><span>"
+				<< p->skillRating;
+			if (p->skillRatingChange != 0) {
+				html << " (" << (p->skillRatingChange >= 0 ? "+" : "") << p->skillRatingChange << ")";
+			}
+			html << "</span></td>";
+
+			html << "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << std::max(kdr * 10.0, 1.0) << "%\"></div><span>" << std::fixed << std::setprecision(2) << kdr << "</span></td>"
+				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << std::max(kpm * 10.0, 1.0) << "%\"></div><span>" << std::fixed << std::setprecision(2) << kpm << "</span></td>"
+				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << std::max(dmr * 10.0, 1.0) << "%\"></div><span>" << std::fixed << std::setprecision(2) << dmr << "</span></td>"
 				<< "<td class=\"progress-cell " << color << "\"><div class=\"bar\" style=\"width:" << pctScore << "%\"></div><span>" << p->totalScore << "</span></td>"
 				<< "</tr>\n";
 		}
@@ -724,7 +731,6 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 		};
 
 	bool redWins = redScore > blueScore;
-
 	writeOneTeam(redPlayers, "red", "Red", redWins);
 	writeOneTeam(bluePlayers, "blue", "Blue", !redWins);
 }
@@ -846,8 +852,8 @@ static inline void Html_WriteTopPlayers(std::ofstream &html, const MatchStats &m
 		});
 
 	writeList("KPM", [](const PlayerStats *p) -> double {
-		if (p->playTimeSeconds <= 0) return 0.0;
-		return (p->totalKills * 60.0) / p->playTimeSeconds;
+		if (p->playTimeMsec <= 0) return 0.0;
+		return (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0f);
 		});
 
 	writeList("DMR", [](const PlayerStats *p) -> double {
@@ -954,7 +960,7 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 
 			if (pickups > 0) {
 				int avgSecs = static_cast<int>((delay / pickups) + 0.5);
-				html << "<td>" << pickups << " (" << FormatSeconds(avgSecs) << ")</td>";
+				html << "<td>" << pickups << " (" << FormatDuration(avgSecs) << ")</td>";
 			} else {
 				html << "<td>-</td>";
 			}
@@ -967,7 +973,7 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 			auto totalDelay = itemDelays[name];
 			if (total > 0) {
 				int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
-				html << "<td>" << total << " (" << FormatSeconds(avgSecs) << ")</td>";
+				html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
 			} else {
 				html << "<td>-</td>";
 			}
@@ -1006,8 +1012,8 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 		int redAvgSecs = (redTotal > 0) ? static_cast<int>((redDelay / redTotal) + 0.5) : 0;
 		int blueAvgSecs = (blueTotal > 0) ? static_cast<int>((blueDelay / blueTotal) + 0.5) : 0;
 
-		html << "<tr><td class=\"player-cell red\">Red</td><td>" << redTotal << "</td><td>" << FormatSeconds(redAvgSecs) << "</td></tr>\n";
-		html << "<tr><td class=\"player-cell blue\">Blue</td><td>" << blueTotal << "</td><td>" << FormatSeconds(blueAvgSecs) << "</td></tr>\n";
+		html << "<tr><td class=\"player-cell red\">Red</td><td>" << redTotal << "</td><td>" << FormatDuration(redAvgSecs) << "</td></tr>\n";
+		html << "<tr><td class=\"player-cell blue\">Blue</td><td>" << blueTotal << "</td><td>" << FormatDuration(blueAvgSecs) << "</td></tr>\n";
 
 		html << "</table>\n</div>\n"; // flex-item (teams)
 	}
@@ -1078,7 +1084,7 @@ static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &mat
 	if (level.match.eventLog.empty())
 		return;
 
-	double matchDuration = matchStats.duration;
+	int matchDuration = matchStats.durationMS;
 
 	// === Precompute name replacements ===
 	std::unordered_map<std::string, std::string> nameToHtml;
@@ -1156,13 +1162,13 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 
 		// Steam branch
 		if (fullID.rfind(steamPref, 0) == 0) {
-			// strip “Steamworks-”
+			// strip "Steamworks-"
 			auto id = fullID.substr(steamPref.size());
 			profileURL = "https://steamcommunity.com/profiles/" + id;
 
 			// GOG branch
 		} else if (fullID.rfind(gogPref, 0) == 0) {
-			// strip “GOG-” → leftover is the user’s GOG slug
+			// strip "GOG-" -> leftover is the user's GOG slug
 			auto slug = fullID.substr(gogPref.size());
 			profileURL = "https://www.gog.com/u/" + slug;
 		}
@@ -1177,13 +1183,24 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 		html << ")</h2>";
 
 		// Top-line summary
-		html << "  <p>"
-			<< "Kills: " << p->totalKills
-			<< " | SpawnKills: " << p->totalSpawnKills
-			<< " | Deaths: " << p->totalDeaths
-			<< " | Suicides: " << p->totalSuicides
-			<< " | Score: " << p->totalScore
-			<< "</p>";
+		if (Teams()) {
+			html << "  <p>"
+				<< "Kills: " << p->totalKills
+				<< " | SpawnKills: " << p->totalSpawnKills
+				<< " | TeamKills: " << p->totalTeamKills
+				<< " | Deaths: " << p->totalDeaths
+				<< " | Suicides: " << p->totalSuicides
+				<< " | Score: " << p->totalScore
+				<< "</p>";
+		} else {
+			html << "  <p>"
+				<< "Kills: " << p->totalKills
+				<< " | SpawnKills: " << p->totalSpawnKills
+				<< " | Deaths: " << p->totalDeaths
+				<< " | Suicides: " << p->totalSuicides
+				<< " | Score: " << p->totalScore
+				<< "</p>";
+		}
 
 		// Top Victims by this player
 		{
@@ -1306,7 +1323,6 @@ static inline void Html_WriteFooter(std::ofstream &html, const std::string &html
 	html << "<div class=\"footer\">Compiled by " << GAMEMOD_TITLE << " " << GAMEMOD_VERSION << "</div>\n";
 	html << "</body></html>\n";
 	html.close();
-	gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
 }
 
 /*
@@ -1361,8 +1377,8 @@ static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string
 	Html_WriteWinnerSummary(html, matchStats);
 
 	if (Teams()) {
-		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.duration, maxGlobalScore);
-		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchStats.duration);
+		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
+		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchStats.durationMS);
 	} else {
 		Html_WriteOverallScores(html, matchStats, allPlayers);
 	}
@@ -1385,7 +1401,10 @@ MatchStats_WriteAll
 */
 static void SendIndividualMiniStats(const MatchStats &matchStats) {
 	for (auto ec : active_players()) {
-		if (!ec || !ec->client || ec->client->sess.netName[0] == '\0')
+		if (!ec || !ec->client)	// || ec->client->sess.netName[0] == '\0')
+			continue;
+
+		if (!ClientIsPlaying(ec->client))
 			continue;
 
 		const char *name = ec->client->sess.netName;
@@ -1420,13 +1439,12 @@ MatchStats_WriteAll
 static void MatchStats_WriteAll(MatchStats &matchStats, const std::string &baseFilePath) {
 	MatchStats_WriteJson(matchStats, baseFilePath + ".json");
 	MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
+	SendIndividualMiniStats(matchStats);
 	
 	level.match.deathLog.clear();
 	level.match.eventLog.clear();
 	matchStats.players.clear();
 	matchStats.teams.clear();
-
-	SendIndividualMiniStats(matchStats);
 }
 
 /*
@@ -1440,226 +1458,174 @@ void MatchStats_End() {
 
 	G_LogEvent("MATCH END");
 
+	if (!g_statex_enabled->integer) {
+		gi.Com_PrintFmt("{}: Reporting disabled.\n", __FUNCTION__);
+		return;
+	}
+
+	if (g_statex_humans_present->integer && !level.pop.num_playing_human_clients) {
+		gi.Com_PrintFmt("{}: No reporting without human players.\n", __FUNCTION__);
+		return;
+	}
+
 	try {
 		matchStats.matchID = level.matchID;
-
-		//matchStats.serverHostName.assign(g_entities[0].client->sess.netName);
 		matchStats.gameType = gt_short_name_upper[g_gametype->integer];
 		matchStats.ruleSet = rs_long_name[game.ruleset];
-		matchStats.serverName.assign(hostname->string);
-		matchStats.mapName.assign(level.mapname);
+		matchStats.serverName = hostname->string;
+		matchStats.mapName = level.mapname;
 		matchStats.ranked = "false";
 		matchStats.totalKills = level.match.totalKills;
 		matchStats.totalSpawnKills = level.match.totalSpawnKills;
+		matchStats.totalTeamKills = level.match.totalTeamKills;
 		matchStats.totalDeaths = level.match.totalDeaths;
 		matchStats.totalSuicides = level.match.totalSuicides;
 
-		gi.LocBroadcast_Print(PRINT_TTS, "Match end for ID: {}\n", level.matchID.c_str());
-
-		matchStats.endTime = std::time(nullptr) - 1; // Current time minus intermission queue delay
-
-		// Calculate duration
 		matchStats.calculateDuration();
+		matchStats.avKillsPerMinute = matchStats.durationMS > 0
+			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
+			: 0.0;
 
-		matchStats.avKillsPerMinute = level.match.totalKills / (matchStats.duration / 60);
+		auto process_player = [&](gentity_t *ec) {
+			auto *cl = ec->client;
+			PlayerStats p;
 
-		if (Teams()) {
-			// Add team stats
-			TeamStats redTeam;
-			redTeam.teamName = "Red";
-			redTeam.score = level.team_scores[TEAM_RED];
-			redTeam.outcome = (level.team_scores[TEAM_RED] > level.team_scores[TEAM_BLUE]) ? "win" : "loss";
+			p.socialID = cl->sess.socialID;
+			p.playerName = cl->sess.netName;
+			p.skillRating = cl->sess.skillRating;
+			p.skillRatingChange = cl->sess.skillRatingChange;
+			p.totalKills = cl->pers.match.totalKills;
+			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
+			p.totalTeamKills = cl->pers.match.totalTeamKills;
+			p.totalDeaths = cl->pers.match.totalDeaths;
+			p.totalSuicides = cl->pers.match.totalSuicides;
+			p.totalScore = cl->resp.score;
+			p.totalShots = cl->pers.match.totalShots;
+			p.totalHits = cl->pers.match.totalHits;
+			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
+			p.totalDmgReceived = cl->pers.match.totalDmgReceived;
+			
+			p.playTimeMsec = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+			if (p.playTimeMsec > 0)
+				p.killsPerMinute = (p.totalKills * 60.0) / (p.playTimeMsec/1000.0f);
 
-			TeamStats blueTeam;
-			blueTeam.teamName = "Blue";
-			blueTeam.score = level.team_scores[TEAM_BLUE];
-			blueTeam.outcome = (level.team_scores[TEAM_BLUE] > level.team_scores[TEAM_RED]) ? "win" : "loss";
+			// Weapon stats
+			for (const auto &weapon : weaponAbbreviations) {
+				int index = getWeaponIndex(weapon);
+				if (index < 0 || index >= WEAP_MAX)
+					continue;
 
-			for (auto ec : active_players()) {
-				PlayerStats playerStats;
-				playerStats.socialID = ec->client->sess.socialID;
-				playerStats.playerName = ec->client->sess.netName;
-				playerStats.skillRating = ec->client->sess.skillRating;
-				playerStats.totalKills = ec->client->sess.match.totalKills;
-				playerStats.totalSpawnKills = ec->client->sess.match.totalSpawnKills;
-				playerStats.totalDeaths = ec->client->sess.match.totalDeaths;
-				playerStats.totalSuicides = ec->client->sess.match.totalSuicides;
-				playerStats.totalScore = ec->client->resp.score;
-				playerStats.totalShots = ec->client->sess.match.totalShots;
-				playerStats.totalHits = ec->client->sess.match.totalHits;
-				playerStats.totalDmgDealt = ec->client->sess.match.totalDmgDealt;
-				playerStats.totalDmgReceived = ec->client->sess.match.totalDmgReceived;
-
-				gtime_t duration = level.matchEndTime - ec->client->sess.playStartTime;
-				playerStats.playTimeSeconds = duration.seconds();
-				if (playerStats.playTimeSeconds > 0)
-					playerStats.killsPerMinute = (playerStats.totalKills * 60.0) / playerStats.playTimeSeconds;
-
-				for (int i = HVI_NONE + 1; i < HVI_TOTAL; ++i) {
-					playerStats.pickupCounts[i] = ec->client->sess.match.pickupCounts[i];
-				}
-
-				if (playerStats.totalShots > 0) {
-					playerStats.totalAccuracy =
-						(static_cast<double>(playerStats.totalHits) / playerStats.totalShots) * 100.0;
-				} else {
-					playerStats.totalAccuracy = 0.0;
-				}
-
-				// Populate weapon-specific stats
-				for (const auto &weapon : weaponAbbreviations) {
-					int weaponIndex = getWeaponIndex(weapon);
-					playerStats.totalShotsPerWeapon[weapon] = ec->client->sess.match.totalShotsPerWeapon[weaponIndex];
-					playerStats.totalHitsPerWeapon[weapon] = ec->client->sess.match.totalHitsPerWeapon[weaponIndex];
-
-					// Calculate accuracy per weapon
-					if (playerStats.totalShotsPerWeapon[weapon] > 0) {
-						playerStats.accuracyPerWeapon[weapon] =
-							(static_cast<double>(playerStats.totalHitsPerWeapon[weapon]) / playerStats.totalShotsPerWeapon[weapon]) * 100.0;
-					} else {
-						playerStats.accuracyPerWeapon[weapon] = 0.0;
-					}
-				}
-
-				for (const auto &mod : modr) {
-					int kills = ec->client->sess.match.modTotalKills[mod.mod];
-					int deaths = ec->client->sess.match.modTotalDeaths[mod.mod];
-
-					if (kills > 0 || deaths > 0) {
-						playerStats.modTotalKills[mod.mod] = kills;
-						playerStats.modTotalDeaths[mod.mod] = deaths;
-
-						double kdr;
-						if (deaths > 0) {
-							kdr = static_cast<double>(kills) / static_cast<double>(deaths);
-						} else if (playerStats.modTotalKills[mod.mod] > 0) {
-							kdr = static_cast<double>(kills);  // Infinite KDR represented as kills
-						} else {
-							kdr = 0.0;  // No kills, no deaths
-						}
-						if (kdr)
-							playerStats.modTotalKDR[mod.mod] = kdr;
-					}
-				}
-
-				// Assign player to the appropriate team
-				switch (ec->client->sess.team) {
-				case TEAM_RED:
-					redTeam.players.push_back(playerStats);
-					break;
-				case TEAM_BLUE:
-					blueTeam.players.push_back(playerStats);
-					break;
+				int shots = cl->pers.match.totalShotsPerWeapon[index];
+				int hits = cl->pers.match.totalHitsPerWeapon[index];
+				if (shots > 0) {
+					p.totalShotsPerWeapon[weapon] = shots;
+					p.totalHitsPerWeapon[weapon] = hits;
+					p.accuracyPerWeapon[weapon] = (double)hits / shots * 100.0;
 				}
 			}
+
+			// Accuracy
+			p.totalAccuracy = (p.totalShots > 0)
+				? (double)p.totalHits / p.totalShots * 100.0
+				: 0.0;
+
+			// Pickup stats
+			for (int i = HVI_NONE + 1; i < HVI_TOTAL; ++i) {
+				p.pickupCounts[i] = cl->pers.match.pickupCounts[i];
+			}
+
+			// MOD stats
+			for (const auto &mod : modr) {
+				int kills = cl->pers.match.modTotalKills[mod.mod];
+				int deaths = cl->pers.match.modTotalDeaths[mod.mod];
+				if (kills > 0 || deaths > 0) {
+					p.modTotalKills[mod.mod] = kills;
+					p.modTotalDeaths[mod.mod] = deaths;
+					double kdr = (deaths > 0)
+						? (double)kills / deaths
+						: (kills > 0 ? (double)kills : 0.0);
+					p.modTotalKDR[mod.mod] = kdr;
+				}
+			}
+
+			// Medals
+			p.awards = cl->pers.match.medalCount;
+
+			// Bot sanitization
+			if (cl->sess.is_a_bot) {
+				p.skillRating = 0;
+				p.skillRatingChange = 0;
+			}
+
+			bool won = false;
+			switch (cl->sess.team) {
+			case TEAM_RED:
+				if (level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE]) {
+					won = true;
+				} else {
+					won = false;
+				}
+				break;
+			case TEAM_BLUE:
+				if (level.teamScores[TEAM_BLUE] > level.teamScores[TEAM_RED]) {
+					won = true;
+				} else {
+					won = false;
+				}
+				break;
+			default:
+				won = (cl == &game.clients[level.sorted_clients[0]]);
+				break;
+			}
+			
+			// Save persistent stats
+			ClientConfig_SaveStats(cl, won);
+
+			return p;
+			};
+
+		if (Teams()) {
+			TeamStats redTeam = { "Red",  level.teamScores[TEAM_RED],  level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE] ? "win" : "loss" };
+			TeamStats blueTeam = { "Blue", level.teamScores[TEAM_BLUE], level.teamScores[TEAM_BLUE] > level.teamScores[TEAM_RED] ? "win" : "loss" };
+
+			for (auto ec : active_players()) {
+				PlayerStats ps = process_player(ec);
+				switch (ec->client->sess.team) {
+				case TEAM_RED:  redTeam.players.push_back(ps); break;
+				case TEAM_BLUE: blueTeam.players.push_back(ps); break;
+				}
+			}
+
 			matchStats.teams.push_back(redTeam);
 			matchStats.teams.push_back(blueTeam);
 		} else {
 			for (auto ec : active_players()) {
-				PlayerStats playerStats;
-				playerStats.socialID.assign(ec->client->sess.socialID);
-				playerStats.playerName.assign(ec->client->sess.netName);
-				playerStats.skillRating = (int)ec->client->sess.skillRating;
-				playerStats.totalKills = ec->client->sess.match.totalKills;
-				playerStats.totalSpawnKills = ec->client->sess.match.totalSpawnKills;
-				playerStats.totalDeaths = ec->client->sess.match.totalDeaths;
-				playerStats.totalSuicides = ec->client->sess.match.totalSuicides;
-				playerStats.totalScore = ec->client->resp.score;
-				playerStats.totalShots = ec->client->sess.match.totalShots;
-				playerStats.totalHits = ec->client->sess.match.totalHits;
-				playerStats.totalDmgDealt = ec->client->sess.match.totalDmgDealt;
-				playerStats.totalDmgReceived = ec->client->sess.match.totalDmgReceived;
-
-				gtime_t duration = level.matchEndTime - ec->client->sess.playStartTime;
-				playerStats.playTimeSeconds = duration.seconds();
-				if (playerStats.playTimeSeconds > 0)
-					playerStats.killsPerMinute = (playerStats.totalKills * 60.0) / playerStats.playTimeSeconds;
-
-				for (int i = HVI_NONE + 1; i < HVI_TOTAL; ++i) {
-					playerStats.pickupCounts[i] = ec->client->sess.match.pickupCounts[i];
-				}
-
-				if (ec->client->sess.is_a_bot && playerStats.skillRating != 0)
-					playerStats.skillRating = 0;
-
-				// retrieve all medals
-				playerStats.awards = ec->client->sess.match.medalCount;
-
-				playerStats.calculateWeaponAccuracy();
-				playerStats.calculateKDR();
-
-				// Populate weapon-specific stats
-				for (const auto &weapon : weaponAbbreviations) {
-					int weaponIndex = getWeaponIndex(weapon);
-					if (ec->client->sess.match.totalShotsPerWeapon[weaponIndex] > 0)
-						playerStats.totalShotsPerWeapon[weapon] = ec->client->sess.match.totalShotsPerWeapon[weaponIndex];
-					if (ec->client->sess.match.totalHitsPerWeapon[weaponIndex] > 0)
-						playerStats.totalHitsPerWeapon[weapon] = ec->client->sess.match.totalHitsPerWeapon[weaponIndex];
-
-					// Calculate accuracy per weapon
-					if (playerStats.totalShotsPerWeapon[weapon] > 0) {
-						playerStats.accuracyPerWeapon[weapon] =
-							(static_cast<double>(playerStats.totalHitsPerWeapon[weapon]) / playerStats.totalShotsPerWeapon[weapon]) * 100.0;
-					} else {
-						playerStats.accuracyPerWeapon[weapon] = 0.0;
-					}
-				}
-
-				for (const auto &mod : modr) {
-					int kills = ec->client->sess.match.modTotalKills[mod.mod];
-					int deaths = ec->client->sess.match.modTotalDeaths[mod.mod];
-					if (kills > 0 || deaths > 0) {
-						playerStats.modTotalKills[mod.mod] = kills;
-						playerStats.modTotalDeaths[mod.mod] = deaths;
-
-						double kdr;
-						if (deaths > 0) {
-							kdr = static_cast<double>(kills) / static_cast<double>(deaths);
-						} else if (playerStats.modTotalKills[mod.mod] > 0) {
-							kdr = static_cast<double>(kills);  // Infinite KDR represented as kills
-						} else {
-							kdr = 0.0;  // No kills, no deaths
-						}
-						if (kdr)
-							playerStats.modTotalKDR[mod.mod] = kdr;
-					}
-				}
-
-				// Add player to the match stats
-				matchStats.players.push_back(playerStats);
+				matchStats.players.push_back(process_player(ec));
 			}
 		}
 
+		// Total MOD stats
 		for (auto &p : matchStats.players) {
-			for (auto &[modId, kills] : p.modTotalKills) {
-				auto &name = modr[modId].name;
-				matchStats.totalKillsByMOD[name] += kills;
-			}
-			for (auto &[modId, deaths] : p.modTotalDeaths) {
-				auto &name = modr[modId].name;
-				matchStats.totalDeathsByMOD[name] += deaths;
-			}
+			for (auto &[modId, kills] : p.modTotalKills)
+				matchStats.totalKillsByMOD[modr[modId].name] += kills;
+			for (auto &[modId, deaths] : p.modTotalDeaths)
+				matchStats.totalDeathsByMOD[modr[modId].name] += deaths;
 		}
-		// now compute KDR per‑MOD
-		for (auto &kv : matchStats.totalKillsByMOD) {
-			const auto &name = kv.first;
-			int kills = kv.second;
-			int deaths = matchStats.totalDeathsByMOD[name];
-			matchStats.totalKDRByMOD[name] = deaths > 0
-				? double(kills) / deaths
-				: double(kills);
+
+		for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
+			int deaths = matchStats.totalDeathsByMOD[modName];
+			matchStats.totalKDRByMOD[modName] = deaths > 0
+				? (double)kills / deaths
+				: (double)kills;
 		}
 
 		for (auto &e : level.match.deathLog) {
-			auto &modName = modr[e.mod.id].name;
-			matchStats.totalDeathsByMOD[modName]++;
+			matchStats.totalDeathsByMOD[modr[e.mod.id].name]++;
 		}
 
 		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
-	}
-	catch (const std::exception &e) {
+	} catch (const std::exception &e) {
 		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
-		// optionally fall back to minimal logging
 	}
 }
 
@@ -1679,7 +1645,7 @@ void MatchStats_Init() {
 
 	level.matchID = GametypeIndexToString((gametype_t)g_gametype->integer) + '_' + FileTimeStamp();
 	matchStats.matchID = level.matchID;
-	matchStats.startTime = std::time(nullptr);
+	//matchStats.startTime = level.matchStartRealTime.seconds();	// std::time(nullptr);
 	
 	gi.LocBroadcast_Print(PRINT_TTS, "Match start for ID: {}\n", level.matchID.c_str());
 

@@ -176,7 +176,7 @@ MONSTERINFO_WALK(makron_walk) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(makron_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &makron_move_stand);
 	else
 		M_SetAnimation(self, &makron_move_run);
@@ -690,7 +690,7 @@ void SP_monster_makron(gentity_t *self) {
 	self->monsterInfo.attack = makron_attack;
 	self->monsterInfo.melee = nullptr;
 	self->monsterInfo.sight = makron_sight;
-	self->monsterInfo.checkattack = Makron_CheckAttack;
+	self->monsterInfo.checkAttack = Makron_CheckAttack;
 	self->monsterInfo.setskin = makron_setskin;
 
 	gi.linkentity(self);
@@ -701,7 +701,7 @@ void SP_monster_makron(gentity_t *self) {
 
 	walkmonster_start(self);
 
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 }
 
 /*
@@ -735,7 +735,7 @@ static THINK(MakronSpawn) (gentity_t *self) -> void {
 	self->enemy = player;
 	FoundTarget(self);
 	self->monsterInfo.sight(self, self->enemy);
-	self->s.frame = self->monsterInfo.nextframe = FRAME_active01; // FIXME: why????
+	self->s.frame = self->monsterInfo.nextFrame = FRAME_active01; // FIXME: why????
 }
 
 /*

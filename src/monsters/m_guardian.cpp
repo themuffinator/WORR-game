@@ -141,7 +141,7 @@ mframe_t guardian_frames_run[] = {
 MMOVE_T(guardian_move_run) = { FRAME_walk1, FRAME_walk19, guardian_frames_run, nullptr };
 
 MONSTERINFO_RUN(guardian_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &guardian_move_stand);
 		return;
 	}
@@ -191,7 +191,7 @@ static PAIN(guardian_pain) (gentity_t *self, gentity_t *other, float kick, int d
 		return; // no pain anims in nightmare
 
 	M_SetAnimation(self, &guardian_move_pain1);
-	self->monsterInfo.weapon_sound = 0;
+	self->monsterInfo.weaponSound = 0;
 }
 
 mframe_t guardian_frames_atk1_out[] = {
@@ -203,14 +203,14 @@ MMOVE_T(guardian_atk1_out) = { FRAME_atk1_out1, FRAME_atk1_out3, guardian_frames
 
 static void guardian_atk1_finish(gentity_t *self) {
 	M_SetAnimation(self, &guardian_atk1_out);
-	self->monsterInfo.weapon_sound = 0;
+	self->monsterInfo.weaponSound = 0;
 }
 
 static cached_soundindex sound_charge;
 static cached_soundindex sound_spin_loop;
 
 static void guardian_atk1_charge(gentity_t *self) {
-	self->monsterInfo.weapon_sound = sound_spin_loop;
+	self->monsterInfo.weaponSound = sound_spin_loop;
 	gi.sound(self, CHAN_WEAPON, sound_charge, 1.f, ATTN_NORM, 0.f);
 }
 
@@ -232,7 +232,7 @@ static void guardian_fire_blaster(gentity_t *self) {
 
 	if (self->enemy && self->enemy->health > 0 &&
 		self->s.frame == FRAME_atk1_spin12 && self->timeStamp > level.time && visible(self, self->enemy))
-		self->monsterInfo.nextframe = FRAME_atk1_spin5;
+		self->monsterInfo.nextFrame = FRAME_atk1_spin5;
 }
 
 mframe_t guardian_frames_atk1_spin[] = {
@@ -381,7 +381,7 @@ MONSTERINFO_ATTACK(guardian_attack) (gentity_t *self) -> void {
 // death
 //
 
-void guardian_explode(gentity_t *self) {
+static void guardian_explode(gentity_t *self) {
 	gi.WriteByte(svc_temp_entity);
 	gi.WriteByte(TE_EXPLOSION1_BIG);
 	gi.WritePosition((self->s.origin + self->mins) + vec3_t{ frandom() * self->size[0], frandom() * self->size[1], frandom() * self->size[2] });
@@ -448,7 +448,7 @@ MMOVE_T(guardian_move_death) = { FRAME_death1, FRAME_death26, guardian_frames_de
 static DIE(guardian_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
 	// regular death
 	//gi.sound(self, CHAN_VOICE, sound_die, 1, ATTN_NORM, 0);
-	self->monsterInfo.weapon_sound = 0;
+	self->monsterInfo.weaponSound = 0;
 	self->deadFlag = true;
 	self->takeDamage = true;
 

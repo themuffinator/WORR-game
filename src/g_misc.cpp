@@ -209,10 +209,10 @@ gentity_t *ThrowGib(gentity_t *self, std::string gibname, int damage, gib_type_t
 	gib->svFlags &= ~SVF_MONSTER;
 	gib->clipMask = MASK_SOLID;
 	gib->s.effects = EF_GIB;
-
-	gib->s.renderfx = RF_LOW_PRIORITY | RF_FULLBRIGHT;
+	gib->s.renderfx = RF_NONE;	// RF_LOW_PRIORITY | RF_FULLBRIGHT;
+	//gib->s.renderfx = RF_LOW_PRIORITY;
+	gib->s.renderfx |= RF_NOSHADOW;
 	
-	//gib->s.renderfx |= RF_NOSHADOW;
 	if (!(type & GIB_DEBRIS)) {
 		if (type & GIB_ACID)
 			gib->s.effects |= EF_GREENGIB;
@@ -247,7 +247,7 @@ gentity_t *ThrowGib(gentity_t *self, std::string gibname, int damage, gib_type_t
 	}
 
 	if (type & GIB_DEBRIS) {
-		vec3_t v;
+		vec3_t v{};
 		v[0] = 100 * crandom();
 		v[1] = 100 * crandom();
 		v[2] = 100 + 100 * crandom();
@@ -339,8 +339,8 @@ void ThrowClientHead(gentity_t *self, int damage) {
 	self->velocity += vd;
 
 	if (self->client) {	// bodies in the queue don't have a client anymore
-		self->client->animPriority = ANIM_DEATH;
-		self->client->animEnd = self->s.frame;
+		self->client->anim.priority = ANIM_DEATH;
+		self->client->anim.end = self->s.frame;
 	} else {
 		self->think = nullptr;
 		self->nextThink = 0_ms;
@@ -424,7 +424,7 @@ static TOUCH(path_corner_touch) (gentity_t *self, gentity_t *other, const trace_
 	other->goalentity = other->movetarget = next;
 
 	if (self->wait) {
-		other->monsterInfo.pausetime = level.time + gtime_t::from_sec(self->wait);
+		other->monsterInfo.pauseTime = level.time + gtime_t::from_sec(self->wait);
 		other->monsterInfo.stand(other);
 		return;
 	}
@@ -436,7 +436,7 @@ static TOUCH(path_corner_touch) (gentity_t *self, gentity_t *other, const trace_
 			return;
 		}
 
-		other->monsterInfo.pausetime = HOLD_FOREVER;
+		other->monsterInfo.pauseTime = HOLD_FOREVER;
 		other->monsterInfo.stand(other);
 	} else {
 		v = other->goalentity->s.origin - other->s.origin;
@@ -464,7 +464,7 @@ Makes this the target of a monster and it will head here
 when first activated before going after the activator.  If
 hold is selected, it will stay here.
 */
-TOUCH(point_combat_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(point_combat_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
 	gentity_t *activator;
 
 	if (other->movetarget != self)
@@ -481,11 +481,11 @@ TOUCH(point_combat_touch) (gentity_t *self, gentity_t *other, const trace_t &tr,
 		//self->target = nullptr;
 	} else if (self->spawnflags.has(SPAWNFLAG_POINT_COMBAT_HOLD) && !(other->flags & (FL_SWIM | FL_FLY))) {
 		// already standing
-		if (other->monsterInfo.aiflags & AI_STAND_GROUND)
+		if (other->monsterInfo.aiFlags & AI_STAND_GROUND)
 			return;
 
-		other->monsterInfo.pausetime = HOLD_FOREVER;
-		other->monsterInfo.aiflags |= AI_STAND_GROUND | AI_REACHED_HOLD_COMBAT | AI_THIRD_EYE;
+		other->monsterInfo.pauseTime = HOLD_FOREVER;
+		other->monsterInfo.aiFlags |= AI_STAND_GROUND | AI_REACHED_HOLD_COMBAT | AI_THIRD_EYE;
 		other->monsterInfo.stand(other);
 	}
 
@@ -499,7 +499,7 @@ TOUCH(point_combat_touch) (gentity_t *self, gentity_t *other, const trace_t &tr,
 		}
 
 		other->goalentity = other->enemy;
-		other->monsterInfo.aiflags &= ~AI_COMBAT_POINT;
+		other->monsterInfo.aiFlags &= ~AI_COMBAT_POINT;
 	}
 
 	if (self->pathtarget) {
@@ -680,7 +680,7 @@ static void setup_dynamic_light(gentity_t *self) {
 	// [Sam-KEX] Shadow stuff
 	if (st.sl.data.radius > 0) {
 		self->s.renderfx = RF_CASTSHADOW;
-		self->itemtarget = st.sl.lightstyletarget;
+		self->itemtarget = st.sl.lightStyleTarget;
 
 		shadowlightinfo[level.shadowLightCount].entity_number = self->s.number;
 		shadowlightinfo[level.shadowLightCount].shadowlight = st.sl.data;
@@ -821,7 +821,7 @@ START_ON		will start in alterate animation
 
 constexpr spawnflags_t SPAWNFLAG_ANIMATION_START_ON = 1_spawnflag;
 
-USE(func_animation_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(func_animation_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	self->bmodel_anim.alternate = !self->bmodel_anim.alternate;
 }
 
@@ -855,7 +855,7 @@ constexpr spawnflags_t SPAWNFLAGS_OBJECT_TRIGGER_SPAWN = 1_spawnflag;
 constexpr spawnflags_t SPAWNFLAGS_OBJECT_ANIMATED = 2_spawnflag;
 constexpr spawnflags_t SPAWNFLAGS_OBJECT_ANIMATED_FAST = 4_spawnflag;
 
-TOUCH(func_object_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(func_object_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
 	// only squash thing we fall on top of
 	if (otherTouchingSelf)
 		return;
@@ -869,12 +869,12 @@ TOUCH(func_object_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, 
 	other->damage_debounce_time = level.time + 10_hz;
 }
 
-THINK(func_object_release) (gentity_t *self) -> void {
+static THINK(func_object_release) (gentity_t *self) -> void {
 	self->moveType = MOVETYPE_TOSS;
 	self->touch = func_object_touch;
 }
 
-USE(func_object_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(func_object_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	self->solid = SOLID_BSP;
 	self->svFlags &= ~SVF_NOCLIENT;
 	self->use = nullptr;
@@ -1144,7 +1144,7 @@ static THINK(barrel_burn) (gentity_t *self) -> void {
 	self->nextThink = level.time + FRAME_TIME_S;
 }
 
-DIE(barrel_delay) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(barrel_delay) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
 	// allow "dead" barrels waiting to explode to still receive knockback
 	if (self->think == barrel_burn || self->think == barrel_explode)
 		return;
@@ -1168,11 +1168,11 @@ static THINK(barrel_think) (gentity_t *self) -> void {
 
 	M_CatagorizePosition(self, self->s.origin, self->waterlevel, self->watertype);
 	self->flags |= FL_IMMUNE_SLIME;
-	self->air_finished = level.time + 100_sec;
+	self->airFinished = level.time + 100_sec;
 	M_WorldEffects(self);
 }
 
-THINK(barrel_start) (gentity_t *self) -> void {
+static THINK(barrel_start) (gentity_t *self) -> void {
 	M_droptofloor(self);
 	self->think = barrel_think;
 	self->nextThink = level.time + FRAME_TIME_S;
@@ -1232,7 +1232,7 @@ model="models/objects/black/tris.md2"
 
 constexpr spawnflags_t SPAWNFLAG_BLACKHOLE_AUTO_NOISE = 1_spawnflag;
 
-USE(misc_blackhole_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
+static USE(misc_blackhole_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
 	/*
 	gi.WriteByte (svc_temp_entity);
 	gi.WriteByte (TE_BOSSTPORT);
@@ -1242,7 +1242,7 @@ USE(misc_blackhole_use) (gentity_t *ent, gentity_t *other, gentity_t *activator)
 	FreeEntity(ent);
 }
 
-THINK(misc_blackhole_think) (gentity_t *self) -> void {
+static THINK(misc_blackhole_think) (gentity_t *self) -> void {
 	if (self->timeStamp <= level.time) {
 		if (++self->s.frame >= 19)
 			self->s.frame = 0;
@@ -1280,7 +1280,7 @@ void SP_misc_blackhole(gentity_t *ent) {
 /*QUAKED misc_eastertank (1 .5 0) (-32 -32 -16) (32 32 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
 
-THINK(misc_eastertank_think) (gentity_t *self) -> void {
+static THINK(misc_eastertank_think) (gentity_t *self) -> void {
 	if (++self->s.frame < 293)
 		self->nextThink = level.time + 10_hz;
 	else {
@@ -1304,7 +1304,7 @@ void SP_misc_eastertank(gentity_t *ent) {
 /*QUAKED misc_easterchick (1 .5 0) (-32 -32 0) (32 32 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
 
-THINK(misc_easterchick_think) (gentity_t *self) -> void {
+static THINK(misc_easterchick_think) (gentity_t *self) -> void {
 	if (++self->s.frame < 247)
 		self->nextThink = level.time + 10_hz;
 	else {
@@ -1328,7 +1328,7 @@ void SP_misc_easterchick(gentity_t *ent) {
 /*QUAKED misc_easterchick2 (1 .5 0) (-32 -32 0) (32 32 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
 
-THINK(misc_easterchick2_think) (gentity_t *self) -> void {
+static THINK(misc_easterchick2_think) (gentity_t *self) -> void {
 	if (++self->s.frame < 287)
 		self->nextThink = level.time + 10_hz;
 	else {
@@ -1354,7 +1354,7 @@ Not really a monster, this is the Tank Commander's decapitated body.
 There should be a item_commander_head that has this as it's target.
 */
 
-THINK(commander_body_think) (gentity_t *self) -> void {
+static THINK(commander_body_think) (gentity_t *self) -> void {
 	if (++self->s.frame < 24)
 		self->nextThink = level.time + 10_hz;
 	else
@@ -1364,13 +1364,13 @@ THINK(commander_body_think) (gentity_t *self) -> void {
 		gi.sound(self, CHAN_BODY, gi.soundindex("tank/thud.wav"), 1, ATTN_NORM, 0);
 }
 
-USE(commander_body_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(commander_body_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	self->think = commander_body_think;
 	self->nextThink = level.time + 10_hz;
 	gi.sound(self, CHAN_BODY, gi.soundindex("tank/pain.wav"), 1, ATTN_NORM, 0);
 }
 
-THINK(commander_body_drop) (gentity_t *self) -> void {
+static THINK(commander_body_drop) (gentity_t *self) -> void {
 	self->moveType = MOVETYPE_TOSS;
 	self->s.origin[2] += 2;
 }
@@ -1420,7 +1420,7 @@ void SP_misc_banner(gentity_t *ent) {
 The origin is the bottom of the banner.
 The banner is 248 tall.
 */
-THINK(misc_ctf_banner_think) (gentity_t *ent) -> void {
+static THINK(misc_ctf_banner_think) (gentity_t *ent) -> void {
 	ent->s.frame = (ent->s.frame + 1) % 16;
 	ent->nextThink = level.time + 10_hz;
 }
@@ -1470,7 +1470,7 @@ constexpr spawnflags_t SPAWNFLAGS_DEADSOLDIER_FETAL_POS = 8_spawnflag;
 constexpr spawnflags_t SPAWNFLAGS_DEADSOLDIER_SIT_DECAP = 16_spawnflag;
 constexpr spawnflags_t SPAWNFLAGS_DEADSOLDIER_IMPALED = 32_spawnflag;
 
-DIE(misc_deadsoldier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(misc_deadsoldier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
 	if (self->health > -30)
 		return;
 
@@ -1514,7 +1514,7 @@ void SP_misc_deadsoldier(gentity_t *ent) {
 	// nb: SVF_MONSTER is here so it bleeds
 	ent->svFlags |= SVF_MONSTER | SVF_DEADMONSTER;
 	ent->die = misc_deadsoldier_die;
-	ent->monsterInfo.aiflags |= AI_GOOD_GUY | AI_DO_NOT_COUNT;
+	ent->monsterInfo.aiFlags |= AI_GOOD_GUY | AI_DO_NOT_COUNT;
 
 	gi.linkentity(ent);
 }
@@ -1573,7 +1573,7 @@ void SP_misc_bigviper(gentity_t *ent) {
 /*QUAKED misc_viper_bomb (1 0 0) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 "dmg"	how much boom should the bomb make?
 */
-TOUCH(misc_viper_bomb_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(misc_viper_bomb_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
 	UseTargets(self, self->activator);
 
 	self->s.origin[2] = self->absMin[2] + 1;
@@ -1581,7 +1581,7 @@ TOUCH(misc_viper_bomb_touch) (gentity_t *self, gentity_t *other, const trace_t &
 	BecomeExplosion2(self);
 }
 
-PRETHINK(misc_viper_bomb_prethink) (gentity_t *self) -> void {
+static PRETHINK(misc_viper_bomb_prethink) (gentity_t *self) -> void {
 	self->groundEntity = nullptr;
 
 	float diff = (self->timeStamp - level.time).seconds();
@@ -1596,7 +1596,7 @@ PRETHINK(misc_viper_bomb_prethink) (gentity_t *self) -> void {
 	self->s.angles[ROLL] = diff + 10;
 }
 
-USE(misc_viper_bomb_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(misc_viper_bomb_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	gentity_t *viper;
 
 	self->solid = SOLID_BBOX;
@@ -1673,13 +1673,13 @@ void SP_misc_strogg_ship(gentity_t *ent) {
 /*QUAKED misc_satellite_dish (1 .5 0) (-64 -64 0) (64 64 128) x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 model="models/objects/satellite/tris.md2"
 */
-THINK(misc_satellite_dish_think) (gentity_t *self) -> void {
+static THINK(misc_satellite_dish_think) (gentity_t *self) -> void {
 	self->s.frame++;
 	if (self->s.frame < 38)
 		self->nextThink = level.time + 10_hz;
 }
 
-USE(misc_satellite_dish_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(misc_satellite_dish_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	self->s.frame = 0;
 	self->think = misc_satellite_dish_think;
 	self->nextThink = level.time + 10_hz;
@@ -1922,7 +1922,7 @@ static THINK(func_clock_think) (gentity_t *self) -> void {
 	self->nextThink = level.time + 1_sec;
 }
 
-USE(func_clock_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(func_clock_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	if (!self->spawnflags.has(SPAWNFLAG_TIMER_MULTI_USE))
 		self->use = nullptr;
 	if (self->activator)
@@ -1991,7 +1991,7 @@ constexpr spawnflags_t SPAWNFLAG_TEMEPORTER_N64_EFFECT = 4_spawnflag;
 
 void SP_misc_teleporter(gentity_t *ent) {
 	vec3_t		mins, maxs;
-	bool		CreateSpawnPad = true;
+	bool		createSpawnPad = true;
 
 	if (ent->target) {
 		if (st.was_key_specified("mins")) {
@@ -2000,11 +2000,11 @@ void SP_misc_teleporter(gentity_t *ent) {
 		if (st.was_key_specified("maxs")) {
 			maxs = ent->maxs;
 			if (mins)
-				CreateSpawnPad = false;
+				createSpawnPad = false;
 		} else maxs = { 8, 8, 24 };
 	}
 
-	if (CreateSpawnPad) {
+	if (createSpawnPad) {
 		//gi.Com_PrintFmt("{}: DMSPOT\n", *ent);
 		gi.setmodel(ent, "models/objects/dmspot/tris.md2");
 		ent->s.skinnum = 1;
@@ -2048,10 +2048,7 @@ void SP_misc_teleporter_dest(gentity_t *ent) {
 	if (level.isN64)
 		return;
 
-	if (g_dm_telepads->integer > 1 || (g_dm_telepads->integer == 1 && ItemSpawnsEnabled() && notGT(GT_HORDE))) {
-		if (!level.no_dm_telepads)
-			CreateSpawnPad(ent);
-	}
+	CreateSpawnPad(ent);
 }
 
 /*QUAKED misc_flare (1.0 1.0 0.0) (-32 -32 -32) (32 32 32) RED GREEN BLUE LOCK_ANGLE x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -2262,9 +2259,9 @@ static THINK(info_world_text_think) (gentity_t *self) -> void {
 
 	if (deathmatch->integer && self->spawnflags.has(SPAWNFLAG_WORLD_TEXT_LEADER_BOARD)) {
 		gentity_t *e = &g_entities[level.sorted_clients[0] + 1];
-		if (level.match_state == MatchState::MATCH_WARMUP_READYUP)
+		if (level.matchState == MatchState::MATCH_WARMUP_READYUP)
 			s = G_Fmt("Welcome to WOR\nKindly ready the fuck up...").data();
-		else if (level.match_state <= MatchState::MATCH_WARMUP_DEFAULT)
+		else if (level.matchState <= MatchState::MATCH_WARMUP_DEFAULT)
 			s = G_Fmt("Welcome to WOR").data();
 		else if (e && e->client && level.match.totalDeaths > 0 && e->client->resp.score > 0)
 			s = G_Fmt("{} is in the lead\nwith a score of {}",
@@ -2309,33 +2306,33 @@ void SP_info_world_text(gentity_t *self) {
 #include "monsters/m_player.h"
 
 static USE(misc_player_mannequin_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
-	self->monsterInfo.aiflags |= AI_TARGET_ANGER;
+	self->monsterInfo.aiFlags |= AI_TARGET_ANGER;
 	self->enemy = activator;
 
 	switch (self->count) {
 	case GESTURE_FLIP_OFF:
 		self->s.frame = FRAME_flip01;
-		self->monsterInfo.nextframe = FRAME_flip12;
+		self->monsterInfo.nextFrame = FRAME_flip12;
 		break;
 
 	case GESTURE_SALUTE:
 		self->s.frame = FRAME_salute01;
-		self->monsterInfo.nextframe = FRAME_salute11;
+		self->monsterInfo.nextFrame = FRAME_salute11;
 		break;
 
 	case GESTURE_TAUNT:
 		self->s.frame = FRAME_taunt01;
-		self->monsterInfo.nextframe = FRAME_taunt17;
+		self->monsterInfo.nextFrame = FRAME_taunt17;
 		break;
 
 	case GESTURE_WAVE:
 		self->s.frame = FRAME_wave01;
-		self->monsterInfo.nextframe = FRAME_wave11;
+		self->monsterInfo.nextFrame = FRAME_wave11;
 		break;
 
 	case GESTURE_POINT:
 		self->s.frame = FRAME_point01;
-		self->monsterInfo.nextframe = FRAME_point12;
+		self->monsterInfo.nextFrame = FRAME_point12;
 		break;
 	}
 }
@@ -2344,14 +2341,14 @@ static THINK(misc_player_mannequin_think) (gentity_t *self) -> void {
 	if (self->teleport_time <= level.time) {
 		self->s.frame++;
 
-		if ((self->monsterInfo.aiflags & AI_TARGET_ANGER) == 0) {
+		if ((self->monsterInfo.aiFlags & AI_TARGET_ANGER) == 0) {
 			if (self->s.frame > FRAME_stand40) {
 				self->s.frame = FRAME_stand01;
 			}
 		} else {
-			if (self->s.frame > self->monsterInfo.nextframe) {
+			if (self->s.frame > self->monsterInfo.nextFrame) {
 				self->s.frame = FRAME_stand01;
-				self->monsterInfo.aiflags &= ~AI_TARGET_ANGER;
+				self->monsterInfo.aiFlags &= ~AI_TARGET_ANGER;
 				self->enemy = nullptr;
 			}
 		}

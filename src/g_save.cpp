@@ -60,6 +60,11 @@ static std::unordered_map<std::tuple<const void *, save_data_tag_t>, const save_
 
 #include <cassert>
 
+/*
+================
+G_InitSave
+================
+*/
 void G_InitSave() {
 	if (save_data_initialized)
 		return;
@@ -67,10 +72,10 @@ void G_InitSave() {
 	for (const save_data_list_t *link = list_head; link; link = link->next) {
 		const void *link_ptr = link;
 
-		if (list_hash.find(link_ptr) != list_hash.end()) {
-			auto existing = *list_hash.find(link_ptr);
+		auto it = list_hash.find(link_ptr);
+		if (it != list_hash.end()) {
+			const auto &existing = *it;
 
-			// [0] is just to silence warning
 			assert(false || "invalid save pointer; break here to find which pointer it is"[0]);
 
 			if (!deathmatch->integer) {
@@ -81,10 +86,10 @@ void G_InitSave() {
 			}
 		}
 
-		if (list_str_hash.find(link->name) != list_str_hash.end()) {
-			auto existing = *list_str_hash.find(link->name);
+		auto sit = list_str_hash.find(link->name);
+		if (sit != list_str_hash.end()) {
+			const auto &existing = *sit;
 
-			// [0] is just to silence warning
 			assert(false || "invalid save pointer; break here to find which pointer it is"[0]);
 
 			if (!deathmatch->integer) {
@@ -134,18 +139,18 @@ const save_data_list_t *save_data_list_t::fetch(const void *ptr, save_data_tag_t
 
 std::string json_error_stack;
 
-void json_push_stack(const std::string &stack) {
+static void json_push_stack(const std::string &stack) {
 	json_error_stack += "::" + stack;
 }
 
-void json_pop_stack() {
+static void json_pop_stack() {
 	size_t o = json_error_stack.find_last_of("::");
 
 	if (o != std::string::npos)
 		json_error_stack.resize(o - 1);
 }
 
-void json_print_error(const char *field, const char *message, bool fatal) {
+static void json_print_error(const char *field, const char *message, bool fatal) {
 	if (fatal || g_strict_saves->integer)
 		gi.Com_ErrorFmt("Error loading JSON\n{}.{}: {}", json_error_stack, field, message);
 
@@ -345,7 +350,7 @@ struct save_type_deducer<gentity_t *> {
 };
 
 template<>
-struct save_type_deducer<gitem_t *> {
+struct save_type_deducer<Item *> {
 	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
 		return { name, offset, { ST_ITEM_POINTER } };
 	}
@@ -616,15 +621,15 @@ FIELD_AUTO(time),
 
 FIELD_AUTO(levelName),
 FIELD_AUTO(mapname),
-FIELD_AUTO(nextmap),
+FIELD_AUTO(nextMap),
 
 FIELD_AUTO(intermissionTime),
 FIELD_LEVEL_STRING(changeMap),
 FIELD_LEVEL_STRING(achievement),
-FIELD_AUTO(intermissionPreExit),
-FIELD_AUTO(intermissionClear),
-FIELD_AUTO(intermissionOrigin),
-FIELD_AUTO(intermissionAngle),
+FIELD_AUTO(intermission.preExit),
+FIELD_AUTO(intermission.clear),
+FIELD_AUTO(intermission.origin),
+FIELD_AUTO(intermission.angles),
 
 // picHealth is set by worldspawn
 // picPing is set by worldspawn
@@ -666,7 +671,7 @@ FIELD_AUTO(no_dm_telepads),
 FIELD_AUTO(gravity),
 FIELD_AUTO(hub_map),
 FIELD_AUTO(health_bar_entities),
-FIELD_AUTO(intermission_server_frame),
+FIELD_AUTO(intermission.serverFrame),
 FIELD_AUTO(story_active),
 FIELD_AUTO(next_auto_save)
 SAVE_STRUCT_END
@@ -732,7 +737,7 @@ FIELD_SIMPLE(inventory, ST_INVENTORY),
 FIELD_AUTO(ammoMax),
 
 FIELD_AUTO(weapon),
-FIELD_AUTO(lastweapon),
+FIELD_AUTO(lastWeapon),
 
 FIELD_AUTO(powerCubes),
 FIELD_AUTO(score),
@@ -746,7 +751,7 @@ FIELD_AUTO(help_time),
 // or transition time so it sends immediately
 FIELD_AUTO(wanted_fog),
 FIELD_STRUCT(wanted_heightfog, height_fog_t),
-FIELD_AUTO(megahealth_time),
+FIELD_AUTO(megaTime),
 FIELD_AUTO(lives),
 FIELD_AUTO(n64_crouch_warn_times),
 FIELD_AUTO(n64_crouch_warning)
@@ -760,10 +765,10 @@ FIELD_STRUCT(ps, player_state_t),
 
 FIELD_STRUCT(pers, client_persistant_t),
 
-FIELD_STRUCT(resp.coop_respawn, client_persistant_t),
-FIELD_AUTO(resp.enter_time),
+FIELD_STRUCT(resp.coopRespawn, client_persistant_t),
+FIELD_AUTO(resp.enterTime),
 FIELD_AUTO(resp.score),
-FIELD_AUTO(resp.cmd_angles),
+FIELD_AUTO(resp.cmdAngles),
 //FIELD_AUTO(resp.spectator),
 // old_pmove is not necessary to persist
 
@@ -804,42 +809,44 @@ FIELD_AUTO(breatherSound),
 
 FIELD_AUTO(machinegunShots),
 
-FIELD_AUTO(animEnd),
-FIELD_AUTO(animPriority),
-FIELD_AUTO(animDuck),
-FIELD_AUTO(animRun),
+FIELD_AUTO(anim.end),
+FIELD_AUTO(anim.priority),
+FIELD_AUTO(anim.duck),
+FIELD_AUTO(anim.run),
 
-FIELD_AUTO(pu_time_quad),
-FIELD_AUTO(pu_time_battlesuit),
-FIELD_AUTO(pu_time_rebreather),
-FIELD_AUTO(pu_time_enviro),
-FIELD_AUTO(pu_time_invisibility),
-FIELD_AUTO(pu_time_regeneration),
-FIELD_AUTO(pu_time_spawn_protection),
+//FIELD_AUTO(powerupTime),
 
-FIELD_AUTO(grenade_blew_up),
-FIELD_AUTO(grenade_time),
-FIELD_AUTO(grenade_finished_time),
-FIELD_AUTO(pu_time_haste),
-FIELD_AUTO(silencer_shots),
-FIELD_AUTO(weapon_sound),
+FIELD_AUTO(powerupTime.quadDamage),
+FIELD_AUTO(powerupTime.battleSuit),
+FIELD_AUTO(powerupTime.rebreather),
+FIELD_AUTO(powerupTime.enviroSuit),
+FIELD_AUTO(powerupTime.haste),
+FIELD_AUTO(powerupTime.invisibility),
+FIELD_AUTO(powerupTime.regeneration),
+FIELD_AUTO(powerupTime.spawnProtection),
+FIELD_AUTO(powerupTime.silencerShots),
 
-FIELD_AUTO(pickup_msg_time),
+FIELD_AUTO(grenadeBlewUp),
+FIELD_AUTO(grenadeTime),
+FIELD_AUTO(grenadeFinishedTime),
+FIELD_AUTO(weaponSound),
+
+FIELD_AUTO(pickupMessageTime),
 
 // flood stuff is dm only
 
-FIELD_AUTO(respawn_time),
+FIELD_AUTO(respawnMaxTime),
 
 // chasecam not required to persist
 
-FIELD_AUTO(pu_time_double),
-FIELD_AUTO(ir_time),
-FIELD_AUTO(nuke_time),
+FIELD_AUTO(powerupTime.doubleDamage),
+FIELD_AUTO(powerupTime.irGoggles),
+FIELD_AUTO(nukeTime),
 FIELD_AUTO(trackerPainTime),
 
 // ownedSphere is DM only
 
-FIELD_AUTO(empty_click_sound),
+FIELD_AUTO(emptyClickSound),
 FIELD_AUTO(trail_head),
 FIELD_AUTO(trail_tail),
 
@@ -898,7 +905,7 @@ FIELD_AUTO(s.instance_bits),
 // server stuff
 // client is auto-set
 // inUse is implied
-FIELD_AUTO(linkcount),
+FIELD_AUTO(linkCount),
 // area, num_clusters, clusternums, headnode, areanum, areanum2
 // are set by linkentity and can't be saved
 
@@ -947,7 +954,7 @@ FIELD_AUTO(pos3),
 FIELD_AUTO(velocity),
 FIELD_AUTO(aVelocity),
 FIELD_AUTO(mass),
-FIELD_AUTO(air_finished),
+FIELD_AUTO(airFinished),
 FIELD_AUTO(gravity).set_is_empty(edict_t_gravity_is_empty),
 
 FIELD_AUTO(goalentity),
@@ -1051,7 +1058,7 @@ FIELD_AUTO(moveinfo.move_speed),
 FIELD_AUTO(moveinfo.next_speed),
 FIELD_AUTO(moveinfo.remaining_distance),
 FIELD_AUTO(moveinfo.decel_distance),
-FIELD_AUTO(moveinfo.endfunc),
+FIELD_AUTO(moveinfo.endFunc),
 FIELD_AUTO(moveinfo.blocked),
 
 FIELD_AUTO(moveinfo.curve_ref),
@@ -1064,8 +1071,8 @@ FIELD_AUTO(moveinfo.num_frames_done),
 // monsterinfo_t
 FIELD_AUTO(monsterInfo.active_move),
 FIELD_AUTO(monsterInfo.next_move),
-FIELD_AUTO(monsterInfo.aiflags),
-FIELD_AUTO(monsterInfo.nextframe),
+FIELD_AUTO(monsterInfo.aiFlags),
+FIELD_AUTO(monsterInfo.nextFrame),
 FIELD_AUTO(monsterInfo.scale),
 
 FIELD_AUTO(monsterInfo.stand),
@@ -1077,10 +1084,10 @@ FIELD_AUTO(monsterInfo.dodge),
 FIELD_AUTO(monsterInfo.attack),
 FIELD_AUTO(monsterInfo.melee),
 FIELD_AUTO(monsterInfo.sight),
-FIELD_AUTO(monsterInfo.checkattack),
+FIELD_AUTO(monsterInfo.checkAttack),
 FIELD_AUTO(monsterInfo.setskin),
 
-FIELD_AUTO(monsterInfo.pausetime),
+FIELD_AUTO(monsterInfo.pauseTime),
 FIELD_AUTO(monsterInfo.attack_finished),
 FIELD_AUTO(monsterInfo.fire_wait),
 
@@ -1091,13 +1098,13 @@ FIELD_AUTO(monsterInfo.last_sighting),
 FIELD_AUTO(monsterInfo.attack_state),
 FIELD_AUTO(monsterInfo.lefty),
 FIELD_AUTO(monsterInfo.idle_time),
-FIELD_AUTO(monsterInfo.linkcount),
+FIELD_AUTO(monsterInfo.linkCount),
 
 FIELD_AUTO(monsterInfo.powerArmorType),
 FIELD_AUTO(monsterInfo.powerArmorPower),
 FIELD_AUTO(monsterInfo.initial_power_armor_type),
 FIELD_AUTO(monsterInfo.max_power_armor_power),
-FIELD_AUTO(monsterInfo.weapon_sound),
+FIELD_AUTO(monsterInfo.weaponSound),
 FIELD_AUTO(monsterInfo.engine_sound),
 
 FIELD_AUTO(monsterInfo.blocked),
@@ -1108,8 +1115,8 @@ FIELD_AUTO(monsterInfo.badMedic1),
 FIELD_AUTO(monsterInfo.badMedic2),
 FIELD_AUTO(monsterInfo.healer),
 FIELD_AUTO(monsterInfo.duck),
-FIELD_AUTO(monsterInfo.unduck),
-FIELD_AUTO(monsterInfo.sidestep),
+FIELD_AUTO(monsterInfo.unDuck),
+FIELD_AUTO(monsterInfo.sideStep),
 FIELD_AUTO(monsterInfo.base_height),
 FIELD_AUTO(monsterInfo.next_duck_time),
 FIELD_AUTO(monsterInfo.duck_wait_time),
@@ -1272,7 +1279,7 @@ inline size_t get_simple_type_size(save_type_id_t id, bool fatal = true) {
 	return 0;
 }
 
-size_t get_complex_type_size(const save_type_t &type) {
+static size_t get_complex_type_size(const save_type_t &type) {
 	// these are simple types
 	if (auto simple = get_simple_type_size(type.id, false))
 		return simple;
@@ -1303,7 +1310,7 @@ size_t get_complex_type_size(const save_type_t &type) {
 
 void read_save_struct_json(const Json::Value &json, void *data, const save_struct_t *structure);
 
-void read_save_type_json(const Json::Value &json, void *data, const save_type_t *type, const char *field) {
+static void read_save_type_json(const Json::Value &json, void *data, const save_type_t *type, const char *field) {
 	switch (type->id) {
 	case ST_BOOL:
 		if (!json.isBool())
@@ -1587,7 +1594,7 @@ void read_save_type_json(const Json::Value &json, void *data, const save_type_t 
 		return;
 	case ST_ITEM_POINTER:
 	case ST_ITEM_INDEX: {
-		gitem_t *item;
+		Item *item;
 
 		if (json.isNull())
 			item = nullptr;
@@ -1605,7 +1612,7 @@ void read_save_type_json(const Json::Value &json, void *data, const save_type_t 
 		}
 
 		if (type->id == ST_ITEM_POINTER)
-			*((gitem_t **)data) = item;
+			*((Item **)data) = item;
 		else
 			*((int32_t *)data) = item ? item->id : 0;
 		return;
@@ -1652,7 +1659,7 @@ void read_save_type_json(const Json::Value &json, void *data, const save_type_t 
 					continue;
 				}
 
-				gitem_t *item = FindItemByClassname(className);
+				Item *item = FindItemByClassname(className);
 
 				if (!item) {
 					json_push_stack(className);
@@ -1737,7 +1744,7 @@ bool write_save_struct_json(const void *data, const save_struct_t *structure, bo
 
 #define TYPED_DATA_IS_EMPTY(type, expr) (type->is_empty ? type->is_empty(data) : (expr))
 
-inline bool string_is_high(const char *c) {
+static inline bool string_is_high(const char *c) {
 	for (size_t i = 0; i < strlen(c); i++)
 		if (c[i] & 128)
 			return true;
@@ -1745,7 +1752,7 @@ inline bool string_is_high(const char *c) {
 	return false;
 }
 
-inline Json::Value string_to_bytes(const char *c) {
+static inline Json::Value string_to_bytes(const char *c) {
 	Json::Value array(Json::arrayValue);
 
 	for (size_t i = 0; i < strlen(c); i++)
@@ -1759,7 +1766,7 @@ inline Json::Value string_to_bytes(const char *c) {
 // values that are the same as zero'd memory, to save
 // space in the resulting JSON. output will be
 // unmodified in that case.
-bool write_save_type_json(const void *data, const save_type_t *type, bool null_for_empty, Json::Value &output) {
+static bool write_save_type_json(const void *data, const save_type_t *type, bool null_for_empty, Json::Value &output) {
 	switch (type->id) {
 	case ST_BOOL:
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const bool *)data))
@@ -1987,7 +1994,7 @@ bool write_save_type_json(const void *data, const save_type_t *type, bool null_f
 		return true;
 	}
 	case ST_ITEM_POINTER: {
-		const gitem_t *item = *reinterpret_cast<const gitem_t *const *>(data);
+		const Item *item = *reinterpret_cast<const Item *const *>(data);
 
 		if (item != nullptr && item->id != 0)
 			if (!strlen(item->className))
@@ -2010,7 +2017,7 @@ bool write_save_type_json(const void *data, const save_type_t *type, bool null_f
 		if (index < IT_NULL || index >= IT_TOTAL)
 			gi.Com_ErrorFmt("Attempt to persist invalid item index {}", (int32_t)index);
 
-		const gitem_t *item = GetItemByIndex(index);
+		const Item *item = GetItemByIndex(index);
 
 		if (index)
 			if (!strlen(item->className))
@@ -2060,7 +2067,7 @@ bool write_save_type_json(const void *data, const save_type_t *type, bool null_f
 		const int32_t *inventory_ptr = (const int32_t *)data;
 
 		for (item_id_t i = static_cast<item_id_t>(IT_NULL + 1); i < IT_TOTAL; i = static_cast<item_id_t>(i + 1)) {
-			gitem_t *item = GetItemByIndex(i);
+			Item *item = GetItemByIndex(i);
 
 			if (!item || !item->className) {
 				if (inventory_ptr[i])
@@ -2275,7 +2282,7 @@ void ReadGameJson(const char *jsonString) {
 char *WriteLevelJson(bool transition, size_t *out_size) {
 	// update current level entry now, just so we can
 	// use gamemap to test EOU
-	G_UpdateLevelEntry();
+	UpdateLevelEntry();
 
 	Json::Value json(Json::objectValue);
 

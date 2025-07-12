@@ -3,6 +3,11 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# WOR
+build/
+dev_tools/
+external/
+
 *.dll
 *.exp
 *.lib

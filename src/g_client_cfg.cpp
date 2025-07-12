@@ -11,6 +11,31 @@
 
 using json = nlohmann::json;
 
+/*
+================
+GetPlayerNameForSocialID
+================
+*/
+std::string GetPlayerNameForSocialID(const std::string &socialID) {
+	const std::string path = "pcfg/" + socialID + ".json";
+
+	std::ifstream file(path);
+	if (!file.is_open())
+		return {};
+
+	nlohmann::json json;
+	try {
+		file >> json;
+	} catch (...) {
+		return {};
+	}
+
+	if (!json.contains("playerName") || !json["playerName"].is_string())
+		return {};
+
+	return json["playerName"].get<std::string>();
+}
+
 const int DEFAULT_RATING = 1500;
 const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
 
@@ -20,7 +45,9 @@ static void ClientConfig_Create(gclient_t *cl, const std::string &playerID, cons
 		{"socialID", playerID},
 		{"playerName", playerName},
 		{"originalPlayerName", playerName},
-		{"playerAliases", json::array()},
+		{"playerAliases", json::array()},  // known past names
+
+		// Visual & audio settings
 		{"config", {
 			{"drawCrosshairID", 1},
 			{"drawFragMessages", 1},
@@ -28,13 +55,33 @@ static void ClientConfig_Create(gclient_t *cl, const std::string &playerID, cons
 			{"eyeCam", 1},
 			{"killBeep", 1}
 		}},
+
+			// Per-game-type ratings (can be float or int depending on your system)
 		{"ratings", {
 			{gameType, DEFAULT_RATING}
 		}},
-		{"admin",              false},
-		{"banned",             false},
-		{"lastUpdated",        TimeStamp()}
+
+		// Match-level stats
+		{"stats", {
+			{"totalMatches", 0},
+			{"totalWins",    0},
+			{"totalLosses",  0},
+			{"totalTimePlayed", 0},   // in seconds
+			{"bestSkillRating", 0},
+			{"lastSkillRating", DEFAULT_RATING},
+			{"lastSkillChange", 0}
+		}},
+
+		// Permissions & moderation
+		{"admin", false},
+		{"banned", false},
+
+		// Tracking
+		{"lastUpdated", TimeStamp()},
+		{"lastSeen",    TimeStamp()},
+		{"firstSeen",   TimeStamp()}
 	};
+
 
 	try {
 		std::ofstream file(G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data());
@@ -50,52 +97,53 @@ static void ClientConfig_Create(gclient_t *cl, const std::string &playerID, cons
 	}
 }
 
+/*
+=============
+ClientConfig_Init
+=============
+*/
 void ClientConfig_Init(gclient_t *cl, const std::string &playerID, const std::string &playerName, const std::string &gameType) {
-	std::ifstream file(G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, cl->sess.socialID).data());
+	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+	std::ifstream file(path);
 	json playerData;
 	bool modified = false;
 
 	cl->sess.skillRating = 0;
+	cl->sess.skillRatingChange = 0;
 
-	// Check if the file exists
+	// If file doesn't exist, create a new default config
 	if (!file.is_open()) {
-		// If the file doesn't exist, create it with default ratings
-		ClientConfig_Create(cl, cl->sess.socialID, playerName, gameType);
+		ClientConfig_Create(cl, playerID, playerName, gameType);
 		return;
 	}
 
+	// Attempt to parse existing config
 	try {
 		file >> playerData;
 	} catch (const json::parse_error &) {
-		gi.Com_PrintFmt("Failed to parse client config file for {}: {}/{}.json\n", playerName, PLAYER_CONFIG_PATH, playerID.c_str());
+		gi.Com_PrintFmt("Failed to parse client config for {}: {}\n", playerName.c_str(), path.c_str());
 		return;
 	}
 	file.close();
 
-	// Handle mismatched player name
+	// Handle player name changes
 	if (playerData.contains("playerName") && playerData["playerName"] != playerName) {
-		// Step 1a: Retain the original player name
-		if (!playerData.contains("originalPlayerName")) {
+		if (!playerData.contains("originalPlayerName"))
 			playerData["originalPlayerName"] = playerData["playerName"];
-		}
 
-		// Step 1b: Handle player aliases
-		if (!playerData.contains("playerAliases")) {
+		if (!playerData.contains("playerAliases") || !playerData["playerAliases"].is_array())
 			playerData["playerAliases"] = json::array();
-		}
 
-		// Add the current player name to the aliases if not already present
 		if (std::find(playerData["playerAliases"].begin(), playerData["playerAliases"].end(), playerName) == playerData["playerAliases"].end()) {
 			playerData["playerAliases"].push_back(playerName);
 		}
 
-		// Step 1c: Update the player name to the current one
 		playerData["playerName"] = playerName;
 		modified = true;
 	}
 
-	// Check if config exist
-	if (!playerData.contains("config") || playerData["config"].empty()) {
+	// Ensure config block exists
+	if (!playerData.contains("config") || !playerData["config"].is_object()) {
 		playerData["config"] = {
 			{"drawCrosshairID", 1},
 			{"drawFragMessages", 1},
@@ -106,46 +154,74 @@ void ClientConfig_Init(gclient_t *cl, const std::string &playerID, const std::st
 		modified = true;
 	}
 
-	if (!playerData.contains("lastConnected") || playerData["lastConnected"].empty()) {
-		playerData["lastConnected"] = TimeStamp();
+	// Ensure stats block exists
+	if (!playerData.contains("stats") || !playerData["stats"].is_object()) {
+		playerData["stats"] = {
+			{"totalMatches",     0},
+			{"totalWins",        0},
+			{"totalLosses",      0},
+			{"totalTimePlayed",  0},
+			{"bestSkillRating",  0},
+			{"lastSkillRating",  DEFAULT_RATING},
+			{"lastSkillChange",  0}
+		};
 		modified = true;
 	}
 
-	// Check if ratings exist
-	if (!playerData.contains("ratings") || playerData["ratings"].empty()) {
-		// No skill ratings exist; initialize current to default
+	// Ensure ratings block exists
+	if (!playerData.contains("ratings") || !playerData["ratings"].is_object()) {
 		playerData["ratings"] = {
 			{gameType, DEFAULT_RATING}
 		};
+		playerData["stats"]["lastSkillRating"] = DEFAULT_RATING;
 		modified = true;
 	} else if (!playerData["ratings"].contains(gameType)) {
-		// If the specific game type is missing, set it to the highest rating from other game types
 		int maxRating = DEFAULT_RATING;
 		for (auto &[type, rating] : playerData["ratings"].items()) {
 			maxRating = std::max(maxRating, rating.get<int>());
 		}
 		playerData["ratings"][gameType] = maxRating;
+		playerData["stats"]["lastSkillRating"] = maxRating;
 		modified = true;
 	}
 
-	if (modified) {
-		playerData["lastUpdated"] = TimeStamp();
+	// Update timestamps
+	const std::string now = TimeStamp();
+	if (!playerData.contains("firstSeen")) {
+		playerData["firstSeen"] = now;
+		modified = true;
+	}
+	playerData["lastSeen"] = now;
+	playerData["lastUpdated"] = now;
 
-		// Write the updated data back to the file
+	// Save file if changes occurred
+	if (modified) {
 		try {
-			std::ofstream outFile(G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data());
+			std::ofstream outFile(path);
 			if (outFile.is_open()) {
-				outFile << playerData.dump(4); // Pretty print with 4 spaces
+				outFile << playerData.dump(4);
 				outFile.close();
 			} else {
-				gi.Com_PrintFmt("Failed to write to client config file for {}: {}/{}.json\n", playerName, PLAYER_CONFIG_PATH, playerID);
+				gi.Com_PrintFmt("Failed to write updated config for {}: {}\n", playerName.c_str(), path.c_str());
 			}
 		} catch (const std::exception &e) {
-			gi.Com_PrintFmt("__FUNCTION__: exception: {}\n", __FUNCTION__, e.what());
+			gi.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, playerName.c_str(), e.what());
 		}
 	}
 
+	if (playerData.contains("config") && playerData["config"].contains("weaponPrefs")) {
+		const auto &prefs = playerData["config"]["weaponPrefs"];
+		if (prefs.is_array()) {
+			for (const auto &p : prefs) {
+				if (p.is_string())
+					cl->sess.weaponPrefs.push_back(p.get<std::string>());
+			}
+		}
+	}
+
+	// Apply to session
 	cl->sess.skillRating = playerData["ratings"][gameType];
+	cl->sess.skillRatingChange = playerData["stats"].value("lastSkillChange", 0);
 
 	if (playerData.contains("admin") && playerData["admin"].is_boolean()) {
 		cl->sess.admin = playerData["admin"];
@@ -159,10 +235,193 @@ void ClientConfig_Init(gclient_t *cl, const std::string &playerID, const std::st
 	}
 }
 
+/*
+=============
+ClientConfig_SaveStats
+=============
+*/
+void ClientConfig_SaveStats(gclient_t *cl, bool wonMatch) {
+	if (!cl || cl->sess.is_a_bot)
+		return;
+
+	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, cl->sess.socialID).data();
+	std::ifstream file(path);
+	if (!file.is_open()) {
+		gi.Com_PrintFmt("{}: could not open file for {}\n", __FUNCTION__, cl->sess.socialID);
+		return;
+	}
+
+	json playerData;
+	try {
+		file >> playerData;
+	} catch (const json::parse_error &) {
+		gi.Com_PrintFmt("{}: parse error in {}\n", __FUNCTION__, path);
+		return;
+	}
+	file.close();
+
+	bool modified = false;
+	const std::string now = TimeStamp();
+
+	// Normalize any bad admin/banned fields (legacy fix)
+	if (playerData.contains("admin") && playerData["admin"].is_null()) {
+		playerData["admin"] = false;
+		modified = true;
+	}
+	if (playerData.contains("banned") && playerData["banned"].is_null()) {
+		playerData["banned"] = false;
+		modified = true;
+	}
+
+	// Ensure stats block exists and is valid
+	if (!playerData.contains("stats") || !playerData["stats"].is_object()) {
+		playerData["stats"] = json::object();
+		modified = true;
+	}
+
+	auto &stats = playerData["stats"];
+
+	// Initialize missing stats fields with defaults
+	stats["totalMatches"] = stats.value("totalMatches", 0);
+	stats["totalWins"] = stats.value("totalWins", 0);
+	stats["totalLosses"] = stats.value("totalLosses", 0);
+	stats["totalTimePlayed"] = stats.value("totalTimePlayed", 0);
+	stats["lastSkillRating"] = cl->sess.skillRating;
+	stats["lastSkillChange"] = cl->sess.skillRatingChange;
+	stats["bestSkillRating"] = std::max(cl->sess.skillRating, stats.value("bestSkillRating", cl->sess.skillRating));
+
+	// Apply stat deltas
+	stats["totalMatches"] = stats["totalMatches"].get<int>() + 1;
+	stats["totalTimePlayed"] = stats["totalTimePlayed"].get<int>() + (cl->sess.playEndRealTime - cl->sess.playStartRealTime);
+	if (wonMatch) {
+		stats["totalWins"] = stats["totalWins"].get<int>() + 1;
+	} else {
+		stats["totalLosses"] = stats["totalLosses"].get<int>() + 1;
+	}
+
+	// Ensure ratings block exists
+	if (!playerData.contains("ratings") || !playerData["ratings"].is_object()) {
+		playerData["ratings"] = json::object();
+		modified = true;
+	}
+
+	// Save updated rating for current game type
+	playerData["ratings"][gt_short_name_upper[g_gametype->integer]] = cl->sess.skillRating;
+
+	// Timestamp update
+	playerData["lastUpdated"] = now;
+
+	// Save file
+	try {
+		std::ofstream outFile(path);
+		if (outFile.is_open()) {
+			outFile << playerData.dump(4);
+			outFile.close();
+		} else {
+			gi.Com_PrintFmt("{}: failed to write file for {}\n", __FUNCTION__, cl->sess.socialID);
+		}
+	} catch (const std::exception &e) {
+		gi.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, cl->sess.socialID, e.what());
+	}
+}
+
+/*
+===============
+ClientConfig_SaveStatsForGhost
+===============
+*/
+void ClientConfig_SaveStatsForGhost(const Ghosts &ghost, bool won) {
+	if (!*ghost.socialID)
+		return;
+
+	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, ghost.socialID).data();
+	std::ifstream file(path);
+	if (!file.is_open()) {
+		gi.Com_PrintFmt("{}: could not open file for ghost {}\n", __FUNCTION__, ghost.socialID);
+		return;
+	}
+
+	json playerData;
+	try {
+		file >> playerData;
+	} catch (const json::parse_error &) {
+		gi.Com_PrintFmt("{}: parse error in {}\n", __FUNCTION__, path);
+		return;
+	}
+	file.close();
+
+	bool modified = false;
+	const std::string now = TimeStamp();
+
+	// Normalize any bad admin/banned fields (legacy fix)
+	if (playerData.contains("admin") && playerData["admin"].is_null()) {
+		playerData["admin"] = false;
+		modified = true;
+	}
+	if (playerData.contains("banned") && playerData["banned"].is_null()) {
+		playerData["banned"] = false;
+		modified = true;
+	}
+
+	// Ensure stats block exists
+	if (!playerData.contains("stats") || !playerData["stats"].is_object()) {
+		playerData["stats"] = json::object();
+		modified = true;
+	}
+
+	auto &stats = playerData["stats"];
+
+	// Initialize missing fields with defaults
+	stats["totalMatches"] = stats.value("totalMatches", 0);
+	stats["totalWins"] = stats.value("totalWins", 0);
+	stats["totalLosses"] = stats.value("totalLosses", 0);
+	stats["totalTimePlayed"] = stats.value("totalTimePlayed", 0);
+	stats["lastSkillRating"] = ghost.skillRating;
+	stats["lastSkillChange"] = ghost.skillRatingChange;
+	stats["bestSkillRating"] = std::max(ghost.skillRating, stats.value("bestSkillRating", ghost.skillRating));
+
+	// Apply stat deltas
+	stats["totalMatches"] = stats["totalMatches"].get<int>() + 1;
+	if (won) {
+		stats["totalWins"] = stats["totalWins"].get<int>() + 1;
+	} else {
+		stats["totalLosses"] = stats["totalLosses"].get<int>() + 1;
+	}
+
+	// If you tracked time for ghosts, add to totalTimePlayed here
+	// stats["totalTimePlayed"] += ghost.playTimeSeconds;
+
+	// Ensure ratings block exists
+	if (!playerData.contains("ratings") || !playerData["ratings"].is_object()) {
+		playerData["ratings"] = json::object();
+		modified = true;
+	}
+
+	// Save updated rating for current game type
+	const std::string gtKey = gt_short_name_upper[g_gametype->integer];
+	playerData["ratings"][gtKey] = ghost.skillRating;
+
+	// Update timestamp
+	playerData["lastUpdated"] = now;
+
+	// Save file
+	try {
+		std::ofstream outFile(path);
+		if (outFile.is_open()) {
+			outFile << playerData.dump(4);
+			outFile.close();
+		} else {
+			gi.Com_PrintFmt("{}: failed to write file for {}\n", __FUNCTION__, ghost.socialID);
+		}
+	} catch (const std::exception &e) {
+		gi.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, ghost.socialID, e.what());
+	}
+}
+
 // Loads PLAYER_CONFIG_PATH/<playerID>.json, runs your updater,
 // and if anything actually changed, stamps lastUpdated and saves.
 // Returns true if the file was modified & written, false otherwise.
-bool ClientConfig_Update(
+static bool ClientConfig_Update(
 	const std::string &playerID,
 	const std::function<void(json &)> &updater
 ) {
@@ -219,8 +478,8 @@ bool ClientConfig_Update(
 	return true;
 }
 
-
-// Bulk‑update any top‑level fields in the player’s JSON.
+#if 0
+// Bulk-update any top-level fields in the player's JSON.
 // Example call at the bottom.
 bool ClientConfig_BulkUpdate(
 	const std::string &playerID,
@@ -231,24 +490,4 @@ bool ClientConfig_BulkUpdate(
 		}
 		});
 }
-
-
-bool ClientConfig_DoRatingsUpdate(const std::string &playerID) {
-	constexpr int RATING_DELTA = 25;
-
-	ClientConfig_Update(playerID, [&](json &cfg) {
-		// 1) Ensure we have a ratings object
-		if (!cfg.contains("ratings") || !cfg["ratings"].is_object()) {
-			cfg["ratings"] = json::object();
-		}
-		auto &ratings = cfg["ratings"];
-
-		// 2) Fetch the old rating (or DEFAULT_RATING if missing)
-		int oldRating = ratings.value(gt_short_name_upper[g_gametype->integer], DEFAULT_RATING);
-
-		// 3) Write the new rating back
-		ratings[gt_short_name_upper[g_gametype->integer]] = oldRating + RATING_DELTA;
-		});
-
-	return true;
-}
+#endif

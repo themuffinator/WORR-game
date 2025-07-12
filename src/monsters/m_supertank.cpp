@@ -25,7 +25,7 @@ static cached_soundindex sound_search2;
 
 static cached_soundindex tread_sound;
 
-void TreadSound(gentity_t *self) {
+static void TreadSound(gentity_t *self) {
 	gi.sound(self, CHAN_BODY, tread_sound, 1, ATTN_NORM, 0);
 }
 
@@ -170,7 +170,7 @@ MONSTERINFO_WALK(supertank_walk) (gentity_t *self) -> void {
 }
 
 MONSTERINFO_RUN(supertank_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &supertank_move_stand);
 	else
 		M_SetAnimation(self, &supertank_move_run);
@@ -209,7 +209,7 @@ static void BossLoop(gentity_t *self) {
 	else
 		self->spawnflags &= ~SPAWNFLAG_SUPERTANK_LONG_DEATH;
 
-	self->monsterInfo.nextframe = FRAME_death_19;
+	self->monsterInfo.nextFrame = FRAME_death_19;
 }
 
 static void supertankGrenade(gentity_t *self) {
@@ -422,7 +422,7 @@ void supertankRocket(gentity_t *self) {
 }
 
 void supertankMachineGun(gentity_t *self) {
-	vec3_t					 dir;
+	vec3_t					 dir{};
 	vec3_t					 start;
 	vec3_t					 forward, right;
 	monster_muzzleflash_id_t flash_number;
@@ -612,7 +612,7 @@ void SP_monster_supertank(gentity_t *self) {
 
 	walkmonster_start(self);
 
-	self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 
 	// TODO
 	if (level.isN64) {

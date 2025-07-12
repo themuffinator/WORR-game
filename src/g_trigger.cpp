@@ -283,8 +283,8 @@ static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 					// [Paril-KEX] don't allow respawning players to keep
 					// used keys
 					if (!P_UseCoopInstancedItems()) {
-						ce->client->resp.coop_respawn.inventory[index] = 0;
-						ce->client->resp.coop_respawn.powerCubes &= ~(1 << cube);
+						ce->client->resp.coopRespawn.inventory[index] = 0;
+						ce->client->resp.coopRespawn.powerCubes &= ~(1 << cube);
 					}
 				}
 			}
@@ -295,7 +295,7 @@ static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 				// [Paril-KEX] don't allow respawning players to keep
 				// used keys
 				if (!P_UseCoopInstancedItems())
-					ce->client->resp.coop_respawn.inventory[index] = 0;
+					ce->client->resp.coopRespawn.inventory[index] = 0;
 			}
 		}
 	} else {
@@ -748,7 +748,7 @@ static USE(hurt_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -
 }
 
 static TOUCH(hurt_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
-	damageflags_t dflags;
+	damageFlags_t damageFlags;
 
 	if (!other->takeDamage)
 		return;
@@ -782,11 +782,11 @@ static TOUCH(hurt_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, 
 	}
 
 	if (self->spawnflags.has(SPAWNFLAG_HURT_NO_PROTECTION))
-		dflags = DAMAGE_NO_PROTECTION;
+		damageFlags = DAMAGE_NO_PROTECTION;
 	else
-		dflags = DAMAGE_NONE;
+		damageFlags = DAMAGE_NONE;
 
-	Damage(other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, self->dmg, dflags, MOD_TRIGGER_HURT);
+	Damage(other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, self->dmg, damageFlags, MOD_TRIGGER_HURT);
 }
 
 void SP_trigger_hurt(gentity_t *self) {
@@ -1255,7 +1255,7 @@ static BoxEntitiesResult_t trigger_coop_relay_player_filter(gentity_t *ent, void
 }
 
 static THINK(trigger_coop_relay_think) (gentity_t *self) -> void {
-	std::array<gentity_t *, MAX_SPLIT_PLAYERS> players;
+	std::array<gentity_t *, MAX_SPLIT_PLAYERS> players{};
 	size_t num_active = 0;
 
 	for (auto player : active_clients())
@@ -1373,7 +1373,7 @@ static TOUCH(trigger_teleport_touch) (gentity_t *self, gentity_t *other, const t
 		}
 
 		// set angles
-		other->client->ps.pmove.delta_angles = dest->s.angles - other->client->resp.cmd_angles;
+		other->client->ps.pmove.delta_angles = dest->s.angles - other->client->resp.cmdAngles;
 
 		other->client->ps.viewangles = {};
 		other->client->vAngle = {};
@@ -1462,7 +1462,7 @@ static TOUCH(old_teleporter_touch) (gentity_t *self, gentity_t *other, const tra
 	}
 
 	// set angles
-	other->client->ps.pmove.delta_angles = dest->s.angles - other->client->resp.cmd_angles;
+	other->client->ps.pmove.delta_angles = dest->s.angles - other->client->resp.cmdAngles;
 
 	other->s.angles[PITCH] = 0;
 	other->s.angles[YAW] = dest->s.angles[YAW];

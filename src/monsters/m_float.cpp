@@ -452,7 +452,7 @@ MMOVE_T(floater_move_run) = { FRAME_stand101, FRAME_stand152, floater_frames_run
 MONSTERINFO_RUN(floater_run) (gentity_t *self) -> void {
 	if (self->monsterInfo.active_move == &floater_move_disguise)
 		M_SetAnimation(self, &floater_move_pop);
-	else if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	else if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &floater_move_stand1);
 	else
 		M_SetAnimation(self, &floater_move_run);
@@ -653,7 +653,7 @@ void SP_monster_floater(gentity_t *self) {
 
 	self->monsterInfo.scale = MODEL_SCALE;
 
-	self->monsterInfo.aiflags |= AI_ALTERNATE_FLY;
+	self->monsterInfo.aiFlags |= AI_ALTERNATE_FLY;
 	float_set_fly_parameters(self);
 
 	flymonster_start(self);

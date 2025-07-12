@@ -53,7 +53,7 @@ bool stalker_ok_to_transition(gentity_t *self) {
 		margin = self->mins[2] - 8;
 	} else {
 		// her stalkers are just better
-		if (self->monsterInfo.aiflags & AI_SPAWNED_WIDOW)
+		if (self->monsterInfo.aiFlags & AI_SPAWNED_WIDOW)
 			max_dist = 256;
 		else
 			max_dist = 180;
@@ -245,7 +245,7 @@ mframe_t stalker_frames_run[] = {
 MMOVE_T(stalker_move_run) = { FRAME_run01, FRAME_run04, stalker_frames_run, nullptr };
 
 MONSTERINFO_RUN(stalker_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &stalker_move_stand);
 	else
 		M_SetAnimation(self, &stalker_move_run);
@@ -284,7 +284,7 @@ mframe_t stalker_frames_reactivate[] = {
 MMOVE_T(stalker_move_false_death_end) = { FRAME_reactive01, FRAME_reactive04, stalker_frames_reactivate, stalker_run };
 
 static void stalker_reactivate(gentity_t *self) {
-	self->monsterInfo.aiflags &= ~AI_STAND_GROUND;
+	self->monsterInfo.aiFlags &= ~AI_STAND_GROUND;
 	M_SetAnimation(self, &stalker_move_false_death_end);
 }
 
@@ -339,7 +339,7 @@ void stalker_false_death_start(gentity_t *self) {
 	self->s.angles[ROLL] = 0;
 	self->gravityVector = { 0, 0, -1 };
 
-	self->monsterInfo.aiflags |= AI_STAND_GROUND;
+	self->monsterInfo.aiFlags |= AI_STAND_GROUND;
 	M_SetAnimation(self, &stalker_move_false_death_start);
 }
 
@@ -533,7 +533,7 @@ static bool stalker_check_lz(gentity_t *self, gentity_t *target, const vec3_t &d
 	if (!target->groundEntity)
 		return false;
 
-	vec3_t jumpLZ;
+	vec3_t jumpLZ{};
 
 	// check under the player's four corners
 	// if they're not solid, bail.
@@ -719,15 +719,15 @@ void stalker_jump_wait_land(gentity_t *self) {
 
 	if (self->groundEntity == nullptr) {
 		self->gravity = 1.3f;
-		self->monsterInfo.nextframe = self->s.frame;
+		self->monsterInfo.nextFrame = self->s.frame;
 
 		if (monster_jump_finished(self)) {
 			self->gravity = 1;
-			self->monsterInfo.nextframe = self->s.frame + 1;
+			self->monsterInfo.nextFrame = self->s.frame + 1;
 		}
 	} else {
 		self->gravity = 1;
-		self->monsterInfo.nextframe = self->s.frame + 1;
+		self->monsterInfo.nextFrame = self->s.frame + 1;
 	}
 }
 

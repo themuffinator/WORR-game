@@ -564,7 +564,7 @@ MMOVE_T(brain_move_run) = { FRAME_walk101, FRAME_walk111, brain_frames_run, null
 
 MONSTERINFO_RUN(brain_run) (gentity_t *self) -> void {
 	self->monsterInfo.powerArmorType = IT_POWER_SCREEN;
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &brain_move_stand);
 	else
 		M_SetAnimation(self, &brain_move_run);
@@ -598,7 +598,7 @@ static PAIN(brain_pain) (gentity_t *self, gentity_t *other, float kick, int dama
 		M_SetAnimation(self, &brain_move_pain3);
 
 	// PMM - clear duck flag
-	if (self->monsterInfo.aiflags & AI_DUCKED)
+	if (self->monsterInfo.aiFlags & AI_DUCKED)
 		monster_duck_up(self);
 }
 
@@ -716,7 +716,7 @@ void SP_monster_brain(gentity_t *self) {
 	self->monsterInfo.run = brain_run;
 	self->monsterInfo.dodge = M_MonsterDodge;
 	self->monsterInfo.duck = brain_duck;
-	self->monsterInfo.unduck = monster_duck_up;
+	self->monsterInfo.unDuck = monster_duck_up;
 	self->monsterInfo.attack = brain_attack;
 	self->monsterInfo.melee = brain_melee;
 	self->monsterInfo.sight = brain_sight;

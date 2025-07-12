@@ -20,7 +20,7 @@ static cached_soundindex sound_open;
 static cached_soundindex sound_search;
 static cached_soundindex sound_sight;
 
-void gunner_idlesound(gentity_t *self) {
+static void gunner_idlesound(gentity_t *self) {
 	gi.sound(self, CHAN_VOICE, sound_idle, 1, ATTN_IDLE, 0);
 }
 
@@ -88,7 +88,7 @@ mframe_t gunner_frames_fidget[] = {
 MMOVE_T(gunner_move_fidget) = { FRAME_stand31, FRAME_stand70, gunner_frames_fidget, gunner_stand };
 
 static void gunner_fidget(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		return;
 	else if (self->enemy)
 		return;
@@ -172,7 +172,7 @@ MMOVE_T(gunner_move_run) = { FRAME_run01, FRAME_run08, gunner_frames_run, nullpt
 
 MONSTERINFO_RUN(gunner_run) (gentity_t *self) -> void {
 	monster_done_dodge(self);
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &gunner_move_stand);
 	else
 		M_SetAnimation(self, &gunner_move_run);
@@ -266,10 +266,10 @@ static PAIN(gunner_pain) (gentity_t *self, gentity_t *other, float kick, int dam
 	else
 		M_SetAnimation(self, &gunner_move_pain1);
 
-	self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 
 	// PMM - clear duck flag
-	if (self->monsterInfo.aiflags & AI_DUCKED)
+	if (self->monsterInfo.aiFlags & AI_DUCKED)
 		monster_duck_up(self);
 }
 
@@ -389,7 +389,7 @@ static bool gunner_grenade_check(gentity_t *self) {
 	vec3_t target;
 
 	// check for flag telling us that we're blindfiring
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING)
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING)
 		target = self->monsterInfo.blind_fire_target;
 	else
 		target = self->enemy->s.origin;
@@ -419,7 +419,7 @@ void GunnerGrenade(gentity_t *self) {
 	if (!self->enemy || !self->enemy->inUse)
 		return;
 
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING)
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING)
 		blindfire = true;
 
 	if (self->s.frame == FRAME_attak105 || self->s.frame == FRAME_attak309) {
@@ -433,7 +433,7 @@ void GunnerGrenade(gentity_t *self) {
 		flash_number = MZ2_GUNNER_GRENADE_3;
 	} else // (self->s.frame == FRAME_attak114)
 	{
-		self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 		spread = 0.10f;
 		flash_number = MZ2_GUNNER_GRENADE_4;
 	}
@@ -518,10 +518,10 @@ mframe_t gunner_frames_endfire_chain[] = {
 };
 MMOVE_T(gunner_move_endfire_chain) = { FRAME_attak224, FRAME_attak230, gunner_frames_endfire_chain, gunner_run };
 
-void gunner_blind_check(gentity_t *self) {
+static void gunner_blind_check(gentity_t *self) {
 	vec3_t aim;
 
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
 		aim = self->monsterInfo.blind_fire_target - self->s.origin;
 		self->ideal_yaw = vectoyaw(aim);
 	}
@@ -612,7 +612,7 @@ MONSTERINFO_ATTACK(gunner_attack) (gentity_t *self) -> void {
 			return;
 
 		// turn on manual steering to signal both manual steering and blindfire
-		self->monsterInfo.aiflags |= AI_MANUAL_STEERING;
+		self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 
 		if (gunner_grenade_check(self)) {
 			// if the check passes, go for the attack
@@ -620,7 +620,7 @@ MONSTERINFO_ATTACK(gunner_attack) (gentity_t *self) -> void {
 			self->monsterInfo.attack_finished = level.time + random_time(2_sec);
 		} else
 			// turn off blindfire flag
-			self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+			self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 
 		self->timeStamp = level.time + random_time(2_sec, 3_sec);
 
@@ -672,12 +672,12 @@ static void gunner_jump2_now(gentity_t *self) {
 
 static void gunner_jump_wait_land(gentity_t *self) {
 	if (self->groundEntity == nullptr) {
-		self->monsterInfo.nextframe = self->s.frame;
+		self->monsterInfo.nextFrame = self->s.frame;
 
 		if (monster_jump_finished(self))
-			self->monsterInfo.nextframe = self->s.frame + 1;
+			self->monsterInfo.nextFrame = self->s.frame + 1;
 	} else
-		self->monsterInfo.nextframe = self->s.frame + 1;
+		self->monsterInfo.nextFrame = self->s.frame + 1;
 }
 
 mframe_t gunner_frames_jump[] = {
@@ -745,7 +745,7 @@ MONSTERINFO_DUCK(gunner_duck) (gentity_t *self, gtime_t eta) -> bool {
 		(self->monsterInfo.active_move == &gunner_move_attack_grenade) ||
 		(self->monsterInfo.active_move == &gunner_move_attack_grenade2)) {
 		// if we're shooting don't dodge
-		self->monsterInfo.unduck(self);
+		self->monsterInfo.unDuck(self);
 		return false;
 	}
 
@@ -824,8 +824,8 @@ void SP_monster_gunner(gentity_t *self) {
 	self->monsterInfo.run = gunner_run;
 	self->monsterInfo.dodge = M_MonsterDodge;
 	self->monsterInfo.duck = gunner_duck;
-	self->monsterInfo.unduck = monster_duck_up;
-	self->monsterInfo.sidestep = gunner_sidestep;
+	self->monsterInfo.unDuck = monster_duck_up;
+	self->monsterInfo.sideStep = gunner_sidestep;
 	self->monsterInfo.blocked = gunner_blocked;
 	self->monsterInfo.attack = gunner_attack;
 	self->monsterInfo.melee = nullptr;

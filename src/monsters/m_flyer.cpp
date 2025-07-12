@@ -198,7 +198,7 @@ MMOVE_T(flyer_move_kamikaze) = { FRAME_rollr02, FRAME_rollr06, flyer_frames_kami
 MONSTERINFO_RUN(flyer_run) (gentity_t *self) -> void {
 	if (self->mass > 50)
 		M_SetAnimation(self, &flyer_move_kamikaze);
-	else if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	else if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &flyer_move_stand);
 	else
 		M_SetAnimation(self, &flyer_move_run);
@@ -569,7 +569,7 @@ static TOUCH(kamikaze_touch) (gentity_t *ent, gentity_t *other, const trace_t &t
 }
 
 static TOUCH(flyer_touch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
-	if ((other->monsterInfo.aiflags & AI_ALTERNATE_FLY) && (other->flags & FL_FLY) &&
+	if ((other->monsterInfo.aiFlags & AI_ALTERNATE_FLY) && (other->flags & FL_FLY) &&
 		(ent->monsterInfo.duck_wait_time < level.time)) {
 		ent->monsterInfo.duck_wait_time = level.time + 1_sec;
 		ent->monsterInfo.fly_thrusters = false;
@@ -648,7 +648,7 @@ void SP_monster_flyer(gentity_t *self) {
 		self->yaw_speed = 5;
 		self->touch = kamikaze_touch;
 	} else {
-		self->monsterInfo.aiflags |= AI_ALTERNATE_FLY;
+		self->monsterInfo.aiFlags |= AI_ALTERNATE_FLY;
 		self->monsterInfo.fly_buzzard = true;
 		flyer_set_fly_parameters(self, false);
 		self->touch = flyer_touch;

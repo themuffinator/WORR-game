@@ -10,7 +10,7 @@ P_Menu_Dirty
 void P_Menu_Dirty() {
 	for (auto player : active_clients())
 		if (player->client->menu) {
-			player->client->menudirty = true;
+			player->client->menuDirty = true;
 			player->client->menuTime = level.time;
 		}
 }
@@ -19,10 +19,10 @@ void P_Menu_Dirty() {
 // this is so that a static set of pmenu entries can be used
 // for multiple clients and changed without interference
 // note that arg will be freed when the menu is closed, it must be allocated memory
-menu_hnd_t *P_Menu_Open(gentity_t *ent, const menu_t *entries, int cur, int num, void *arg, UpdateFunc_t UpdateFunc) {
-	menu_hnd_t		*hnd;
-	const menu_t	*p;
-	size_t			i;
+MenuHandle *P_Menu_Open(Entity *ent, const PMenu *entries, int cur, int num, void *arg, MenuUpdateFunc UpdateFunc) {
+	MenuHandle	*hnd;
+	const PMenu	*p;
+	size_t		i;
 
 	if (!ent->client)
 		return nullptr;
@@ -33,12 +33,12 @@ menu_hnd_t *P_Menu_Open(gentity_t *ent, const menu_t *entries, int cur, int num,
 			P_Menu_Close(ent);
 	}
 
-	hnd = (menu_hnd_t *)gi.TagMalloc(sizeof(*hnd), TAG_LEVEL);
+	hnd = (MenuHandle *)gi.TagMalloc(sizeof(*hnd), TAG_LEVEL);
 	hnd->UpdateFunc = UpdateFunc;
 
 	hnd->arg = arg;
-	hnd->entries = (menu_t *)gi.TagMalloc(sizeof(menu_t) * num, TAG_LEVEL);
-	memcpy(hnd->entries, entries, sizeof(menu_t) * num);
+	hnd->entries = (PMenu *)gi.TagMalloc(sizeof(PMenu) * num, TAG_LEVEL);
+	memcpy(hnd->entries, entries, sizeof(PMenu) * num);
 	// duplicate the strings since they may be from static memory
 	for (i = 0; i < num; i++)
 		Q_strlcpy(hnd->entries[i].text, entries[i].text, sizeof(entries[i].text));
@@ -58,7 +58,7 @@ menu_hnd_t *P_Menu_Open(gentity_t *ent, const menu_t *entries, int cur, int num,
 		hnd->cur = i;
 
 	ent->client->showScores = true;
-	ent->client->inmenu = true;
+	ent->client->inMenu = true;
 	ent->client->menu = hnd;
 	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
 
@@ -71,8 +71,8 @@ menu_hnd_t *P_Menu_Open(gentity_t *ent, const menu_t *entries, int cur, int num,
 	return hnd;
 }
 
-void P_Menu_Close(gentity_t *ent) {
-	menu_hnd_t *hnd;
+void P_Menu_Close(Entity *ent) {
+	MenuHandle *hnd;
 
 	if (!ent->client->menu)
 		return;
@@ -85,12 +85,12 @@ void P_Menu_Close(gentity_t *ent) {
 	ent->client->menu = nullptr;
 	ent->client->showScores = false;
 	
-	gentity_t *e = ent->client->followTarget ? ent->client->followTarget : ent;
+	Entity *e = ent->client->followTarget ? ent->client->followTarget : ent;
 	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = !ClientIsPlaying(e->client) ? 0 : 1;
 }
 
 // only use on pmenu's that have been called with P_Menu_Open
-void P_Menu_UpdateEntry(menu_t *entry, const char *text, int align, SelectFunc_t SelectFunc) {
+void P_Menu_UpdateEntry(PMenu *entry, const char *text, int align, MenuSelectFunc SelectFunc) {
 	Q_strlcpy(entry->text, text, sizeof(entry->text));
 	entry->align = align;
 	entry->SelectFunc = SelectFunc;
@@ -98,11 +98,11 @@ void P_Menu_UpdateEntry(menu_t *entry, const char *text, int align, SelectFunc_t
 
 #include "g_statusbar.h"
 
-void P_Menu_Do_Update(gentity_t *ent) {
+void P_Menu_Do_Update(Entity *ent) {
 	int			i;
-	menu_t		*p;
+	PMenu		*p;
 	int			x;
-	menu_hnd_t	*hnd;
+	MenuHandle	*hnd;
 	const char	*t;
 	bool		alt = false;
 
@@ -165,7 +165,7 @@ void P_Menu_Do_Update(gentity_t *ent) {
 	gi.WriteString(sb.sb.str().c_str());
 }
 
-void P_Menu_Update(gentity_t *ent) {
+void P_Menu_Update(Entity *ent) {
 	if (!ent->client->menu) {
 		gi.Com_Print("Warning: ent has no menu\n");
 		return;
@@ -176,18 +176,20 @@ void P_Menu_Update(gentity_t *ent) {
 		P_Menu_Do_Update(ent);
 		gi.unicast(ent, true);
 		ent->client->menuTime = level.time + 1_sec;
-		ent->client->menudirty = false;
+		ent->client->menuDirty = false;
+		gi.Com_PrintFmt("{} lvltime:{} menut:{} dirty:{}\n", __FUNCTION__, level.time.seconds(), ent->client->menuTime.seconds(), ent->client->menuDirty);
 	}
 
 	ent->client->menuTime = level.time;
-	ent->client->menudirty = true;
+	ent->client->menuDirty = true;
 	gi.local_sound(ent, CHAN_AUTO, gi.soundindex("misc/menu2.wav"), 1, ATTN_NONE, 0);
+	//gi.Com_PrintFmt("{} lvltime:{} menut:{} dirty:{}\n", __FUNCTION__, level.time.seconds(), ent->client->menuTime.seconds(), ent->client->menuDirty);
 }
 
-void P_Menu_Next(gentity_t *ent) {
-	menu_hnd_t	*hnd;
+void P_Menu_Next(Entity *ent) {
+	MenuHandle	*hnd;
 	int			i;
-	menu_t		*p;
+	PMenu		*p;
 
 	if (!ent->client->menu) {
 		gi.Com_Print("Warning: ent has no menu\n");
@@ -214,13 +216,15 @@ void P_Menu_Next(gentity_t *ent) {
 
 	hnd->cur = i;
 
+	//gi.Com_PrintFmt("{} cursor pos: {}\n", __FUNCTION__, hnd->cur);
+
 	P_Menu_Update(ent);
 }
 
-void P_Menu_Prev(gentity_t *ent) {
-	menu_hnd_t	*hnd;
+void P_Menu_Prev(Entity *ent) {
+	MenuHandle	*hnd;
 	int			i;
-	menu_t		*p;
+	PMenu		*p;
 
 	if (!ent->client->menu) {
 		gi.Com_Print("Warning: ent has no menu\n");
@@ -248,12 +252,14 @@ void P_Menu_Prev(gentity_t *ent) {
 
 	hnd->cur = i;
 
+	//gi.Com_PrintFmt("{} cursor pos: {}\n", __FUNCTION__, hnd->cur);
+
 	P_Menu_Update(ent);
 }
 
-void P_Menu_Select(gentity_t *ent) {
-	menu_hnd_t	*hnd;
-	menu_t		*p;
+void P_Menu_Select(Entity *ent) {
+	MenuHandle	*hnd;
+	PMenu		*p;
 
 	if (!ent->client->menu) {
 		gi.Com_Print("Warning: ent has no menu\n");
@@ -261,8 +267,9 @@ void P_Menu_Select(gentity_t *ent) {
 	}
 
 	// no selecting during intermission
-	if (level.intermissionQueued || level.intermissionTime)
-		return;
+	if (!level.mapSelectorVoteStartTime)
+		if ((level.intermissionQueued || level.intermissionTime))
+			return;
 
 	hnd = ent->client->menu;
 

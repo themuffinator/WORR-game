@@ -33,7 +33,7 @@ gentity_t *CreateMonster(const vec3_t &origin, const vec3_t &angles, const char 
 	newEnt->s.origin = origin;
 	newEnt->s.angles = angles;
 	newEnt->className = className;
-	newEnt->monsterInfo.aiflags |= AI_DO_NOT_COUNT;
+	newEnt->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
 	newEnt->gravityVector = { 0, 0, -1 };
 	ED_CallSpawn(newEnt);

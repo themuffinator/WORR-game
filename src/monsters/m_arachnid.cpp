@@ -92,7 +92,7 @@ mframe_t arachnid_frames_run[] = {
 MMOVE_T(arachnid_move_run) = { FRAME_walk1, FRAME_walk10, arachnid_frames_run, nullptr };
 
 MONSTERINFO_RUN(arachnid_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &arachnid_move_stand);
 		return;
 	}

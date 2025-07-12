@@ -1,7 +1,7 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#pragma once
+//#pragma once
 
 void	Bot_SetWeapon( gentity_t * bot, const int weaponIndex, const bool instantSwitch );
 void	Bot_TriggerEntity( gentity_t * bot, gentity_t * entity );

@@ -19,7 +19,7 @@ is not a staircase.
 */
 bool M_CheckBottom_Fast_Generic(const vec3_t &absmins, const vec3_t &absmaxs, bool ceiling) {
 	//  FIXME - this will only handle 0,0,1 and 0,0,-1 gravity vectors
-	vec3_t start;
+	vec3_t start{};
 
 	start[2] = absmins[2] - 1;
 	if (ceiling)
@@ -37,7 +37,7 @@ bool M_CheckBottom_Fast_Generic(const vec3_t &absmins, const vec3_t &absmaxs, bo
 }
 
 bool M_CheckBottom_Slow_Generic(const vec3_t &origin, const vec3_t &mins, const vec3_t &maxs, gentity_t *ignore, contents_t mask, bool ceiling, bool allow_any_step_height) {
-	vec3_t start;
+	vec3_t start{};
 
 	//
 	// check it for real...
@@ -149,7 +149,7 @@ static bool IsBadAhead(gentity_t *self, gentity_t *bad, const vec3_t &move) {
 }
 
 static vec3_t G_IdealHoverPosition(gentity_t *ent) {
-	if ((!ent->enemy && !(ent->monsterInfo.aiflags & AI_MEDIC)) || (ent->monsterInfo.aiflags & (AI_COMBAT_POINT | AI_SOUND_TARGET | AI_HINT_PATH | AI_PATHING)))
+	if ((!ent->enemy && !(ent->monsterInfo.aiFlags & AI_MEDIC)) || (ent->monsterInfo.aiFlags & (AI_COMBAT_POINT | AI_SOUND_TARGET | AI_HINT_PATH | AI_PATHING)))
 		return { 0, 0, 0 }; // go right for the center
 
 	// pick random direction
@@ -159,7 +159,7 @@ static vec3_t G_IdealHoverPosition(gentity_t *ent) {
 	// buzzards pick half sphere
 	if (ent->monsterInfo.fly_above)
 		phi = acos(0.7f + frandom(0.3f));
-	else if (ent->monsterInfo.fly_buzzard || (ent->monsterInfo.aiflags & AI_MEDIC))
+	else if (ent->monsterInfo.fly_buzzard || (ent->monsterInfo.aiFlags & AI_MEDIC))
 		phi = acos(frandom());
 	// non-buzzards pick a level around the center
 	else
@@ -212,10 +212,10 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 		return false;
 	}
 
-	if (ent->monsterInfo.aiflags & AI_PATHING)
+	if (ent->monsterInfo.aiFlags & AI_PATHING)
 		towards_origin = (ent->monsterInfo.nav_path.returnCode == PathReturnCode::TraversalPending) ?
 		ent->monsterInfo.nav_path.secondMovePoint : ent->monsterInfo.nav_path.firstMovePoint;
-	else if (ent->enemy && !(ent->monsterInfo.aiflags & (AI_COMBAT_POINT | AI_SOUND_TARGET | AI_LOST_SIGHT))) {
+	else if (ent->enemy && !(ent->monsterInfo.aiFlags & (AI_COMBAT_POINT | AI_SOUND_TARGET | AI_LOST_SIGHT))) {
 		towards_origin = ent->enemy->s.origin;
 		towards_velocity = ent->enemy->velocity;
 	} else if (ent->goalentity)
@@ -239,7 +239,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 
 	if (ent->monsterInfo.fly_pinned)
 		wanted_pos = ent->monsterInfo.fly_ideal_position;
-	else if (ent->monsterInfo.aiflags & (AI_PATHING | AI_COMBAT_POINT | AI_SOUND_TARGET | AI_LOST_SIGHT))
+	else if (ent->monsterInfo.aiFlags & (AI_PATHING | AI_COMBAT_POINT | AI_SOUND_TARGET | AI_LOST_SIGHT))
 		wanted_pos = towards_origin;
 	else
 		wanted_pos = (towards_origin + (towards_velocity * 0.25f)) + ent->monsterInfo.fly_ideal_position;
@@ -258,7 +258,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 
 	vec3_t wanted_dir = dest_diff.normalized(dist_to_wanted);
 
-	if (!(ent->monsterInfo.aiflags & AI_MANUAL_STEERING))
+	if (!(ent->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 		ent->ideal_yaw = vectoyaw((towards_origin - ent->s.origin).normalized());
 
 	// check if we're blocked from moving this way from where we are
@@ -304,7 +304,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 	// turn at all.
 	float turn_factor;
 
-	if (((ent->monsterInfo.fly_thrusters && !ent->monsterInfo.fly_pinned) || ent->monsterInfo.aiflags & (AI_PATHING | AI_COMBAT_POINT | AI_LOST_SIGHT)) && dir.dot(wanted_dir) > 0.0f)
+	if (((ent->monsterInfo.fly_thrusters && !ent->monsterInfo.fly_pinned) || ent->monsterInfo.aiFlags & (AI_PATHING | AI_COMBAT_POINT | AI_LOST_SIGHT)) && dir.dot(wanted_dir) > 0.0f)
 		turn_factor = 0.45f;
 	else
 		turn_factor = min(1.f, 0.84f + (0.08f * (current_speed / ent->monsterInfo.fly_speed)));
@@ -324,7 +324,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 	// try to leave it)
 	bool bad_movement_direction = false;
 
-	//if (!(ent->monsterInfo.aiflags & AI_COMBAT_POINT))
+	//if (!(ent->monsterInfo.aiFlags & AI_COMBAT_POINT))
 	{
 		if (ent->flags & FL_SWIM)
 			bad_movement_direction = !(gi.pointcontents(ent->s.origin + (wanted_dir * current_speed)) & CONTENTS_WATER);
@@ -348,7 +348,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 	// down so we don't fly past it.
 	float speed_factor;
 
-	if (!ent->enemy || (ent->monsterInfo.fly_thrusters && !ent->monsterInfo.fly_pinned) || (ent->monsterInfo.aiflags & (AI_PATHING | AI_COMBAT_POINT | AI_LOST_SIGHT)))
+	if (!ent->enemy || (ent->monsterInfo.fly_thrusters && !ent->monsterInfo.fly_pinned) || (ent->monsterInfo.aiFlags & (AI_PATHING | AI_COMBAT_POINT | AI_LOST_SIGHT)))
 		speed_factor = 1.f;
 	else if (aim_fwd.dot(wanted_dir) < -0.25 && dir)
 		speed_factor = 0.f;
@@ -366,7 +366,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 
 	float wanted_speed = ent->monsterInfo.fly_speed * speed_factor;
 
-	if (ent->monsterInfo.aiflags & AI_MANUAL_STEERING)
+	if (ent->monsterInfo.aiFlags & AI_MANUAL_STEERING)
 		wanted_speed = 0;
 
 	// change speed
@@ -388,7 +388,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 	ent->velocity = final_dir * current_speed;
 
 	// for buzzards, set their pitch
-	if (ent->enemy && (ent->monsterInfo.fly_buzzard || (ent->monsterInfo.aiflags & AI_MEDIC))) {
+	if (ent->enemy && (ent->monsterInfo.fly_buzzard || (ent->monsterInfo.aiFlags & AI_MEDIC))) {
 		vec3_t d = (ent->s.origin - towards_origin).normalized();
 		d = vectoangles(d);
 		ent->s.angles[PITCH] = LerpAngle(ent->s.angles[PITCH], -d[PITCH], gi.frame_time_s * 4.0f);
@@ -400,7 +400,7 @@ static bool G_alternate_flystep(gentity_t *ent, vec3_t move, bool relink, gentit
 
 // flying monsters don't step up
 static bool G_flystep(gentity_t *ent, vec3_t move, bool relink, gentity_t *current_bad) {
-	if (ent->monsterInfo.aiflags & AI_ALTERNATE_FLY) {
+	if (ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY) {
 		if (G_alternate_flystep(ent, move, relink, current_bad))
 			return true;
 	}
@@ -427,7 +427,7 @@ static bool G_flystep(gentity_t *ent, vec3_t move, bool relink, gentity_t *curre
 			if (!ent->goalentity)
 				ent->goalentity = ent->enemy;
 
-			vec3_t &goal_position = (ent->monsterInfo.aiflags & AI_PATHING) ? ent->monsterInfo.nav_path.firstMovePoint : ent->goalentity->s.origin;
+			vec3_t &goal_position = (ent->monsterInfo.aiFlags & AI_PATHING) ? ent->monsterInfo.nav_path.firstMovePoint : ent->goalentity->s.origin;
 
 			float dz = ent->s.origin[2] - goal_position[2];
 			float dist = move.length();
@@ -570,7 +570,7 @@ static bool G_movestep(gentity_t *ent, vec3_t move, bool relink) {
 	// push down from a step height above the wished position
 	if (ent->spawnflags.has(SPAWNFLAG_MONSTER_SUPER_STEP) && ent->health > 0)
 		stepsize = 64.f;
-	else if (!(ent->monsterInfo.aiflags & AI_NOSTEP))
+	else if (!(ent->monsterInfo.aiFlags & AI_NOSTEP))
 		stepsize = STEPSIZE;
 	else
 		stepsize = 1;
@@ -683,16 +683,16 @@ static bool G_movestep(gentity_t *ent, vec3_t move, bool relink) {
 				if (!strcmp(new_bad->owner->className, "tesla_mine")) {
 					if ((!(ent->enemy)) || (!(ent->enemy->inUse))) {
 						TargetTesla(ent, new_bad->owner);
-						ent->monsterInfo.aiflags |= AI_BLOCKED;
+						ent->monsterInfo.aiFlags |= AI_BLOCKED;
 					} else if (!strcmp(ent->enemy->className, "tesla_mine")) {
 					} else if ((ent->enemy) && (ent->enemy->client)) {
 						if (!visible(ent, ent->enemy)) {
 							TargetTesla(ent, new_bad->owner);
-							ent->monsterInfo.aiflags |= AI_BLOCKED;
+							ent->monsterInfo.aiFlags |= AI_BLOCKED;
 						}
 					} else {
 						TargetTesla(ent, new_bad->owner);
-						ent->monsterInfo.aiflags |= AI_BLOCKED;
+						ent->monsterInfo.aiFlags |= AI_BLOCKED;
 					}
 				}
 			}
@@ -742,7 +742,7 @@ static bool G_movestep(gentity_t *ent, vec3_t move, bool relink) {
 		ent->flags &= ~FL_PARTIALGROUND;
 	}
 	ent->groundEntity = trace.ent;
-	ent->groundEntity_linkCount = trace.ent->linkcount;
+	ent->groundEntity_linkCount = trace.ent->linkCount;
 
 	// the move is ok
 	if (relink) {
@@ -808,7 +808,7 @@ void M_ChangeYaw(gentity_t *ent) {
 
 	move = ideal - current;
 	// [Paril-KEX] high tick rate
-	speed = ent->yaw_speed / (gi.tick_rate / 10);
+	speed = ent->yaw_speed / (static_cast<float>(gi.tick_rate) / 10.0f);
 
 	if (ideal > current) {
 		if (move >= 180)
@@ -838,7 +838,7 @@ facing it.
 ======================
 */
 static bool G_StepDirection(gentity_t *ent, float yaw, float dist, bool allow_no_turns) {
-	vec3_t move, oldorigin;
+	vec3_t move{}, oldorigin;
 
 	if (!ent->inUse)
 		return true; // PGM g_touchtrigger free problem
@@ -856,7 +856,7 @@ static bool G_StepDirection(gentity_t *ent, float yaw, float dist, bool allow_no
 
 	oldorigin = ent->s.origin;
 	if (G_movestep(ent, move, false)) {
-		ent->monsterInfo.aiflags &= ~AI_BLOCKED;
+		ent->monsterInfo.aiFlags &= ~AI_BLOCKED;
 		if (!ent->inUse)
 			return true; // PGM g_touchtrigger free problem
 
@@ -901,7 +901,7 @@ constexpr float DI_NODIR = -1;
 
 static bool G_NewChaseDir(gentity_t *actor, vec3_t pos, float dist) {
 	float deltax, deltay;
-	float d[3];
+	float d[3]{};
 	float tdir, olddir, turnaround;
 
 	olddir = anglemod(truncf(actor->ideal_yaw / 45) * 45);
@@ -947,7 +947,7 @@ static bool G_NewChaseDir(gentity_t *actor, vec3_t pos, float dist) {
 		return true;
 
 	if (actor->monsterInfo.blocked) {
-		if ((actor->inUse) && (actor->health > 0) && !(actor->monsterInfo.aiflags & AI_TARGET_ANGER)) {
+		if ((actor->inUse) && (actor->health > 0) && !(actor->monsterInfo.aiFlags & AI_TARGET_ANGER)) {
 			// if block "succeeds", the actor will not move or turn.
 			if (actor->monsterInfo.blocked(actor, dist)) {
 				actor->monsterInfo.move_block_counter = -2;
@@ -957,9 +957,9 @@ static bool G_NewChaseDir(gentity_t *actor, vec3_t pos, float dist) {
 			// we couldn't step; instead of running endlessly in our current
 			// spot, try switching to node navigation temporarily to get to
 			// where we need to go.
-			if (!(actor->monsterInfo.aiflags & (AI_LOST_SIGHT | AI_COMBAT_POINT | AI_TARGET_ANGER | AI_PATHING | AI_TEMP_MELEE_COMBAT | AI_NO_PATH_FINDING))) {
+			if (!(actor->monsterInfo.aiFlags & (AI_LOST_SIGHT | AI_COMBAT_POINT | AI_TARGET_ANGER | AI_PATHING | AI_TEMP_MELEE_COMBAT | AI_NO_PATH_FINDING))) {
 				if (++actor->monsterInfo.move_block_counter > 2) {
-					actor->monsterInfo.aiflags |= AI_TEMP_MELEE_COMBAT;
+					actor->monsterInfo.aiFlags |= AI_TEMP_MELEE_COMBAT;
 					actor->monsterInfo.move_block_change_time = level.time + 3_sec;
 					actor->monsterInfo.move_block_counter = 0;
 				}
@@ -1017,7 +1017,7 @@ bool G_CloseEnough(gentity_t *ent, gentity_t *goal, float dist) {
 
 static bool M_NavPathToGoal(gentity_t *self, float dist, const vec3_t &goal) {
 	// mark us as *trying* now (nav_pos is valid)
-	self->monsterInfo.aiflags |= AI_PATHING;
+	self->monsterInfo.aiFlags |= AI_PATHING;
 
 	vec3_t &path_to = (self->monsterInfo.nav_path.returnCode == PathReturnCode::TraversalPending) ?
 		self->monsterInfo.nav_path.secondMovePoint : self->monsterInfo.nav_path.firstMovePoint;
@@ -1054,7 +1054,7 @@ static bool M_NavPathToGoal(gentity_t *self, float dist, const vec3_t &goal) {
 		if (!gi.GetPathToGoal(request, self->monsterInfo.nav_path)) {
 			// fatal error, don't bother ever trying nodes
 			if (self->monsterInfo.nav_path.returnCode == PathReturnCode::NoNavAvailable)
-				self->monsterInfo.aiflags |= AI_NO_PATH_FINDING;
+				self->monsterInfo.aiFlags |= AI_NO_PATH_FINDING;
 			return false;
 		}
 
@@ -1066,7 +1066,7 @@ static bool M_NavPathToGoal(gentity_t *self, float dist, const vec3_t &goal) {
 	float old_ideal_yaw = self->ideal_yaw;
 
 	if (self->monsterInfo.random_change_time >= level.time &&
-		!(self->monsterInfo.aiflags & AI_ALTERNATE_FLY))
+		!(self->monsterInfo.aiFlags & AI_ALTERNATE_FLY))
 		yaw = self->ideal_yaw;
 	else
 		yaw = vectoyaw((path_to - self->s.origin).normalized());
@@ -1076,7 +1076,7 @@ static bool M_NavPathToGoal(gentity_t *self, float dist, const vec3_t &goal) {
 		if (!self->inUse)
 			return false;
 
-		if (self->monsterInfo.blocked && !(self->monsterInfo.aiflags & AI_TARGET_ANGER)) {
+		if (self->monsterInfo.blocked && !(self->monsterInfo.aiFlags & AI_TARGET_ANGER)) {
 			if ((self->inUse) && (self->health > 0)) {
 				// if we're blocked, the blocked function will be deferred to for yaw
 				self->s.angles[YAW] = old_yaw;
@@ -1096,8 +1096,8 @@ static bool M_NavPathToGoal(gentity_t *self, float dist, const vec3_t &goal) {
 
 			// we got blocked, but all is not lost yet; do a similar bump around-ish behavior
 			// to try to regain our composure
-			if (self->monsterInfo.aiflags & AI_BLOCKED) {
-				self->monsterInfo.aiflags &= ~AI_BLOCKED;
+			if (self->monsterInfo.aiFlags & AI_BLOCKED) {
+				self->monsterInfo.aiFlags &= ~AI_BLOCKED;
 				return true;
 			}
 
@@ -1128,20 +1128,20 @@ Feel free to add any other conditions needed.
 static bool M_MoveToPath(gentity_t *self, float dist) {
 	if (self->flags & FL_STATIONARY)
 		return false;
-	else if (self->monsterInfo.aiflags & AI_NO_PATH_FINDING)
+	else if (self->monsterInfo.aiFlags & AI_NO_PATH_FINDING)
 		return false;
 	else if (self->monsterInfo.path_wait_time > level.time)
 		return false;
 	else if (!self->enemy)
 		return false;
-	else if (self->enemy->client && self->enemy->client->pu_time_invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time)
+	else if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time)
 		return false;
 	else if (self->monsterInfo.attack_state >= AS_MISSILE)
 		return true;
 
 	combat_style_t style = self->monsterInfo.combat_style;
 
-	if (self->monsterInfo.aiflags & AI_TEMP_MELEE_COMBAT)
+	if (self->monsterInfo.aiFlags & AI_TEMP_MELEE_COMBAT)
 		style = COMBAT_MELEE;
 
 	if (visible(self, self->enemy, false)) {
@@ -1155,9 +1155,9 @@ static bool M_MoveToPath(gentity_t *self, float dist) {
 				if (M_NavPathToGoal(self, dist, self->enemy->s.origin)) {
 					return true;
 				}
-				self->monsterInfo.aiflags &= ~AI_TEMP_MELEE_COMBAT;
+				self->monsterInfo.aiFlags &= ~AI_TEMP_MELEE_COMBAT;
 			} else {
-				self->monsterInfo.aiflags &= ~AI_TEMP_MELEE_COMBAT;
+				self->monsterInfo.aiFlags &= ~AI_TEMP_MELEE_COMBAT;
 				return false;
 			}
 		} else if (style == COMBAT_MIXED) {
@@ -1222,14 +1222,14 @@ void M_MoveToGoal(gentity_t *ent, float dist) {
 		return;
 
 	// [Paril-KEX] try paths if we can't see the enemy
-	if (!(ent->monsterInfo.aiflags & AI_COMBAT_POINT) && ent->monsterInfo.attack_state < AS_MISSILE) {
+	if (!(ent->monsterInfo.aiFlags & AI_COMBAT_POINT) && ent->monsterInfo.attack_state < AS_MISSILE) {
 		if (M_MoveToPath(ent, dist)) {
 			ent->monsterInfo.path_blocked_counter = max(0_ms, ent->monsterInfo.path_blocked_counter - FRAME_TIME_S);
 			return;
 		}
 	}
 
-	ent->monsterInfo.aiflags &= ~AI_PATHING;
+	ent->monsterInfo.aiFlags &= ~AI_PATHING;
 
 	//if (goal)
 	//	gi.Draw_Point(goal->s.origin, 1.f, rgba_red, gi.frame_time_ms, false);
@@ -1255,7 +1255,7 @@ void M_MoveToGoal(gentity_t *ent, float dist) {
 
 	// [Paril-KEX] if we have a straight shot to our target, just move
 	// straight instead of trying to stick to invisible guide lines
-	if ((ent->monsterInfo.bad_move_time <= level.time || (ent->monsterInfo.aiflags & AI_CHARGING)) && goal) {
+	if ((ent->monsterInfo.bad_move_time <= level.time || (ent->monsterInfo.aiFlags & AI_CHARGING)) && goal) {
 		if (!FacingIdeal(ent)) {
 			M_ChangeYaw(ent);
 			return;
@@ -1272,18 +1272,18 @@ void M_MoveToGoal(gentity_t *ent, float dist) {
 		// *unless* we're going to a path corner
 		if (goal->className && strcmp(goal->className, "path_corner") && strcmp(goal->className, "point_combat")) {
 			ent->monsterInfo.bad_move_time = level.time + 5_sec;
-			ent->monsterInfo.aiflags &= ~AI_CHARGING;
+			ent->monsterInfo.aiFlags &= ~AI_CHARGING;
 		}
 	}
 
 	// bump around...
 	if ((ent->monsterInfo.random_change_time <= level.time // random change time is up
 		&& irandom(4) == 1 // random bump around
-		&& !(ent->monsterInfo.aiflags & AI_CHARGING) // PMM - charging monsters (AI_CHARGING) don't deflect unless they have to
-		&& !((ent->monsterInfo.aiflags & AI_ALTERNATE_FLY) && ent->enemy && !(ent->monsterInfo.aiflags & AI_LOST_SIGHT))) // alternate fly monsters don't do this either unless they have to
+		&& !(ent->monsterInfo.aiFlags & AI_CHARGING) // PMM - charging monsters (AI_CHARGING) don't deflect unless they have to
+		&& !((ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY) && ent->enemy && !(ent->monsterInfo.aiFlags & AI_LOST_SIGHT))) // alternate fly monsters don't do this either unless they have to
 		|| !G_StepDirection(ent, ent->ideal_yaw, dist, ent->monsterInfo.bad_move_time > level.time)) {
-		if (ent->monsterInfo.aiflags & AI_BLOCKED) {
-			ent->monsterInfo.aiflags &= ~AI_BLOCKED;
+		if (ent->monsterInfo.aiFlags & AI_BLOCKED) {
+			ent->monsterInfo.aiFlags &= ~AI_BLOCKED;
 			return;
 		}
 		ent->monsterInfo.random_change_time = level.time + random_time(500_ms, 1000_ms);
@@ -1306,7 +1306,7 @@ bool M_walkmove(gentity_t *ent, float yaw, float dist) {
 		return false;
 	}
 
-	vec3_t move;
+	vec3_t move{};
 	// PMM
 	bool retval;
 
@@ -1321,6 +1321,6 @@ bool M_walkmove(gentity_t *ent, float yaw, float dist) {
 
 	// PMM
 	retval = G_movestep(ent, move, true);
-	ent->monsterInfo.aiflags &= ~AI_BLOCKED;
+	ent->monsterInfo.aiFlags &= ~AI_BLOCKED;
 	return retval;
 }

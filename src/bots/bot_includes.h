@@ -1,7 +1,7 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#pragma once
+//#pragma once
 
 #include "bot_utils.h"
 #include "bot_think.h"

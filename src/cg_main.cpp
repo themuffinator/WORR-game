@@ -20,7 +20,7 @@ static void InitCGame() {
 
 	cgame_init_time = cgi.CL_ClientRealTime();
 
-	pm_config.n64_physics = !!strtoul(cgi.get_configstring(CONFIG_N64_PHYSICS), nullptr, 10);
+	pm_config.n64_physics = !!strtoul(cgi.get_configstring(CONFIG_N64_PHYSICS_MEDAL), nullptr, 10);
 	pm_config.airaccel = strtoul(cgi.get_configstring(CS_AIRACCEL), nullptr, 10);
 }
 
@@ -39,7 +39,7 @@ static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t *ps) {
 }
 
 static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t *ps, int32_t ammoID) {
-	uint16_t ammo = G_GetAmmoStat((uint16_t *)&ps->stats[STAT_AMMO_INFO_START], ammoID);
+	uint16_t ammo = GetAmmoStat((uint16_t *)&ps->stats[STAT_AMMO_INFO_START], ammoID);
 
 	if (ammo == AMMO_VALUE_INFINITE)
 		return -1;
@@ -48,7 +48,7 @@ static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t *ps, int32_t ammo
 }
 
 static int16_t CG_GetPowerupWheelCount(const player_state_t *ps, int32_t powerup_id) {
-	return G_GetPowerupStat((uint16_t *)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
+	return GetPowerupStat((uint16_t *)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
 }
 
 static int16_t CG_GetHitMarkerDamage(const player_state_t *ps) {
@@ -56,7 +56,7 @@ static int16_t CG_GetHitMarkerDamage(const player_state_t *ps) {
 }
 
 static void CG_ParseConfigString(int32_t i, const char *s) {
-	if (i == CONFIG_N64_PHYSICS)
+	if (i == CONFIG_N64_PHYSICS_MEDAL)
 		pm_config.n64_physics = !!strtoul(s, nullptr, 10);
 	else if (i == CS_AIRACCEL)
 		pm_config.airaccel = strtoul(s, nullptr, 10);
@@ -67,11 +67,17 @@ void CG_ClearNotify(int32_t isplit);
 void CG_ClearCenterprint(int32_t isplit);
 void CG_NotifyMessage(int32_t isplit, const char *msg, bool is_chat);
 
+/*
+=================
+CG_GetMonsterFlashOffset
+=================
+*/
 static void CG_GetMonsterFlashOffset(monster_muzzleflash_id_t id, gvec3_ref_t offset) {
-	if (id >= q_countof(monster_flash_offset))
+	const auto index = static_cast<unsigned int>(id);
+	if (index >= std::size(monster_flash_offset))
 		cgi.Com_Error("Bad muzzle flash offset");
 
-	offset = monster_flash_offset[id];
+	offset = monster_flash_offset[index];
 }
 
 /*

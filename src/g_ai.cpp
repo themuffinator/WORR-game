@@ -39,7 +39,7 @@ gentity_t *AI_GetSightClient(gentity_t *self) {
 
 		// if we're touching them, allow to pass through
 		if (!boxes_intersect(self->absMin, self->absMax, player->absMin, player->absMax)) {
-			if ((!(self->monsterInfo.aiflags & AI_THIRD_EYE) && !infront(self, player)) || !visible(self, player))
+			if ((!(self->monsterInfo.aiFlags & AI_THIRD_EYE) && !infront(self, player)) || !visible(self, player))
 				continue;
 		}
 
@@ -78,16 +78,16 @@ void ai_stand(gentity_t *self, float dist) {
 	vec3_t v;
 	bool retval;
 
-	if (dist || (self->monsterInfo.aiflags & AI_ALTERNATE_FLY))
+	if (dist || (self->monsterInfo.aiFlags & AI_ALTERNATE_FLY))
 		M_walkmove(self, self->s.angles[YAW], dist);
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		// [Paril-KEX] check if we've been pushed out of our point_combat
-		if (!(self->monsterInfo.aiflags & AI_TEMP_STAND_GROUND) &&
+		if (!(self->monsterInfo.aiFlags & AI_TEMP_STAND_GROUND) &&
 			self->movetarget && self->movetarget->className && !strcmp(self->movetarget->className, "point_combat")) {
 			if (!boxes_intersect(self->absMin, self->absMax, self->movetarget->absMin, self->movetarget->absMax)) {
-				self->monsterInfo.aiflags &= ~AI_STAND_GROUND;
-				self->monsterInfo.aiflags |= AI_COMBAT_POINT;
+				self->monsterInfo.aiFlags &= ~AI_STAND_GROUND;
+				self->monsterInfo.aiFlags |= AI_COMBAT_POINT;
 				self->goalentity = self->movetarget;
 				self->monsterInfo.run(self);
 				return;
@@ -97,18 +97,18 @@ void ai_stand(gentity_t *self, float dist) {
 		if (self->enemy && !(self->enemy->className && !strcmp(self->enemy->className, "player_noise"))) {
 			v = self->enemy->s.origin - self->s.origin;
 			self->ideal_yaw = vectoyaw(v);
-			if (!FacingIdeal(self) && (self->monsterInfo.aiflags & AI_TEMP_STAND_GROUND)) {
-				self->monsterInfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+			if (!FacingIdeal(self) && (self->monsterInfo.aiFlags & AI_TEMP_STAND_GROUND)) {
+				self->monsterInfo.aiFlags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
 				self->monsterInfo.run(self);
 			}
-			if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+			if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 				M_ChangeYaw(self);
 			// find out if we're going to be shooting
 			retval = ai_checkattack(self, 0);
 			// record sightings of player
 			if ((self->enemy) && (self->enemy->inUse)) {
 				if (visible(self, self->enemy)) {
-					self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+					self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 					self->monsterInfo.last_sighting = self->monsterInfo.saved_goal = self->enemy->s.origin;
 					self->monsterInfo.blind_fire_target = self->monsterInfo.last_sighting + (self->enemy->velocity * -0.1f);
 					self->monsterInfo.trail_time = level.time;
@@ -117,12 +117,12 @@ void ai_stand(gentity_t *self, float dist) {
 					if (FindTarget(self))
 						return;
 
-					self->monsterInfo.aiflags |= AI_LOST_SIGHT;
+					self->monsterInfo.aiFlags |= AI_LOST_SIGHT;
 				}
 
 				// Paril: fixes rare cases of a stand ground monster being stuck
 				// aiming at a sound target that they can still see
-				if ((self->monsterInfo.aiflags & AI_SOUND_TARGET) && !retval) {
+				if ((self->monsterInfo.aiFlags & AI_SOUND_TARGET) && !retval) {
 					if (FindTarget(self))
 						return;
 				}
@@ -139,7 +139,7 @@ void ai_stand(gentity_t *self, float dist) {
 
 	// Paril: this fixes a bug somewhere else that sometimes causes
 	// a monster to be given an enemy without ever calling HuntTarget.
-	if (self->enemy && !(self->monsterInfo.aiflags & AI_SOUND_TARGET)) {
+	if (self->enemy && !(self->monsterInfo.aiFlags & AI_SOUND_TARGET)) {
 		HuntTarget(self);
 		return;
 	}
@@ -147,7 +147,7 @@ void ai_stand(gentity_t *self, float dist) {
 	if (FindTarget(self))
 		return;
 
-	if (level.time > self->monsterInfo.pausetime) {
+	if (level.time > self->monsterInfo.pauseTime) {
 		self->monsterInfo.walk(self);
 		return;
 	}
@@ -173,7 +173,7 @@ The monster is walking it's beat
 void ai_walk(gentity_t *self, float dist) {
 	gentity_t *temp_goal = nullptr;
 
-	if (!self->goalentity && (self->monsterInfo.aiflags & AI_GOOD_GUY)) {
+	if (!self->goalentity && (self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
 		vec3_t fwd;
 		AngleVectors(self->s.angles, fwd, nullptr, nullptr);
 
@@ -227,14 +227,14 @@ void ai_charge(gentity_t *self, float dist) {
 	if (visible(self, self->enemy))
 		self->monsterInfo.blind_fire_target = self->enemy->s.origin + (self->enemy->velocity * -0.1f);
 
-	if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING)) {
+	if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING)) {
 		v = self->enemy->s.origin - self->s.origin;
 		self->ideal_yaw = vectoyaw(v);
 	}
 	M_ChangeYaw(self);
 
-	if (dist || (self->monsterInfo.aiflags & AI_ALTERNATE_FLY)) {
-		if (self->monsterInfo.aiflags & AI_CHARGING) {
+	if (dist || (self->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
+		if (self->monsterInfo.aiFlags & AI_CHARGING) {
 			M_MoveToGoal(self, dist);
 			return;
 		}
@@ -274,13 +274,13 @@ Distance is for slight position adjustments needed by the animations
 =============
 */
 void ai_turn(gentity_t *self, float dist) {
-	if (dist || (self->monsterInfo.aiflags & AI_ALTERNATE_FLY))
+	if (dist || (self->monsterInfo.aiFlags & AI_ALTERNATE_FLY))
 		M_walkmove(self, self->s.angles[YAW], dist);
 
 	if (FindTarget(self))
 		return;
 
-	if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+	if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 		M_ChangeYaw(self);
 }
 
@@ -303,9 +303,9 @@ A yaw angle of the intended direction, which will be turned towards at up
 to 45 deg / state.  If the enemy is in view and hunt_time is not active,
 this will be the exact line towards the enemy.
 
-.pausetime
+.pauseTime
 A monster will leave it's stand state and head towards it's .movetarget when
-time > .pausetime.
+time > .pauseTime.
 
 walkmove(angle, speed) primitive is all or nothing
 */
@@ -349,7 +349,7 @@ bool visible(gentity_t *self, gentity_t *other, bool through_glass) {
 		if (!other->solid)
 			return false;
 
-		if (other->client->pu_time_invisibility > level.time) {
+		if (other->client->powerupTime.invisibility > level.time) {
 			// can't see us at all after this time
 			if (other->client->invisibility_fade_time <= level.time)
 				return false;
@@ -410,7 +410,7 @@ void HuntTarget(gentity_t *self, bool animate_state) {
 
 	self->goalentity = self->enemy;
 	if (animate_state) {
-		if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+		if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 			self->monsterInfo.stand(self);
 		else
 			self->monsterInfo.run(self);
@@ -447,11 +447,11 @@ void FoundTarget(gentity_t *self) {
 	// [Paril-KEX] for alternate fly, pick a new position immediately
 	self->monsterInfo.fly_position_time = 0_ms;
 
-	self->monsterInfo.aiflags &= ~AI_THIRD_EYE;
+	self->monsterInfo.aiFlags &= ~AI_THIRD_EYE;
 
 	// Paril: if we're heading to a combat point/path corner, don't
 	// hunt the new target yet.
-	if (self->monsterInfo.aiflags & AI_COMBAT_POINT)
+	if (self->monsterInfo.aiFlags & AI_COMBAT_POINT)
 		return;
 
 	if (!self->combattarget) {
@@ -469,12 +469,12 @@ void FoundTarget(gentity_t *self) {
 
 	// clear out our combattarget, these are a one shot deal
 	self->combattarget = nullptr;
-	self->monsterInfo.aiflags |= AI_COMBAT_POINT;
+	self->monsterInfo.aiFlags |= AI_COMBAT_POINT;
 
 	// clear the targetname, that point is ours!
 	// [Paril-KEX] not any more, we can re-use them
 	//self->movetarget->targetname = nullptr;
-	self->monsterInfo.pausetime = 0_ms;
+	self->monsterInfo.pauseTime = 0_ms;
 
 	// run for it
 	self->monsterInfo.run(self);
@@ -537,7 +537,7 @@ static gentity_t *AI_GetSoundClient(gentity_t *self, bool direct) {
 	return best_sound;
 }
 
-bool G_MonsterSourceVisible(gentity_t *self, gentity_t *client) {
+static bool G_MonsterSourceVisible(gentity_t *self, gentity_t *client) {
 	// this is where we would check invisibility
 	float r = range_to(self, client);
 
@@ -549,7 +549,7 @@ bool G_MonsterSourceVisible(gentity_t *self, gentity_t *client) {
 	// if they are close enough. they don't have to be visible.
 	bool is_visible =
 		((r <= RANGE_NEAR && client->show_hostile >= level.time && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH)) ||
-			(visible(self, client) && (r <= RANGE_MELEE || (self->monsterInfo.aiflags & AI_THIRD_EYE) || infront(self, client))));
+			(visible(self, client) && (r <= RANGE_MELEE || (self->monsterInfo.aiFlags & AI_THIRD_EYE) || infront(self, client))));
 
 	return is_visible;
 }
@@ -584,7 +584,7 @@ bool FindTarget(gentity_t *self) {
 	if (self->hackflags & HACKFLAG_END_CUTSCENE)
 		return false;
 
-	if (self->monsterInfo.aiflags & AI_GOOD_GUY) {
+	if (self->monsterInfo.aiFlags & AI_GOOD_GUY) {
 		if (self->goalentity && self->goalentity->inUse && self->goalentity->className) {
 			if (strcmp(self->goalentity->className, "target_actor") == 0)
 				return false;
@@ -595,7 +595,7 @@ bool FindTarget(gentity_t *self) {
 	}
 
 	// if we're going to a combat point, just proceed
-	if (self->monsterInfo.aiflags & AI_COMBAT_POINT)
+	if (self->monsterInfo.aiFlags & AI_COMBAT_POINT)
 		return false;
 
 	// if the first spawnflag bit is set, the monster will only wake up on
@@ -652,7 +652,7 @@ bool FindTarget(gentity_t *self) {
 		// [Paril-KEX] slight special behavior if we are currently going to a sound
 		// and we hear a new one; because player noises are re-used, this can leave
 		// us with the "same" enemy even though it's a different noise.
-		if (heardit && (self->monsterInfo.aiflags & AI_SOUND_TARGET)) {
+		if (heardit && (self->monsterInfo.aiFlags & AI_SOUND_TARGET)) {
 			vec3_t temp = client->s.origin - self->s.origin;
 			self->ideal_yaw = vectoyaw(temp);
 
@@ -661,8 +661,8 @@ bool FindTarget(gentity_t *self) {
 			else if (!G_CloseEnough(self, client, 8.f))
 				skip_found = false;
 
-			if (!skip_found && (self->monsterInfo.aiflags & AI_TEMP_STAND_GROUND)) {
-				self->monsterInfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+			if (!skip_found && (self->monsterInfo.aiFlags & AI_TEMP_STAND_GROUND)) {
+				self->monsterInfo.aiFlags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
 			}
 		}
 
@@ -671,7 +671,7 @@ bool FindTarget(gentity_t *self) {
 	}
 
 	// hintpath coop fix
-	if ((self->monsterInfo.aiflags & AI_HINT_PATH) && CooperativeModeOn())
+	if ((self->monsterInfo.aiFlags & AI_HINT_PATH) && CooperativeModeOn())
 		heardit = false;
 
 	if (client->svFlags & SVF_MONSTER) {
@@ -698,7 +698,7 @@ bool FindTarget(gentity_t *self) {
 		// if they are close enough. they don't have to be visible.
 		bool is_visible =
 			((r <= RANGE_NEAR && client->show_hostile >= level.time && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH)) ||
-				(visible(self, client) && (r <= RANGE_MELEE || (self->monsterInfo.aiflags & AI_THIRD_EYE) || infront(self, client))));
+				(visible(self, client) && (r <= RANGE_MELEE || (self->monsterInfo.aiFlags & AI_THIRD_EYE) || infront(self, client))));
 
 		if (!is_visible)
 			return false;
@@ -706,7 +706,7 @@ bool FindTarget(gentity_t *self) {
 		self->enemy = client;
 
 		if (strcmp(self->enemy->className, "player_noise") != 0) {
-			self->monsterInfo.aiflags &= ~AI_SOUND_TARGET;
+			self->monsterInfo.aiFlags &= ~AI_SOUND_TARGET;
 
 			if (!self->enemy->client) {
 				self->enemy = self->enemy->enemy;
@@ -717,7 +717,7 @@ bool FindTarget(gentity_t *self) {
 			}
 		}
 
-		if (self->enemy->client && self->enemy->client->pu_time_invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time) {
+		if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time) {
 			self->enemy = nullptr;
 			return false;
 		}
@@ -749,11 +749,11 @@ bool FindTarget(gentity_t *self) {
 				return false;
 
 		self->ideal_yaw = vectoyaw(temp);
-		if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+		if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 			M_ChangeYaw(self);
 
 		// hunt the sound for a bit; hopefully find the real player
-		self->monsterInfo.aiflags |= AI_SOUND_TARGET;
+		self->monsterInfo.aiFlags |= AI_SOUND_TARGET;
 		self->enemy = client;
 	}
 
@@ -762,12 +762,12 @@ bool FindTarget(gentity_t *self) {
 	//
 
 	// if we got an enemy, we need to bail out of hint paths, so take over here
-	if (self->monsterInfo.aiflags & AI_HINT_PATH)
+	if (self->monsterInfo.aiFlags & AI_HINT_PATH)
 		hintpath_stop(self);  // this calls foundtarget for us
 	else
 		FoundTarget(self);
 
-	if (!(self->monsterInfo.aiflags & AI_SOUND_TARGET) && (self->monsterInfo.sight) &&
+	if (!(self->monsterInfo.aiFlags & AI_SOUND_TARGET) && (self->monsterInfo.sight) &&
 		// Paril: adjust to prevent monsters getting stuck in sight loops
 		!ignore_sight_sound)
 		self->monsterInfo.sight(self, self->enemy);
@@ -786,7 +786,7 @@ FacingIdeal
 bool FacingIdeal(gentity_t *self) {
 	float delta = anglemod(self->s.angles[YAW] - self->ideal_yaw);
 
-	if (self->monsterInfo.aiflags & AI_PATHING)
+	if (self->monsterInfo.aiFlags & AI_PATHING)
 		return !(delta > 5 && delta < 355);
 
 	return !(delta > 45 && delta < 315);
@@ -805,7 +805,7 @@ bool M_CheckAttack_Base(gentity_t *self, float stand_ground_chance, float melee_
 
 	if (self->enemy->health > 0) {
 		if (self->enemy->client) {
-			if (self->enemy->client->pu_time_invisibility > level.time) {
+			if (self->enemy->client->powerupTime.invisibility > level.time) {
 				// can't see us at all after this time
 				if (self->enemy->client->invisibility_fade_time <= level.time)
 					return false;
@@ -882,7 +882,7 @@ bool M_CheckAttack_Base(gentity_t *self, float stand_ground_chance, float melee_
 	if (level.time < self->monsterInfo.attack_finished)
 		return false;
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		chance = stand_ground_chance;
 	} else if (enemy_range <= RANGE_MELEE) {
 		chance = melee_chance;
@@ -937,7 +937,7 @@ bool M_CheckAttack_Base(gentity_t *self, float stand_ground_chance, float melee_
 	// [Paril-KEX] if we're pathing, don't immediately reset us to
 	// straight; this allows us to turn to fire and not jerk back and
 	// forth.
-	else if (!(self->monsterInfo.aiflags & AI_PATHING))
+	else if (!(self->monsterInfo.aiFlags & AI_PATHING))
 		self->monsterInfo.attack_state = AS_STRAIGHT;
 
 	return false;
@@ -956,7 +956,7 @@ Turn and close until within an angle to launch a melee attack
 */
 static void ai_run_melee(gentity_t *self) {
 	self->ideal_yaw = enemy_yaw;
-	if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+	if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 		M_ChangeYaw(self);
 
 	if (FacingIdeal(self)) {
@@ -974,7 +974,7 @@ Turn in place until within an angle to launch a missile attack
 */
 static void ai_run_missile(gentity_t *self) {
 	self->ideal_yaw = enemy_yaw;
-	if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+	if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 		M_ChangeYaw(self);
 
 	if (FacingIdeal(self)) {
@@ -1008,17 +1008,17 @@ static void ai_run_slide(gentity_t *self, float distance) {
 	else
 		ofs = -angle;
 
-	if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+	if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 		M_ChangeYaw(self);
 
 	// clamp maximum sideways move for non flyers to make them look less jerky
 	if (!(self->flags & FL_FLY))
-		distance = min(distance, MAX_SIDESTEP / (gi.frame_time_ms / 10));
+		distance = min(distance, MAX_SIDESTEP / (static_cast<float>(gi.frame_time_ms) / 10.0f));
 	if (M_walkmove(self, self->ideal_yaw + ofs, distance))
 		return;
 
 	// if we're dodging, give up on it and go straight
-	if (self->monsterInfo.aiflags & AI_DODGING) {
+	if (self->monsterInfo.aiFlags & AI_DODGING) {
 		monster_done_dodge(self);
 		// by setting as_straight, caller will know to try straight move
 		self->monsterInfo.attack_state = AS_STRAIGHT;
@@ -1029,7 +1029,7 @@ static void ai_run_slide(gentity_t *self, float distance) {
 	if (M_walkmove(self, self->ideal_yaw - ofs, distance))
 		return;
 	// if we're dodging, give up on it and go straight
-	if (self->monsterInfo.aiflags & AI_DODGING)
+	if (self->monsterInfo.aiFlags & AI_DODGING)
 		monster_done_dodge(self);
 
 	// the move failed, so signal the caller (ai_run) to try going straight
@@ -1049,17 +1049,17 @@ bool ai_checkattack(gentity_t *self, float dist) {
 	bool   hesDeadJim;
 	bool    retval;
 
-	if (self->monsterInfo.aiflags & AI_TEMP_STAND_GROUND)
-		self->monsterInfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+	if (self->monsterInfo.aiFlags & AI_TEMP_STAND_GROUND)
+		self->monsterInfo.aiFlags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
 
 	// this causes monsters to run blindly to the combat point w/o firing
 	if (self->goalentity) {
-		if (self->monsterInfo.aiflags & AI_COMBAT_POINT) {
+		if (self->monsterInfo.aiFlags & AI_COMBAT_POINT) {
 			if (self->enemy && range_to(self, self->enemy) > 100.f)
 				return false;
 		}
 
-		if (self->monsterInfo.aiflags & AI_SOUND_TARGET) {
+		if (self->monsterInfo.aiFlags & AI_SOUND_TARGET) {
 			if ((level.time - self->enemy->teleport_time) > 5_sec) {
 				if (self->goalentity == self->enemy) {
 					if (self->movetarget)
@@ -1067,7 +1067,7 @@ bool ai_checkattack(gentity_t *self, float dist) {
 					else
 						self->goalentity = nullptr;
 				}
-				self->monsterInfo.aiflags &= ~AI_SOUND_TARGET;
+				self->monsterInfo.aiFlags &= ~AI_SOUND_TARGET;
 			} else {
 				self->enemy->show_hostile = level.time + 1_sec;
 				return false;
@@ -1081,27 +1081,27 @@ bool ai_checkattack(gentity_t *self, float dist) {
 	hesDeadJim = false;
 	if ((!self->enemy) || (!self->enemy->inUse)) {
 		hesDeadJim = true;
-	} else if (self->monsterInfo.aiflags & AI_FORGET_ENEMY) {
-		self->monsterInfo.aiflags &= ~AI_FORGET_ENEMY;
+	} else if (self->monsterInfo.aiFlags & AI_FORGET_ENEMY) {
+		self->monsterInfo.aiFlags &= ~AI_FORGET_ENEMY;
 		hesDeadJim = true;
-	} else if (self->monsterInfo.aiflags & AI_MEDIC) {
+	} else if (self->monsterInfo.aiFlags & AI_MEDIC) {
 		if (!(self->enemy->inUse) || (self->enemy->health > 0))
 			hesDeadJim = true;
 	} else {
-		if (!(self->monsterInfo.aiflags & AI_BRUTAL)) {
+		if (!(self->monsterInfo.aiFlags & AI_BRUTAL)) {
 			if (self->enemy->health <= 0)
 				hesDeadJim = true;
 		}
 
 		// [Paril-KEX] if our enemy was invisible, lose sight now
-		if (self->enemy->client && self->enemy->client->pu_time_invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time &&
-			(self->monsterInfo.aiflags & AI_PURSUE_NEXT)) {
+		if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time &&
+			(self->monsterInfo.aiFlags & AI_PURSUE_NEXT)) {
 			hesDeadJim = true;
 		}
 	}
 
 	if (hesDeadJim && !(self->hackflags & HACKFLAG_ATTACK_PLAYER)) {
-		self->monsterInfo.aiflags &= ~AI_MEDIC;
+		self->monsterInfo.aiFlags &= ~AI_MEDIC;
 		self->enemy = self->goalentity = nullptr;
 		self->monsterInfo.close_sight_tripped = false;
 
@@ -1121,19 +1121,19 @@ bool ai_checkattack(gentity_t *self, float dist) {
 		}
 
 		else {
-			if (self->movetarget && !(self->monsterInfo.aiflags & AI_STAND_GROUND)) {
+			if (self->movetarget && !(self->monsterInfo.aiFlags & AI_STAND_GROUND)) {
 				self->goalentity = self->movetarget;
 				self->monsterInfo.walk(self);
 			} else {
-				// we need the pausetime otherwise the stand code
+				// we need the pauseTime otherwise the stand code
 				// will just revert to walking with no target and
 				// the monsters will wonder around aimlessly trying
 				// to hunt the world entity
-				self->monsterInfo.pausetime = HOLD_FOREVER;
+				self->monsterInfo.pauseTime = HOLD_FOREVER;
 				self->monsterInfo.stand(self);
 
-				if (self->monsterInfo.aiflags & AI_TEMP_STAND_GROUND)
-					self->monsterInfo.aiflags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+				if (self->monsterInfo.aiFlags & AI_TEMP_STAND_GROUND)
+					self->monsterInfo.aiFlags &= ~(AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
 			}
 			return true;
 		}
@@ -1147,11 +1147,11 @@ bool ai_checkattack(gentity_t *self, float dist) {
 		self->monsterInfo.search_time = level.time + 5_sec;
 		self->monsterInfo.last_sighting = self->monsterInfo.saved_goal = self->enemy->s.origin;
 
-		if (self->monsterInfo.aiflags & AI_LOST_SIGHT) {
-			self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+		if (self->monsterInfo.aiFlags & AI_LOST_SIGHT) {
+			self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 
 			if (self->monsterInfo.move_block_change_time < level.time)
-				self->monsterInfo.aiflags &= ~AI_TEMP_MELEE_COMBAT;
+				self->monsterInfo.aiFlags &= ~AI_TEMP_MELEE_COMBAT;
 		}
 		self->monsterInfo.trail_time = level.time;
 		self->monsterInfo.blind_fire_target = self->monsterInfo.last_sighting + (self->enemy->velocity * -0.1f);
@@ -1162,13 +1162,13 @@ bool ai_checkattack(gentity_t *self, float dist) {
 	temp = self->enemy->s.origin - self->s.origin;
 	enemy_yaw = vectoyaw(temp);
 
-	// PMM -- reordered so the monster specific checkattack is called before the run_missle/melee/checkvis
+	// PMM -- reordered so the monster specific checkAttack is called before the run_missle/melee/checkvis
 	// stuff .. this allows for, among other things, circle strafing and attacking while in ai_run
 	retval = false;
 
 	if (self->monsterInfo.checkattack_time <= level.time) {
 		self->monsterInfo.checkattack_time = level.time + 0.1_sec;
-		retval = self->monsterInfo.checkattack(self);
+		retval = self->monsterInfo.checkAttack(self);
 	}
 
 	if (retval || self->monsterInfo.attack_state >= AS_MISSILE) {
@@ -1218,7 +1218,7 @@ void ai_run(gentity_t *self, float dist) {
 	gentity_t *realEnemy;
 
 	// if we're going to a combat point, just proceed
-	if (self->monsterInfo.aiflags & AI_COMBAT_POINT) {
+	if (self->monsterInfo.aiFlags & AI_COMBAT_POINT) {
 		ai_checkattack(self, dist);
 		M_MoveToGoal(self, dist);
 
@@ -1229,10 +1229,10 @@ void ai_run(gentity_t *self, float dist) {
 			// [Paril-KEX] special case: if we're stand ground & knocked way too far away
 			// from our path_corner, or we can't see it any more, assume all
 			// is lost.
-			if ((self->monsterInfo.aiflags & AI_REACHED_HOLD_COMBAT) && (((closest_point_to_box(self->movetarget->s.origin, self->absMin, self->absMax) - self->movetarget->s.origin).length() > 160.f)
+			if ((self->monsterInfo.aiFlags & AI_REACHED_HOLD_COMBAT) && (((closest_point_to_box(self->movetarget->s.origin, self->absMin, self->absMax) - self->movetarget->s.origin).length() > 160.f)
 				|| (tr.fraction < 1.0f && tr.plane.normal.z <= 0.7f))) // if we hit a climbable, ignore this result
 			{
-				self->monsterInfo.aiflags &= ~AI_COMBAT_POINT;
+				self->monsterInfo.aiFlags &= ~AI_COMBAT_POINT;
 				self->movetarget = nullptr;
 				self->target = nullptr;
 				self->goalentity = self->enemy;
@@ -1242,11 +1242,11 @@ void ai_run(gentity_t *self, float dist) {
 			return;
 	}
 
-	if ((self->monsterInfo.aiflags & AI_DUCKED) && self->monsterInfo.unduck)
-		self->monsterInfo.unduck(self);
+	if ((self->monsterInfo.aiFlags & AI_DUCKED) && self->monsterInfo.unDuck)
+		self->monsterInfo.unDuck(self);
 
 	// if we're currently looking for a hint path
-	if (self->monsterInfo.aiflags & AI_HINT_PATH) {
+	if (self->monsterInfo.aiFlags & AI_HINT_PATH) {
 		// determine direction to our destination hintpath.
 		M_MoveToGoal(self, dist);
 		if (!self->inUse)
@@ -1294,14 +1294,14 @@ void ai_run(gentity_t *self, float dist) {
 		return;
 	}
 
-	if (self->monsterInfo.aiflags & AI_SOUND_TARGET) {
+	if (self->monsterInfo.aiFlags & AI_SOUND_TARGET) {
 		if (self->enemy)
 			v = self->s.origin - self->enemy->s.origin;
 
-		bool touching_noise = G_CloseEnough(self, self->enemy, dist * (gi.tick_rate / 10));
-
+		bool touching_noise = G_CloseEnough(self, self->enemy, dist * (static_cast<float>(gi.tick_rate) / 10.0f));
+		
 		if ((!self->enemy) || (touching_noise && FacingIdeal(self))) {
-			self->monsterInfo.aiflags |= (AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
+			self->monsterInfo.aiFlags |= (AI_STAND_GROUND | AI_TEMP_STAND_GROUND);
 			self->s.angles[YAW] = self->ideal_yaw;
 			self->monsterInfo.stand(self);
 			self->monsterInfo.close_sight_tripped = false;
@@ -1331,7 +1331,7 @@ void ai_run(gentity_t *self, float dist) {
 	if ((!enemy_vis) && (self->monsterInfo.attack_state == AS_SLIDING))
 		self->monsterInfo.attack_state = AS_STRAIGHT;
 	// unless we're dodging (dodging out of view looks smart)
-	if (self->monsterInfo.aiflags & AI_DODGING)
+	if (self->monsterInfo.aiFlags & AI_DODGING)
 		self->monsterInfo.attack_state = AS_SLIDING;
 
 	if (self->monsterInfo.attack_state == AS_SLIDING) {
@@ -1345,24 +1345,24 @@ void ai_run(gentity_t *self, float dist) {
 		// if the move failed, our state is as_straight, and it will be taken care of below
 		if ((!retval) && (self->monsterInfo.attack_state == AS_SLIDING))
 			return;
-	} else if (self->monsterInfo.aiflags & AI_CHARGING) {
+	} else if (self->monsterInfo.aiFlags & AI_CHARGING) {
 		self->ideal_yaw = enemy_yaw;
-		if (!(self->monsterInfo.aiflags & AI_MANUAL_STEERING))
+		if (!(self->monsterInfo.aiFlags & AI_MANUAL_STEERING))
 			M_ChangeYaw(self);
 	}
 	if (retval) {
 		// PMM - is this useful?  Monsters attacking usually call the ai_charge routine..
 		// the only monster this affects should be the soldier
-		if ((dist || (self->monsterInfo.aiflags & AI_ALTERNATE_FLY)) && (!alreadyMoved) && (self->monsterInfo.attack_state == AS_STRAIGHT) &&
-			(!(self->monsterInfo.aiflags & AI_STAND_GROUND))) {
+		if ((dist || (self->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) && (!alreadyMoved) && (self->monsterInfo.attack_state == AS_STRAIGHT) &&
+			(!(self->monsterInfo.aiFlags & AI_STAND_GROUND))) {
 			M_MoveToGoal(self, dist);
 		}
 		if ((self->enemy) && (self->enemy->inUse) && (enemy_vis)) {
-			if (self->monsterInfo.aiflags & AI_LOST_SIGHT) {
-				self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+			if (self->monsterInfo.aiFlags & AI_LOST_SIGHT) {
+				self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 
 				if (self->monsterInfo.move_block_change_time < level.time)
-					self->monsterInfo.aiflags &= ~AI_TEMP_MELEE_COMBAT;
+					self->monsterInfo.aiFlags &= ~AI_TEMP_MELEE_COMBAT;
 			}
 			self->monsterInfo.last_sighting = self->monsterInfo.saved_goal = self->enemy->s.origin;
 			self->monsterInfo.trail_time = level.time;
@@ -1380,11 +1380,11 @@ void ai_run(gentity_t *self, float dist) {
 		if (!self->inUse)
 			return; // PGM - g_touchtrigger free problem
 
-		if (self->monsterInfo.aiflags & AI_LOST_SIGHT) {
-			self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+		if (self->monsterInfo.aiFlags & AI_LOST_SIGHT) {
+			self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 
 			if (self->monsterInfo.move_block_change_time < level.time)
-				self->monsterInfo.aiflags &= ~AI_TEMP_MELEE_COMBAT;
+				self->monsterInfo.aiFlags &= ~AI_TEMP_MELEE_COMBAT;
 		}
 		self->monsterInfo.last_sighting = self->monsterInfo.saved_goal = self->enemy->s.origin;
 		self->monsterInfo.trail_time = level.time;
@@ -1429,10 +1429,10 @@ void ai_run(gentity_t *self, float dist) {
 
 	newEnemy = false;
 
-	if (!(self->monsterInfo.aiflags & AI_LOST_SIGHT)) {
+	if (!(self->monsterInfo.aiFlags & AI_LOST_SIGHT)) {
 		// just lost sight of the player, decide where to go first
-		self->monsterInfo.aiflags |= (AI_LOST_SIGHT | AI_PURSUIT_LAST_SEEN);
-		self->monsterInfo.aiflags &= ~(AI_PURSUE_NEXT | AI_PURSUE_TEMP);
+		self->monsterInfo.aiFlags |= (AI_LOST_SIGHT | AI_PURSUIT_LAST_SEEN);
+		self->monsterInfo.aiFlags &= ~(AI_PURSUE_NEXT | AI_PURSUE_TEMP);
 		newEnemy = true;
 
 		// immediately try paths
@@ -1440,19 +1440,19 @@ void ai_run(gentity_t *self, float dist) {
 		self->monsterInfo.path_wait_time = 0_ms;
 	}
 
-	if (self->monsterInfo.aiflags & AI_PURSUE_NEXT) {
-		self->monsterInfo.aiflags &= ~AI_PURSUE_NEXT;
+	if (self->monsterInfo.aiFlags & AI_PURSUE_NEXT) {
+		self->monsterInfo.aiFlags &= ~AI_PURSUE_NEXT;
 
 		// give ourself more time since we got this far
 		self->monsterInfo.search_time = level.time + 5_sec;
 
-		if (self->monsterInfo.aiflags & AI_PURSUE_TEMP) {
-			self->monsterInfo.aiflags &= ~AI_PURSUE_TEMP;
+		if (self->monsterInfo.aiFlags & AI_PURSUE_TEMP) {
+			self->monsterInfo.aiFlags &= ~AI_PURSUE_TEMP;
 			marker = nullptr;
 			self->monsterInfo.last_sighting = self->monsterInfo.saved_goal;
 			newEnemy = true;
-		} else if (self->monsterInfo.aiflags & AI_PURSUIT_LAST_SEEN) {
-			self->monsterInfo.aiflags &= ~AI_PURSUIT_LAST_SEEN;
+		} else if (self->monsterInfo.aiFlags & AI_PURSUIT_LAST_SEEN) {
+			self->monsterInfo.aiFlags &= ~AI_PURSUIT_LAST_SEEN;
 			marker = PlayerTrail_Pick(self, false);
 		} else {
 			marker = PlayerTrail_Pick(self, true);
@@ -1467,9 +1467,9 @@ void ai_run(gentity_t *self, float dist) {
 		}
 	}
 
-	if (!(self->monsterInfo.aiflags & AI_PATHING) &&
+	if (!(self->monsterInfo.aiFlags & AI_PATHING) &&
 		boxes_intersect(self->monsterInfo.last_sighting, self->monsterInfo.last_sighting, self->s.origin + self->mins, self->s.origin + self->maxs)) {
-		self->monsterInfo.aiflags |= AI_PURSUE_NEXT;
+		self->monsterInfo.aiFlags |= AI_PURSUE_NEXT;
 		dist = min(dist, (self->s.origin - self->monsterInfo.last_sighting).length());
 		// [Paril-KEX] this helps them navigate corners when two next pursuits
 		// are really close together
@@ -1507,7 +1507,7 @@ void ai_run(gentity_t *self, float dist) {
 					left_target = G_ProjectSource(self->s.origin, v, vForward, v_right);
 				}
 				self->monsterInfo.saved_goal = self->monsterInfo.last_sighting;
-				self->monsterInfo.aiflags |= AI_PURSUE_TEMP;
+				self->monsterInfo.aiFlags |= AI_PURSUE_TEMP;
 				self->goalentity->s.origin = left_target;
 				self->monsterInfo.last_sighting = left_target;
 				v = self->goalentity->s.origin - self->s.origin;
@@ -1518,7 +1518,7 @@ void ai_run(gentity_t *self, float dist) {
 					right_target = G_ProjectSource(self->s.origin, v, vForward, v_right);
 				}
 				self->monsterInfo.saved_goal = self->monsterInfo.last_sighting;
-				self->monsterInfo.aiflags |= AI_PURSUE_TEMP;
+				self->monsterInfo.aiFlags |= AI_PURSUE_TEMP;
 				self->goalentity->s.origin = right_target;
 				self->monsterInfo.last_sighting = right_target;
 				v = self->goalentity->s.origin - self->s.origin;

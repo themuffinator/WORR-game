@@ -24,11 +24,11 @@ static cached_soundindex sound_death_ss;
 static cached_soundindex sound_cock;
 
 static void soldier_start_charge(gentity_t *self) {
-	self->monsterInfo.aiflags |= AI_CHARGING;
+	self->monsterInfo.aiFlags |= AI_CHARGING;
 }
 
 static void soldier_stop_charge(gentity_t *self) {
-	self->monsterInfo.aiflags &= ~AI_CHARGING;
+	self->monsterInfo.aiFlags &= ~AI_CHARGING;
 }
 
 static void soldier_idle(gentity_t *self) {
@@ -49,16 +49,16 @@ static void soldier_cock(gentity_t *self) {
 static void soldierh_hyper_laser_sound_start(gentity_t *self) {
 	if (self->style == 1) {
 		if (self->count >= 2 && self->count < 4)
-			self->monsterInfo.weapon_sound = gi.soundindex("weapons/hyprbl1a.wav");
+			self->monsterInfo.weaponSound = gi.soundindex("weapons/hyprbl1a.wav");
 	}
 }
 
 static void soldierh_hyper_laser_sound_end(gentity_t *self) {
-	if (self->monsterInfo.weapon_sound) {
+	if (self->monsterInfo.weaponSound) {
 		if (self->count >= 2 && self->count < 4)
 			gi.sound(self, CHAN_AUTO, gi.soundindex("weapons/hyprbd1a.wav"), 1, ATTN_NORM, 0);
 
-		self->monsterInfo.weapon_sound = 0;
+		self->monsterInfo.weaponSound = 0;
 	}
 }
 
@@ -213,7 +213,7 @@ MONSTERINFO_STAND(soldier_stand) (gentity_t *self) -> void {
 
 static void soldier_walk1_random(gentity_t *self) {
 	if (frandom() > 0.1f)
-		self->monsterInfo.nextframe = FRAME_walk101;
+		self->monsterInfo.nextFrame = FRAME_walk101;
 }
 
 mframe_t soldier_frames_walk1[] = {
@@ -301,7 +301,7 @@ MONSTERINFO_RUN(soldier_run) (gentity_t *self) -> void {
 	monster_done_dodge(self);
 	soldierh_hyper_laser_sound_end(self);
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &soldier_move_stand1);
 		return;
 	}
@@ -391,12 +391,12 @@ static PAIN(soldier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 	soldier_stop_charge(self);
 
 	// if we're blind firing, this needs to be turned off here
-	self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 
 	if (level.time < self->pain_debounce_time) {
 		if ((self->velocity[2] > 100) && ((self->monsterInfo.active_move == &soldier_move_pain1) || (self->monsterInfo.active_move == &soldier_move_pain2) || (self->monsterInfo.active_move == &soldier_move_pain3))) {
 			// PMM - clear duck flag
-			if (self->monsterInfo.aiflags & AI_DUCKED)
+			if (self->monsterInfo.aiFlags & AI_DUCKED)
 				monster_duck_up(self);
 			M_SetAnimation(self, &soldier_move_pain4);
 			soldierh_hyper_laser_sound_end(self);
@@ -416,7 +416,7 @@ static PAIN(soldier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 
 	if (self->velocity[2] > 100) {
 		// PMM - clear duck flag
-		if (self->monsterInfo.aiflags & AI_DUCKED)
+		if (self->monsterInfo.aiFlags & AI_DUCKED)
 			monster_duck_up(self);
 		M_SetAnimation(self, &soldier_move_pain4);
 		soldierh_hyper_laser_sound_end(self);
@@ -436,7 +436,7 @@ static PAIN(soldier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 		M_SetAnimation(self, &soldier_move_pain3);
 
 	// PMM - clear duck flag
-	if (self->monsterInfo.aiflags & AI_DUCKED)
+	if (self->monsterInfo.aiFlags & AI_DUCKED)
 		monster_duck_up(self);
 	soldierh_hyper_laser_sound_end(self);
 }
@@ -486,7 +486,7 @@ static void soldier_fire_vanilla(gentity_t *self, int flash_number, bool angle_l
 		aim = forward;
 	} else {
 		if ((!self->enemy) || (!self->enemy->inUse)) {
-			self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 			return;
 		}
 
@@ -506,9 +506,9 @@ static void soldier_fire_vanilla(gentity_t *self, int flash_number, bool angle_l
 			if (angle < 0.5f) // ~25 degree angle
 			{
 				if (level.time >= self->monsterInfo.fire_wait)
-					self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+					self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 				else
-					self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+					self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 
 				return;
 			}
@@ -535,16 +535,16 @@ static void soldier_fire_vanilla(gentity_t *self, int flash_number, bool angle_l
 		// [Paril-KEX] indicates to soldier that he must cock
 		self->dmg = 1;
 	} else {
-		// PMM - changed to wait from pausetime to not interfere with dodge code
-		if (!(self->monsterInfo.aiflags & AI_HOLD_FRAME))
+		// PMM - changed to wait from pauseTime to not interfere with dodge code
+		if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME))
 			self->monsterInfo.fire_wait = level.time + random_time(300_ms, 1.1_sec);
 
 		monster_fire_bullet(self, start, aim, 2, 4, DEFAULT_BULLET_HSPREAD, DEFAULT_BULLET_VSPREAD, flash_index);
 
 		if (level.time >= self->monsterInfo.fire_wait)
-			self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 		else
-			self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 	}
 }
 
@@ -609,7 +609,7 @@ static void soldier_fire_xatrix(gentity_t *self, int flash_number, bool angle_li
 	} else {
 		// [Paril-KEX] no enemy = no fire
 		if ((!self->enemy) || (!self->enemy->inUse)) {
-			self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 			return;
 		}
 
@@ -631,9 +631,9 @@ static void soldier_fire_xatrix(gentity_t *self, int flash_number, bool angle_li
 			if (angle < 0.5f) // ~25 degree angle
 			{
 				if (level.time >= self->monsterInfo.fire_wait)
-					self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+					self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 				else
-					self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+					self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 
 				return;
 			}
@@ -657,16 +657,16 @@ static void soldier_fire_xatrix(gentity_t *self, int flash_number, bool angle_li
 	} else if (self->count <= 3) {
 		monster_fire_blueblaster(self, start, aim, 1, 600, flash_index, EF_BLUEHYPERBLASTER);
 	} else {
-		// PMM - changed to wait from pausetime to not interfere with dodge code
-		if (!(self->monsterInfo.aiflags & AI_HOLD_FRAME))
+		// PMM - changed to wait from pauseTime to not interfere with dodge code
+		if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME))
 			self->monsterInfo.fire_wait = level.time + random_time(300_ms, 1.1_sec);
 
 		soldierh_laserbeam(self, flash_index);
 
 		if (level.time >= self->monsterInfo.fire_wait)
-			self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 		else
-			self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+			self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 	}
 }
 
@@ -686,10 +686,10 @@ static void soldier_fire1(gentity_t *self) {
 static void soldier_attack1_refire1(gentity_t *self) {
 	// [Paril-KEX]
 	if (self->count <= 0)
-		self->monsterInfo.nextframe = FRAME_attak110;
+		self->monsterInfo.nextFrame = FRAME_attak110;
 
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
-		self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
+		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 		return;
 	}
 
@@ -703,9 +703,9 @@ static void soldier_attack1_refire1(gentity_t *self) {
 		return;
 
 	if (((frandom() < 0.5f) && visible(self, self->enemy)) || (range_to(self, self->enemy) <= RANGE_MELEE))
-		self->monsterInfo.nextframe = FRAME_attak102;
+		self->monsterInfo.nextFrame = FRAME_attak102;
 	else
-		self->monsterInfo.nextframe = FRAME_attak110;
+		self->monsterInfo.nextFrame = FRAME_attak110;
 }
 
 static void soldier_attack1_refire2(gentity_t *self) {
@@ -719,21 +719,21 @@ static void soldier_attack1_refire2(gentity_t *self) {
 		return;
 
 	if (((self->splashDamage || frandom() < 0.5f) && visible(self, self->enemy)) || (range_to(self, self->enemy) <= RANGE_MELEE)) {
-		self->monsterInfo.nextframe = FRAME_attak102;
+		self->monsterInfo.nextFrame = FRAME_attak102;
 		self->splashDamage = 0;
 	}
 }
 
 static void soldier_attack1_shotgun_check(gentity_t *self) {
 	if (self->dmg) {
-		self->monsterInfo.nextframe = FRAME_attak106;
+		self->monsterInfo.nextFrame = FRAME_attak106;
 		// [Paril-KEX] indicate that we should force a refire
 		self->splashDamage = 1;
 	}
 }
 
 static void soldier_blind_check(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
 		vec3_t aim = self->monsterInfo.blind_fire_target - self->s.origin;
 		self->ideal_yaw = vectoyaw(aim);
 	}
@@ -795,7 +795,7 @@ static void soldier_fire2(gentity_t *self) {
 
 static void soldier_attack2_refire1(gentity_t *self) {
 	if (self->count <= 0)
-		self->monsterInfo.nextframe = FRAME_attak216;
+		self->monsterInfo.nextFrame = FRAME_attak216;
 
 	if (!self->enemy)
 		return;
@@ -807,7 +807,7 @@ static void soldier_attack2_refire1(gentity_t *self) {
 		return;
 
 	if (((frandom() < 0.5f) && visible(self, self->enemy)) || (range_to(self, self->enemy) <= RANGE_MELEE))
-		self->monsterInfo.nextframe = FRAME_attak204;
+		self->monsterInfo.nextFrame = FRAME_attak204;
 }
 
 static void soldier_attack2_refire2(gentity_t *self) {
@@ -821,14 +821,14 @@ static void soldier_attack2_refire2(gentity_t *self) {
 		return;
 
 	if (((self->splashDamage || frandom() < 0.5f) && visible(self, self->enemy)) || ((self->style == 0 || self->count < 4) && (range_to(self, self->enemy) <= RANGE_MELEE))) {
-		self->monsterInfo.nextframe = FRAME_attak204;
+		self->monsterInfo.nextFrame = FRAME_attak204;
 		self->splashDamage = 0;
 	}
 }
 
 static void soldier_attack2_shotgun_check(gentity_t *self) {
 	if (self->dmg) {
-		self->monsterInfo.nextframe = FRAME_attak210;
+		self->monsterInfo.nextFrame = FRAME_attak210;
 		// [Paril-KEX] indicate that we should force a refire
 		self->splashDamage = 1;
 	}
@@ -909,7 +909,7 @@ static void soldier_attack3_refire(gentity_t *self) {
 	if (self->dmg)
 		monster_duck_hold(self);
 	else if ((level.time + 400_ms) < self->monsterInfo.duck_wait_time)
-		self->monsterInfo.nextframe = FRAME_attak303;
+		self->monsterInfo.nextFrame = FRAME_attak303;
 }
 
 mframe_t soldier_frames_attack3[] = {
@@ -967,7 +967,7 @@ static void soldier_attack6_refire1(gentity_t *self) {
 	}
 
 	if (frandom() < 0.25f)
-		self->monsterInfo.nextframe = FRAME_runs03;
+		self->monsterInfo.nextFrame = FRAME_runs03;
 	else
 		soldier_run(self);
 }
@@ -989,14 +989,14 @@ static void soldier_attack6_refire2(gentity_t *self) {
 	}
 
 	if (self->splashDamage || frandom() < 0.25f) {
-		self->monsterInfo.nextframe = FRAME_runs03;
+		self->monsterInfo.nextFrame = FRAME_runs03;
 		self->splashDamage = 0;
 	}
 }
 
 static void soldier_attack6_shotgun_check(gentity_t *self) {
 	if (self->dmg) {
-		self->monsterInfo.nextframe = FRAME_runs09;
+		self->monsterInfo.nextFrame = FRAME_runs09;
 		// [Paril-KEX] indicate that we should force a refire
 		self->splashDamage = 1;
 	}
@@ -1054,7 +1054,7 @@ MONSTERINFO_ATTACK(soldier_attack) (gentity_t *self) -> void {
 			return;
 
 		// turn on manual steering to signal both manual steering and blindfire
-		self->monsterInfo.aiflags |= AI_MANUAL_STEERING;
+		self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 
 		if (self->style == 1)
 			M_SetAnimation(self, &soldierh_move_attack1);
@@ -1070,7 +1070,7 @@ MONSTERINFO_ATTACK(soldier_attack) (gentity_t *self) -> void {
 	// nb: run-shoot not limited by `M_CheckClearShot` since they will be far enough
 	// away that it doesn't matter
 
-	if ((!(self->monsterInfo.aiflags & (AI_BLOCKED | AI_STAND_GROUND))) &&
+	if ((!(self->monsterInfo.aiFlags & (AI_BLOCKED | AI_STAND_GROUND))) &&
 		(r < 0.25f &&
 			(self->count <= 3)) &&
 		(range_to(self, self->enemy) >= (RANGE_NEAR * 0.5f))) {
@@ -1145,7 +1145,7 @@ extern const mmove_t soldier_move_trip;
 static void soldier_stand_up(gentity_t *self) {
 	soldierh_hyper_laser_sound_end(self);
 	M_SetAnimation(self, &soldier_move_trip, false);
-	self->monsterInfo.nextframe = FRAME_runt08;
+	self->monsterInfo.nextFrame = FRAME_runt08;
 }
 
 static bool soldier_prone_shoot_ok(gentity_t *self) {
@@ -1236,7 +1236,7 @@ MMOVE_T(soldier_move_trip) = { FRAME_runt01, FRAME_runt19, soldier_frames_trip, 
 
 MONSTERINFO_BLOCKED(soldier_blocked) (gentity_t *self, float dist) -> bool {
 	// don't do anything if you're dodging
-	if ((self->monsterInfo.aiflags & AI_DODGING) || (self->monsterInfo.aiflags & AI_DUCKED))
+	if ((self->monsterInfo.aiFlags & AI_DODGING) || (self->monsterInfo.aiFlags & AI_DUCKED))
 		return false;
 
 	return blocked_checkplat(self, dist);
@@ -1250,7 +1250,7 @@ static void soldier_fire6(gentity_t *self) {
 	soldier_fire(self, 5, false);
 
 	if (self->dmg)
-		self->monsterInfo.nextframe = FRAME_death126;
+		self->monsterInfo.nextFrame = FRAME_death126;
 }
 
 static void soldier_fire7(gentity_t *self) {
@@ -1569,7 +1569,7 @@ static DIE(soldier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	if (self->monsterInfo.active_move == &soldier_move_trip ||
 		self->monsterInfo.active_move == &soldier_move_attack5) {
 		M_SetAnimation(self, &soldier_move_death4);
-		self->monsterInfo.nextframe = FRAME_death413;
+		self->monsterInfo.nextFrame = FRAME_death413;
 		soldier_death_shrink(self);
 		return;
 	}
@@ -1597,7 +1597,7 @@ static DIE(soldier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 //
 
 MONSTERINFO_SIDESTEP(soldier_sidestep) (gentity_t *self) -> bool {
-	// don't sidestep during trip or up pain
+	// don't sideStep during trip or up pain
 	if (self->monsterInfo.active_move == &soldier_move_trip ||
 		self->monsterInfo.active_move == &soldier_move_attack5 ||
 		self->monsterInfo.active_move == &soldier_move_pain4)
@@ -1620,7 +1620,7 @@ MONSTERINFO_SIDESTEP(soldier_sidestep) (gentity_t *self) -> bool {
 }
 
 MONSTERINFO_DUCK(soldier_duck) (gentity_t *self, gtime_t eta) -> bool {
-	self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+	self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 
 	if (self->monsterInfo.active_move == &soldier_move_attack6) {
 		M_SetAnimation(self, &soldier_move_trip);
@@ -1716,8 +1716,8 @@ static void monster_soldier_x(gentity_t *self) {
 
 	self->monsterInfo.blocked = soldier_blocked;
 	self->monsterInfo.duck = soldier_duck;
-	self->monsterInfo.unduck = monster_duck_up;
-	self->monsterInfo.sidestep = soldier_sidestep;
+	self->monsterInfo.unDuck = monster_duck_up;
+	self->monsterInfo.sideStep = soldier_sidestep;
 
 	if (self->spawnflags.has(SPAWNFLAG_SOLDIER_BLIND)) // blind
 		self->monsterInfo.stand = soldier_blind;

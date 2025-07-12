@@ -150,7 +150,7 @@ mframe_t parasite_frames_start_run[] = {
 MMOVE_T(parasite_move_start_run) = { FRAME_run01, FRAME_run02, parasite_frames_start_run, parasite_run };
 
 MONSTERINFO_RUN(parasite_start_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &parasite_move_stand);
 	else
 		M_SetAnimation(self, &parasite_move_start_run);
@@ -162,7 +162,7 @@ void parasite_run(gentity_t *self) {
 	if (self->proboscus && self->proboscus->style != 2)
 		proboscis_retract(self->proboscus);
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &parasite_move_stand);
 	else
 		M_SetAnimation(self, &parasite_move_run);
@@ -210,18 +210,18 @@ extern const mmove_t parasite_move_fire_proboscis;
 static void parasite_break_wait(gentity_t *self) {
 	// prob exploded?
 	if (self->proboscus && self->proboscus->style != 3)
-		self->monsterInfo.nextframe = FRAME_break19;
+		self->monsterInfo.nextFrame = FRAME_break19;
 	else if (brandom()) {
 		// don't get hurt
 		parasite_reel_in(self);
-		self->monsterInfo.nextframe = FRAME_break31;
+		self->monsterInfo.nextFrame = FRAME_break31;
 	}
 }
 
 static void proboscis_retract(gentity_t *self) {
 	// start retract animation
 	if (self->owner->monsterInfo.active_move == &parasite_move_fire_proboscis)
-		self->owner->monsterInfo.nextframe = FRAME_drain12;
+		self->owner->monsterInfo.nextFrame = FRAME_drain12;
 
 	// mark as retracting
 	self->moveType = MOVETYPE_NONE;
@@ -313,7 +313,7 @@ static TOUCH(proboscis_touch) (gentity_t *self, gentity_t *other, const trace_t 
 		else
 			p = tr.endpos - ((self->s.origin - tr.endpos).normalized() * 12);
 
-		self->owner->monsterInfo.nextframe = FRAME_drain06;
+		self->owner->monsterInfo.nextFrame = FRAME_drain06;
 		self->moveType = MOVETYPE_NONE;
 		self->solid = SOLID_NOT;
 		self->style = 1;
@@ -552,23 +552,23 @@ static void parasite_fire_proboscis(gentity_t *self) {
 static void parasite_proboscis_wait(gentity_t *self) {
 	// loop frames while we wait
 	if (self->s.frame == FRAME_drain04)
-		self->monsterInfo.nextframe = FRAME_drain05;
+		self->monsterInfo.nextFrame = FRAME_drain05;
 	else
-		self->monsterInfo.nextframe = FRAME_drain04;
+		self->monsterInfo.nextFrame = FRAME_drain04;
 }
 
 static void parasite_proboscis_pull_wait(gentity_t *self) {
 	// prob exploded?
 	if (!self->proboscus || self->proboscus->style == 3) {
-		self->monsterInfo.nextframe = FRAME_drain14;
+		self->monsterInfo.nextFrame = FRAME_drain14;
 		return;
 	}
 
 	// being pulled in, so wait until we get destroyed
 	if (self->s.frame == FRAME_drain12)
-		self->monsterInfo.nextframe = FRAME_drain13;
+		self->monsterInfo.nextFrame = FRAME_drain13;
 	else
-		self->monsterInfo.nextframe = FRAME_drain12;
+		self->monsterInfo.nextFrame = FRAME_drain12;
 
 	if (self->proboscus->style != 2)
 		proboscis_retract(self->proboscus);
@@ -624,12 +624,12 @@ static void parasite_jump_up(gentity_t *self) {
 
 static void parasite_jump_wait_land(gentity_t *self) {
 	if (self->groundEntity == nullptr) {
-		self->monsterInfo.nextframe = self->s.frame;
+		self->monsterInfo.nextFrame = self->s.frame;
 
 		if (monster_jump_finished(self))
-			self->monsterInfo.nextframe = self->s.frame + 1;
+			self->monsterInfo.nextFrame = self->s.frame + 1;
 	} else
-		self->monsterInfo.nextframe = self->s.frame + 1;
+		self->monsterInfo.nextFrame = self->s.frame + 1;
 }
 
 mframe_t parasite_frames_jump_up[] = {
@@ -755,7 +755,7 @@ End Death Stuff
 mframe_t parasite_frames_pain1[] = {
 	{ ai_move, 0, nullptr, FRAME_stand01 },
 	{ ai_move },
-	{ ai_move, 0, [](gentity_t *self) { self->monsterInfo.nextframe = FRAME_pain105; } },
+	{ ai_move, 0, [](gentity_t *self) { self->monsterInfo.nextFrame = FRAME_pain105; } },
 	{ ai_move, 0, monster_footstep },
 	{ ai_move },
 	{ ai_move },

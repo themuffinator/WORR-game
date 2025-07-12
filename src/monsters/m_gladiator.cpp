@@ -91,7 +91,7 @@ mframe_t gladiator_frames_run[] = {
 MMOVE_T(gladiator_move_run) = { FRAME_run1, FRAME_run6, gladiator_frames_run, nullptr };
 
 MONSTERINFO_RUN(gladiator_run) (gentity_t *self) -> void {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &gladiator_move_stand);
 	else
 		M_SetAnimation(self, &gladiator_move_run);
@@ -397,14 +397,14 @@ void SP_monster_gladiator(gentity_t *self) {
 
 		self->style = 1;
 
-		self->monsterInfo.weapon_sound = gi.soundindex("weapons/phaloop.wav");
+		self->monsterInfo.weaponSound = gi.soundindex("weapons/phaloop.wav");
 	} else {
 		sound_gun.assign("gladiator/railgun.wav");
 
 		self->health = 400 * st.health_multiplier;
 		self->mass = 400;
 
-		self->monsterInfo.weapon_sound = gi.soundindex("weapons/rg_hum.wav");
+		self->monsterInfo.weaponSound = gi.soundindex("weapons/rg_hum.wav");
 	}
 
 	self->gibHealth = -175;

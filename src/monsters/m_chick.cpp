@@ -76,7 +76,7 @@ mframe_t chick_frames_fidget[] = {
 MMOVE_T(chick_move_fidget) = { FRAME_stand201, FRAME_stand230, chick_frames_fidget, chick_stand };
 
 static void chick_fidget(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		return;
 	else if (self->enemy)
 		return;
@@ -173,7 +173,7 @@ MONSTERINFO_WALK(chick_walk) (gentity_t *self) -> void {
 MONSTERINFO_RUN(chick_run) (gentity_t *self) -> void {
 	monster_done_dodge(self);
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &chick_move_stand);
 		return;
 	}
@@ -251,7 +251,7 @@ static PAIN(chick_pain) (gentity_t *self, gentity_t *other, float kick, int dama
 		return; // no pain anims in nightmare
 
 	// PMM - clear this from blindfire
-	self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 
 	if (damage <= 10)
 		M_SetAnimation(self, &chick_move_pain1);
@@ -261,7 +261,7 @@ static PAIN(chick_pain) (gentity_t *self, gentity_t *other, float kick, int dama
 		M_SetAnimation(self, &chick_move_pain3);
 
 	// PMM - clear duck flag
-	if (self->monsterInfo.aiflags & AI_DUCKED)
+	if (self->monsterInfo.aiFlags & AI_DUCKED)
 		monster_duck_up(self);
 }
 
@@ -397,7 +397,7 @@ static void ChickRocket(gentity_t *self) {
 	vec3_t target;
 	bool   blindfire = false;
 
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING)
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING)
 		blindfire = true;
 	else
 		blindfire = false;
@@ -441,7 +441,7 @@ static void ChickRocket(gentity_t *self) {
 
 	dir.normalize();
 
-	// pmm blindfire doesn't check target (done in checkattack)
+	// pmm blindfire doesn't check target (done in checkAttack)
 	// paranoia, make sure we're not shooting a target right next to us
 	trace = gi.traceline(start, vec, self, MASK_PROJECTILE);
 	if (blindfire) {
@@ -493,7 +493,7 @@ static void ChickRocket(gentity_t *self) {
 static void Chick_PreAttack1(gentity_t *self) {
 	gi.sound(self, CHAN_VOICE, sound_missile_prelaunch, 1, ATTN_NORM, 0);
 
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
 		vec3_t aim = self->monsterInfo.blind_fire_target - self->s.origin;
 		self->ideal_yaw = vectoyaw(aim);
 	}
@@ -548,8 +548,8 @@ mframe_t chick_frames_end_attack1[] = {
 MMOVE_T(chick_move_end_attack1) = { FRAME_attak128, FRAME_attak132, chick_frames_end_attack1, chick_run };
 
 void chick_rerocket(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_MANUAL_STEERING) {
-		self->monsterInfo.aiflags &= ~AI_MANUAL_STEERING;
+	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) {
+		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 		M_SetAnimation(self, &chick_move_end_attack1);
 		return;
 	}
@@ -657,7 +657,7 @@ MONSTERINFO_ATTACK(chick_attack) (gentity_t *self) -> void {
 			return;
 
 		// turn on manual steering to signal both manual steering and blindfire
-		self->monsterInfo.aiflags |= AI_MANUAL_STEERING;
+		self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 		M_SetAnimation(self, &chick_move_start_attack1);
 		self->monsterInfo.attack_finished = level.time + random_time(2_sec);
 		return;
@@ -682,7 +682,7 @@ MONSTERINFO_DUCK(chick_duck) (gentity_t *self, gtime_t eta) -> bool {
 	if ((self->monsterInfo.active_move == &chick_move_start_attack1) ||
 		(self->monsterInfo.active_move == &chick_move_attack1)) {
 		// if we're shooting don't dodge
-		self->monsterInfo.unduck(self);
+		self->monsterInfo.unDuck(self);
 		return false;
 	}
 
@@ -754,8 +754,8 @@ void SP_monster_chick(gentity_t *self) {
 	self->monsterInfo.run = chick_run;
 	self->monsterInfo.dodge = M_MonsterDodge;
 	self->monsterInfo.duck = chick_duck;
-	self->monsterInfo.unduck = monster_duck_up;
-	self->monsterInfo.sidestep = chick_sidestep;
+	self->monsterInfo.unDuck = monster_duck_up;
+	self->monsterInfo.sideStep = chick_sidestep;
 	self->monsterInfo.blocked = chick_blocked;
 	self->monsterInfo.attack = chick_attack;
 	self->monsterInfo.melee = chick_melee;

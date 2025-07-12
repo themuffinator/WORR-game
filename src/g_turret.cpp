@@ -39,10 +39,10 @@ Use "angle" to set the starting angle.
 "dmg"		default 10
 "angle"		point this forward
 "target"	point this at an info_notnull at the muzzle tip
-"minpitch"	min acceptable pitch angle : default -30
-"maxpitch"	max acceptable pitch angle : default 30
-"minyaw"	min acceptable yaw angle   : default 0
-"maxyaw"	max acceptable yaw angle   : default 360
+"minPitch"	min acceptable pitch angle : default -30
+"maxPitch"	max acceptable pitch angle : default 30
+"minYaw"	min acceptable yaw angle   : default 0
+"maxYaw"	max acceptable yaw angle   : default 360
 */
 
 static void turret_breach_fire(gentity_t *self) {
@@ -146,7 +146,7 @@ static THINK(turret_breach_think) (gentity_t *self) -> void {
 		float  angle;
 		float  target_z;
 		float  diff;
-		vec3_t target;
+		vec3_t target{};
 		vec3_t dir;
 
 		// angular is easy, just copy ours
@@ -211,17 +211,17 @@ void SP_turret_breach(gentity_t *self) {
 	if (!self->dmg)
 		self->dmg = 10;
 
-	if (!st.minpitch)
-		st.minpitch = -30;
-	if (!st.maxpitch)
-		st.maxpitch = 30;
-	if (!st.maxyaw)
-		st.maxyaw = 360;
+	if (!st.minPitch)
+		st.minPitch = -30;
+	if (!st.maxPitch)
+		st.maxPitch = 30;
+	if (!st.maxYaw)
+		st.maxYaw = 360;
 
-	self->pos1[PITCH] = -1 * st.minpitch;
-	self->pos1[YAW] = st.minyaw;
-	self->pos2[PITCH] = -1 * st.maxpitch;
-	self->pos2[YAW] = st.maxyaw;
+	self->pos1[PITCH] = -1 * st.minPitch;
+	self->pos1[YAW] = st.minYaw;
+	self->pos2[PITCH] = -1 * st.maxPitch;
+	self->pos2[YAW] = st.maxYaw;
 
 	// scale used for rocket scale
 	self->splashRadius = self->s.scale;
@@ -313,15 +313,15 @@ static THINK(turret_driver_think) (gentity_t *self) -> void {
 		if (!FindTarget(self))
 			return;
 		self->monsterInfo.trail_time = level.time;
-		self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+		self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 	} else {
 		if (visible(self, self->enemy)) {
-			if (self->monsterInfo.aiflags & AI_LOST_SIGHT) {
+			if (self->monsterInfo.aiFlags & AI_LOST_SIGHT) {
 				self->monsterInfo.trail_time = level.time;
-				self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+				self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 			}
 		} else {
-			self->monsterInfo.aiflags |= AI_LOST_SIGHT;
+			self->monsterInfo.aiFlags |= AI_LOST_SIGHT;
 			return;
 		}
 	}
@@ -346,7 +346,7 @@ static THINK(turret_driver_think) (gentity_t *self) -> void {
 }
 
 static THINK(turret_driver_link) (gentity_t *self) -> void {
-	vec3_t	 vec;
+	vec3_t	 vec{};
 	gentity_t *ent;
 
 	self->think = turret_driver_think;
@@ -413,7 +413,7 @@ void SP_turret_driver(gentity_t *self) {
 	self->use = monster_use;
 	self->clipMask = MASK_MONSTERSOLID;
 	self->s.old_origin = self->s.origin;
-	self->monsterInfo.aiflags |= AI_STAND_GROUND;
+	self->monsterInfo.aiFlags |= AI_STAND_GROUND;
 	self->monsterInfo.setskin = infantry_setskin;
 
 	if (st.item) {
@@ -454,7 +454,7 @@ static THINK(turret_brain_think) (gentity_t *self) -> void {
 		if (!FindTarget(self))
 			return;
 		self->monsterInfo.trail_time = level.time;
-		self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+		self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 	}
 
 	endpos = self->enemy->absMax + self->enemy->absMin;
@@ -463,12 +463,12 @@ static THINK(turret_brain_think) (gentity_t *self) -> void {
 	if (!self->spawnflags.has(SPAWNFLAG_TURRET_BRAIN_IGNORE_SIGHT)) {
 		trace = gi.traceline(self->target_ent->s.origin, endpos, self->target_ent, MASK_SHOT);
 		if (trace.fraction == 1 || trace.ent == self->enemy) {
-			if (self->monsterInfo.aiflags & AI_LOST_SIGHT) {
+			if (self->monsterInfo.aiFlags & AI_LOST_SIGHT) {
 				self->monsterInfo.trail_time = level.time;
-				self->monsterInfo.aiflags &= ~AI_LOST_SIGHT;
+				self->monsterInfo.aiFlags &= ~AI_LOST_SIGHT;
 			}
 		} else {
-			self->monsterInfo.aiflags |= AI_LOST_SIGHT;
+			self->monsterInfo.aiFlags |= AI_LOST_SIGHT;
 			return;
 		}
 	}
@@ -500,7 +500,7 @@ static THINK(turret_brain_think) (gentity_t *self) -> void {
 // =================
 // =================
 static THINK(turret_brain_link) (gentity_t *self) -> void {
-	vec3_t	 vec;
+	vec3_t	 vec{};
 	gentity_t *ent;
 
 	if (self->killtarget) {

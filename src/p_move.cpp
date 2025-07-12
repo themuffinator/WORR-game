@@ -12,8 +12,8 @@ stuck_result_t G_FixStuckObject_Generic(vec3_t &origin, const vec3_t &own_mins, 
 		return stuck_result_t::GOOD_POSITION;
 
 	struct {
-		float distance;
-		vec3_t origin;
+		float distance = 0.0;
+		vec3_t origin{};
 	} good_positions[6];
 	size_t num_good_positions = 0;
 
@@ -271,11 +271,11 @@ void PM_StepSlideMove_Generic(vec3_t &origin, vec3_t &velocity, float frametime,
 	vec3_t	dir;
 	float	d;
 	int		numplanes;
-	vec3_t	planes[MAX_CLIP_PLANES];
+	vec3_t	planes[MAX_CLIP_PLANES] = {};
 	vec3_t	primal_velocity;
 	int		i, j;
 	trace_t trace;
-	vec3_t	end;
+	vec3_t	end = {};
 	float	time_left;
 
 	numbumps = 4;
@@ -337,7 +337,7 @@ void PM_StepSlideMove_Generic(vec3_t &origin, vec3_t &velocity, float frametime,
 
 		// slide along this plane
 		if (numplanes >= MAX_CLIP_PLANES) { // this shouldn't really happen
-			velocity = vec3_origin;
+			velocity = {};
 			break;
 		}
 
@@ -378,7 +378,7 @@ void PM_StepSlideMove_Generic(vec3_t &origin, vec3_t &velocity, float frametime,
 		if (i != numplanes) { // go along this plane
 		} else { // go along the crease
 			if (numplanes != 2) {
-				velocity = vec3_origin;
+				velocity = {};
 				break;
 			}
 			dir = planes[0].cross(planes[1]);
@@ -391,7 +391,7 @@ void PM_StepSlideMove_Generic(vec3_t &origin, vec3_t &velocity, float frametime,
 		// to avoid tiny oscillations in sloping corners
 		//
 		if (velocity.dot(primal_velocity) <= 0) {
-			velocity = vec3_origin;
+			velocity = {};
 			break;
 		}
 	}
@@ -504,7 +504,7 @@ Handles both ground friction and water friction
 */
 static void PM_Friction() {
 	float *vel;
-	float  speed, newspeed, control;
+	float  speed, newSpeed, control;
 	float  friction;
 	float  drop;
 
@@ -534,15 +534,15 @@ static void PM_Friction() {
 		drop += speed * pm_waterfriction * (float)pm->waterlevel * pml.frametime;
 
 	// scale the velocity
-	newspeed = speed - drop;
-	if (newspeed < 0) {
-		newspeed = 0;
+	newSpeed = speed - drop;
+	if (newSpeed < 0) {
+		newSpeed = 0;
 	}
-	newspeed /= speed;
+	newSpeed /= speed;
 
-	vel[0] = vel[0] * newspeed;
-	vel[1] = vel[1] * newspeed;
-	vel[2] = vel[2] * newspeed;
+	vel[0] = vel[0] * newSpeed;
+	vel[1] = vel[1] * newSpeed;
+	vel[2] = vel[2] * newSpeed;
 }
 
 /*
@@ -552,38 +552,38 @@ PM_Accelerate
 Handles user intended acceleration
 ==============
 */
-static void PM_Accelerate(const vec3_t &wishdir, float wishspeed, float accel) {
+static void PM_Accelerate(const vec3_t &wishDir, float wishSpeed, float accel) {
 	int	  i;
-	float addspeed, accelspeed, currentspeed;
+	float addSpeed, accelSpeed, currentSpeed;
 
-	currentspeed = pml.velocity.dot(wishdir);
-	addspeed = wishspeed - currentspeed;
-	if (addspeed <= 0)
+	currentSpeed = pml.velocity.dot(wishDir);
+	addSpeed = wishSpeed - currentSpeed;
+	if (addSpeed <= 0)
 		return;
-	accelspeed = accel * pml.frametime * wishspeed;
-	if (accelspeed > addspeed)
-		accelspeed = addspeed;
+	accelSpeed = accel * pml.frametime * wishSpeed;
+	if (accelSpeed > addSpeed)
+		accelSpeed = addSpeed;
 
 	for (i = 0; i < 3; i++)
-		pml.velocity[i] += accelspeed * wishdir[i];
+		pml.velocity[i] += accelSpeed * wishDir[i];
 }
 
-static void PM_AirAccelerate(const vec3_t &wishdir, float wishspeed, float accel) {
+static void PM_AirAccelerate(const vec3_t &wishDir, float wishSpeed, float accel) {
 	int	  i;
-	float addspeed, accelspeed, currentspeed, wishspd = wishspeed;
+	float addSpeed, accelSpeed, currentSpeed, wishspd = wishSpeed;
 
 	if (wishspd > 30)
 		wishspd = 30;
-	currentspeed = pml.velocity.dot(wishdir);
-	addspeed = wishspd - currentspeed;
-	if (addspeed <= 0)
+	currentSpeed = pml.velocity.dot(wishDir);
+	addSpeed = wishspd - currentSpeed;
+	if (addSpeed <= 0)
 		return;
-	accelspeed = accel * wishspeed * pml.frametime;
-	if (accelspeed > addspeed)
-		accelspeed = addspeed;
+	accelSpeed = accel * wishSpeed * pml.frametime;
+	if (accelSpeed > addSpeed)
+		accelSpeed = addSpeed;
 
 	for (i = 0; i < 3; i++)
-		pml.velocity[i] += accelspeed * wishdir[i];
+		pml.velocity[i] += accelSpeed * wishDir[i];
 }
 
 /*
@@ -591,7 +591,7 @@ static void PM_AirAccelerate(const vec3_t &wishdir, float wishspeed, float accel
 PM_AddCurrents
 =============
 */
-static void PM_AddCurrents(vec3_t &wishvel) {
+static void PM_AddCurrents(vec3_t &wishVel) {
 	vec3_t v;
 	float  s;
 
@@ -605,30 +605,30 @@ static void PM_AddCurrents(vec3_t &wishvel) {
 			float ladder_speed = pm->waterlevel >= WATER_WAIST ? MaxSpeed(&pm->s) : 200;
 
 			if (pm->cmd.buttons & BUTTON_JUMP)
-				wishvel[2] = ladder_speed;
+				wishVel[2] = ladder_speed;
 			else if (pm->cmd.buttons & BUTTON_CROUCH)
-				wishvel[2] = -ladder_speed;
+				wishVel[2] = -ladder_speed;
 		} else if (pm->cmd.forwardmove) {
 			// [Paril-KEX] clamp the speed a bit so we're not too fast
 			float ladder_speed = std::clamp(pm->cmd.forwardmove, -200.f, 200.f);
 
 			if (pm->cmd.forwardmove > 0) {
 				if (pm->viewangles[PITCH] < 15)
-					wishvel[2] = ladder_speed;
+					wishVel[2] = ladder_speed;
 				else
-					wishvel[2] = -ladder_speed;
+					wishVel[2] = -ladder_speed;
 			}
 			// [Paril-KEX] allow using "back" arrow to go down on ladder
 			else if (pm->cmd.forwardmove < 0) {
 				// if we haven't touched ground yet, remove x/y so we don't
 				// slide off of the ladder
 				if (!pm->groundEntity)
-					wishvel[0] = wishvel[1] = 0;
+					wishVel[0] = wishVel[1] = 0;
 
-				wishvel[2] = ladder_speed;
+				wishVel[2] = ladder_speed;
 			}
 		} else
-			wishvel[2] = 0;
+			wishVel[2] = 0;
 
 		// limit horizontal speed when on a ladder
 		// [Paril-KEX] unless we're on the ground
@@ -643,7 +643,7 @@ static void PM_AddCurrents(vec3_t &wishvel) {
 					ladder_speed *= pm_laddermod;
 
 				// check for ladder
-				vec3_t flatforward, spot;
+				vec3_t flatforward = {}, spot;
 				flatforward[0] = pml.forward[0];
 				flatforward[1] = pml.forward[1];
 				flatforward[2] = 0;
@@ -655,19 +655,19 @@ static void PM_AddCurrents(vec3_t &wishvel) {
 				if (trace.fraction != 1.f && (trace.contents & CONTENTS_LADDER)) {
 					vec3_t right = trace.plane.normal.cross({ 0, 0, 1 });
 
-					wishvel[0] = wishvel[1] = 0;
-					wishvel += (right * -ladder_speed);
+					wishVel[0] = wishVel[1] = 0;
+					wishVel += (right * -ladder_speed);
 				}
 			} else {
-				if (wishvel[0] < -25)
-					wishvel[0] = -25;
-				else if (wishvel[0] > 25)
-					wishvel[0] = 25;
+				if (wishVel[0] < -25)
+					wishVel[0] = -25;
+				else if (wishVel[0] > 25)
+					wishVel[0] = 25;
 
-				if (wishvel[1] < -25)
-					wishvel[1] = -25;
-				else if (wishvel[1] > 25)
-					wishvel[1] = 25;
+				if (wishVel[1] < -25)
+					wishVel[1] = -25;
+				else if (wishVel[1] > 25)
+					wishVel[1] = 25;
 			}
 		}
 	}
@@ -696,7 +696,7 @@ static void PM_AddCurrents(vec3_t &wishvel) {
 		if ((pm->waterlevel == WATER_FEET) && (pm->groundEntity))
 			s /= 2;
 
-		wishvel += (v * s);
+		wishVel += (v * s);
 	}
 
 	//
@@ -719,7 +719,7 @@ static void PM_AddCurrents(vec3_t &wishvel) {
 		if (pml.groundcontents & CONTENTS_CURRENT_DOWN)
 			v[2] -= 1;
 
-		wishvel += v * 100;
+		wishVel += v * 100;
 	}
 }
 
@@ -731,45 +731,45 @@ PM_WaterMove
 */
 static void PM_WaterMove() {
 	int	   i;
-	vec3_t wishvel;
-	float  wishspeed;
-	vec3_t wishdir;
-	float maxspeed = MaxSpeed(&pm->s);
+	vec3_t wishVel = {};
+	float  wishSpeed;
+	vec3_t wishDir;
+	float maxSpeed = MaxSpeed(&pm->s);
 
 	//
 	// user intentions
 	//
 	for (i = 0; i < 3; i++)
-		wishvel[i] = pml.forward[i] * pm->cmd.forwardmove + pml.right[i] * pm->cmd.sidemove;
+		wishVel[i] = pml.forward[i] * pm->cmd.forwardmove + pml.right[i] * pm->cmd.sidemove;
 
 	if (!pm->cmd.forwardmove && !pm->cmd.sidemove &&
 		!(pm->cmd.buttons & (BUTTON_JUMP | BUTTON_CROUCH))) {
 		if (!pm->groundEntity)
-			wishvel[2] -= 60; // drift towards bottom
+			wishVel[2] -= 60; // drift towards bottom
 	} else {
 		if (pm->cmd.buttons & BUTTON_CROUCH)
-			wishvel[2] -= pm_waterspeed * 0.5f;
+			wishVel[2] -= pm_waterspeed * 0.5f;
 		else if (pm->cmd.buttons & BUTTON_JUMP)
-			wishvel[2] += pm_waterspeed * 0.5f;
+			wishVel[2] += pm_waterspeed * 0.5f;
 	}
 
-	PM_AddCurrents(wishvel);
+	PM_AddCurrents(wishVel);
 
-	wishdir = wishvel;
-	wishspeed = wishdir.normalize();
+	wishDir = wishVel;
+	wishSpeed = wishDir.normalize();
 
-	if (wishspeed > maxspeed) {
-		wishvel *= maxspeed / wishspeed;
-		wishspeed = maxspeed;
+	if (wishSpeed > maxSpeed) {
+		wishVel *= maxSpeed / wishSpeed;
+		wishSpeed = maxSpeed;
 	}
-	wishspeed *= 0.5f;
+	wishSpeed *= 0.5f;
 
-	if ((pm->s.pm_flags & PMF_DUCKED) && wishspeed > pm_duckspeed) {
-		wishvel *= pm_duckspeed / wishspeed;
-		wishspeed = pm_duckspeed;
+	if ((pm->s.pm_flags & PMF_DUCKED) && wishSpeed > pm_duckspeed) {
+		wishVel *= pm_duckspeed / wishSpeed;
+		wishSpeed = pm_duckspeed;
 	}
 
-	PM_Accelerate(wishdir, wishspeed, pm_wateraccelerate);
+	PM_Accelerate(wishDir, wishSpeed, pm_wateraccelerate);
 
 	PM_StepSlideMove();
 }
@@ -782,37 +782,37 @@ PM_AirMove
 */
 static void PM_AirMove() {
 	int	   i;
-	vec3_t wishvel;
-	float  fmove, smove;
-	vec3_t wishdir;
-	float  wishspeed;
-	float  maxspeed;
+	vec3_t wishVel = {};
+	float  fMove, sMove;
+	vec3_t wishDir;
+	float  wishSpeed;
+	float  maxSpeed;
 
-	fmove = pm->cmd.forwardmove;
-	smove = pm->cmd.sidemove;
+	fMove = pm->cmd.forwardmove;
+	sMove = pm->cmd.sidemove;
 
 	for (i = 0; i < 2; i++)
-		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
-	wishvel[2] = 0;
+		wishVel[i] = pml.forward[i] * fMove + pml.right[i] * sMove;
+	wishVel[2] = 0;
 
-	PM_AddCurrents(wishvel);
+	PM_AddCurrents(wishVel);
 
-	wishdir = wishvel;
-	wishspeed = wishdir.normalize();
+	wishDir = wishVel;
+	wishSpeed = wishDir.normalize();
 
 	//
 	// clamp to server defined max speed
 	//
-	maxspeed = (pm->s.pm_flags & PMF_DUCKED) ? pm_duckspeed : MaxSpeed(&pm->s);
+	maxSpeed = (pm->s.pm_flags & PMF_DUCKED) ? pm_duckspeed : MaxSpeed(&pm->s);
 
-	if (wishspeed > maxspeed) {
-		wishvel *= maxspeed / wishspeed;
-		wishspeed = maxspeed;
+	if (wishSpeed > maxSpeed) {
+		wishVel *= maxSpeed / wishSpeed;
+		wishSpeed = maxSpeed;
 	}
 
 	if (pm->s.pm_flags & PMF_ON_LADDER) {
-		PM_Accelerate(wishdir, wishspeed, pm_accelerate);
-		if (!wishvel[2]) {
+		PM_Accelerate(wishDir, wishSpeed, pm_accelerate);
+		if (!wishVel[2]) {
 			if (pml.velocity[2] > 0) {
 				pml.velocity[2] -= pm->s.gravity * pml.frametime;
 				if (pml.velocity[2] < 0)
@@ -826,7 +826,7 @@ static void PM_AirMove() {
 		PM_StepSlideMove();
 	} else if (pm->groundEntity) {						 // walking on ground
 		pml.velocity[2] = 0; //!!! this is before the accel
-		PM_Accelerate(wishdir, wishspeed, pm_accelerate);
+		PM_Accelerate(wishDir, wishSpeed, pm_accelerate);
 
 		if (pm->s.gravity > 0)
 			pml.velocity[2] = 0;
@@ -838,9 +838,9 @@ static void PM_AirMove() {
 		PM_StepSlideMove();
 	} else { // not on ground, so little effect on velocity
 		if (pm_config.airaccel)
-			PM_AirAccelerate(wishdir, wishspeed, pm_config.airaccel);
+			PM_AirAccelerate(wishDir, wishSpeed, pm_config.airaccel);
 		else
-			PM_Accelerate(wishdir, wishspeed, 1);
+			PM_Accelerate(wishDir, wishSpeed, 1);
 
 		// add gravity
 		if (pm->s.pm_type != PM_GRAPPLE)
@@ -887,7 +887,7 @@ PM_CatagorizePosition
 =============
 */
 static void PM_CatagorizePosition() {
-	vec3_t	point;
+	vec3_t	point = {};
 	trace_t	trace;
 
 	// if the player hull point one unit down is solid, the player
@@ -1017,7 +1017,7 @@ PM_CheckSpecialMovement
 */
 static void PM_CheckSpecialMovement() {
 	vec3_t	spot;
-	vec3_t	flatforward;
+	vec3_t	flatforward = {};
 	trace_t trace;
 
 	if (pm->s.pm_time)
@@ -1116,92 +1116,63 @@ static void PM_CheckSpecialMovement() {
 PM_FlyMove
 ===============
 */
-static void PM_FlyMove(bool doclip) {
-	float	speed, drop, friction, control, newspeed;
-	float	currentspeed, addspeed, accelspeed;
-	int		i;
-	vec3_t	wishvel;
-	float	fmove, smove;
-	vec3_t	wishdir;
-	float	wishspeed;
-	float maxspeed = MaxSpeed(&pm->s);
+static void PM_FlyMove(bool doClip) {
+	float maxSpeed = MaxSpeed(&pm->s);
+	float speed = pml.velocity.length();
+	pm->s.viewHeight = doClip ? 0 : 22;
 
-	pm->s.viewHeight = doclip ? 0 : 22;
+	// Apply friction
+	if (speed >= 1.0f) {
+		const float friction = pm_friction * 1.5f;
+		const float control = (speed < pm_stopspeed) ? pm_stopspeed : speed;
+		const float drop = control * friction * pml.frametime;
 
-	// friction
-
-	speed = pml.velocity.length();
-	if (speed < 1) {
-		pml.velocity = vec3_origin;
+		float newSpeed = speed - drop;
+		newSpeed = std::max(0.0f, newSpeed) / speed;
+		pml.velocity *= newSpeed;
 	} else {
-		drop = 0;
-
-		friction = pm_friction * 1.5f; // extra friction
-		control = speed < pm_stopspeed ? pm_stopspeed : speed;
-		drop += control * friction * pml.frametime;
-
-		// scale the velocity
-		newspeed = speed - drop;
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-
-		pml.velocity *= newspeed;
+		pml.velocity = {};
 	}
 
-	// accelerate
-	fmove = pm->cmd.forwardmove;
-	smove = pm->cmd.sidemove;
+	// Desired movement vector
+	const float fMove = pm->cmd.forwardmove;
+	const float sMove = pm->cmd.sidemove;
 
 	pml.forward.normalize();
 	pml.right.normalize();
 
-	for (i = 0; i < 3; i++)
-		wishvel[i] = pml.forward[i] * fmove + pml.right[i] * smove;
+	vec3_t wishVel = (pml.forward * fMove) + (pml.right * sMove);
 
 	if (pm->cmd.buttons & BUTTON_JUMP)
-		wishvel[2] += (pm_waterspeed * 0.5f);
+		wishVel[2] += (pm_waterspeed * 0.5f);
 	if (pm->cmd.buttons & BUTTON_CROUCH)
-		wishvel[2] -= (pm_waterspeed * 0.5f);
+		wishVel[2] -= (pm_waterspeed * 0.5f);
 
-	wishdir = wishvel;
-	wishspeed = wishdir.normalize();
+	vec3_t wishDir = wishVel;
+	float wishSpeed = wishDir.normalize();
 
-	//
-	// clamp to server defined max speed
-	//
-	if (wishspeed > maxspeed) {
-		wishvel *= maxspeed / wishspeed;
-		wishspeed = maxspeed;
+	// Clamp to max server speed
+	if (wishSpeed > maxSpeed) {
+		wishVel *= (maxSpeed / wishSpeed);
+		wishSpeed = maxSpeed;
 	}
 
-	// Paril: newer clients do this
-	wishspeed *= 2;
+	// Paril-KEX tweak: faster fly movement
+	wishSpeed *= 2.0f;
 
-	currentspeed = pml.velocity.dot(wishdir);
-	addspeed = wishspeed - currentspeed;
+	float currentSpeed = pml.velocity.dot(wishDir);
+	float addSpeed = wishSpeed - currentSpeed;
 
-	if (addspeed > 0) {
-		accelspeed = pm_accelerate * pml.frametime * wishspeed;
-		if (accelspeed > addspeed)
-			accelspeed = addspeed;
-
-		for (i = 0; i < 3; i++)
-			pml.velocity[i] += accelspeed * wishdir[i];
+	if (addSpeed > 0.0f) {
+		float accelSpeed = pm_accelerate * pml.frametime * wishSpeed;
+		accelSpeed = std::min(accelSpeed, addSpeed);
+		pml.velocity += wishDir * accelSpeed;
 	}
 
-	if (doclip) {
-		/*for (i = 0; i < 3; i++)
-			end[i] = pml.origin[i] + pml.frametime * pml.velocity[i];
-
-		trace = PM_Trace(pml.origin, pm->mins, pm->maxs, end);
-
-		pml.origin = trace.endpos;*/
-
+	if (doClip) {
 		PM_StepSlideMove();
 	} else {
-		// move
-		pml.origin += (pml.velocity * pml.frametime);
+		pml.origin += pml.velocity * pml.frametime;
 	}
 }
 
@@ -1321,7 +1292,7 @@ static void PM_DeadMove() {
 	}
 }
 
-bool PM_GoodPosition() {
+static bool PM_GoodPosition() {
 	if (pm->s.pm_type == PM_NOCLIP)
 		return true;
 
@@ -1476,6 +1447,7 @@ void Pmove(pmove_t *pmove) {
 
 		PM_FlyMove(pm->s.pm_type == PM_SPECTATOR);
 		PM_SnapPosition();
+		PM_ScreenEffects();
 		return;
 	}
 

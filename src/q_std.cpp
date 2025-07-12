@@ -9,8 +9,7 @@
 
 g_fmt_data_t g_fmt_data;
 
-bool COM_IsSeparator(char c, const char *seps)
-{
+static bool COM_IsSeparator(char c, const char *seps) {
 	if (!c)
 		return true;
 
@@ -28,12 +27,10 @@ COM_ParseEx
 Parse a token out of a string
 ==============
 */
-char *COM_ParseEx(const char **data_p, const char *seps, char *buffer, size_t buffer_size)
-{
+char *COM_ParseEx(const char **data_p, const char *seps, char *buffer, size_t buffer_size) {
 	static char com_token[MAX_TOKEN_CHARS];
 
-	if (!buffer)
-	{
+	if (!buffer) {
 		buffer = com_token;
 		buffer_size = MAX_TOKEN_CHARS;
 	}
@@ -46,18 +43,15 @@ char *COM_ParseEx(const char **data_p, const char *seps, char *buffer, size_t bu
 	len = 0;
 	buffer[0] = '\0';
 
-	if (!data)
-	{
+	if (!data) {
 		*data_p = nullptr;
 		return buffer;
 	}
 
-// skip whitespace
+	// skip whitespace
 skipwhite:
-	while (COM_IsSeparator(c = *data, seps))
-	{
-		if (c == '\0')
-		{
+	while (COM_IsSeparator(c = *data, seps)) {
+		if (c == '\0') {
 			*data_p = nullptr;
 			return buffer;
 		}
@@ -65,29 +59,24 @@ skipwhite:
 	}
 
 	// skip // comments
-	if (c == '/' && data[1] == '/')
-	{
+	if (c == '/' && data[1] == '/') {
 		while (*data && *data != '\n')
 			data++;
 		goto skipwhite;
 	}
 
 	// handle quoted strings specially
-	if (c == '\"')
-	{
+	if (c == '\"') {
 		data++;
-		while (1)
-		{
+		while (1) {
 			c = *data++;
-			if (c == '\"' || !c)
-			{
+			if (c == '\"' || !c) {
 				const size_t endpos = std::min<size_t>(len, buffer_size - 1); // [KEX] avoid overflow
 				buffer[endpos] = '\0';
 				*data_p = data;
 				return buffer;
 			}
-			if (len < buffer_size)
-			{
+			if (len < buffer_size) {
 				buffer[len] = c;
 				len++;
 			}
@@ -95,10 +84,8 @@ skipwhite:
 	}
 
 	// parse a regular word
-	do
-	{
-		if (len < buffer_size)
-		{
+	do {
+		if (len < buffer_size) {
 			buffer[len] = c;
 			len++;
 		}
@@ -106,8 +93,7 @@ skipwhite:
 		c = *data;
 	} while (!COM_IsSeparator(c, seps));
 
-	if (len == buffer_size)
-	{
+	if (len == buffer_size) {
 		gi.Com_PrintFmt("Token exceeded {} chars, discarded.\n", buffer_size);
 		len = 0;
 	}
@@ -127,17 +113,14 @@ skipwhite:
 // NB: these funcs are duplicated in the engine; this define gates us for
 // static compilation.
 #if defined(KEX_Q2GAME_DYNAMIC)
-int Q_strcasecmp(const char *s1, const char *s2)
-{
+int Q_strcasecmp(const char *s1, const char *s2) {
 	int c1, c2;
 
-	do
-	{
+	do {
 		c1 = *s1++;
 		c2 = *s2++;
 
-		if (c1 != c2)
-		{
+		if (c1 != c2) {
 			if (c1 >= 'a' && c1 <= 'z')
 				c1 -= ('a' - 'A');
 			if (c2 >= 'a' && c2 <= 'z')
@@ -150,20 +133,17 @@ int Q_strcasecmp(const char *s1, const char *s2)
 	return 0; // strings are equal
 }
 
-int Q_strncasecmp(const char *s1, const char *s2, size_t n)
-{
+int Q_strncasecmp(const char *s1, const char *s2, size_t n) {
 	int c1, c2;
 
-	do
-	{
+	do {
 		c1 = *s1++;
 		c2 = *s2++;
 
 		if (!n--)
 			return 0; // strings are equal until end point
 
-		if (c1 != c2)
-		{
+		if (c1 != c2) {
 			if (c1 >= 'a' && c1 <= 'z')
 				c1 -= ('a' - 'A');
 			if (c2 >= 'a' && c2 <= 'z')
@@ -210,38 +190,33 @@ int Q_strncasecmp(const char *s1, const char *s2, size_t n)
  * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Copy src to string dst of size siz.  At most siz-1 characters
- * will be copied.  Always NUL terminates (unless siz == 0).
- * Returns strlen(src); if retval >= siz, truncation occurred.
- */
-size_t Q_strlcpy(char *dst, const char *src, size_t siz)
-{
-    char *d = dst;
-    const char *s = src;
-    size_t n = siz;
+ /*
+  * Copy src to string dst of size siz.  At most siz-1 characters
+  * will be copied.  Always NUL terminates (unless siz == 0).
+  * Returns strlen(src); if retval >= siz, truncation occurred.
+  */
+size_t Q_strlcpy(char *dst, const char *src, size_t siz) {
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
 
-    /* Copy as many bytes as will fit */
-    if(n != 0 && --n != 0)
-    {
-        do
-        {
-            if((*d++ = *s++) == 0)
-                break;
-        }
-        while(--n != 0);
-    }
+	/* Copy as many bytes as will fit */
+	if (n != 0 && --n != 0) {
+		do {
+			if ((*d++ = *s++) == 0)
+				break;
+		} while (--n != 0);
+	}
 
-    /* Not enough room in dst, add NUL and traverse rest of src */
-    if(n == 0)
-    {
-        if(siz != 0)
-            *d = '\0'; /* NUL-terminate dst */
-        while(*s++)
-            ; // counter loop
-    }
+	/* Not enough room in dst, add NUL and traverse rest of src */
+	if (n == 0) {
+		if (siz != 0)
+			*d = '\0'; /* NUL-terminate dst */
+		while (*s++)
+			; // counter loop
+	}
 
-    return (s - src - 1); /* count does not include NUL */
+	return (s - src - 1); /* count does not include NUL */
 }
 
 /*
@@ -250,33 +225,30 @@ size_t Q_strlcpy(char *dst, const char *src, size_t siz)
  * will be copied.  Always NUL terminates (unless siz == 0).
  * Returns strlen(src); if retval >= siz, truncation occurred.
  */
-size_t Q_strlcat(char *dst, const char *src, size_t siz)
-{
-    char *d = dst;
-    const char *s = src;
-    size_t n = siz;
-    size_t dlen;
+size_t Q_strlcat(char *dst, const char *src, size_t siz) {
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
+	size_t dlen;
 
-    /* FindEntity the end of dst and adjust bytes left but don't go past end */
-    while(*d != '\0' && n-- != 0)
-        d++;
-    dlen = d - dst;
-    n = siz - dlen;
+	/* FindEntity the end of dst and adjust bytes left but don't go past end */
+	while (*d != '\0' && n-- != 0)
+		d++;
+	dlen = d - dst;
+	n = siz - dlen;
 
-    if(n == 0)
-        return(dlen + strlen(s));
-    while(*s != '\0')
-    {
-        if(n != 1)
-        {
-            *d++ = *s;
-            n--;
-        }
-        s++;
-    }
-    *d = '\0';
+	if (n == 0)
+		return(dlen + strlen(s));
+	while (*s != '\0') {
+		if (n != 1) {
+			*d++ = *s;
+			n--;
+		}
+		s++;
+	}
+	*d = '\0';
 
-    return (dlen + (s - src)); /* count does not include NUL */
+	return (dlen + (s - src)); /* count does not include NUL */
 }
 
 #if !defined(USE_CPP20_FORMAT) && !defined(NO_FMT_SOURCE)

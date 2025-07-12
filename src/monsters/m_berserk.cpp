@@ -75,7 +75,7 @@ mframe_t berserk_frames_stand_fidget[] = {
 MMOVE_T(berserk_move_stand_fidget) = { FRAME_standb1, FRAME_standb20, berserk_frames_stand_fidget, berserk_stand };
 
 void berserk_fidget(gentity_t *self) {
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		return;
 	else if (self->enemy)
 		return;
@@ -118,7 +118,7 @@ MMOVE_T(berserk_move_run1) = { FRAME_run1, FRAME_run6, berserk_frames_run1, null
 MONSTERINFO_RUN(berserk_run) (gentity_t *self) -> void {
 	monster_done_dodge(self);
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND)
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND)
 		M_SetAnimation(self, &berserk_move_stand);
 	else
 		M_SetAnimation(self, &berserk_move_run1);
@@ -278,7 +278,7 @@ static void berserk_jump_takeoff(gentity_t *self) {
 	self->velocity = forward * fwd_speed;
 	self->velocity[2] = 450;
 	self->groundEntity = nullptr;
-	self->monsterInfo.aiflags |= AI_DUCKED;
+	self->monsterInfo.aiFlags |= AI_DUCKED;
 	self->monsterInfo.attack_finished = level.time + 3_sec;
 	self->touch = berserk_jump_touch;
 	berserk_high_gravity(self);
@@ -289,7 +289,7 @@ static void berserk_check_landing(gentity_t *self) {
 
 	if (self->groundEntity) {
 		self->monsterInfo.attack_finished = 0_ms;
-		self->monsterInfo.unduck(self);
+		self->monsterInfo.unDuck(self);
 		self->s.frame = FRAME_slam18;
 		if (self->touch) {
 			berserk_attack_slam(self);
@@ -300,9 +300,9 @@ static void berserk_check_landing(gentity_t *self) {
 	}
 
 	if (level.time > self->monsterInfo.attack_finished)
-		self->monsterInfo.nextframe = FRAME_slam3;
+		self->monsterInfo.nextFrame = FRAME_slam3;
 	else
-		self->monsterInfo.nextframe = FRAME_slam5;
+		self->monsterInfo.nextFrame = FRAME_slam5;
 }
 
 mframe_t berserk_frames_attack_strike[] = {
@@ -355,7 +355,7 @@ MONSTERINFO_MELEE(berserk_melee) (gentity_t *self) -> void {
 
 static void berserk_run_attack_speed(gentity_t *self) {
 	if (self->enemy && range_to(self, self->enemy) < MELEE_DISTANCE) {
-		self->monsterInfo.nextframe = self->s.frame + 6;
+		self->monsterInfo.nextFrame = self->s.frame + 6;
 		monster_done_dodge(self);
 	}
 }
@@ -404,7 +404,7 @@ MONSTERINFO_ATTACK(berserk_attack) (gentity_t *self) -> void {
 		self->timeStamp = level.time + 5_sec;
 	} else if (self->monsterInfo.active_move == &berserk_move_run1 && (range_to(self, self->enemy) <= RANGE_NEAR)) {
 		M_SetAnimation(self, &berserk_move_run_attack1);
-		self->monsterInfo.nextframe = FRAME_r_att1 + (self->s.frame - FRAME_run1) + 1;
+		self->monsterInfo.nextFrame = FRAME_r_att1 + (self->s.frame - FRAME_run1) + 1;
 	}
 }
 
@@ -565,12 +565,12 @@ static void berserk_jump2_now(gentity_t *self) {
 
 static void berserk_jump_wait_land(gentity_t *self) {
 	if (self->groundEntity == nullptr) {
-		self->monsterInfo.nextframe = self->s.frame;
+		self->monsterInfo.nextFrame = self->s.frame;
 
 		if (monster_jump_finished(self))
-			self->monsterInfo.nextframe = self->s.frame + 1;
+			self->monsterInfo.nextFrame = self->s.frame + 1;
 	} else
-		self->monsterInfo.nextframe = self->s.frame + 1;
+		self->monsterInfo.nextFrame = self->s.frame + 1;
 }
 
 mframe_t berserk_frames_jump[] = {
@@ -733,8 +733,8 @@ void SP_monster_berserk(gentity_t *self) {
 	self->monsterInfo.run = berserk_run;
 	self->monsterInfo.dodge = M_MonsterDodge;
 	self->monsterInfo.duck = berserk_duck;
-	self->monsterInfo.unduck = monster_duck_up;
-	self->monsterInfo.sidestep = berserk_sidestep;
+	self->monsterInfo.unDuck = monster_duck_up;
+	self->monsterInfo.sideStep = berserk_sidestep;
 	self->monsterInfo.blocked = berserk_blocked;
 	self->monsterInfo.attack = berserk_attack;
 	self->monsterInfo.melee = berserk_melee;

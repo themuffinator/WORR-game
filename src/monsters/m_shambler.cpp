@@ -154,11 +154,11 @@ MMOVE_T(shambler_move_run) = { FRAME_run01, FRAME_run06, shambler_frames_run, nu
 
 MONSTERINFO_RUN(shambler_run) (gentity_t *self) -> void {
 	if (self->enemy && self->enemy->client)
-		self->monsterInfo.aiflags |= AI_BRUTAL;
+		self->monsterInfo.aiFlags |= AI_BRUTAL;
 	else
-		self->monsterInfo.aiflags &= ~AI_BRUTAL;
+		self->monsterInfo.aiFlags &= ~AI_BRUTAL;
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		M_SetAnimation(self, &shambler_move_stand);
 		return;
 	}
@@ -229,7 +229,7 @@ MONSTERINFO_SETSKIN(shambler_setskin) (gentity_t *self) -> void {
 static void ShamblerSaveLoc(gentity_t *self) {
 	self->pos1 = self->enemy->s.origin; // save for aiming the shot
 	self->pos1[2] += self->enemy->viewHeight;
-	self->monsterInfo.nextframe = FRAME_magic09;
+	self->monsterInfo.nextFrame = FRAME_magic09;
 
 	gi.sound(self, CHAN_WEAPON, sound_boom, 1, ATTN_NORM, 0);
 	shambler_lightning_update(self);
@@ -530,7 +530,7 @@ void SP_monster_shambler(gentity_t *self) {
 	gi.linkentity(self);
 
 	if (self->spawnflags.has(SPAWNFLAG_SHAMBLER_PRECISE))
-		self->monsterInfo.aiflags |= AI_IGNORE_SHOTS;
+		self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 
 	M_SetAnimation(self, &shambler_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;

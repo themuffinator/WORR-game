@@ -27,7 +27,7 @@ static void ShowMonsterPathToPlayer(const gentity_t *player) {
 
 	const float moveDist = 8.0f;
 
-	std::array<vec3_t, 512> pathPoints;
+	std::array<vec3_t, 512> pathPoints{};
 
 	PathRequest request;
 	request.start = monster->s.origin;

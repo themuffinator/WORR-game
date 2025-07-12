@@ -145,7 +145,7 @@ void G_FlyMove(gentity_t *ent, float time, contents_t mask) {
 
 		if (trace.plane.normal[2] > 0.7f) {
 			ent->groundEntity = trace.ent;
-			ent->groundEntity_linkCount = trace.ent->linkcount;
+			ent->groundEntity_linkCount = trace.ent->linkCount;
 		}
 
 		//
@@ -217,11 +217,11 @@ static trace_t G_PushEntity(gentity_t *ent, const vec3_t &push) {
 }
 
 struct pushed_t {
-	gentity_t *ent;
-	vec3_t	 origin;
-	vec3_t	 angles;
-	bool	 rotated;
-	float	 yaw;
+	gentity_t *ent = nullptr;
+	vec3_t	 origin = vec3_origin;
+	vec3_t	 angles = vec3_origin;
+	bool	 rotated = false;
+	float	 yaw = 0;
 };
 
 pushed_t pushed[MAX_ENTITIES], *pushed_p;
@@ -240,7 +240,7 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 	gentity_t *check, *block = nullptr;
 	vec3_t	  mins, maxs;
 	pushed_t *p;
-	vec3_t	  org, org2, move2, forward, right, up;
+	vec3_t	  org, org2{}, move2, forward, right, up;
 
 	// find the bounding box
 	mins = pusher->absMin + move;
@@ -286,15 +286,14 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 				continue;
 		}
 
-		if ((pusher->moveType == MOVETYPE_PUSH) || (check->groundEntity == pusher)) {
+		if (pusher && (pusher->moveType == MOVETYPE_PUSH) || (check->groundEntity == pusher)) {
 			// move this entity
 			pushed_p->ent = check;
 			pushed_p->origin = check->s.origin;
 			pushed_p->angles = check->s.angles;
 			pushed_p->rotated = !!amove[YAW];
-			if (pushed_p->rotated)
-				pushed_p->yaw =
-				pusher->client ? (float)pusher->client->ps.pmove.delta_angles[YAW] : pusher->s.angles[YAW];
+			if (pusher && pushed_p->rotated)
+				pushed_p->yaw = pusher->client ? (float)pusher->client->ps.pmove.delta_angles[YAW] : pusher->s.angles[YAW];
 			pushed_p++;
 
 			vec3_t old_position = check->s.origin;
@@ -310,7 +309,8 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 				check->s.angles[YAW] += amove[YAW];
 
 			// figure movement due to the pusher's amove
-			org = check->s.origin - pusher->s.origin;
+			if (pusher)
+				org = check->s.origin - pusher->s.origin;
 			org2[0] = org.dot(forward);
 			org2[1] = -(org.dot(right));
 			org2[2] = org.dot(up);
@@ -353,8 +353,10 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 		// go backwards, so if the same entity was pushed
 		// twice, it goes back to the original position
 		for (p = pushed_p - 1; p >= pushed; p--) {
-			p->ent->s.origin = p->origin;
-			p->ent->s.angles = p->angles;
+			if (p->ent) {
+				p->ent->s.origin = p->origin;
+				p->ent->s.angles = p->angles;
+			}
 			if (p->rotated) {
 				//if (p->ent->client)
 				//	p->ent->client->ps.pmove.delta_angles[YAW] = p->yaw;
@@ -444,12 +446,12 @@ static void G_Physics_None(gentity_t *ent) {
 
 /*
 =============
-G_Physics_Noclip
+G_Physics_NoClip
 
 A moving object that doesn't obey physics
 =============
 */
-static void G_Physics_Noclip(gentity_t *ent) {
+static void G_Physics_NoClip(gentity_t *ent) {
 	// regular thinking
 	if (!G_RunThink(ent) || !ent->inUse)
 		return;
@@ -545,7 +547,7 @@ static void G_Physics_Toss(gentity_t *ent) {
 		// just assume that the object we hit is our ground.
 		else if (trace.allsolid) {
 			ent->groundEntity = trace.ent;
-			ent->groundEntity_linkCount = trace.ent->linkcount;
+			ent->groundEntity_linkCount = trace.ent->linkCount;
 			ent->velocity = {};
 			ent->aVelocity = {};
 			break;
@@ -574,7 +576,7 @@ static void G_Physics_Toss(gentity_t *ent) {
 					(ent->moveType != MOVETYPE_TOSS && ent->velocity.scaled(trace.plane.normal).length() < 60.f)) {
 					if (!(ent->flags & FL_NO_STANDING) || trace.ent->solid == SOLID_BSP) {
 						ent->groundEntity = trace.ent;
-						ent->groundEntity_linkCount = trace.ent->linkcount;
+						ent->groundEntity_linkCount = trace.ent->linkCount;
 					}
 					ent->velocity = {};
 					ent->aVelocity = {};
@@ -642,7 +644,7 @@ void G_Physics_NewToss(gentity_t *ent) {
 	gentity_t *slave;
 	bool	 wasinwater;
 	bool	 isinwater;
-	float	 speed, newspeed;
+	float	 speed, newSpeed;
 	vec3_t	 old_origin;
 	//	float		firstmove;
 	//	int			mask;
@@ -686,25 +688,25 @@ void G_Physics_NewToss(gentity_t *ent) {
 	speed = ent->velocity.length();
 	if (ent->waterlevel) // friction for water movement
 	{
-		newspeed = speed - (g_waterfriction * 6 * (float)ent->waterlevel);
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-		ent->velocity *= newspeed;
+		newSpeed = speed - (g_waterfriction * 6 * (float)ent->waterlevel);
+		if (newSpeed < 0)
+			newSpeed = 0;
+		newSpeed /= speed;
+		ent->velocity *= newSpeed;
 	} else if (!ent->groundEntity) // friction for air movement
 	{
-		newspeed = speed - ((g_friction));
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-		ent->velocity *= newspeed;
+		newSpeed = speed - ((g_friction));
+		if (newSpeed < 0)
+			newSpeed = 0;
+		newSpeed /= speed;
+		ent->velocity *= newSpeed;
 	} else // use ground friction
 	{
-		newspeed = speed - (g_friction * 6);
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-		ent->velocity *= newspeed;
+		newSpeed = speed - (g_friction * 6);
+		if (newSpeed < 0)
+			newSpeed = 0;
+		newSpeed /= speed;
+		ent->velocity *= newSpeed;
 	}
 
 	G_FlyMove(ent, gi.frame_time_s, ent->clipMask);
@@ -778,7 +780,7 @@ static void G_Physics_Step(gentity_t *ent) {
 	bool	   wasonground;
 	bool	   hitsound = false;
 	float *vel;
-	float	   speed, newspeed, control;
+	float	   speed, newSpeed, control;
 	float	   friction;
 	gentity_t *groundEntity;
 	contents_t mask = G_GetClipMask(ent);
@@ -816,31 +818,31 @@ static void G_Physics_Step(gentity_t *ent) {
 			}
 
 	// friction for flying monsters that have been given vertical velocity
-	if ((ent->flags & FL_FLY) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiflags & AI_ALTERNATE_FLY)) {
+	if ((ent->flags & FL_FLY) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
 		speed = fabsf(ent->velocity[2]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
 		friction = g_friction / 3;
-		newspeed = speed - (gi.frame_time_s * control * friction);
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-		ent->velocity[2] *= newspeed;
+		newSpeed = speed - (gi.frame_time_s * control * friction);
+		if (newSpeed < 0)
+			newSpeed = 0;
+		newSpeed /= speed;
+		ent->velocity[2] *= newSpeed;
 	}
 
 	// friction for flying monsters that have been given vertical velocity
-	if ((ent->flags & FL_SWIM) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiflags & AI_ALTERNATE_FLY)) {
+	if ((ent->flags & FL_SWIM) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
 		speed = fabsf(ent->velocity[2]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
-		newspeed = speed - (gi.frame_time_s * control * g_waterfriction * (float)ent->waterlevel);
-		if (newspeed < 0)
-			newspeed = 0;
-		newspeed /= speed;
-		ent->velocity[2] *= newspeed;
+		newSpeed = speed - (gi.frame_time_s * control * g_waterfriction * (float)ent->waterlevel);
+		if (newSpeed < 0)
+			newSpeed = 0;
+		newSpeed /= speed;
+		ent->velocity[2] *= newSpeed;
 	}
 
 	if (ent->velocity[2] || ent->velocity[1] || ent->velocity[0]) {
 		// apply friction
-		if ((wasonground || (ent->flags & (FL_SWIM | FL_FLY))) && !(ent->monsterInfo.aiflags & AI_ALTERNATE_FLY)) {
+		if ((wasonground || (ent->flags & (FL_SWIM | FL_FLY))) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
 			vel = &ent->velocity.x;
 			speed = sqrtf(vel[0] * vel[0] + vel[1] * vel[1]);
 			if (speed) {
@@ -851,14 +853,14 @@ static void G_Physics_Step(gentity_t *ent) {
 					friction *= 0.5f;
 
 				control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
-				newspeed = speed - gi.frame_time_s * control * friction;
+				newSpeed = speed - gi.frame_time_s * control * friction;
 
-				if (newspeed < 0)
-					newspeed = 0;
-				newspeed /= speed;
+				if (newSpeed < 0)
+					newSpeed = 0;
+				newSpeed /= speed;
 
-				vel[0] *= newspeed;
-				vel[1] *= newspeed;
+				vel[0] *= newSpeed;
+				vel[1] *= newSpeed;
 			}
 		}
 
@@ -1003,7 +1005,7 @@ void G_RunEntity(gentity_t *ent) {
 		break;
 	case MOVETYPE_NOCLIP:
 	case MOVETYPE_FREECAM:
-		G_Physics_Noclip(ent);
+		G_Physics_NoClip(ent);
 		break;
 	case MOVETYPE_STEP:
 		G_Physics_Step(ent);

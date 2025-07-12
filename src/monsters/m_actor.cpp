@@ -69,7 +69,7 @@ MONSTERINFO_STAND(actor_stand) (gentity_t *self) -> void {
 
 	// randomize on startup
 	if (level.time < 1_sec)
-		self->s.frame = irandom(self->monsterInfo.active_move->firstframe, self->monsterInfo.active_move->lastframe + 1);
+		self->s.frame = irandom(self->monsterInfo.active_move->firstFrame, self->monsterInfo.active_move->lastFrame + 1);
 }
 
 mframe_t actor_frames_walk[] = {
@@ -107,7 +107,7 @@ MONSTERINFO_RUN(actor_run) (gentity_t *self) -> void {
 		return;
 	}
 
-	if (self->monsterInfo.aiflags & AI_STAND_GROUND) {
+	if (self->monsterInfo.aiFlags & AI_STAND_GROUND) {
 		actor_stand(self);
 		return;
 	}
@@ -312,9 +312,9 @@ static void actor_fire(gentity_t *self) {
 	actorMachineGun(self);
 
 	if (level.time >= self->monsterInfo.fire_wait)
-		self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
+		self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 	else
-		self->monsterInfo.aiflags |= AI_HOLD_FRAME;
+		self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 }
 
 mframe_t actor_frames_attack[] = {
@@ -337,7 +337,7 @@ static USE(actor_use) (gentity_t *self, gentity_t *other, gentity_t *activator) 
 	if ((!self->movetarget) || (strcmp(self->movetarget->className, "target_actor") != 0)) {
 		gi.Com_PrintFmt("{}: bad target {}\n", *self, self->target);
 		self->target = nullptr;
-		self->monsterInfo.pausetime = HOLD_FOREVER;
+		self->monsterInfo.pauseTime = HOLD_FOREVER;
 		self->monsterInfo.stand(self);
 		return;
 	}
@@ -390,7 +390,7 @@ void SP_misc_actor(gentity_t *self) {
 	self->monsterInfo.sight = nullptr;
 	self->monsterInfo.setskin = actor_setskin;
 
-	self->monsterInfo.aiflags |= AI_GOOD_GUY;
+	self->monsterInfo.aiFlags |= AI_GOOD_GUY;
 
 	gi.linkentity(self);
 
@@ -458,9 +458,9 @@ static TOUCH(target_actor_touch) (gentity_t *self, gentity_t *other, const trace
 		if (other->enemy) {
 			other->goalentity = other->enemy;
 			if (self->spawnflags.has(SPAWNFLAG_TARGET_ACTOR_BRUTAL))
-				other->monsterInfo.aiflags |= AI_BRUTAL;
+				other->monsterInfo.aiFlags |= AI_BRUTAL;
 			if (self->spawnflags.has(SPAWNFLAG_TARGET_ACTOR_HOLD)) {
-				other->monsterInfo.aiflags |= AI_STAND_GROUND;
+				other->monsterInfo.aiFlags |= AI_STAND_GROUND;
 				actor_stand(other);
 			} else {
 				actor_run(other);
@@ -483,7 +483,7 @@ static TOUCH(target_actor_touch) (gentity_t *self, gentity_t *other, const trace
 		other->goalentity = other->movetarget;
 
 	if (!other->movetarget && !other->enemy) {
-		other->monsterInfo.pausetime = HOLD_FOREVER;
+		other->monsterInfo.pauseTime = HOLD_FOREVER;
 		other->monsterInfo.stand(other);
 	} else if (other->movetarget == other->goalentity) {
 		v = other->movetarget->s.origin - other->s.origin;

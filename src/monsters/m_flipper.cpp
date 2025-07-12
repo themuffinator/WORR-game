@@ -62,7 +62,7 @@ mframe_t flipper_frames_run[] = {
 };
 MMOVE_T(flipper_move_run_loop) = { FRAME_flpver06, FRAME_flpver29, flipper_frames_run, nullptr };
 
-void flipper_run_loop(gentity_t *self) {
+static void flipper_run_loop(gentity_t *self) {
 	M_SetAnimation(self, &flipper_move_run_loop);
 }
 
@@ -361,7 +361,7 @@ void SP_monster_flipper(gentity_t *self) {
 	M_SetAnimation(self, &flipper_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;
 
-	self->monsterInfo.aiflags |= AI_ALTERNATE_FLY;
+	self->monsterInfo.aiFlags |= AI_ALTERNATE_FLY;
 	flipper_set_fly_parameters(self);
 
 	swimmonster_start(self);

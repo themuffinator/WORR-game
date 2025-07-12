@@ -32,19 +32,19 @@ static void Player_UpdateState(gentity_t *player) {
 		player->sv.ent_flags |= SVFL_IS_CROUCHING;
 	}
 
-	if (player->client->pu_time_quad > level.time) {
+	if (player->client->powerupTime.quadDamage > level.time) {
 		player->sv.ent_flags |= SVFL_HAS_DMG_BOOST;
-	} else if (player->client->pu_time_haste > level.time) {
+	} else if (player->client->powerupTime.haste > level.time) {
 		player->sv.ent_flags |= SVFL_HAS_DMG_BOOST;
-	} else if (player->client->pu_time_double > level.time) {
+	} else if (player->client->powerupTime.doubleDamage > level.time) {
 		player->sv.ent_flags |= SVFL_HAS_DMG_BOOST;
 	}
 
-	if (player->client->pu_time_battlesuit > level.time) {
+	if (player->client->powerupTime.battleSuit > level.time) {
 		player->sv.ent_flags |= SVFL_HAS_PROTECTION;
 	}
 
-	if (player->client->pu_time_invisibility > level.time) {
+	if (player->client->powerupTime.invisibility > level.time) {
 		player->sv.ent_flags |= SVFL_HAS_INVISIBILITY;
 	}
 
@@ -78,27 +78,27 @@ static void Player_UpdateState(gentity_t *player) {
 		player->sv.ent_flags |= SVFL_IS_NOCLIP;
 	}
 
-	if (player->client->animEnd == FRAME_flip12) {
+	if (player->client->anim.end == FRAME_flip12) {
 		player->sv.ent_flags |= SVFL_IS_FLIPPING_OFF;
 	}
 
-	if (player->client->animEnd == FRAME_salute11) {
+	if (player->client->anim.end == FRAME_salute11) {
 		player->sv.ent_flags |= SVFL_IS_SALUTING;
 	}
 
-	if (player->client->animEnd == FRAME_taunt17) {
+	if (player->client->anim.end == FRAME_taunt17) {
 		player->sv.ent_flags |= SVFL_IS_TAUNTING;
 	}
 
-	if (player->client->animEnd == FRAME_wave11) {
+	if (player->client->anim.end == FRAME_wave11) {
 		player->sv.ent_flags |= SVFL_IS_WAVING;
 	}
 
-	if (player->client->animEnd == FRAME_point12) {
+	if (player->client->anim.end == FRAME_point12) {
 		player->sv.ent_flags |= SVFL_IS_POINTING;
 	}
 
-	if ((player->client->ps.pmove.pm_flags & PMF_DUCKED) == 0 && player->client->animPriority <= ANIM_WAVE) {
+	if ((player->client->ps.pmove.pm_flags & PMF_DUCKED) == 0 && player->client->anim.priority <= ANIM_WAVE) {
 		player->sv.ent_flags |= SVFL_CAN_GESTURE;
 	}
 
@@ -110,7 +110,7 @@ static void Player_UpdateState(gentity_t *player) {
 		player->sv.ent_flags |= SVFL_IS_SPECTATOR;
 	}
 
-	player_skinnum_t pl_skinnum;
+	player_skinnum_t pl_skinnum{};
 	pl_skinnum.skinnum = player->s.skinnum;
 	player->sv.team = pl_skinnum.team_index;
 
@@ -124,7 +124,7 @@ static void Player_UpdateState(gentity_t *player) {
 	player->sv.weapon = (persistant.weapon != nullptr) ? persistant.weapon->id : IT_NULL;
 
 	player->sv.last_attackertime = static_cast<int32_t>(player->client->last_attacker_time.milliseconds());
-	player->sv.respawntime = static_cast<int32_t>(player->client->respawn_time.milliseconds());
+	player->sv.respawntime = static_cast<int32_t>(player->client->respawnMaxTime.milliseconds());
 	player->sv.waterlevel = player->waterlevel;
 	player->sv.viewHeight = player->viewHeight;
 
@@ -199,7 +199,7 @@ static void Monster_UpdateState(gentity_t *monster) {
 	monster->sv.ground_entity = monster->groundEntity;
 
 	int32_t viewHeight = monster->viewHeight;
-	if ((monster->monsterInfo.aiflags & AI_DUCKED) != 0) {
+	if ((monster->monsterInfo.aiFlags & AI_DUCKED) != 0) {
 		viewHeight = int32_t(monster->maxs[2] - 4.0f);
 	}
 	monster->sv.viewHeight = viewHeight;
@@ -277,7 +277,7 @@ static void Trap_UpdateState(gentity_t *danger) {
 	danger->sv.velocity = danger->velocity;
 
 	if (danger->owner != nullptr && danger->owner->client != nullptr) {
-		player_skinnum_t pl_skinnum;
+		player_skinnum_t pl_skinnum{};
 		pl_skinnum.skinnum = danger->owner->s.skinnum;
 		danger->sv.team = pl_skinnum.team_index;
 	}

@@ -35,7 +35,7 @@ void monster_fire_shotgun(gentity_t *self, const vec3_t &start, const vec3_t &ai
 }
 
 void monster_fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, effects_t effect) {
+	monster_muzzleflash_id_t flashtype, Effect effect) {
 	fire_blaster(self, start, dir, damage, speed, effect, MOD_BLASTER);
 	monster_muzzleflash(self, start, flashtype);
 }
@@ -95,7 +95,7 @@ bool M_CheckClearShot(gentity_t *self, const vec3_t &offset, vec3_t &start) {
 
 	vec3_t target;
 
-	bool is_blind = self->monsterInfo.attack_state == AS_BLIND || (self->monsterInfo.aiflags & (AI_MANUAL_STEERING | AI_LOST_SIGHT));
+	bool is_blind = self->monsterInfo.attack_state == AS_BLIND || (self->monsterInfo.aiFlags & (AI_MANUAL_STEERING | AI_LOST_SIGHT));
 
 	if (is_blind)
 		target = self->monsterInfo.blind_fire_target;
@@ -125,7 +125,7 @@ bool M_CheckClearShot(gentity_t *self, const vec3_t &offset) {
 }
 
 void M_CheckGround(gentity_t *ent, contents_t mask) {
-	vec3_t	point;
+	vec3_t	point{};
 	trace_t trace;
 
 	if (ent->flags & (FL_SWIM | FL_FLY))
@@ -161,13 +161,13 @@ void M_CheckGround(gentity_t *ent, contents_t mask) {
 	if (!trace.startsolid && !trace.allsolid) {
 		ent->s.origin = trace.endpos;
 		ent->groundEntity = trace.ent;
-		ent->groundEntity_linkCount = trace.ent->linkcount;
+		ent->groundEntity_linkCount = trace.ent->linkCount;
 		ent->velocity[2] = 0;
 	}
 }
 
 void M_CatagorizePosition(gentity_t *self, const vec3_t &in_point, water_level_t &waterlevel, contents_t &watertype) {
-	vec3_t	   point;
+	vec3_t	   point{};
 	contents_t cont;
 
 	//
@@ -202,7 +202,7 @@ void M_CatagorizePosition(gentity_t *self, const vec3_t &in_point, water_level_t
 }
 
 bool M_ShouldReactToPain(gentity_t *self, const mod_t &mod) {
-	if (self->monsterInfo.aiflags & (AI_DUCKED | AI_COMBAT_POINT))
+	if (self->monsterInfo.aiFlags & (AI_DUCKED | AI_COMBAT_POINT))
 		return false;
 
 	return mod.id == MOD_CHAINFIST || skill->integer < 3;
@@ -214,10 +214,10 @@ void M_WorldEffects(gentity_t *ent) {
 	if (ent->health > 0) {
 		if (!(ent->flags & FL_SWIM)) {
 			if (ent->waterlevel < WATER_UNDER) {
-				ent->air_finished = level.time + 12_sec;
-			} else if (ent->air_finished < level.time) { // drown!
+				ent->airFinished = level.time + 12_sec;
+			} else if (ent->airFinished < level.time) { // drown!
 				if (ent->pain_debounce_time < level.time) {
-					dmg = 2 + (int)(2 * floorf((level.time - ent->air_finished).seconds()));
+					dmg = 2 + (int)(2 * floorf((level.time - ent->airFinished).seconds()));
 					if (dmg > 15)
 						dmg = 15;
 					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DAMAGE_NO_ARMOR,
@@ -227,10 +227,10 @@ void M_WorldEffects(gentity_t *ent) {
 			}
 		} else {
 			if (ent->waterlevel > WATER_NONE) {
-				ent->air_finished = level.time + 9_sec;
-			} else if (ent->air_finished < level.time) { // suffocate!
+				ent->airFinished = level.time + 9_sec;
+			} else if (ent->airFinished < level.time) { // suffocate!
 				if (ent->pain_debounce_time < level.time) {
-					dmg = 2 + (int)(2 * floorf((level.time - ent->air_finished).seconds()));
+					dmg = 2 + (int)(2 * floorf((level.time - ent->airFinished).seconds()));
 					if (dmg > 15)
 						dmg = 15;
 					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DAMAGE_NO_ARMOR,
@@ -365,13 +365,13 @@ void M_SetEffects(gentity_t *ent) {
 	if (ent->s.renderfx & RF_LOW_PRIORITY)
 		return;
 
-	if (ent->monsterInfo.weapon_sound && ent->health > 0) {
-		ent->s.sound = ent->monsterInfo.weapon_sound;
+	if (ent->monsterInfo.weaponSound && ent->health > 0) {
+		ent->s.sound = ent->monsterInfo.weaponSound;
 		ent->s.loop_attenuation = ATTN_NORM;
 	} else if (ent->monsterInfo.engine_sound)
 		ent->s.sound = ent->monsterInfo.engine_sound;
 
-	if (ent->monsterInfo.aiflags & AI_RESURRECTING) {
+	if (ent->monsterInfo.aiFlags & AI_RESURRECTING) {
 		ent->s.effects |= EF_COLOR_SHELL;
 		ent->s.renderfx |= RF_SHELL_RED;
 	}
@@ -463,32 +463,32 @@ static void M_MoveFrame(gentity_t *self) {
 	// no, but maybe we were explicitly forced into another move (pain,
 	// death, etc)
 	if (!run_frame)
-		run_frame = (self->s.frame < move->firstframe || self->s.frame > move->lastframe);
+		run_frame = (self->s.frame < move->firstFrame || self->s.frame > move->lastFrame);
 
 	if (run_frame) {
-		// [Paril-KEX] allow next_move and nextframe to work properly after an endfunc
+		// [Paril-KEX] allow next_move and nextFrame to work properly after an endFunc
 		bool explicit_frame = false;
 
-		if ((self->monsterInfo.nextframe) && (self->monsterInfo.nextframe >= move->firstframe) &&
-			(self->monsterInfo.nextframe <= move->lastframe)) {
-			self->s.frame = self->monsterInfo.nextframe;
-			self->monsterInfo.nextframe = 0;
+		if ((self->monsterInfo.nextFrame) && (self->monsterInfo.nextFrame >= move->firstFrame) &&
+			(self->monsterInfo.nextFrame <= move->lastFrame)) {
+			self->s.frame = self->monsterInfo.nextFrame;
+			self->monsterInfo.nextFrame = 0;
 		} else {
-			if (self->s.frame == move->lastframe) {
-				if (move->endfunc) {
-					move->endfunc(self);
+			if (self->s.frame == move->lastFrame) {
+				if (move->endFunc) {
+					move->endFunc(self);
 
 					if (self->monsterInfo.next_move) {
 						M_SetAnimation(self, self->monsterInfo.next_move, true);
 
-						if (self->monsterInfo.nextframe) {
-							self->s.frame = self->monsterInfo.nextframe;
-							self->monsterInfo.nextframe = 0;
+						if (self->monsterInfo.nextFrame) {
+							self->s.frame = self->monsterInfo.nextFrame;
+							self->monsterInfo.nextFrame = 0;
 							explicit_frame = true;
 						}
 					}
 
-					// regrab move, endfunc is very likely to change it
+					// regrab move, endFunc is very likely to change it
 					move = self->monsterInfo.active_move.pointer();
 
 					// check for death
@@ -497,39 +497,39 @@ static void M_MoveFrame(gentity_t *self) {
 				}
 			}
 
-			if (self->s.frame < move->firstframe || self->s.frame > move->lastframe) {
-				self->monsterInfo.aiflags &= ~AI_HOLD_FRAME;
-				self->s.frame = move->firstframe;
+			if (self->s.frame < move->firstFrame || self->s.frame > move->lastFrame) {
+				self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
+				self->s.frame = move->firstFrame;
 			} else if (!explicit_frame) {
-				if (!(self->monsterInfo.aiflags & AI_HOLD_FRAME)) {
+				if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME)) {
 					self->s.frame++;
-					if (self->s.frame > move->lastframe)
-						self->s.frame = move->firstframe;
+					if (self->s.frame > move->lastFrame)
+						self->s.frame = move->firstFrame;
 				}
 			}
 		}
 
-		if (self->monsterInfo.aiflags & AI_HIGH_TICK_RATE)
+		if (self->monsterInfo.aiFlags & AI_HIGH_TICK_RATE)
 			self->monsterInfo.next_move_time = level.time;
 		else
 			self->monsterInfo.next_move_time = level.time + 10_hz;
 
-		if ((self->monsterInfo.nextframe) && !((self->monsterInfo.nextframe >= move->firstframe) &&
-			(self->monsterInfo.nextframe <= move->lastframe)))
-			self->monsterInfo.nextframe = 0;
+		if ((self->monsterInfo.nextFrame) && !((self->monsterInfo.nextFrame >= move->firstFrame) &&
+			(self->monsterInfo.nextFrame <= move->lastFrame)))
+			self->monsterInfo.nextFrame = 0;
 	}
 
 	// NB: frame thinkfunc can be called on the same frame
 	// as the animation changing
 
-	int32_t index = self->s.frame - move->firstframe;
-	if (move->frame[index].aifunc) {
-		if (!(self->monsterInfo.aiflags & AI_HOLD_FRAME)) {
+	int32_t index = self->s.frame - move->firstFrame;
+	if (move->frame[index].aiFunc) {
+		if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME)) {
 			float dist = move->frame[index].dist * self->monsterInfo.scale;
-			dist /= gi.tick_rate / 10;
-			move->frame[index].aifunc(self, dist);
+			dist /= static_cast<float>(gi.tick_rate) / 10.0f;
+			move->frame[index].aiFunc(self, dist);
 		} else
-			move->frame[index].aifunc(self, 0);
+			move->frame[index].aiFunc(self, 0);
 	}
 
 	if (run_frame && move->frame[index].thinkfunc)
@@ -572,31 +572,31 @@ void G_MonsterKilled(gentity_t *self) {
 }
 
 void M_ProcessPain(gentity_t *e) {
-	if (!e->monsterInfo.damageBlood)
+	if (!e->monsterInfo.damage.blood)
 		return;
 
 	if (e->health <= 0) {
-		if (e->monsterInfo.aiflags & AI_MEDIC) {
+		if (e->monsterInfo.aiFlags & AI_MEDIC) {
 			if (e->enemy && e->enemy->inUse && (e->enemy->svFlags & SVF_MONSTER)) // god, I hope so
 			{
 				M_CleanupHealTarget(e->enemy);
 			}
 
 			// clean up self
-			e->monsterInfo.aiflags &= ~AI_MEDIC;
+			e->monsterInfo.aiFlags &= ~AI_MEDIC;
 		}
 
 		if (!e->deadFlag) {
-			e->enemy = e->monsterInfo.damage_attacker;
+			e->enemy = e->monsterInfo.damage.attacker;
 
 			// free up slot for spawned monster if it's spawned
-			if (e->monsterInfo.aiflags & AI_SPAWNED_CARRIER) {
+			if (e->monsterInfo.aiFlags & AI_SPAWNED_CARRIER) {
 				if (e->monsterInfo.commander && e->monsterInfo.commander->inUse &&
 					!strcmp(e->monsterInfo.commander->className, "monster_carrier"))
 					e->monsterInfo.commander->monsterInfo.monster_slots++;
 				e->monsterInfo.commander = nullptr;
 			}
-			if (e->monsterInfo.aiflags & AI_SPAWNED_WIDOW) {
+			if (e->monsterInfo.aiFlags & AI_SPAWNED_WIDOW) {
 				// need to check this because we can have variable numbers of coop players
 				if (e->monsterInfo.commander && e->monsterInfo.commander->inUse &&
 					!strncmp(e->monsterInfo.commander->className, "monster_widow", 13)) {
@@ -606,7 +606,7 @@ void M_ProcessPain(gentity_t *e) {
 				}
 			}
 
-			if (!(e->monsterInfo.aiflags & AI_DO_NOT_COUNT) && !(e->spawnflags & SPAWNFLAG_MONSTER_DEAD))
+			if (!(e->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !(e->spawnflags & SPAWNFLAG_MONSTER_DEAD))
 				G_MonsterKilled(e);
 
 			e->touch = nullptr;
@@ -616,13 +616,13 @@ void M_ProcessPain(gentity_t *e) {
 		if (!e->deadFlag) {
 			int32_t score_value = ceil(e->monsterInfo.base_health / 100);
 			if (score_value < 1) score_value = 1;
-			Horde_AdjustPlayerScore(e->monsterInfo.damage_attacker->client, score_value);
+			Horde_AdjustPlayerScore(e->monsterInfo.damage.attacker->client, score_value);
 		}
-		e->die(e, e->monsterInfo.damage_inflictor, e->monsterInfo.damage_attacker, e->monsterInfo.damageBlood, e->monsterInfo.damageFrom, e->monsterInfo.damage_mod);
+		e->die(e, e->monsterInfo.damage.inflictor, e->monsterInfo.damage.attacker, e->monsterInfo.damage.blood, e->monsterInfo.damage.origin, e->monsterInfo.damage.mod);
 
 		// [Paril-KEX] medic commander only gets his slots back after the monster is gibbed, since we can revive them
 		if (e->health <= e->gibHealth) {
-			if (e->monsterInfo.aiflags & AI_SPAWNED_MEDIC_C) {
+			if (e->monsterInfo.aiFlags & AI_SPAWNED_MEDIC_C) {
 				if (e->monsterInfo.commander && e->monsterInfo.commander->inUse && !strcmp(e->monsterInfo.commander->className, "monster_medic_commander"))
 					e->monsterInfo.commander->monsterInfo.monster_used -= e->monsterInfo.monster_slots;
 
@@ -630,14 +630,14 @@ void M_ProcessPain(gentity_t *e) {
 			}
 		}
 
-		if (e->inUse && e->health > e->gibHealth && e->s.frame == e->monsterInfo.active_move->lastframe) {
+		if (e->inUse && e->health > e->gibHealth && e->s.frame == e->monsterInfo.active_move->lastFrame) {
 			e->s.frame -= irandom(1, 3);
 
 			if (e->groundEntity && e->moveType == MOVETYPE_TOSS && !(e->flags & FL_STATIONARY))
 				e->s.angles[YAW] += brandom() ? 4.5f : -4.5f;
 		}
 	} else
-		e->pain(e, e->monsterInfo.damage_attacker, (float)e->monsterInfo.damageKnockback, e->monsterInfo.damageBlood, e->monsterInfo.damage_mod);
+		e->pain(e, e->monsterInfo.damage.attacker, (float)e->monsterInfo.damage.knockback, e->monsterInfo.damage.blood, e->monsterInfo.damage.mod);
 
 	if (!e->inUse)
 		return;
@@ -645,9 +645,9 @@ void M_ProcessPain(gentity_t *e) {
 	if (e->monsterInfo.setskin)
 		e->monsterInfo.setskin(e);
 
-	e->monsterInfo.damageBlood = 0;
-	e->monsterInfo.damageKnockback = 0;
-	e->monsterInfo.damage_attacker = e->monsterInfo.damage_inflictor = nullptr;
+	e->monsterInfo.damage.blood = 0;
+	e->monsterInfo.damage.knockback = 0;
+	e->monsterInfo.damage.attacker = e->monsterInfo.damage.inflictor = nullptr;
 
 	// [Paril-KEX] fire health target
 	if (e->healthtarget) {
@@ -691,7 +691,7 @@ THINK(monster_dead_think) (gentity_t *self) -> void {
 	}
 
 	// flies
-	if ((self->monsterInfo.aiflags & AI_STINKY) && !(self->monsterInfo.aiflags & AI_STUNK)) {
+	if ((self->monsterInfo.aiFlags & AI_STINKY) && !(self->monsterInfo.aiFlags & AI_STUNK)) {
 		if (!self->fly_sound_debounce_time)
 			self->fly_sound_debounce_time = level.time + random_time(5_sec, 15_sec);
 		else if (self->fly_sound_debounce_time < level.time) {
@@ -702,13 +702,13 @@ THINK(monster_dead_think) (gentity_t *self) -> void {
 			} else {
 				self->s.effects &= ~EF_FLIES;
 				self->s.sound = 0;
-				self->monsterInfo.aiflags |= AI_STUNK;
+				self->monsterInfo.aiFlags |= AI_STUNK;
 			}
 		}
 	}
 
-	if (!self->monsterInfo.damageBlood) {
-		if (self->s.frame != self->monsterInfo.active_move->lastframe)
+	if (!self->monsterInfo.damage.blood) {
+		if (self->s.frame != self->monsterInfo.active_move->lastFrame)
 			self->s.frame++;
 	}
 
@@ -721,9 +721,9 @@ void monster_dead(gentity_t *self) {
 	self->timeStamp = level.time + gtime_t::from_sec(CORPSE_SINK_TIME + 1.5);
 	self->moveType = MOVETYPE_TOSS;
 	self->svFlags |= SVF_DEADMONSTER;
-	self->monsterInfo.damageBlood = 0;
+	self->monsterInfo.damage.blood = 0;
 	self->fly_sound_debounce_time = 0_ms;
-	self->monsterInfo.aiflags &= ~AI_STUNK;
+	self->monsterInfo.aiFlags &= ~AI_STUNK;
 	gi.linkentity(self);
 }
 
@@ -868,11 +868,11 @@ THINK(monster_think) (gentity_t *self) -> void {
 								CheckPathVisibility(self->s.origin + vec3_t{ 0.f, 0.f, self->mins.z }, points[0])) {
 								size_t i = 0;
 
-								for (; i < info.numPathPoints - 1; i++)
+								for (; i < static_cast<size_t>(info.numPathPoints - 1); i++)
 									if (!CheckPathVisibility(points[i], points[i + 1]))
 										break;
 
-								if (i == info.numPathPoints - 1)
+								if (i == static_cast<size_t>(info.numPathPoints - 1))
 									Damage(self, &g_entities[1], &g_entities[1], { 0, 0, 1 }, self->s.origin, { 0, 0, 1 }, 9999, 9999, DAMAGE_NO_PROTECTION, MOD_BFG_BLAST);
 								else
 									self->disintegrator_time = level.time + 500_ms;
@@ -887,7 +887,7 @@ THINK(monster_think) (gentity_t *self) -> void {
 				}
 			}
 
-			if (!self->deadFlag && !(self->monsterInfo.aiflags & AI_DO_NOT_COUNT))
+			if (!self->deadFlag && !(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT))
 				gi.Draw_Bounds(self->absMin, self->absMax, rgba_red, gi.frame_time_s, false);
 		}
 	}
@@ -911,8 +911,8 @@ THINK(monster_think) (gentity_t *self) -> void {
 		M_CheckDodge(self);
 
 	M_MoveFrame(self);
-	if (self->linkcount != self->monsterInfo.linkcount) {
-		self->monsterInfo.linkcount = self->linkcount;
+	if (self->linkCount != self->monsterInfo.linkCount) {
+		self->monsterInfo.linkCount = self->linkCount;
 		M_CheckGround(self, G_GetClipMask(self));
 	}
 	M_CatagorizePosition(self, self->s.origin, self->waterlevel, self->watertype);
@@ -936,7 +936,7 @@ USE(monster_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> vo
 		return;
 	if (activator->flags & FL_NOTARGET)
 		return;
-	if (!(activator->client) && !(activator->monsterInfo.aiflags & AI_GOOD_GUY))
+	if (!(activator->client) && !(activator->monsterInfo.aiFlags & AI_GOOD_GUY))
 		return;
 	if (activator->flags & FL_DISGUISED)
 		return;
@@ -954,7 +954,7 @@ static THINK(monster_triggered_spawn) (gentity_t *self) -> void {
 	self->solid = SOLID_BBOX;
 	self->moveType = MOVETYPE_STEP;
 	self->svFlags &= ~SVF_NOCLIENT;
-	self->air_finished = level.time + 12_sec;
+	self->airFinished = level.time + 12_sec;
 	gi.linkentity(self);
 
 	KillBox(self, false);
@@ -968,7 +968,7 @@ static THINK(monster_triggered_spawn) (gentity_t *self) -> void {
 		}
 	}
 
-	if (self->enemy && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET) && !(self->monsterInfo.aiflags & AI_GOOD_GUY)) {
+	if (self->enemy && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
 		if (!(self->enemy->flags & FL_DISGUISED))
 			FoundTarget(self);
 		else // PMM - just in case, make sure to clear the enemy so FindTarget doesn't get confused
@@ -1003,7 +1003,7 @@ static USE(monster_triggered_spawn_use) (gentity_t *self, gentity_t *other, gent
 }
 
 static THINK(monster_triggered_think) (gentity_t *self) -> void {
-	if (!(self->monsterInfo.aiflags & AI_DO_NOT_COUNT))
+	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT))
 		gi.Draw_Bounds(self->absMin, self->absMax, rgba_blue, gi.frame_time_s, false);
 
 	self->nextThink = level.time + 1_ms;
@@ -1042,7 +1042,7 @@ enemy as activator.
 */
 void monster_death_use(gentity_t *self) {
 	self->flags &= ~(FL_FLY | FL_SWIM);
-	self->monsterInfo.aiflags &= (AI_DOUBLE_TROUBLE | AI_GOOD_GUY | AI_STINKY | AI_SPAWNED_MASK);
+	self->monsterInfo.aiFlags &= (AI_DOUBLE_TROUBLE | AI_GOOD_GUY | AI_STINKY | AI_SPAWNED_MASK);
 
 	if (self->item) {
 		gentity_t *dropped = Drop_Item(self, self->item);
@@ -1111,22 +1111,22 @@ bool monster_start(gentity_t *self) {
 	}
 
 	if (self->spawnflags.has(SPAWNFLAG_MONSTER_SCENIC))
-		self->monsterInfo.aiflags |= AI_GOOD_GUY;
+		self->monsterInfo.aiFlags |= AI_GOOD_GUY;
 
 	// [Paril-KEX] n64
 	if (self->hackflags & (HACKFLAG_END_CUTSCENE | HACKFLAG_ATTACK_PLAYER))
-		self->monsterInfo.aiflags |= AI_DO_NOT_COUNT;
+		self->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_FUBAR) && !(self->monsterInfo.aiflags & AI_GOOD_GUY)) {
+	if (self->spawnflags.has(SPAWNFLAG_MONSTER_FUBAR) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
 		self->spawnflags &= ~SPAWNFLAG_MONSTER_FUBAR;
 		self->spawnflags |= SPAWNFLAG_MONSTER_AMBUSH;
 	}
 
 	// [Paril-KEX] simplify other checks
-	if (self->monsterInfo.aiflags & AI_GOOD_GUY)
-		self->monsterInfo.aiflags |= AI_DO_NOT_COUNT;
+	if (self->monsterInfo.aiFlags & AI_GOOD_GUY)
+		self->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
-	if (!(self->monsterInfo.aiflags & AI_DO_NOT_COUNT) && !self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD)) {
+	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD)) {
 		if (g_debug_monster_kills->integer)
 			level.monstersRegistered[level.totalMonsters] = self;
 		level.totalMonsters++;
@@ -1135,7 +1135,7 @@ bool monster_start(gentity_t *self) {
 	self->nextThink = level.time + FRAME_TIME_S;
 	self->svFlags |= SVF_MONSTER;
 	self->takeDamage = true;
-	self->air_finished = level.time + 12_sec;
+	self->airFinished = level.time + 12_sec;
 	self->use = monster_use;
 	self->max_health = self->health;
 	self->clipMask = MASK_MONSTERSOLID;
@@ -1147,8 +1147,8 @@ bool monster_start(gentity_t *self) {
 	self->monsterInfo.initial_power_armor_type = self->monsterInfo.powerArmorType;
 	self->monsterInfo.max_power_armor_power = self->monsterInfo.powerArmorPower;
 	//gi.Com_PrintFmt("MONSTER SPAWN: {}, maxhealth = {}\n", *self, self->max_health);
-	if (!self->monsterInfo.checkattack)
-		self->monsterInfo.checkattack = M_CheckAttack;
+	if (!self->monsterInfo.checkAttack)
+		self->monsterInfo.checkAttack = M_CheckAttack;
 
 	if (ai_model_scale->value > 0) {
 		self->s.scale = ai_model_scale->value;
@@ -1178,7 +1178,7 @@ bool monster_start(gentity_t *self) {
 	// randomize what frame they start on
 	if (self->monsterInfo.active_move)
 		self->s.frame =
-		irandom(self->monsterInfo.active_move->firstframe, self->monsterInfo.active_move->lastframe + 1);
+		irandom(self->monsterInfo.active_move->firstFrame, self->monsterInfo.active_move->lastFrame + 1);
 
 	// PMM - get this so I don't have to do it in all of the monsters
 	self->monsterInfo.base_height = self->maxs[2];
@@ -1233,14 +1233,14 @@ void monster_start_go(gentity_t *self) {
 		// stuck in a corner though.
 		bool is_stuck = false;
 
-		if ((self->monsterInfo.aiflags & AI_GOOD_GUY) || (self->flags & (FL_FLY | FL_SWIM)))
+		if ((self->monsterInfo.aiFlags & AI_GOOD_GUY) || (self->flags & (FL_FLY | FL_SWIM)))
 			is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
 		else
 			is_stuck = !M_droptofloor(self) || !M_walkmove(self, 0, 0);
 
 		if (is_stuck) {
 			if (G_FixStuckObject(self, check) != stuck_result_t::NO_GOOD_POSITION) {
-				if (self->monsterInfo.aiflags & AI_GOOD_GUY)
+				if (self->monsterInfo.aiFlags & AI_GOOD_GUY)
 					is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
 				else if (!(self->flags & (FL_FLY | FL_SWIM)))
 					M_droptofloor(self);
@@ -1262,7 +1262,7 @@ void monster_start_go(gentity_t *self) {
 						self->s.origin[1] = check[1] + adjust[y];
 						self->s.origin[2] = check[2] + adjust[z];
 
-						if (self->monsterInfo.aiflags & AI_GOOD_GUY) {
+						if (self->monsterInfo.aiFlags & AI_GOOD_GUY) {
 							is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
 
 							if (!is_stuck)
@@ -1328,7 +1328,7 @@ void monster_start_go(gentity_t *self) {
 		if (!self->movetarget) {
 			gi.Com_PrintFmt("{}: can't find target {}\n", *self, self->target);
 			self->target = nullptr;
-			self->monsterInfo.pausetime = HOLD_FOREVER;
+			self->monsterInfo.pauseTime = HOLD_FOREVER;
 			if (!spawn_dead)
 				self->monsterInfo.stand(self);
 		} else if (strcmp(self->movetarget->className, "path_corner") == 0) {
@@ -1339,12 +1339,12 @@ void monster_start_go(gentity_t *self) {
 			self->target = nullptr;
 		} else {
 			self->goalentity = self->movetarget = nullptr;
-			self->monsterInfo.pausetime = HOLD_FOREVER;
+			self->monsterInfo.pauseTime = HOLD_FOREVER;
 			if (!spawn_dead)
 				self->monsterInfo.stand(self);
 		}
 	} else {
-		self->monsterInfo.pausetime = HOLD_FOREVER;
+		self->monsterInfo.pauseTime = HOLD_FOREVER;
 		if (!spawn_dead)
 			self->monsterInfo.stand(self);
 	}
@@ -1364,22 +1364,22 @@ void monster_start_go(gentity_t *self) {
 		if (self->monsterInfo.setskin)
 			self->monsterInfo.setskin(self);
 
-		self->monsterInfo.aiflags |= AI_SPAWNED_DEAD;
+		self->monsterInfo.aiFlags |= AI_SPAWNED_DEAD;
 
 		auto move = self->monsterInfo.active_move.pointer();
 
-		for (size_t i = move->firstframe; i < move->lastframe; i++) {
+		for (size_t i = move->firstFrame; i < move->lastFrame; i++) {
 			self->s.frame = i;
 
-			if (move->frame[i - move->firstframe].thinkfunc)
-				move->frame[i - move->firstframe].thinkfunc(self);
+			if (move->frame[i - move->firstFrame].thinkfunc)
+				move->frame[i - move->firstFrame].thinkfunc(self);
 
 			if (!self->inUse)
 				return;
 		}
 
-		if (move->endfunc)
-			move->endfunc(self);
+		if (move->endFunc)
+			move->endFunc(self);
 
 		if (!self->inUse)
 			return;
@@ -1387,16 +1387,16 @@ void monster_start_go(gentity_t *self) {
 		if (self->monsterInfo.start_frame)
 			self->s.frame = self->monsterInfo.start_frame;
 		else
-			self->s.frame = move->lastframe;
+			self->s.frame = move->lastFrame;
 
 		self->s.origin = f;
 		gi.linkentity(self);
 
-		self->monsterInfo.aiflags &= ~AI_SPAWNED_DEAD;
+		self->monsterInfo.aiFlags &= ~AI_SPAWNED_DEAD;
 	} else {
 		self->think = monster_think;
 		self->nextThink = level.time + FRAME_TIME_S;
-		self->monsterInfo.aiflags |= AI_SPAWNED_ALIVE;
+		self->monsterInfo.aiFlags |= AI_SPAWNED_ALIVE;
 	}
 }
 
@@ -1484,12 +1484,12 @@ void SP_trigger_health_relay(gentity_t *self) {
 	self->use = trigger_health_relay_use;
 }
 
-void monster_fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, effects_t effect) {
+void monster_fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
 	fire_blueblaster(self, start, dir, damage, speed, effect);
 	monster_muzzleflash(self, start, flashtype);
 }
 
-void monster_fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, effects_t effect) {
+void monster_fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
 	fire_ionripper(self, start, dir, damage, speed, effect);
 	monster_muzzleflash(self, start, flashtype);
 }
@@ -1588,7 +1588,7 @@ void monster_fire_dabeam(gentity_t *self, int damage, bool secondary, void(*upda
 		beam_ptr->s.frame = 2;
 		beam_ptr->spawnflags = secondary ? SPAWNFLAG_DABEAM_SECONDARY : SPAWNFLAG_NONE;
 
-		if (self->monsterInfo.aiflags & AI_MEDIC)
+		if (self->monsterInfo.aiFlags & AI_MEDIC)
 			beam_ptr->s.skinnum = 0xf3f3f1f1;
 		else
 			beam_ptr->s.skinnum = 0xf2f2f0f0;
@@ -1603,7 +1603,7 @@ void monster_fire_dabeam(gentity_t *self, int damage, bool secondary, void(*upda
 	dabeam_update(beam_ptr, true);
 }
 
-void monster_fire_blaster2(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, effects_t effect) {
+void monster_fire_blaster2(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
 	fire_greenblaster(self, start, dir, damage, speed, effect, false);
 	monster_muzzleflash(self, start, flashtype);
 }
@@ -1624,7 +1624,7 @@ static THINK(stationarymonster_triggered_spawn) (gentity_t *self) -> void {
 	self->solid = SOLID_BBOX;
 	self->moveType = MOVETYPE_NONE;
 	self->svFlags &= ~SVF_NOCLIENT;
-	self->air_finished = level.time + 12_sec;
+	self->airFinished = level.time + 12_sec;
 	gi.linkentity(self);
 
 	KillBox(self, false);
@@ -1681,7 +1681,7 @@ void stationarymonster_start(gentity_t *self) {
 }
 
 void monster_done_dodge(gentity_t *self) {
-	self->monsterInfo.aiflags &= ~AI_DODGING;
+	self->monsterInfo.aiFlags &= ~AI_DODGING;
 	if (self->monsterInfo.attack_state == AS_SLIDING)
 		self->monsterInfo.attack_state = AS_STRAIGHT;
 }
