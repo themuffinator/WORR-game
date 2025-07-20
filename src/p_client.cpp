@@ -227,8 +227,8 @@ void P_SaveGhostSlot(gentity_t *ent) {
 		return; // No available slot
 
 	// Store name and social ID
-	Q_strncasecmp(slot->netName, cl->sess.netName, sizeof(slot->netName));
-	Q_strncasecmp(slot->socialID, socialID, sizeof(slot->socialID));
+	Q_strlcpy(slot->netName, cl->sess.netName, sizeof(slot->netName));
+	Q_strlcpy(slot->socialID, socialID, sizeof(slot->socialID));
 
 	// Store inventory and stats
 	slot->inventory = cl->pers.inventory;
@@ -240,6 +240,8 @@ void P_SaveGhostSlot(gentity_t *ent) {
 	slot->score = cl->resp.score;
 	slot->skillRating = cl->sess.skillRating;
 	slot->skillRatingChange = cl->sess.skillRatingChange;
+	slot->origin = ent->s.origin;
+	slot->angles = ent->s.angles;
 }
 
 /*
@@ -272,6 +274,8 @@ void P_RestoreFromGhostSlot(gentity_t *ent) {
 		cl->resp.score = g.score;
 		cl->sess.skillRating = g.skillRating;
 		cl->sess.skillRatingChange = g.skillRatingChange;
+		ent->s.origin = g.origin;
+		ent->s.angles = g.angles;
 
 		gi.Client_Print(ent, PRINT_HIGH, "Your game state has been restored.\n");
 
@@ -1469,14 +1473,14 @@ DIE(player_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 			bool allPlayersDead = true;
 
 			for (auto player : active_clients())
-				if (player->health > 0 || (!level.deadly_kill_box && g_coop_enable_lives->integer && player->client->pers.lives > 0)) {
+				if (player->health > 0 || (!level.campaign.deadly_kill_box && g_coop_enable_lives->integer && player->client->pers.lives > 0)) {
 					allPlayersDead = false;
 					break;
 				}
 
 			if (allPlayersDead) // allow respawns for telefrags and weird shit
 			{
-				level.coopLevelRestartTime = level.time + 5_sec;
+				level.campaign.coopLevelRestartTime = level.time + 5_sec;
 
 				for (auto player : active_clients())
 					gi.LocCenter_Print(player, "$g_coop_lose");
@@ -1484,7 +1488,7 @@ DIE(player_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int
 
 			// in 3 seconds, attempt a respawn or put us into
 			// spectator mode
-			if (!level.coopLevelRestartTime)
+			if (!level.campaign.coopLevelRestartTime)
 				self->client->respawnMaxTime = level.time + 3_sec;
 		}
 	}
@@ -2139,13 +2143,13 @@ static gentity_t *SelectSingleSpawnPoint(gentity_t *ent) {
 	gentity_t *spot = nullptr;
 
 	while ((spot = G_FindByString<&gentity_t::className>(spot, "info_player_start")) != nullptr) {
-		if (!game.spawnpoint[0] && !spot->targetname)
+		if (!game.spawnPoint[0] && !spot->targetname)
 			break;
 
-		if (!game.spawnpoint[0] || !spot->targetname)
+		if (!game.spawnPoint[0] || !spot->targetname)
 			continue;
 
-		if (Q_strcasecmp(game.spawnpoint, spot->targetname) == 0)
+		if (Q_strcasecmp(game.spawnPoint, spot->targetname) == 0)
 			break;
 	}
 
@@ -2205,7 +2209,7 @@ static gentity_t *SelectCoopSpawnPoint(gentity_t *ent, bool force_spawn, bool ch
 	const char *target;
 
 	//  rogue hack, but not too gross...
-	if (!Q_strcasecmp(level.mapname, "rmine2"))
+	if (!Q_strcasecmp(level.mapName, "rmine2"))
 		return SelectLavaCoopSpawnPoint(ent);
 
 	// try the main spawn point first
@@ -2227,7 +2231,7 @@ static gentity_t *SelectCoopSpawnPoint(gentity_t *ent, bool force_spawn, bool ch
 		target = spot->targetname;
 		if (!target)
 			target = "";
-		if (Q_strcasecmp(game.spawnpoint, target) == 0) { // this is a coop spawn point for one of the clients here
+		if (Q_strcasecmp(game.spawnPoint, target) == 0) { // this is a coop spawn point for one of the clients here
 			num_valid_spots++;
 
 			if (!G_UnsafeSpawnPosition(spot->s.origin, check_players))
@@ -2273,7 +2277,7 @@ static gentity_t *SelectCoopSpawnPoint(gentity_t *ent, bool force_spawn, bool ch
 			target = spot->targetname;
 			if (use_targetname && !target)
 				target = "";
-			if (use_targetname ? (Q_strcasecmp(game.spawnpoint, target) == 0) : !target) { // this is a coop spawn point for one of the clients here
+			if (use_targetname ? (Q_strcasecmp(game.spawnPoint, target) == 0) : !target) { // this is a coop spawn point for one of the clients here
 				num_valid_spots++;
 
 				if (!num_valid_spots)
@@ -2354,7 +2358,7 @@ bool SelectSpawnPoint(gentity_t *ent, vec3_t &origin, vec3_t &angles, bool force
 
 	// DM spots are simple
 	if (deathmatch->integer) {
-		if (Teams() && ClientIsPlaying(ent->client))
+		if (Teams())	// && ClientIsPlaying(ent->client))
 			spot = SelectTeamSpawnPoint(ent, force_spawn);
 		else {
 			if (!spot) {
@@ -2408,7 +2412,7 @@ bool SelectSpawnPoint(gentity_t *ent, vec3_t &origin, vec3_t &angles, bool force
 
 		// in SP, just put us at the origin if spawn fails
 		if (!spot) {
-			gi.Com_PrintFmt("Couldn't find spawn point {}\n", game.spawnpoint);
+			gi.Com_PrintFmt("Couldn't find spawn point {}\n", game.spawnPoint);
 
 			origin = { 0, 0, 0 };
 			angles = { 0, 0, 0 };
@@ -2643,7 +2647,7 @@ void P_AssignClientSkinnum(gentity_t *ent) {
 
 // [Paril-KEX] send player level POI
 void P_SendLevelPOI(gentity_t *ent) {
-	if (!level.validPOI)
+	if (!level.poi.valid)
 		return;
 
 	gi.WriteByte(svc_poi);
@@ -2801,8 +2805,8 @@ static void MoveClientToFreeCam(gentity_t *ent) {
 	ent->moveType = MOVETYPE_FREECAM;
 	ent->solid = SOLID_NOT;
 	ent->svFlags |= SVF_NOCLIENT;
-	ent->client->ps.gunindex = 0;
-	ent->client->ps.gunskin = 0;
+	ent->client->ps.gunIndex = 0;
+	ent->client->ps.gunSkin = 0;
 
 	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
 
@@ -2811,8 +2815,8 @@ static void MoveClientToFreeCam(gentity_t *ent) {
 	ent->s.modelindex2 = 0;
 	ent->s.modelindex3 = 0;
 	ent->s.effects = EF_NONE;
-	ent->client->ps.damageBlend[3] = ent->client->ps.screen_blend[3] = 0;
-	ent->client->ps.rdflags = RDF_NONE;
+	ent->client->ps.damageBlend[3] = ent->client->ps.screenBlend[3] = 0;
+	ent->client->ps.rdFlags = RDF_NONE;
 	ent->s.sound = 0;
 
 	gi.linkentity(ent);
@@ -2888,7 +2892,7 @@ static inline void PutClientOnSpawnPoint(gentity_t *ent, const vec3_t &spawn_ori
 	ent->s.angles = spawn_angles;
 	//ent->s.angles[PITCH] /= 3;		//muff: why??
 
-	client->ps.viewangles = ent->s.angles;
+	client->ps.viewAngles = ent->s.angles;
 	client->vAngle = ent->s.angles;
 
 	AngleVectors(client->vAngle, client->vForward, nullptr, nullptr);
@@ -2931,7 +2935,7 @@ void ClientSpawn(gentity_t *ent) {
 	// do it before setting health back up, so farthest
 	// ranging doesn't count this client
 	bool valid_spawn = false;
-	bool force_spawn = client->awaiting_respawn && level.time > client->respawn_timeout;
+	bool force_spawn = client->awaitingRespawn && level.time > client->respawn_timeout;
 	bool is_landmark = false;
 
 	InitPlayerTeam(ent);
@@ -2952,7 +2956,7 @@ void ClientSpawn(gentity_t *ent) {
 	// limbo for a while until we do get one
 	if (!valid_spawn) {
 		// only do this once per spawn
-		if (!client->awaiting_respawn) {
+		if (!client->awaitingRespawn) {
 			char userInfo[MAX_INFO_STRING];
 			memcpy(userInfo, client->pers.userInfo, sizeof(userInfo));
 			ClientUserinfoChanged(ent, userInfo);
@@ -2966,11 +2970,11 @@ void ClientSpawn(gentity_t *ent) {
 
 		ent->s.origin = level.intermission.origin;
 		ent->client->ps.pmove.origin = level.intermission.origin;
-		ent->client->ps.viewangles = level.intermission.angles;
+		ent->client->ps.viewAngles = level.intermission.angles;
 
-		client->awaiting_respawn = true;
+		client->awaitingRespawn = true;
 		client->ps.pmove.pm_type = PM_FREEZE;
-		client->ps.rdflags = RDF_NONE;
+		client->ps.rdFlags = RDF_NONE;
 		ent->deadFlag = false;
 
 		MoveClientToFreeCam(ent);
@@ -2981,12 +2985,12 @@ void ClientSpawn(gentity_t *ent) {
 	
 	client->resp.ctf_state++;
 
-	bool was_waiting_for_respawn = client->awaiting_respawn;
+	bool was_waiting_for_respawn = client->awaitingRespawn;
 
-	if (client->awaiting_respawn)
+	if (client->awaitingRespawn)
 		ent->svFlags &= ~SVF_NOCLIENT;
 
-	client->awaiting_respawn = false;
+	client->awaitingRespawn = false;
 	client->respawn_timeout = 0_ms;
 
 	// deathmatch wipes most client data every spawn
@@ -3089,10 +3093,10 @@ void ClientSpawn(gentity_t *ent) {
 		ent->clipMask &= ~CONTENTS_PLAYER;
 
 	if (client->pers.weapon)
-		client->ps.gunindex = gi.modelindex(client->pers.weapon->view_model);
+		client->ps.gunIndex = gi.modelindex(client->pers.weapon->view_model);
 	else
-		client->ps.gunindex = 0;
-	client->ps.gunskin = 0;
+		client->ps.gunIndex = 0;
+	client->ps.gunSkin = 0;
 
 	// clear entity state values
 	ent->s.effects = EF_NONE;
@@ -3169,7 +3173,7 @@ void ClientSpawn(gentity_t *ent) {
 
 	// my tribute to cash's level-specific hacks. I hope I live
 	// up to his trailblazing cheese.
-	if (Q_strcasecmp(level.mapname, "rboss") == 0) {
+	if (Q_strcasecmp(level.mapName, "rboss") == 0) {
 		// if you get on to rboss in single player or coop, ensure
 		// the player has the nuke key. (not in DM)
 		if (!deathmatch->integer)
@@ -3229,7 +3233,7 @@ static void G_SetLevelEntry() {
 		return;
 	// map is a hub map, so we shouldn't bother tracking any of this.
 	// the next map will pick up as the start.
-	if (level.hub_map)
+	if (level.campaign.hub_map)
 		return;
 
 	level_entry_t *found_entry = nullptr;
@@ -3240,24 +3244,24 @@ static void G_SetLevelEntry() {
 
 		highest_order = max(highest_order, entry->visit_order);
 
-		if (!strcmp(entry->map_name, level.mapname) || !*entry->map_name) {
+		if (!strcmp(entry->map_name, level.mapName) || !*entry->map_name) {
 			found_entry = entry;
 			break;
 		}
 	}
 
 	if (!found_entry) {
-		gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
+		gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest.\n", MAX_LEVELS_PER_UNIT);
 		return;
 	}
 
 	level.entry = found_entry;
-	Q_strlcpy(level.entry->map_name, level.mapname, sizeof(level.entry->map_name));
+	Q_strlcpy(level.entry->map_name, level.mapName, sizeof(level.entry->map_name));
 
 	// we're visiting this map for the first time, so
 	// mark it in our order as being recent
 	if (!*level.entry->pretty_name) {
-		Q_strlcpy(level.entry->pretty_name, level.levelName, sizeof(level.entry->pretty_name));
+		Q_strlcpy(level.entry->pretty_name, level.longName, sizeof(level.entry->pretty_name));
 		level.entry->visit_order = highest_order + 1;
 
 		// give all of the clients an extra life back
@@ -3341,7 +3345,7 @@ to be placed into the game.  This will happen every level load.
 */
 void ClientBegin(gentity_t *ent) {
 	ent->client = game.clients + (ent - g_entities - 1);
-	ent->client->awaiting_respawn = false;
+	ent->client->awaitingRespawn = false;
 	ent->client->respawn_timeout = 0_ms;
 
 	// set inactivity timer
@@ -3371,11 +3375,11 @@ void ClientBegin(gentity_t *ent) {
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
 	if (ent->inUse) {
-		// the client has cleared the client side viewangles upon
+		// the client has cleared the client side viewAngles upon
 		// connecting to the server, which is different than the
 		// state when the game is saved, so we need to compensate
 		// with deltaangles
-		ent->client->ps.pmove.delta_angles = ent->client->ps.viewangles;
+		ent->client->ps.pmove.delta_angles = ent->client->ps.viewAngles;
 	} else {
 		// a spawn point will completely reinitialize the entity
 		// except for the persistant data that was initialized at
@@ -3402,7 +3406,7 @@ void ClientBegin(gentity_t *ent) {
 			gi.LocBroadcast_Print(PRINT_HIGH, "$g_entered_game", ent->client->sess.netName);
 	}
 
-	level.coopScalePlayers++;
+	level.campaign.coopScalePlayers++;
 	G_Monster_CheckCoopHealthScaling();
 
 	// make sure all view stuff is valid
@@ -3495,16 +3499,16 @@ void ClientUserinfoChanged(gentity_t *ent, const char *userInfo) {
 
 	// handedness
 	if (gi.Info_ValueForKey(userInfo, "hand", val, sizeof(val))) {
-		ent->client->pers.hand = static_cast<handedness_t>(clamp(atoi(val), (int32_t)RIGHT_HANDED, (int32_t)CENTER_HANDED));
+		ent->client->pers.hand = static_cast<Handedness>(clamp(atoi(val), (int32_t)RIGHT_HANDED, (int32_t)CENTER_HANDED));
 	} else {
 		ent->client->pers.hand = RIGHT_HANDED;
 	}
 
 	// [Paril-KEX] auto-switch
 	if (gi.Info_ValueForKey(userInfo, "autoswitch", val, sizeof(val))) {
-		ent->client->pers.autoswitch = static_cast<auto_switch_t>(clamp(atoi(val), (int32_t)auto_switch_t::SMART, (int32_t)auto_switch_t::NEVER));
+		ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(clamp(atoi(val), (int32_t)WeaponAutoSwitch::SMART, (int32_t)WeaponAutoSwitch::NEVER));
 	} else {
-		ent->client->pers.autoswitch = auto_switch_t::SMART;
+		ent->client->pers.autoswitch = WeaponAutoSwitch::SMART;
 	}
 
 	if (gi.Info_ValueForKey(userInfo, "autoshield", val, sizeof(val))) {
@@ -4289,10 +4293,13 @@ void ClientThink(gentity_t *ent, usercmd_t *ucmd) {
 
 	if (!client->initial_menu_shown && client->initial_menu_delay && level.time > client->initial_menu_delay) {
 		if (!ClientIsPlaying(client) && (!client->sess.initialised || client->sess.inactiveStatus)) {
-			if (ent->client->sess.admin && g_owner_push_scores->integer)
-				Cmd_Score_f(ent);
-			else
-				//G_Menu_Join_Open(ent);
+			if (ent == host) {
+				if (!g_autoScreenshotTool->integer) {
+					if (g_owner_push_scores->integer)
+						Cmd_Score_f(ent);
+					else OpenJoinMenu(ent);
+				}
+			} else
 				OpenJoinMenu(ent);
 			//if (!client->initial_menu_shown)
 			//	gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", GAMEMOD_TITLE, GAMEMOD_VERSION);
@@ -4360,7 +4367,7 @@ void ClientThink(gentity_t *ent, usercmd_t *ucmd) {
 		}
 	}
 
-	if (level.intermissionTime || ent->client->awaiting_respawn) {
+	if (level.intermissionTime || ent->client->awaitingRespawn) {
 		client->ps.pmove.pm_type = PM_FREEZE;
 
 		bool n64_sp = false;
@@ -4372,7 +4379,7 @@ void ClientThink(gentity_t *ent, usercmd_t *ucmd) {
 			// Paril: except in N64. the camera handles it.
 			// Paril again: except on unit exits, we can leave immediately after camera finishes
 			if (level.changeMap && (!n64_sp || level.intermission.set) && level.time > level.intermissionTime + 5_sec && (ucmd->buttons & BUTTON_ANY))
-				level.intermission.preExit = true;
+				level.intermission.postIntermission = true;
 		}
 
 		if (!n64_sp)
@@ -4397,7 +4404,7 @@ void ClientThink(gentity_t *ent, usercmd_t *ucmd) {
 
 				// [Paril-KEX] handle menu movement
 				HandleMenuMovement(ent, ucmd);
-			} else if (ent->client->awaiting_respawn)
+			} else if (ent->client->awaitingRespawn)
 				client->ps.pmove.pm_type = PM_FREEZE;
 			else if (!ClientIsPlaying(ent->client) || client->eliminated)
 				client->ps.pmove.pm_type = PM_SPECTATOR;
@@ -4511,12 +4518,12 @@ void ClientThink(gentity_t *ent, usercmd_t *ucmd) {
 			ent->groundEntity_linkCount = pm.groundEntity->linkCount;
 
 		if (ent->deadFlag) {
-			client->ps.viewangles[ROLL] = 40;
-			client->ps.viewangles[PITCH] = -15;
-			client->ps.viewangles[YAW] = client->killer_yaw;
+			client->ps.viewAngles[ROLL] = 40;
+			client->ps.viewAngles[PITCH] = -15;
+			client->ps.viewAngles[YAW] = client->killer_yaw;
 		} else if (!ent->client->menu) {
-			client->vAngle = pm.viewangles;
-			client->ps.viewangles = pm.viewangles;
+			client->vAngle = pm.viewAngles;
+			client->ps.viewAngles = pm.viewAngles;
 			AngleVectors(client->vAngle, client->vForward, nullptr, nullptr);
 		}
 
@@ -4856,7 +4863,7 @@ void ClientBeginServerFrame(gentity_t *ent) {
 
 	client = ent->client;
 
-	if (client->awaiting_respawn) {
+	if (client->awaitingRespawn) {
 		if ((level.time.milliseconds() % 500) == 0)
 			ClientSpawn(ent);
 		return;
@@ -4885,7 +4892,7 @@ void ClientBeginServerFrame(gentity_t *ent) {
 				ClientRespawn(ent);
 				client->latchedButtons = BUTTON_NONE;
 			}
-		} else if (level.time > client->respawnMaxTime && !level.coopLevelRestartTime) {
+		} else if (level.time > client->respawnMaxTime && !level.campaign.coopLevelRestartTime) {
 			// don't respawn if level is waiting to restart
 			// check for coop handling
 			if (!G_CoopRespawn(ent)) {

@@ -990,13 +990,13 @@ enum monster_attack_state_t {
 };
 
 // handedness values
-enum handedness_t {
+enum Handedness {
 	RIGHT_HANDED,
 	LEFT_HANDED,
 	CENTER_HANDED
 };
 
-enum class auto_switch_t {
+enum class WeaponAutoSwitch {
 	SMART,
 	ALWAYS,
 	ALWAYS_NO_AMMO,
@@ -1723,7 +1723,7 @@ struct game_locals_t {
 
 	// can't store spawnpoint in level, because
 	// it would get overwritten by the savegame restore
-	char spawnpoint[MAX_TOKEN_CHARS]; // needed for coop respawns
+	char spawnPoint[MAX_TOKEN_CHARS]; // needed for coop respawns
 
 	// store latched cvars here that we want to get at often
 	uint32_t maxclients;
@@ -1902,127 +1902,103 @@ struct client_match_stats_t {
 };
 
 struct Ghosts {
-	char				netName[MAX_NETNAME];
+	char				netName[MAX_NETNAME];			// ent->client->pers.netName
 	char				socialID[MAX_INFO_VALUE]{};		// ent->client->socialID
 	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
 	std::array<int16_t, AMMO_MAX> ammoMax = {};			// ent->client->pers.ammoMax
 	client_match_stats_t match{};						// ent->client->sess.match
-	Item *weapon = nullptr;				// ent->client->pers.weapon
-	Item *lastWeapon = nullptr;			// ent->client->pers.lastWeapon
+	Item				*weapon = nullptr;				// ent->client->pers.weapon
+	Item				*lastWeapon = nullptr;			// ent->client->pers.lastWeapon
 	team_t				team = TEAM_NONE;				// ent->client->sess.team
-	int32_t				score;							// ent->client->resp.score
+	int32_t				score = 0;						// ent->client->resp.score
 
-	uint16_t		skillRating = 0;
-	uint16_t		skillRatingChange = 0;
+	uint16_t			skillRating = 0;				// ent->client->sess.skillRating
+	uint16_t			skillRatingChange = 0;			// ent->client->sess.skillRatingChange
+
+	vec3_t				origin = vec3_origin;			// ent->s.origin
+	vec3_t				angles = vec3_origin;			// ent->s.angles
 };
 
 constexpr int NUM_SPAWN_SPOTS = MAX_ENTITIES;
 constexpr int SPAWN_SPOT_INTERMISSION = NUM_SPAWN_SPOTS - 1;
 
 struct level_locals_t {
-	bool		inFrame;
-	gtime_t		time = 0_sec;
-	gtime_t		levelStartTime = 0_sec;
-	int64_t		matchStartRealTime;
-	int64_t		matchEndRealTime;
-	gtime_t		exitTime = 0_sec;
-	bool		readyToExit = false;
+	bool		inFrame = false;		// true if G_RunFrame is running
+	gtime_t		time = 0_sec;			// time in the level, never reset
+	gtime_t		levelStartTime = 0_sec;	// time the level was started, used for intermission
+	int64_t		matchStartRealTime = 0;	// real time the match started, used for match end
+	int64_t		matchEndRealTime = 0;	// real time the match ended, used for match end
+	gtime_t		exitTime = 0_sec;		// time the level was exited, used for intermission
+	bool		readyToExit = false;	// true if the level is ready to exit, used for intermission
 
-	char		levelName[MAX_QPATH];	// the descriptive name (Outer Base, etc)
-	char		mapname[MAX_QPATH];		// the server name (base1, etc)
-	char		nextMap[MAX_QPATH];		// go here when score limit is hit
-	char		forceMap[MAX_QPATH];	// go here
+	char longName[MAX_QPATH];			// descriptive name
+	char mapName[MAX_QPATH];			// base1, etc
+	char nextMap[MAX_QPATH];			// when score limit is hit
+	char forceMap[MAX_QPATH];			// forced destination
 
 	// intermission state
 	gtime_t		intermissionTime;		// time the intermission was started
-	gtime_t		intermissionQueued;	// intermission was qualified, but
+	gtime_t		intermissionQueued;		// intermission was qualified, but
 										// wait INTERMISSION_DELAY_TIME before
 										// actually going there so the last
 										// frag can be watched.  Disable future
 										// kills during this delay
 
-	const char	*changeMap;
-	const char	*achievement;
+	const char	*changeMap = "";		// map to change to, if any
+	const char	*achievement = "";		// achievement to show on intermission, if any
 
 	struct Intermission {
-		bool		exit = false;
-		bool		preExit = false;
-		bool		endOfUnit = false;
-		bool		clear = false; // [Paril-KEX] clear inventory on switch
-		bool		set = false; // [Paril-KEX] for target_camera switches; don't find intermission point
-		bool		fade = false, fading = false; // [Paril-KEX] fade on exit instead of immediately leaving
-		gtime_t		fadeTime;
-		vec3_t		origin;
-		vec3_t		angles;
-		bool		spot = false;
-		int32_t		serverFrame;
-		std::array<char, 64> victorMessage;
+		bool		exit = false;		// true if the intermission is over and we are exiting
+		gtime_t		postIntermissionTime = 0_sec;	// time to wait before exiting the level after the score limit is hit
+		bool		postIntermission = false;	// true if we are waiting for postIntermissionTime to expire
+		bool		endOfUnit = false;	// true if this is the end of unit intermission
+		bool		clear = false;		// clear inventory on switch
+		bool		set = false;		// for target_camera switches; don't find intermission point
+		bool		fade = false, fading = false; // fade on exit instead of immediately leaving
+		gtime_t		fadeTime = 0_sec;	// time to fade out
+		vec3_t		origin;				// intermission point origin
+		vec3_t		angles;				// intermission point angles
+		bool		spot = false;		// true if we are using a spawn spot for intermission
+		int32_t		serverFrame;		// server frame when intermission was set, used to prevent
+										// intermission from being set multiple times in the same frame
+		std::array<char, 64> victorMessage;	// winner message to show on intermission
 	};
-	Intermission intermission;
-
-	gtime_t		preExitDelay = 0_sec;
+	Intermission intermission{};
 
 	// spawn spots	//Q3
-	gentity_t	*spawnSpots[NUM_SPAWN_SPOTS];
-	int			numSpawnSpots;
-	int			numSpawnSpotsTeam;
-	int			numSpawnSpotsFree;
+	gentity_t	*spawnSpots[NUM_SPAWN_SPOTS] = {};	// spawn spot registration for the level
+	int			numSpawnSpots = 0;					// number of spawn spots registered
+	int			numSpawnSpotsTeam = 0;				// number of spawn spots registered for teams
+	int			numSpawnSpotsFree = 0;				// number of spawn spots registered for free-for-all
 
-	int32_t		picHealth;
-	int32_t		picPing;
-
-	int32_t		totalSecrets;
-	int32_t		foundSecrets;
-
-	int32_t		totalGoals;
-	int32_t		foundGoals;
-
-	int32_t		totalMonsters;
-	std::array<gentity_t *, MAX_ENTITIES> monstersRegistered; // only for debug
-	int32_t		killedMonsters;
+	int32_t		picHealth = 0;
+	int32_t		picPing = 0;
 
 	gentity_t	*currentEntity; // entity running from G_RunFrame
-	int32_t		bodyQue;		 // dead bodies
+	int32_t		bodyQue = 0;		 // dead bodies
 
-	int32_t		powerCubes; // ugly necessity for coop
+	int32_t		powerCubes = 0; // ugly necessity for coop
 
-	gentity_t	*disguiseViolator;
-	gtime_t		disguiseViolationTime = 0_sec;
-	int32_t		disguiseIcon; // [Paril-KEX]
-
-	int32_t		shadowLightCount; // [Sam-KEX]
-	bool		isN64;
-	gtime_t		coopLevelRestartTime; // restart the level after this time
-	bool		instantItems; // instantItems 1 set in worldspawn
-
-	// N64 goal stuff
-	const char	*goals; // nullptr if no goals in world
-	int32_t		goalNum; // current relative goal number, increased with each target_goal
+	int32_t		shadowLightCount = 0; // [Sam-KEX]
+	bool		isN64 = false;
+	bool		instantItems = false; // instantItems 1 set in worldspawn
 
 	// offset for the first vwep model, for
 	// skinnum encoding
 	int32_t		viewWeaponOffset = 0;
 
-	// coop health scaling factor;
-	// this percentage of health is added
-	// to the monster's health per player.
-	float		coopHealthScaling = 0;
-	// this isn't saved in the save file, but stores
-	// the amount of players currently active in the
-	// level, compared against monsters' individual 
-	// scale #
-	int32_t		coopScalePlayers = 0;
-
 	// [Paril-KEX] current level entry
 	level_entry_t *entry{};
 
-	// [Paril-KEX] current poi
-	bool		validPOI = false;
-	vec3_t		currentPOI = vec3_origin;
-	int32_t		currentPOIImage = 0;
-	int32_t		currentPOIStage = 0;
-	gentity_t	*currentDynamicPOI;
-	vec3_t		*poiPoints[MAX_SPLIT_PLAYERS]{}; // temporary storage for POIs in coop
+	// point of interest
+	struct {
+		bool		valid = false;
+		vec3_t		current = vec3_origin;
+		int32_t		currentImage = 0;
+		int32_t		currentStage = 0;
+		gentity_t	*currentDynamic;
+		vec3_t		*points[MAX_SPLIT_PLAYERS]{}; // temporary storage for POIs in coop
+	} poi{};
 
 	// start items
 	const char	*start_items;
@@ -2035,14 +2011,6 @@ struct level_locals_t {
 
 	// saved gravity
 	float		gravity = 800.0f;
-	// level is a hub map, and shouldn't be included in EOU stuff
-	bool		hub_map = false;
-	// active health bar entities
-	std::array<gentity_t *, MAX_HEALTH_BARS> health_bar_entities;
-	bool		deadly_kill_box = false;
-	bool		story_active = false;
-	gtime_t		next_auto_save = 0_sec;
-	gtime_t		next_match_report = 0_sec;
 
 	std::array<char, 64> gamemod_name{};
 	std::array<char, 64> gametype_name{};
@@ -2138,29 +2106,76 @@ struct level_locals_t {
 	match_overall_stats_t	match;
 
 	// new map system stuff
-	uint8_t vote_flags_enable = 0;
-	uint8_t vote_flags_disable = 0;
+	uint8_t		vote_flags_enable = 0;
+	uint8_t		vote_flags_disable = 0;
 
-	// map selecter
-	struct MapSelectorVoteInfo {
-		std::vector<const MapEntry *> candidates{};
-		int			votes[MAX_CLIENTS] = { 0 };
-		int			voteCounts[3] = { 0 };
-		gtime_t		voteStartTime = 0_sec;
-	};
-	MapSelectorVoteInfo mapSelector;
+	// map selector
+	struct {
+		std::array<const MapEntry *, 3> candidates = { nullptr, nullptr, nullptr };
+		std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
+		std::array<int, 3> voteCounts = { 0, 0, 0 };
+		gtime_t voteStartTime = 0_sec;
+	} mapSelector;
 
+#if 0
 	const MapEntry *mapSelectorVoteCandidates[3] = { nullptr, nullptr, nullptr };
-	bool matchSelectorTried = false;
-	gtime_t mapSelectorVoteStartTime = 0_sec;
-	int mapSelectorVoteCounts[3] = { 0 };
-	int mapSelectorVoteByClient[MAX_CLIENTS] = { -1 }; // -1 = no vote
-
+	bool		matchSelectorTried = false;
+	gtime_t		mapSelectorVoteStartTime = 0_sec;
+	int			mapSelectorVoteCounts[3] = { 0, 0, 0 };
+	int			mapSelectorVoteByClient[MAX_CLIENTS] = { -1 }; // -1 = no vote
+#endif
 	//RA2 support
-	int		arenaActive = 0;
-	int		arenaTotal = 0;
+	int			arenaActive = 0;
+	int			arenaTotal = 0;
 
-	std::array<Ghosts, MAX_CLIENTS> ghosts;
+	std::array<Ghosts, MAX_CLIENTS> ghosts{};
+
+	int			autoScreenshotTool_index = 0;
+	bool		autoScreenshotTool_initialised = false;
+	gtime_t		autoScreenshotTool_delayTime = 0_sec;
+
+	// ===================
+
+	struct Campaign {
+		int32_t		totalSecrets = 0;
+		int32_t		foundSecrets = 0;
+
+		int32_t		totalGoals = 0;
+		int32_t		foundGoals = 0;
+
+		int32_t		totalMonsters = 0;
+		std::array<gentity_t *, MAX_ENTITIES> monstersRegistered = {}; // only for debug
+		int32_t		killedMonsters = 0;
+
+		gentity_t *disguiseViolator = nullptr;
+		gtime_t		disguiseViolationTime = 0_sec;
+		int32_t		disguiseIcon = 0;
+
+		gtime_t		coopLevelRestartTime = 0_sec; // restart the level after this time
+
+		// N64 goal stuff
+		const char *goals = ""; // nullptr if no goals in world
+		int32_t		goalNum = 0; // current relative goal number, increased with each target_goal
+
+		// coop health scaling factor;
+		// this percentage of health is added
+		// to the monster's health per player.
+		float		coopHealthScaling = 0;
+		// this isn't saved in the save file, but stores
+		// the amount of players currently active in the
+		// level, compared against monsters' individual 
+		// scale #
+		int32_t		coopScalePlayers = 0;
+
+		// level is a hub map, and shouldn't be included in EOU stuff
+		bool		hub_map = false;
+		// active health bar entities
+		std::array<gentity_t *, MAX_HEALTH_BARS> health_bar_entities;
+		bool		deadly_kill_box = false;
+		bool		story_active = false;
+		gtime_t		next_auto_save = 0_sec;
+		gtime_t		next_match_report = 0_sec;
+	} campaign{};
 };
 
 struct shadow_light_temp_t {
@@ -2968,6 +2983,8 @@ extern cvar_t *g_redTeamName;
 
 extern cvar_t *bot_name_prefix;
 
+extern cvar_t *g_autoScreenshotTool;
+
 #define world (&g_entities[0])
 #define host (&g_entities[1])
 
@@ -3617,7 +3634,7 @@ void Match_Reset();
 gentity_t *CreateTargetChangeLevel(const char *map);
 bool InAMatch();
 void GT_Changes();
-void SpawnEntities(const char *mapname, const char *entities, const char *spawnpoint);
+void SpawnEntities(const char *mapname, const char *entities, const char *spawnPoint);
 void LoadMotd();
 void LoadAdminList();
 void LoadBanList();
@@ -3822,88 +3839,88 @@ struct client_persistant_t {
 	char			userInfo[MAX_INFO_STRING];
 	char			socialID[MAX_INFO_VALUE];
 	char			netname[MAX_NETNAME];
-	handedness_t	hand;
-	auto_switch_t	autoswitch;
-	int32_t			autoshield; // see AUTO_SHIELD_*
+	Handedness	hand = Handedness::RIGHT_HANDED;
+	WeaponAutoSwitch	autoswitch = WeaponAutoSwitch::NEVER;
+	int32_t			autoshield = 0; // see AUTO_SHIELD_*
 
-	bool			connected, spawned; // a loadgame will leave valid entities that
+	bool			connected = false, spawned = false; // a loadgame will leave valid entities that
 	// just don't have a connection yet
 
-// values saved and restored from gentities when changing levels
-	int32_t			health;
-	int32_t			max_health;
+	// values saved and restored from gentities when changing levels
+	int32_t			health = 100;
+	int32_t			max_health = 100;
 	ent_flags_t		saved_flags;
 
-	item_id_t		selected_item;
-	gtime_t			selected_item_time;
+	item_id_t		selected_item = IT_NULL;
+	gtime_t			selected_item_time = 0_sec;
 	std::array<int32_t, IT_TOTAL>	  inventory;
 
 	// ammo capacities
 	std::array<int16_t, AMMO_MAX> ammoMax;
 
-	Item			*weapon;
-	Item			*lastWeapon;
+	Item			*weapon = nullptr;
+	Item			*lastWeapon = nullptr;
 
-	int32_t			powerCubes; // used for tracking the cubes in coop games
-	int32_t			score;		 // for calculating total unit score in coop games
+	int32_t			powerCubes = 0; // used for tracking the cubes in coop games
+	int32_t			score = 0;		 // for calculating total unit score in coop games
 
 	int32_t			game_help1changed, game_help2changed;
 	int32_t			helpchanged; // flash F1 icon if non 0, play sound
 	// and increment only if 1, 2, or 3
-	gtime_t			help_time;
+	gtime_t			help_time = 0_sec;
 
-	bool			bob_skip; // [Paril-KEX] client wants no movement bob
+	bool			bob_skip = false; // [Paril-KEX] client wants no movement bob
 
 	// [Paril-KEX] fog that we want to achieve; density rgb skyfogfactor
 	std::array<float, 5> wanted_fog;
 	height_fog_t	wanted_heightfog;
 	// relative time value, copied from last touched trigger
-	gtime_t			fog_transition_time;
-	gtime_t			megaTime; // relative megahealth time value
-	int32_t			lives; // player lives left (1 = no respawns remaining)
-	uint8_t			n64_crouch_warn_times;
-	gtime_t			n64_crouch_warning;
+	gtime_t			fog_transition_time = 0_sec;
+	gtime_t			megaTime = 0_sec; // relative megahealth time value
+	int32_t			lives = 0; // player lives left (1 = no respawns remaining)
+	uint8_t			n64_crouch_warn_times = 0;
+	gtime_t			n64_crouch_warning = 0_sec;
 
 	//q3:
 
-	int32_t			dmg_scorer;		// for clan arena scoring from damage dealt
-	int32_t			dmg_team;		// for team damage checks and warnings
+	int32_t			dmg_scorer = 0;		// for clan arena scoring from damage dealt
+	int32_t			dmg_team = 0;		// for team damage checks and warnings
 
-	int				skinIconIndex;
+	int				skinIconIndex = 0;
 	char			skin[MAX_INFO_VALUE];
 
-	int32_t			vote_count;			// to prevent people from constantly calling votes
+	int32_t			vote_count = 0;			// to prevent people from constantly calling votes
 
-	int32_t			healthBonus;
+	int32_t			healthBonus = 0;
 
-	bool			timeout_used;
+	bool			timeout_used = false;
 
-	bool			holdable_item_msg_adren;
-	bool			holdable_item_msg_tele;
-	bool			holdable_item_msg_doppel;
+	bool			holdable_item_msg_adren = false;
+	bool			holdable_item_msg_tele = false;
+	bool			holdable_item_msg_doppel = false;
 
-	bool			rail_hit;
-	gtime_t			kill_time;
+	bool			rail_hit = false;
+	gtime_t			kill_time = 0_sec;
 
-	gtime_t			last_spawn_time;
+	gtime_t			last_spawn_time = 0_sec;
 
 	//PlayerStats		stats;
 
-	gtime_t			introTime;
+	gtime_t			introTime = 0_sec;
 
 	// reward medals
-	uint32_t		medalStack;
-	gtime_t			medalTime;
-	PlayerMedal		medalType;
+	uint32_t		medalStack = 0;
+	gtime_t			medalTime = 0_sec;
+	PlayerMedal		medalType = PlayerMedal::MEDAL_NONE;
 
-	player_team_state_t	teamState;
+	player_team_state_t	teamState{};
 
-	int				currentRank, previousRank;
+	int				currentRank = -1, previousRank = -1;
 
-	int				voted;
-	bool			readyStatus;
+	int				voted = false;
+	bool			readyStatus = false;
 
-	client_match_stats_t match;
+	client_match_stats_t match{};
 
 	struct {
 		int count[MAX_AWARD_QUEUE]{};       // how many times this award was earned (e.g., 1 or 2)
@@ -3927,7 +3944,7 @@ struct client_session_t {
 		bool		follow_leader = false;
 		bool		follow_powerup = false;
 	};
-	client_config_t	pc;
+	client_config_t	pc{};
 
 	char			netName[MAX_NETNAME];
 	char			socialID[MAX_INFO_VALUE];
@@ -3976,27 +3993,27 @@ struct client_session_t {
 // client data that stay across a match
 // to change to clearing on respawn
 struct client_respawn_t {
-	client_persistant_t coopRespawn;	// what to set client->pers to on a respawn
-	gtime_t				enterTime;		// level.time the client entered the game
-	int32_t				score;			// frags, etc
-	int32_t				oldScore;		// track changes in score
-	vec3_t				cmdAngles;		// angles sent over in the last command
+	client_persistant_t coopRespawn{};				// what to set client->pers to on a respawn
+	gtime_t				enterTime = 0_sec;			// level.time the client entered the game
+	int32_t				score = 0;					// frags, etc
+	int32_t				oldScore = 0;				// track changes in score
+	vec3_t				cmdAngles = vec3_origin;	// angles sent over in the last command
 
-	int32_t				ctf_state;
-	gtime_t				ctf_lasthurtcarrier;
-	gtime_t				ctf_lastreturnedflag;
-	gtime_t				ctf_flagsince;
-	gtime_t				ctf_lastfraggedcarrier;
+	int32_t				ctf_state = 0;
+	gtime_t				ctf_lasthurtcarrier = 0_sec;
+	gtime_t				ctf_lastreturnedflag = 0_sec;
+	gtime_t				ctf_flagsince = 0_sec;
+	gtime_t				ctf_lastfraggedcarrier = 0_sec;
 
-	gtime_t				lastIDTime;		// crosshair ID time
+	gtime_t				lastIDTime = 0_sec;			// crosshair ID time
 
 /*freeze*/
-	gentity_t			*thawer;
-	int					help;
-	int					thawed;
+	gentity_t			*thawer = nullptr;
+	int					help = 0;
+	int					thawed = 0;
 /*freeze*/
 
-	gtime_t				teamDelayTime;
+	gtime_t				teamDelayTime = 0_sec;
 };
 
 // [Paril-KEX] seconds until we are fully invisible after
@@ -4028,32 +4045,32 @@ struct gclient_t {
 	int32_t		   ping;
 
 	// private to game
-	client_persistant_t pers;
-	client_respawn_t	resp;
-	client_session_t	sess;
-	pmove_state_t		old_pmove; // for detecting out-of-pmove changes
+	client_persistant_t pers{};
+	client_respawn_t	resp{};
+	client_session_t	sess{};
+	pmove_state_t		old_pmove{}; // for detecting out-of-pmove changes
 
-	bool showScores;	// set layout stat
-	bool showEOU;       // end of unit screen
-	bool showInventory; // set layout stat
-	bool showHelp;
+	bool showScores = false;	// set layout stat
+	bool showEOU = false;       // end of unit screen
+	bool showInventory = false; // set layout stat
+	bool showHelp = false;
 
-	button_t buttons;
-	button_t oldButtons;
-	button_t latchedButtons;
+	button_t buttons = BUTTON_NONE;
+	button_t oldButtons = BUTTON_NONE;
+	button_t latchedButtons = BUTTON_NONE;
 	usercmd_t cmd; // last CMD send
 
 	// weapon cannot fire until this time is up
-	gtime_t weaponFireFinished;
+	gtime_t weaponFireFinished = 0_sec;
 	// time between processing individual animation frames
-	gtime_t weaponThinkTime;
+	gtime_t weaponThinkTime = 0_sec;
 	// if we latched fire between server frames but before
 	// the weapon fire finish has elapsed, we'll "press" it
 	// automatically when we have a chance
-	bool weaponFireBuffered;
-	bool weaponThunk;
+	bool weaponFireBuffered = false;
+	bool weaponThunk = false;
 
-	Item *newWeapon;
+	Item *newWeapon = nullptr;
 
 	// sum up damage over an entire frame, so
 	// shotgun blasts give a single big kick
@@ -4066,36 +4083,36 @@ struct gclient_t {
 	} damage;
 
 	damage_indicator_t		  damageIndicators[MAX_DAMAGE_INDICATORS];
-	uint8_t                   numDamageIndicators;
+	uint8_t                   numDamageIndicators = 0;
 
 	float killer_yaw; // when dead, look at killer
 
 	weaponstate_t	weaponState;
 	struct {
-		vec3_t		angles, origin;
-		gtime_t		time, total;
+		vec3_t		angles = vec3_origin, origin = vec3_origin;
+		gtime_t		time = 0_sec, total = 0_sec;
 	} kick;
-	gtime_t			quakeTime;
-	vec3_t			kickOrigin;
-	float			vDamageRoll, vDamagePitch;
-	gtime_t			vDamageTime; // damage kicks
-	gtime_t			fallTime;
-	float			fallValue; // for view drop on fall
-	float			damageAlpha;
-	float			bonusAlpha;
-	vec3_t			damageBlend;
-	vec3_t			vAngle, vForward; // aiming direction
-	float			bobTime;			  // so off-ground doesn't change it
-	vec3_t			oldViewAngles;
-	vec3_t			oldVelocity;
+	gtime_t			quakeTime = 0_sec;
+	vec3_t			kickOrigin = vec3_origin;
+	float			vDamageRoll = 0.0f, vDamagePitch = 0.0f;
+	gtime_t			vDamageTime = 0_sec; // damage kicks
+	gtime_t			fallTime = 0_sec;
+	float			fallValue = 0.0f; // for view drop on fall
+	float			damageAlpha = 0.0f;
+	float			bonusAlpha = 0.0f;
+	vec3_t			damageBlend = vec3_origin;
+	vec3_t			vAngle = vec3_origin, vForward = vec3_origin; // aiming direction
+	float			bobTime = 0.0f;			  // so off-ground doesn't change it
+	vec3_t			oldViewAngles = vec3_origin;
+	vec3_t			oldVelocity = vec3_origin;
 	gentity_t		*oldGroundEntity; // [Paril-KEX]
-	gtime_t			flashTime; // [Paril-KEX] for high tickrate
+	gtime_t			flashTime = 0_sec; // [Paril-KEX] for high tickrate
 
-	gtime_t			nextDrownTime;
+	gtime_t			nextDrownTime = 0_sec;
 	water_level_t	oldWaterLevel;
-	int32_t			breatherSound;
+	int32_t			breatherSound = 0;
 
-	int32_t			machinegunShots; // for weapon raising
+	int32_t			machinegunShots = 0; // for weapon raising
 
 	// animation vars
 	struct {
@@ -4121,134 +4138,133 @@ struct gclient_t {
 		uint32_t	silencerShots	= 0;
 	} powerupTime;
 
-	bool	grenadeBlewUp;
+	bool	grenadeBlewUp = false;
 	gtime_t grenadeTime, grenadeFinishedTime;
-	int32_t weaponSound;
+	int32_t weaponSound = 0;
 
-	gtime_t pickupMessageTime;
+	gtime_t pickupMessageTime = 0_sec;
 
-	gtime_t respawnMinTime; // can't respawn before time > this
-	gtime_t respawnMaxTime; // can respawn when time > this
+	gtime_t respawnMinTime = 0_sec; // can't respawn before time > this
+	gtime_t respawnMaxTime = 0_sec; // can respawn when time > this
 
-	gtime_t		pu_regen_time_blip;
-	gtime_t		pu_time_spawn_protection_blip;
+	gtime_t		pu_regen_time_blip = 0_sec;
+	gtime_t		pu_time_spawn_protection_blip = 0_sec;
 
 	// flood stuff is dm only
-	gtime_t		floodLockTill; // locked from talking
-	gtime_t		floodWhen[10]; // when messages were said
-	int32_t		floodWhenHead; // head pointer for when said
+	gtime_t		floodLockTill = 0_sec; // locked from talking
+	gtime_t		floodWhen[10] = { 0_sec }; // when messages were said
+	int32_t		floodWhenHead = 0; // head pointer for when said
 
 	// follow cam not required to persist
 	gentity_t	*followQueuedTarget;
-	gtime_t		followQueuedTime;
+	gtime_t		followQueuedTime = 0_sec;
 	gentity_t	*followTarget; // player we are following
 	bool		followUpdate; // need to update follow info?
 
-	gtime_t		nukeTime;
-	gtime_t		trackerPainTime;
+	gtime_t		nukeTime = 0_sec;
+	gtime_t		trackerPainTime = 0_sec;
 
 	gentity_t	*ownedSphere; // this points to the player's sphere
 
-	gtime_t		emptyClickSound;
+	gtime_t		emptyClickSound = 0_sec;
 
-	bool		inMenu;	  // in menu
 	//MenuHandle	*menu;	  // current menu
 	std::shared_ptr<Menu> menu; // Currently open menu, if any
-	gtime_t		menuTime; // time to update menu
-	bool		menuDirty;
+	gtime_t		menuTime = 0_sec; // time to update menu
+	bool		menuDirty = false;
 
 	gentity_t	*grappleEnt;			// entity of grapple
-	int32_t		grappleState;			// true if pulling
+	int32_t		grappleState = 0;		// true if pulling
 	gtime_t		grappleReleaseTime;		// time of grapple release
 
-	gtime_t		techRegenTime;			// regen tech
-	gtime_t		techSoundTime;
-	gtime_t		techLastMessageTime;
+	gtime_t		techRegenTime = 0_sec;			// regen tech
+	gtime_t		techSoundTime = 0_sec;
+	gtime_t		techLastMessageTime = 0_sec;
 
-	gtime_t		frenzyAmmoRegenTime;
+	gtime_t		frenzyAmmoRegenTime = 0_sec;
 
-	gtime_t		vampiricExpireTime;
+	gtime_t		vampiricExpireTime = 0_sec;
 
 	// used for player trails.
 	gentity_t *trail_head, *trail_tail;
 	// whether to use weapon chains
-	bool noWeaponChains;
+	bool noWeaponChains = false;
 
 	// seamless level transitions
-	bool landmark_free_fall;
+	bool landmark_free_fall = false;
 	const char *landmark_name;
 	vec3_t landmark_rel_pos; // position relative to landmark, un-rotated from landmark angle
-	gtime_t landmark_noise_time;
+	gtime_t landmark_noise_time = 0_sec;
 
-	gtime_t invisibility_fade_time; // [Paril-KEX] at this time, the player will be mostly fully cloaked
+	gtime_t invisibility_fade_time = 0_sec; // [Paril-KEX] at this time, the player will be mostly fully cloaked
 	gtime_t chase_msg_time; // to prevent CTF message spamming
 	int32_t menu_sign; // menu sign
 	vec3_t last_ladder_pos; // for ladder step sounds
-	gtime_t last_ladder_sound;
+	gtime_t last_ladder_sound = 0_sec;
 	coop_respawn_t coop_respawn_state;
-	gtime_t last_damage_time;
+	gtime_t last_damage_time = 0_sec;
 
 	// [Paril-KEX] these are now per-player, to work better in coop
 	gentity_t *sight_entity;
-	gtime_t	 sight_entity_time;
+	gtime_t	 sight_entity_time = 0_sec;
 	gentity_t *sound_entity;
-	gtime_t	 sound_entity_time;
+	gtime_t	 sound_entity_time = 0_sec;
 	gentity_t *sound2_entity;
-	gtime_t  sound2_entity_time;
+	gtime_t  sound2_entity_time = 0_sec;
 	// saved positions for lag compensation
-	uint8_t	 num_lag_origins; // 0 to MAX_LAG_ORIGINS, how many we can go back
-	uint8_t  next_lag_origin; // the next one to write to
-	bool     is_lag_compensated;
-	vec3_t	 lag_restore_origin;
+	uint8_t	 num_lag_origins = 0; // 0 to MAX_LAG_ORIGINS, how many we can go back
+	uint8_t  next_lag_origin = 0; // the next one to write to
+	bool     is_lag_compensated = false;
+	vec3_t	 lag_restore_origin = vec3_origin;
 	// for high tickrate weapon angles
-	vec3_t	 slow_view_angles;
-	gtime_t	 slow_view_angle_time;
+	vec3_t	 slow_view_angles = vec3_origin;
+	gtime_t	 slow_view_angle_time = 0_sec;
 
 	// not saved
-	bool help_draw_points;
+	bool help_draw_points = false;
 	size_t help_draw_index, help_draw_count;
-	gtime_t help_draw_time;
-	uint32_t step_frame;
-	int32_t help_poi_image;
-	vec3_t help_poi_location;
+	gtime_t help_draw_time = 0_sec;
+	uint32_t step_frame = 0;
+	int32_t help_poi_image = 0;
+	vec3_t help_poi_location = vec3_origin;
 
 	// only set temporarily
-	bool awaiting_respawn;
-	gtime_t respawn_timeout; // after this time, force a respawn
+	bool awaitingRespawn = false;
+	gtime_t respawn_timeout = 0_sec; // after this time, force a respawn
 
-	vec3_t		spawn_origin;		// avoid this spawn location next time
+	vec3_t		spawn_origin = vec3_origin;		// avoid this spawn location next time
 
 	// [Paril-KEX] current active fog values; density rgb skyfogfactor
 	std::array<float, 5> fog;
 	height_fog_t heightfog;
 
-	gtime_t	 last_attacker_time;
+	gtime_t	 last_attacker_time = 0_sec;
 	// saved - for coop; last time we were in a firing state
-	gtime_t	 last_firing_time;
+	gtime_t	 last_firing_time = 0_sec;
 
-	bool		eliminated;
+	bool		eliminated = false;
 /*freeze*/
 	gentity_t	*viewed;
-	float		thaw_time;
-	float		frozen_time;
-	float		moan_time;
+	float		thaw_time = 0.0f;
+	float		frozen_time = 0.0f;
+	float		moan_time = 0.0f;
 /*freeze*/
 
-	bool		readyToExit;
+	bool		readyToExit = false;
 
-	int			last_match_timer_update;
+	int			last_match_timer_update = 0;
 
-	gtime_t		initial_menu_delay;
-	bool		initial_menu_shown;
-	bool		initial_menu_closure;
+	gtime_t		initial_menu_delay = 0_sec;
+	bool		initial_menu_shown = false;
+	bool		initial_menu_closure = false;
 
-	gtime_t		pu_last_message_time;
+	gtime_t		pu_last_message_time = 0_sec;
 
-	gtime_t		last_banned_message_time;
+	gtime_t		last_banned_message_time = 0_sec;
 
-	gtime_t		timeResidual;
+	gtime_t		timeResidual = 0_sec;
 
-	int32_t		killStreakCount;	// for rampage award, reset on death or team change
+	int32_t		killStreakCount = 0;	// for rampage award, reset on death or team change
 };
 
 // ==========================================
@@ -4975,6 +4991,10 @@ public:
 		return *this;
 	}
 
+	int size() const {
+		return static_cast<int>(menu->entries.size());
+	}
+
 	std::unique_ptr<Menu> build() {
 		return std::move(menu);
 	}
@@ -4993,27 +5013,7 @@ public:
 	static void DirtyAll();
 };
 
-/*
-===============
-VoteEntry
-===============
-*/
-inline MenuEntry VoteEntry(const std::string &text, int voteIndex) {
-	return MenuEntry(text, MenuAlign::Center, [voteIndex](gentity_t *e, Menu &) {
-		const int clientNum = e - g_entities;
-		if (clientNum >= 0 && clientNum < MAX_CLIENTS) {
-			level.mapSelectorVoteByClient[clientNum] = voteIndex;
-		}
-		
-		MenuSystem::Close(e);
-		e->client->showScores = false;
-		e->client->showInventory = false;
-		gi.LocClient_Print(e, PRINT_HIGH,
-			"Vote for map %s registered.\n",
-			level.mapSelector.candidates[voteIndex]->longName.c_str());
-		gi.local_sound(e, CHAN_AUTO, gi.soundindex("misc/menu3.wav"), 1, ATTN_NONE, 0);
-		});
-}
+constexpr gtime_t MAP_SELECTOR_VOTE_DURATION = 5_sec;
 
 /*
 ===============
@@ -5100,5 +5100,7 @@ void OpenCallvoteMenu(gentity_t *ent);
 void OpenHostInfoMenu(gentity_t *ent);
 void OpenMatchInfoMenu(gentity_t *ent);
 void OpenPlayerMatchStatsMenu(gentity_t *ent);
+void OpenMapSelectorMenu(gentity_t *ent);
+void OpenSetupWelcomeMenu(gentity_t *ent);
 
 // ===========================================================

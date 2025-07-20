@@ -128,7 +128,7 @@ static void Player_UpdateState(gentity_t *player) {
 	player->sv.waterlevel = player->waterlevel;
 	player->sv.viewHeight = player->viewHeight;
 
-	player->sv.viewangles = player->client->vAngle;
+	player->sv.viewAngles = player->client->vAngle;
 	player->sv.viewforward = player->client->vForward;
 	player->sv.velocity = player->velocity;
 
@@ -204,7 +204,7 @@ static void Monster_UpdateState(gentity_t *monster) {
 	}
 	monster->sv.viewHeight = viewHeight;
 
-	monster->sv.viewangles = monster->s.angles;
+	monster->sv.viewAngles = monster->s.angles;
 
 	AngleVectors(monster->s.angles, monster->sv.viewforward, nullptr, nullptr);
 

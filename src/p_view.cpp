@@ -294,13 +294,13 @@ static void G_CalcViewOffset(gentity_t *ent) {
 		angles = {};
 
 		if (ent->flags & FL_SAM_RAIMI) {
-			ent->client->ps.viewangles[ROLL] = 0;
-			ent->client->ps.viewangles[PITCH] = 0;
+			ent->client->ps.viewAngles[ROLL] = 0;
+			ent->client->ps.viewAngles[PITCH] = 0;
 		} else {
-			ent->client->ps.viewangles[ROLL] = 40;
-			ent->client->ps.viewangles[PITCH] = -15;
+			ent->client->ps.viewAngles[ROLL] = 40;
+			ent->client->ps.viewAngles[PITCH] = -15;
 		}
-		ent->client->ps.viewangles[YAW] = ent->client->killer_yaw;
+		ent->client->ps.viewAngles[YAW] = ent->client->killer_yaw;
 	} else if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
 		// add angles based on weapon kick
 		angles = P_CurrentKickAngles(ent);
@@ -456,7 +456,7 @@ static void G_CalcGunOffset(gentity_t *ent) {
 
 		ent->client->ps.gunangles[PITCH] = xySpeed * bobFracSin * 0.005f;
 
-		vec3_t viewangles_delta = ent->client->oldViewAngles - ent->client->ps.viewangles;
+		vec3_t viewangles_delta = ent->client->oldViewAngles - ent->client->ps.viewAngles;
 
 		for (i = 0; i < 3; i++)
 			ent->client->slow_view_angles[i] += viewangles_delta[i];
@@ -525,7 +525,7 @@ G_CalcBlend
 
 static void G_CalcBlend(gentity_t *ent) {
 	gtime_t remaining;
-	ent->client->ps.damageBlend = ent->client->ps.screen_blend = {};
+	ent->client->ps.damageBlend = ent->client->ps.screenBlend = {};
 
 	auto BlendIfExpiring = [&](gtime_t end_time, float r, float g, float b, float max_alpha, const char *sound = nullptr) {
 		if (end_time > level.time) {
@@ -533,13 +533,13 @@ static void G_CalcBlend(gentity_t *ent) {
 			if (remaining.milliseconds() == 3000 && sound)
 				gi.sound(ent, CHAN_ITEM, gi.soundindex(sound), 1, ATTN_NORM, 0);
 			if (G_PowerUpExpiringRelative(remaining))
-				G_AddBlend(r, g, b, G_PowerUpFadeAlpha(remaining, max_alpha), ent->client->ps.screen_blend);
+				G_AddBlend(r, g, b, G_PowerUpFadeAlpha(remaining, max_alpha), ent->client->ps.screenBlend);
 		}
 		};
 
 	// Powerups
 	if (ent->client->powerupTime.spawnProtection > level.time) {
-		G_AddBlend(1, 0, 0, 0.05f, ent->client->ps.screen_blend);
+		G_AddBlend(1, 0, 0, 0.05f, ent->client->ps.screenBlend);
 	}
 	BlendIfExpiring(ent->client->powerupTime.quadDamage, 0, 0, 1, 0.08f, "items/damage2.wav");
 	BlendIfExpiring(ent->client->powerupTime.haste, 1, 0.2f, 0.5f, 0.08f, "items/quadfire2.wav");
@@ -551,26 +551,26 @@ static void G_CalcBlend(gentity_t *ent) {
 
 	// Freeze effect
 	if (GT(GT_FREEZE) && ent->client->eliminated && !ent->client->followTarget && !ent->client->resp.thawer) {
-		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screen_blend);
+		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
 	}
 
 	// Nuke effect
 	if (ent->client->nukeTime > level.time) {
 		float brightness = (ent->client->nukeTime - level.time).seconds() / 2.0f;
-		G_AddBlend(1, 1, 1, brightness, ent->client->ps.screen_blend);
+		G_AddBlend(1, 1, 1, brightness, ent->client->ps.screenBlend);
 	}
 
 	// IR goggles
 	if (ent->client->powerupTime.irGoggles > level.time) {
 		remaining = ent->client->powerupTime.irGoggles - level.time;
 		if (G_PowerUpExpiringRelative(remaining)) {
-			ent->client->ps.rdflags |= RDF_IRGOGGLES;
-			G_AddBlend(1, 0, 0, 0.2f, ent->client->ps.screen_blend);
+			ent->client->ps.rdFlags |= RDF_IRGOGGLES;
+			G_AddBlend(1, 0, 0, 0.2f, ent->client->ps.screenBlend);
 		} else {
-			ent->client->ps.rdflags &= ~RDF_IRGOGGLES;
+			ent->client->ps.rdFlags &= ~RDF_IRGOGGLES;
 		}
 	} else {
-		ent->client->ps.rdflags &= ~RDF_IRGOGGLES;
+		ent->client->ps.rdFlags &= ~RDF_IRGOGGLES;
 	}
 
 	// Damage blend
@@ -895,10 +895,10 @@ static void ClientSetSound(gentity_t *ent) {
 
 /*
 ===============
-ClientSetFrame
+PlayerSetFrame
 ===============
 */
-void ClientSetFrame(gentity_t *ent) {
+void PlayerSetFrame(gentity_t *ent) {
 	gclient_t *client;
 	bool	   duck, run;
 
@@ -1228,7 +1228,7 @@ and right after spawning
 static int scorelimit = -1;
 void ClientEndServerFrame(gentity_t *ent) {
 	// no player exists yet (load game)
-	if (!ent->client->pers.spawned && !level.mapSelectorVoteStartTime)
+	if (!ent->client->pers.spawned && !level.mapSelector.voteStartTime)
 		return;
 
 	float bobTime, bobtime_run;
@@ -1237,22 +1237,11 @@ void ClientEndServerFrame(gentity_t *ent) {
 	currentPlayer = e;
 	currentClient = e->client;
 
-	if (deathmatch->integer) {
-		int limit = GT_ScoreLimit();
-		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configstring(CONFIG_STORY_SCORELIMIT), nullptr, 10)) {
-			ent->client->ps.stats[STAT_SCORELIMIT] = CONFIG_STORY_SCORELIMIT;
-			gi.configstring(CONFIG_STORY_SCORELIMIT, limit ? G_Fmt("{}", limit).data() : "");
-		}
-	}
-
 	// check fog changes
 	P_ForceFogTransition(ent, false);
 
 	// check goals
 	G_PlayerNotifyGoal(ent);
-
-	// mega health
-	P_RunMegaHealth(ent);
 
 	// vampiric damage expiration
 	// don't expire if only 1 player in the match
@@ -1282,15 +1271,49 @@ void ClientEndServerFrame(gentity_t *ent) {
 	currentClient->ps.pmove.origin = ent->s.origin;
 	currentClient->ps.pmove.velocity = ent->velocity;
 
+	if (deathmatch->integer && !level.exitTime) {
+		auto &ms = level.mapSelector;
+#if 0
+		// If we're in intermission and voting hasn't started, just show scores
+		if (level.intermissionTime && ms.voteStartTime == 0_sec) {
+			if (ent->client->menu) {
+				CloseActiveMenu(ent);
+			}
+
+			if (!ent->client->showScores) {
+				ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
+				ent->client->showScores = true;
+				MultiplayerScoreboard(ent);
+			}
+			return;
+		}
+#endif
+		// Voting is active
+		if (ms.voteStartTime != 0_sec) {
+			if (ent->client->menu) {
+				if (level.time >= ent->client->menuTime) {
+					MenuSystem::Update(ent);
+					ent->client->menuTime = level.time + 200_ms;
+					ent->client->menuDirty = true;
+					ent->client->showScores = false;
+				}
+			} else {
+				OpenMapSelectorMenu(ent);
+			}
+			return;
+		}
+	}
+
 	//
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
 	//
-	if (!level.mapSelectorVoteStartTime && ((level.intermissionTime && !level.mapSelectorVoteStartTime) || ent->client->awaiting_respawn)) {
-		if (ent->client->awaiting_respawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermissionTime))) {
-			currentClient->ps.screen_blend[3] = currentClient->ps.damageBlend[3] = 0;
-			currentClient->ps.fov = 90;
-			currentClient->ps.gunindex = 0;
+	//if (!level.mapSelector.voteStartTime && ((level.intermissionTime && !level.mapSelector.voteStartTime) || ent->client->awaitingRespawn)) {
+	if (level.intermissionTime || ent->client->awaitingRespawn) {
+		if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermissionTime))) {
+			currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
+			//currentClient->ps.fov = 90;
+			currentClient->ps.gunIndex = 0;
 		}
 		SetStats(ent);
 		SetCoopStats(ent);
@@ -1311,6 +1334,17 @@ void ClientEndServerFrame(gentity_t *ent) {
 
 		return;
 	}
+
+	if (deathmatch->integer) {
+		int limit = GT_ScoreLimit();
+		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configstring(CONFIG_STORY_SCORELIMIT), nullptr, 10)) {
+			ent->client->ps.stats[STAT_SCORELIMIT] = CONFIG_STORY_SCORELIMIT;
+			gi.configstring(CONFIG_STORY_SCORELIMIT, limit ? G_Fmt("{}", limit).data() : "");
+		}
+	}
+
+	// mega health
+	P_RunMegaHealth(ent);
 
 	// auto doc tech
 	Tech_ApplyAutoDoc(ent);
@@ -1384,7 +1418,7 @@ void ClientEndServerFrame(gentity_t *ent) {
 		SetSpectatorStats(ent);
 
 		if (ent->client->followTarget) {
-			ent->client->ps.screen_blend = ent->client->followTarget->client->ps.screen_blend;
+			ent->client->ps.screenBlend = ent->client->followTarget->client->ps.screenBlend;
 			ent->client->ps.damageBlend = ent->client->followTarget->client->ps.damageBlend;
 
 			ent->s.effects = ent->client->followTarget->s.effects;
@@ -1403,27 +1437,44 @@ void ClientEndServerFrame(gentity_t *ent) {
 
 	ClientSetSound(e);
 
-	ClientSetFrame(ent);
+	PlayerSetFrame(ent);
 	
 	ent->client->oldVelocity = ent->velocity;
-	ent->client->oldViewAngles = ent->client->ps.viewangles;
+	ent->client->oldViewAngles = ent->client->ps.viewAngles;
 	ent->client->oldGroundEntity = ent->groundEntity;
-	
-	if (ent->client->menu && ent->client->inMenu) {
-		// In-menu rendering
-		if (ent->client->menuDirty || ent->client->menuTime <= level.time) {
-			ent->client->menu->Render(ent);
-			gi.unicast(ent, true);
-			ent->client->menuDirty = false;
-			ent->client->menuTime = level.time;
-			UpdateMenu(ent);
+#if 0
+	if (ent->client->menu.get() && ent->client->menuDirty) {
+		if (level.time >= ent->client->menuTime) {
+			MenuSystem::Update(ent);
+			ent->client->menuTime = level.time + 100_ms;
+			ent->client->menuDirty = true;
 		}
 	} else if (ent->client->showScores && ent->client->menuTime <= level.time) {
-		// Scoreboard-only rendering
 		if (ent->client->menu) {
 			CloseActiveMenu(ent);
 		}
 		DeathmatchScoreboardMessage(ent, ent->enemy);
+		gi.unicast(ent, false);
+		ent->client->menuTime = level.time + 3_sec;
+	}
+#endif
+	if (ent->client->menuDirty && ent->client->menuTime <= level.time) {
+		if (ent->client->menu) {
+			MenuSystem::Update(ent);
+			gi.unicast(ent, true);
+		}
+		ent->client->menuTime = level.time;
+		ent->client->menuDirty = false;
+	}
+
+	// if the scoreboard is up, update it
+	if (ent->client->showScores && ent->client->menuTime <= level.time) {
+		if (ent->client->menu) {
+			MenuSystem::Update(ent);
+			ent->client->menuDirty = false;
+		} else {
+			DeathmatchScoreboardMessage(e, e->enemy);
+		}
 		gi.unicast(ent, false);
 		ent->client->menuTime = level.time + 3_sec;
 	}

@@ -164,7 +164,7 @@ These are single use targets.
 static USE(use_target_secret) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
 	gi.sound(ent, CHAN_VOICE, ent->noise_index, 1, ATTN_NORM, 0);
 
-	level.foundSecrets++;
+	level.campaign.foundSecrets++;
 
 	UseTargets(ent, activator);
 	FreeEntity(ent);
@@ -191,7 +191,7 @@ void SP_target_secret(gentity_t *ent) {
 		st.noise = "misc/secret.wav";
 	ent->noise_index = gi.soundindex(st.noise);
 	ent->svFlags = SVF_NOCLIENT;
-	level.totalSecrets++;
+	level.campaign.totalSecrets++;
 }
 
 //==========================================================
@@ -207,13 +207,13 @@ void G_PlayerNotifyGoal(gentity_t *player) {
 		return;
 
 	// N64 goals
-	if (level.goals) {
+	if (level.campaign.goals) {
 		// if the goal has updated, commit it first
 		if (game.help1changed != game.help2changed) {
-			const char *current_goal = level.goals;
+			const char *current_goal = level.campaign.goals;
 
 			// skip ahead by the number of goals we've finished
-			for (size_t i = 0; i < level.goalNum; i++) {
+			for (size_t i = 0; i < level.campaign.goalNum; i++) {
 				while (*current_goal && *current_goal != '\t')
 					current_goal++;
 
@@ -275,9 +275,9 @@ constexpr spawnflags_t SPAWNFLAG_GOAL_KEEP_MUSIC = 1_spawnflag;
 static USE(use_target_goal) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
 	gi.sound(ent, CHAN_VOICE, ent->noise_index, 1, ATTN_NORM, 0);
 
-	level.foundGoals++;
+	level.campaign.foundGoals++;
 
-	if (level.foundGoals == level.totalGoals && !ent->spawnflags.has(SPAWNFLAG_GOAL_KEEP_MUSIC)) {
+	if (level.campaign.foundGoals == level.campaign.totalGoals && !ent->spawnflags.has(SPAWNFLAG_GOAL_KEEP_MUSIC)) {
 		if (ent->sounds)
 			gi.configstring(CS_CDTRACK, G_Fmt("{}", ent->sounds).data());
 		else
@@ -285,8 +285,8 @@ static USE(use_target_goal) (gentity_t *ent, gentity_t *other, gentity_t *activa
 	}
 
 	// [Paril-KEX] n64 goals
-	if (level.goals) {
-		level.goalNum++;
+	if (level.campaign.goals) {
+		level.campaign.goalNum++;
 		game.help1changed++;
 
 		for (auto player : active_clients())
@@ -308,7 +308,7 @@ void SP_target_goal(gentity_t *ent) {
 		st.noise = "misc/secret.wav";
 	ent->noise_index = gi.soundindex(st.noise);
 	ent->svFlags = SVF_NOCLIENT;
-	level.totalGoals++;
+	level.campaign.totalGoals++;
 }
 
 //==========================================================
@@ -406,7 +406,7 @@ static USE(use_target_changelevel) (gentity_t *self, gentity_t *other, gentity_t
 			activator->client->oldVelocity = RotatePointAroundVector({ 0, 0, 1 }, activator->client->oldVelocity, -self->target_ent->s.angles[YAW]);
 
 			// unrotate our view angles for the next map too
-			activator->client->oldViewAngles = activator->client->ps.viewangles - self->target_ent->s.angles;
+			activator->client->oldViewAngles = activator->client->ps.viewAngles - self->target_ent->s.angles;
 		}
 	}
 
@@ -1084,7 +1084,7 @@ static THINK(update_target_camera) (gentity_t *self) -> void {
 
 			// end of unit requires a wait
 			if (level.changeMap && !strchr(level.changeMap, '*'))
-				level.intermission.preExit = true;
+				level.intermission.postIntermission = true;
 		}
 
 		self->think = nullptr;
@@ -1094,7 +1094,7 @@ static THINK(update_target_camera) (gentity_t *self) -> void {
 	self->nextThink = level.time + FRAME_TIME_S;
 }
 
-void ClientSetFrame(gentity_t *ent);
+void PlayerSetFrame(gentity_t *ent);
 
 extern float xySpeed;
 
@@ -1103,7 +1103,7 @@ static THINK(target_camera_dummy_think) (gentity_t *self) -> void {
 	// move like a player
 	self->client = self->owner->client;
 	xySpeed = sqrtf(self->velocity[0] * self->velocity[0] + self->velocity[1] * self->velocity[1]);
-	ClientSetFrame(self);
+	PlayerSetFrame(self);
 	self->client = nullptr;
 
 	// alpha fade out for voops
@@ -1129,7 +1129,7 @@ static USE(use_target_camera) (gentity_t *self, gentity_t *other, gentity_t *act
 
 	level.intermissionTime = level.time;
 	level.intermission.serverFrame = gi.ServerFrame();
-	level.intermission.preExit = false;
+	level.intermission.postIntermission = false;
 
 	// spawn fake player dummy where we were
 	if (activator->client) {
@@ -1440,7 +1440,7 @@ USE(target_poi_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> 
 		ent->spawnflags &= ~SPAWNFLAG_POI_DISABLED;
 
 	// early stage check
-	if (ent->count && level.currentPOIStage > ent->count)
+	if (ent->count && level.poi.currentStage > ent->count)
 		return;
 
 	// teamed POIs work a bit differently
@@ -1466,7 +1466,7 @@ USE(target_poi_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> 
 				continue;
 			}
 			// POI is not part of current stage
-			else if (poi->count && level.currentPOIStage > poi->count)
+			else if (poi->count && level.poi.currentStage > poi->count)
 				continue;
 			// POI isn't the right style
 			else if (poi->style > best_style)
@@ -1517,13 +1517,13 @@ USE(target_poi_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> 
 
 		// copy over POI stage value
 		if (ent->count) {
-			if (level.currentPOIStage <= ent->count)
-				level.currentPOIStage = ent->count;
+			if (level.poi.currentStage <= ent->count)
+				level.poi.currentStage = ent->count;
 		}
 	} else {
 		if (ent->count) {
-			if (level.currentPOIStage <= ent->count)
-				level.currentPOIStage = ent->count;
+			if (level.poi.currentStage <= ent->count)
+				level.poi.currentStage = ent->count;
 			else
 				return; // this POI is not part of our current stage
 		}
@@ -1533,26 +1533,26 @@ USE(target_poi_use) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> 
 	if (!strcmp(ent->className, "target_poi") && ent->spawnflags.has(SPAWNFLAG_POI_DUMMY) && !ent->spawnflags.has(SPAWNFLAG_POI_DYNAMIC))
 		return;
 
-	level.validPOI = true;
-	level.currentPOI = ent->s.origin;
-	level.currentPOIImage = ent->noise_index;
+	level.poi.valid = true;
+	level.poi.current = ent->s.origin;
+	level.poi.currentImage = ent->noise_index;
 
 	if (!strcmp(ent->className, "target_poi") && ent->spawnflags.has(SPAWNFLAG_POI_DYNAMIC)) {
-		level.currentDynamicPOI = nullptr;
+		level.poi.currentDynamic = nullptr;
 
 		// pick the dummy POI, since it isn't supposed to get freed
 		// FIXME maybe store the team string instead?
 
 		for (gentity_t *m = ent->teamMaster; m; m = m->teamChain)
 			if (m->spawnflags.has(SPAWNFLAG_POI_DUMMY)) {
-				level.currentDynamicPOI = m;
+				level.poi.currentDynamic = m;
 				break;
 			}
 
-		if (!level.currentDynamicPOI)
+		if (!level.poi.currentDynamic)
 			gi.Com_PrintFmt("can't activate poi for {}; need DUMMY in chain\n", *ent);
 	} else
-		level.currentDynamicPOI = nullptr;
+		level.poi.currentDynamic = nullptr;
 }
 
 static THINK(target_poi_setup) (gentity_t *self) -> void {
@@ -1625,11 +1625,11 @@ static USE(use_target_healthbar) (gentity_t *ent, gentity_t *other, gentity_t *a
 	}
 
 	for (size_t i = 0; i < MAX_HEALTH_BARS; i++) {
-		if (level.health_bar_entities[i])
+		if (level.campaign.health_bar_entities[i])
 			continue;
 
 		ent->enemy = target;
-		level.health_bar_entities[i] = ent;
+		level.campaign.health_bar_entities[i] = ent;
 		gi.configstring(CONFIG_HEALTH_BAR_NAME, ent->message);
 		return;
 	}
@@ -1682,9 +1682,9 @@ Auto save on command.
 static USE(use_target_autosave) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
 	gtime_t save_time = gtime_t::from_sec(gi.cvar("g_athena_auto_save_min_time", "60", CVAR_NOSET)->value);
 
-	if (level.time - level.next_auto_save > save_time) {
+	if (level.time - level.campaign.next_auto_save > save_time) {
 		gi.AddCommandString("autosave\n");
-		level.next_auto_save = level.time;
+		level.campaign.next_auto_save = level.time;
 	}
 }
 
@@ -1814,7 +1814,7 @@ void SP_target_achievement(gentity_t *self) {
 }
 
 static USE(use_target_story) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
-	level.story_active = !!(self->message && *self->message);
+	level.campaign.story_active = !!(self->message && *self->message);
 	gi.configstring(CONFIG_STORY_SCORELIMIT, self->message ? self->message : "");
 }
 
@@ -2104,7 +2104,7 @@ void SP_target_anger(gentity_t *self) {
 
 USE(target_killplayers_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	gentity_t *ent;
-	level.deadly_kill_box = true;
+	level.campaign.deadly_kill_box = true;
 
 	// kill any visible monsters
 	for (ent = g_entities; ent < &g_entities[globals.num_entities]; ent++) {
@@ -2128,7 +2128,7 @@ USE(target_killplayers_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 	for (auto ce : active_clients())
 		Damage(ce, self, self, vec3_origin, self->s.origin, vec3_origin, 100000, 0, DAMAGE_NO_PROTECTION, MOD_TELEFRAG);
 
-	level.deadly_kill_box = false;
+	level.campaign.deadly_kill_box = false;
 }
 
 /*QUAKED target_killplayers (1 0 0) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP

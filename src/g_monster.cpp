@@ -542,7 +542,7 @@ static void M_MoveFrame(gentity_t *self) {
 }
 
 void G_MonsterKilled(gentity_t *self) {
-	level.killedMonsters++;
+	level.campaign.killedMonsters++;
 
 	if (coop->integer && self->enemy && self->enemy->client)
 		G_AdjustPlayerScore(self->enemy->client, 1, false, 0);
@@ -550,7 +550,7 @@ void G_MonsterKilled(gentity_t *self) {
 	if (g_debug_monster_kills->integer) {
 		bool found = false;
 
-		for (auto &ent : level.monstersRegistered) {
+		for (auto &ent : level.campaign.monstersRegistered) {
 			if (ent == self) {
 				ent = nullptr;
 				found = true;
@@ -565,7 +565,7 @@ void G_MonsterKilled(gentity_t *self) {
 			gi.Center_Print(&g_entities[1], "found missing monster?");
 		}
 
-		if (level.killedMonsters == level.totalMonsters) {
+		if (level.campaign.killedMonsters == level.campaign.totalMonsters) {
 			gi.Center_Print(&g_entities[1], "all monsters dead");
 		}
 	}
@@ -1072,7 +1072,7 @@ void monster_death_use(gentity_t *self) {
 // many active players we have
 static void G_Monster_ScaleCoopHealth(gentity_t *self) {
 	// already scaled
-	if (self->monsterInfo.health_scaling >= level.coopScalePlayers)
+	if (self->monsterInfo.health_scaling >= level.campaign.coopScalePlayers)
 		return;
 
 	// this is just to fix monsters that change health after spawning...
@@ -1080,13 +1080,13 @@ static void G_Monster_ScaleCoopHealth(gentity_t *self) {
 	if (!self->monsterInfo.base_health)
 		self->monsterInfo.base_health = self->max_health;
 
-	int32_t delta = level.coopScalePlayers - self->monsterInfo.health_scaling;
-	int32_t additional_health = delta * (int32_t)(self->monsterInfo.base_health * level.coopHealthScaling);
+	int32_t delta = level.campaign.coopScalePlayers - self->monsterInfo.health_scaling;
+	int32_t additional_health = delta * (int32_t)(self->monsterInfo.base_health * level.campaign.coopHealthScaling);
 
 	self->health = max(1, self->health + additional_health);
 	self->max_health += additional_health;
 
-	self->monsterInfo.health_scaling = level.coopScalePlayers;
+	self->monsterInfo.health_scaling = level.campaign.coopScalePlayers;
 }
 
 struct monster_filter_t {
@@ -1128,8 +1128,8 @@ bool monster_start(gentity_t *self) {
 
 	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD)) {
 		if (g_debug_monster_kills->integer)
-			level.monstersRegistered[level.totalMonsters] = self;
-		level.totalMonsters++;
+			level.campaign.monstersRegistered[level.campaign.totalMonsters] = self;
+		level.campaign.totalMonsters++;
 	}
 
 	self->nextThink = level.time + FRAME_TIME_S;

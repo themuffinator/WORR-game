@@ -460,7 +460,7 @@ struct pmove_t {
 	// results (out)
 	touch_list_t touch;
 
-	gvec3_t viewangles; // clamped
+	gvec3_t viewAngles; // clamped
 
 	gvec3_t mins, maxs; // bounding box size
 
@@ -482,8 +482,8 @@ struct pmove_t {
 	vec3_t viewoffset; // last viewoffset (for accurate calculation of blending)
 
 	// [KEX] results (out)
-	gvec4_t screen_blend;
-	refdef_flags_t rdflags; // merged with rdflags from server
+	gvec4_t screenBlend;
+	refdef_flags_t rdFlags; // merged with rdFlags from server
 	bool jump_sound; // play jump sound
 	bool step_clip; // we clipped on top of an object from below
 	float impact_delta; // impact delta, for falling damage
@@ -1374,24 +1374,24 @@ struct player_state_t {
 
 	// these fields do not need to be communicated bit-precise
 
-	gvec3_t viewangles;  // for fixed views
+	gvec3_t viewAngles;  // for fixed views
 	gvec3_t viewoffset;  // add to pmovestate->origin
 	gvec3_t kick_angles; // add to view direction to get render angles
 	// set by weapon kicks, pain effects, etc
 
 	gvec3_t gunangles;
 	gvec3_t gunoffset;
-	int32_t gunindex;
-	int32_t gunskin; // [Paril-KEX] gun skin #
+	int32_t gunIndex;
+	int32_t gunSkin; // [Paril-KEX] gun skin #
 	int32_t gunframe;
 	int32_t gunrate; // [Paril-KEX] tickrate of gun animations; 0 and 10 are equivalent
 
-	std::array<float, 4> screen_blend; // rgba full screen effect
+	std::array<float, 4> screenBlend; // rgba full screen effect
 	std::array<float, 4> damageBlend; // [Paril-KEX] rgba damage blend effect
 
 	float fov; // horizontal field of view
 
-	refdef_flags_t rdflags; // refdef flags
+	refdef_flags_t rdFlags; // refdef flags
 
 	std::array<int16_t, MAX_STATS> stats; // fast status bar updates
 
@@ -1712,7 +1712,7 @@ struct sv_entity_t {
 	int32_t                     viewHeight;
 	int32_t                     last_attackertime;
 	water_level_t               waterlevel;
-	gvec3_t                     viewangles;
+	gvec3_t                     viewAngles;
 	gvec3_t                     viewforward;
 	gvec3_t                     velocity;
 	gvec3_t                     start_origin;

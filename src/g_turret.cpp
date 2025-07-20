@@ -405,8 +405,8 @@ void SP_turret_driver(gentity_t *self) {
 	self->flags |= FL_NO_KNOCKBACK;
 
 	if (g_debug_monster_kills->integer)
-		level.monstersRegistered[level.totalMonsters] = self;
-	level.totalMonsters++;
+		level.campaign.monstersRegistered[level.campaign.totalMonsters] = self;
+	level.campaign.totalMonsters++;
 
 	self->svFlags |= SVF_MONSTER;
 	self->takeDamage = true;

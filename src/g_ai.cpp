@@ -628,8 +628,8 @@ bool FindTarget(gentity_t *self) {
 		}
 
 		if (client == nullptr) {
-			if (level.disguiseViolationTime > level.time) {
-				client = level.disguiseViolator;
+			if (level.campaign.disguiseViolationTime > level.time) {
+				client = level.campaign.disguiseViolator;
 			} else if ((client = AI_GetSoundClient(self, true))) {
 				heardit = true;
 			} else if (!(self->enemy) && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH) &&

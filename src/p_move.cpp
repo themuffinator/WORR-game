@@ -613,7 +613,7 @@ static void PM_AddCurrents(vec3_t &wishVel) {
 			float ladder_speed = std::clamp(pm->cmd.forwardmove, -200.f, 200.f);
 
 			if (pm->cmd.forwardmove > 0) {
-				if (pm->viewangles[PITCH] < 15)
+				if (pm->viewAngles[PITCH] < 15)
 					wishVel[2] = ladder_speed;
 				else
 					wishVel[2] = -ladder_speed;
@@ -1359,20 +1359,20 @@ PM_ClampAngles
 */
 static void PM_ClampAngles() {
 	if (pm->s.pm_flags & PMF_TIME_KNOCKBACK) {
-		pm->viewangles[YAW] = pm->cmd.angles[YAW] + pm->s.delta_angles[YAW];
-		pm->viewangles[PITCH] = 0;
-		pm->viewangles[ROLL] = 0;
+		pm->viewAngles[YAW] = pm->cmd.angles[YAW] + pm->s.delta_angles[YAW];
+		pm->viewAngles[PITCH] = 0;
+		pm->viewAngles[ROLL] = 0;
 	} else {
 		// circularly clamp the angles with deltas
-		pm->viewangles = pm->cmd.angles + pm->s.delta_angles;
+		pm->viewAngles = pm->cmd.angles + pm->s.delta_angles;
 
 		// don't let the player look up or down more than 90 degrees
-		if (pm->viewangles[PITCH] > 89 && pm->viewangles[PITCH] < 180)
-			pm->viewangles[PITCH] = 89;
-		else if (pm->viewangles[PITCH] < 271 && pm->viewangles[PITCH] >= 180)
-			pm->viewangles[PITCH] = 271;
+		if (pm->viewAngles[PITCH] > 89 && pm->viewAngles[PITCH] < 180)
+			pm->viewAngles[PITCH] = 89;
+		else if (pm->viewAngles[PITCH] < 271 && pm->viewAngles[PITCH] >= 180)
+			pm->viewAngles[PITCH] = 271;
 	}
-	AngleVectors(pm->viewangles, pml.forward, pml.right, pml.up);
+	AngleVectors(pm->viewAngles, pml.forward, pml.right, pml.up);
 }
 
 // [Paril-KEX]
@@ -1382,16 +1382,16 @@ static void PM_ScreenEffects() {
 	contents_t contents = pm->pointcontents(vieworg);
 
 	if (contents & (CONTENTS_LAVA | CONTENTS_SLIME | CONTENTS_WATER))
-		pm->rdflags |= RDF_UNDERWATER;
+		pm->rdFlags |= RDF_UNDERWATER;
 	else
-		pm->rdflags &= ~RDF_UNDERWATER;
+		pm->rdFlags &= ~RDF_UNDERWATER;
 
 	if (contents & (CONTENTS_SOLID | CONTENTS_LAVA))
-		G_AddBlend(1.0f, 0.3f, 0.0f, 0.6f, pm->screen_blend);
+		G_AddBlend(1.0f, 0.3f, 0.0f, 0.6f, pm->screenBlend);
 	else if (contents & CONTENTS_SLIME)
-		G_AddBlend(0.0f, 0.1f, 0.05f, 0.6f, pm->screen_blend);
+		G_AddBlend(0.0f, 0.1f, 0.05f, 0.6f, pm->screenBlend);
 	else if (contents & CONTENTS_WATER)
-		G_AddBlend(0.5f, 0.3f, 0.2f, 0.4f, pm->screen_blend);
+		G_AddBlend(0.5f, 0.3f, 0.2f, 0.4f, pm->screenBlend);
 }
 
 /*
@@ -1406,13 +1406,13 @@ void Pmove(pmove_t *pmove) {
 
 	// clear results
 	pm->touch.num = 0;
-	pm->viewangles = {};
+	pm->viewAngles = {};
 	pm->s.viewHeight = 0;
 	pm->groundEntity = nullptr;
 	pm->watertype = CONTENTS_NONE;
 	pm->waterlevel = WATER_NONE;
-	pm->screen_blend = {};
-	pm->rdflags = RDF_NONE;
+	pm->screenBlend = {};
+	pm->rdFlags = RDF_NONE;
 	pm->jump_sound = false;
 	pm->step_clip = false;
 	pm->impact_delta = 0;
@@ -1506,7 +1506,7 @@ void Pmove(pmove_t *pmove) {
 		else {
 			vec3_t angles;
 
-			angles = pm->viewangles;
+			angles = pm->viewAngles;
 			if (angles[PITCH] > 180)
 				angles[PITCH] = angles[PITCH] - 360;
 			angles[PITCH] /= 3;

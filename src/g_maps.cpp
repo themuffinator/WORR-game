@@ -6,6 +6,183 @@
 #include <regex>
 
 /*
+=============
+MapSelectorFinalize
+=============
+*/
+void CloseActiveMenu(gentity_t *ent);
+void MapSelectorFinalize() {
+	auto &ms = level.mapSelector;
+
+	if (ms.voteStartTime == 0_sec)
+		return;
+
+	// Close menus for all players
+	for (auto ec : active_players()) {
+		CloseActiveMenu(ec);
+		ec->client->showScores = false;
+		ec->client->showInventory = false;
+	}
+
+	// Tally votes
+	std::fill(ms.voteCounts.begin(), ms.voteCounts.end(), 0);
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		int vote = ms.votes[i];
+		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && ms.candidates[vote]) {
+			ms.voteCounts[vote]++;
+		}
+	}
+
+	// Find max vote count
+	int maxVotes = *std::max_element(ms.voteCounts.begin(), ms.voteCounts.end());
+
+	// Find all tied candidates
+	std::vector<int> tiedIndices;
+	for (size_t i = 0; i < ms.candidates.size(); ++i) {
+		if (ms.candidates[i] && ms.voteCounts[i] == maxVotes)
+			tiedIndices.push_back(static_cast<int>(i));
+	}
+
+	int selectedIndex = -1;
+
+	if (!tiedIndices.empty() && maxVotes > 0) {
+		selectedIndex = tiedIndices[rand() % tiedIndices.size()];
+	} else {
+		// No votes or all invalid - fallback
+		std::vector<int> available;
+		for (size_t i = 0; i < ms.candidates.size(); ++i) {
+			if (ms.candidates[i])
+				available.push_back(static_cast<int>(i));
+		}
+		if (!available.empty())
+			selectedIndex = available[rand() % available.size()];
+	}
+
+	if (selectedIndex >= 0 && ms.candidates[selectedIndex]) {
+		const MapEntry *selected = ms.candidates[selectedIndex];
+		level.changeMap = selected->filename.c_str();
+
+		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
+			selected->filename.c_str(),
+			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
+
+		AnnouncerSound(world, "vote_passed");
+	} else {
+		auto fallback = AutoSelectNextMap();
+		if (fallback) {
+			level.changeMap = fallback->filename.c_str();
+			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
+				fallback->filename.c_str(),
+				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
+		} else {
+			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
+		}
+		AnnouncerSound(world, "vote_failed");
+	}
+	
+	//ms.voteStartTime = 0_sec;
+	level.intermission.exit = true;
+	level.intermission.postIntermission = false;
+}
+
+/*
+=============
+MapSelectorBegin
+=============
+*/
+void MapSelectorBegin() {
+	auto &ms = level.mapSelector;
+
+	if (ms.voteStartTime != 0_sec)
+		return; // already started
+
+	// Defensive reset
+	ms.votes.fill(-1);
+	ms.voteCounts.fill(0);
+	ms.candidates.fill(nullptr);
+
+	auto candidates = MapSelectorVoteCandidates();
+	if (candidates.empty())
+		return;
+
+	for (size_t i = 0; i < std::min(candidates.size(), ms.candidates.size()); ++i)
+		ms.candidates[i] = candidates[i];
+
+	// Set voteStartTime here to lock vote as active
+	ms.voteStartTime = level.time;
+
+	for (auto ec : active_players()) {
+		OpenMapSelectorMenu(ec);
+	}
+
+	gi.Broadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have 5 seconds to vote.\n");
+	AnnouncerSound(world, "vote_now");
+}
+
+/*
+====================
+MapSelector_CastVote
+====================
+*/
+void MapSelector_CastVote(gentity_t *ent, int voteIndex) {
+	if (!ent || !ent->client || voteIndex < 0 || voteIndex >= 3)
+		return;
+
+	auto &ms = level.mapSelector;
+
+	auto *candidate = ms.candidates[voteIndex];
+	if (!candidate)
+		return;
+
+	const int clientNum = ent->s.number;
+
+	// Ignore if already voted for same candidate
+	if (ms.votes[clientNum] == voteIndex)
+		return;
+
+	// Remove previous vote if any
+	if (int prevVote = ms.votes[clientNum]; prevVote >= 0 && prevVote < 3) {
+		ms.voteCounts[prevVote] = std::max(0, ms.voteCounts[prevVote] - 1);
+	}
+
+	// Store new vote
+	ms.votes[clientNum] = voteIndex;
+	ms.voteCounts[voteIndex]++;
+
+	// Feedback
+	const char *mapName = candidate->longName.empty()
+		? candidate->filename.c_str()
+		: candidate->longName.c_str();
+
+	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
+		ent->client->sess.netName, mapName);
+
+	// Mark menu dirty to update HUD/bar
+	ent->client->menuDirty = true;
+
+	// === Early vote finalization check ===
+
+	// Count number of active players
+	int totalVoters = 0;
+	for (auto ec : active_players()) {
+		if (ec && ec->client && !ec->client->sess.is_a_bot)
+			++totalVoters;
+	}
+
+	// If a map has more than half the votes, finalize early
+	for (int i = 0; i < 3; ++i) {
+		if (ms.candidates[i] && ms.voteCounts[i] > totalVoters / 2) {
+			gi.Broadcast_Print(PRINT_HIGH, "Majority vote detected - finalizing early...\n");
+			MapSelectorFinalize();
+			level.intermission.postIntermissionTime = level.time;  // allow countdown to continue cleanly
+			break;
+		}
+	}
+}
+
+// ==========================
+
+/*
 =========================
 PrintMapList
 =========================
@@ -297,6 +474,25 @@ AutoSelectNextMap
 */
 std::optional<MapEntry> AutoSelectNextMap() {
 	const auto &pool = game.mapSystem.mapPool;
+
+	// Screenshot tool override - select next in map list (looping, based on current map)
+	if (g_autoScreenshotTool && g_autoScreenshotTool->integer > 0 && !pool.empty()) {
+		const std::string current = level.mapName;
+		auto it = std::find_if(pool.begin(), pool.end(), [&](const MapEntry &m) {
+			return !_stricmp(m.filename.c_str(), current.c_str());
+			});
+
+		if (it != pool.end()) {
+			auto next = std::next(it);
+			if (next == pool.end())
+				next = pool.begin();
+			return *next;
+		}
+
+		// If current not found, fallback to first map
+		return pool.front();
+	}
+
 	const int playerCount = level.pop.num_playing_human_clients;
 	const bool avoidCustom = (level.pop.num_console_clients > 0);
 	const bool avoidCustomTextures = g_maps_allow_custom_textures && !g_maps_allow_custom_textures->integer;
@@ -306,7 +502,7 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	int secondsSinceStart = static_cast<int>(time(nullptr) - game.serverStartTime);
 
 	auto mapValid = [&](const MapEntry &map) -> bool {
-		int lastPlayed = map.lastPlayed/1000;
+		int lastPlayed = map.lastPlayed / 1000;
 
 		if (lastPlayed > 0) {
 			int delta = secondsSinceStart - lastPlayed;
@@ -338,7 +534,6 @@ std::optional<MapEntry> AutoSelectNextMap() {
 
 	std::vector<const MapEntry *> eligible;
 
-	// Step 1: Filter cycleable maps that obey cooldown
 	for (const auto &map : pool) {
 		if (!map.isCycleable)
 			continue;
@@ -346,7 +541,6 @@ std::optional<MapEntry> AutoSelectNextMap() {
 			eligible.push_back(&map);
 	}
 
-	// Step 2: If no valid cycleable maps, try any non-cycleable map that obeys cooldown
 	if (eligible.empty()) {
 		for (const auto &map : pool) {
 			if (mapValid(map))
@@ -354,7 +548,6 @@ std::optional<MapEntry> AutoSelectNextMap() {
 		}
 	}
 
-	// Step 3: If still empty, use all maps (ignoring cooldown)
 	if (eligible.empty()) {
 		for (const auto &map : pool) {
 			if (avoidCustom && map.isCustom)
@@ -370,7 +563,6 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	if (eligible.empty())
 		return std::nullopt;
 
-	// Step 4: Weight popular maps
 	std::vector<const MapEntry *> weighted;
 	for (const auto *map : eligible) {
 		weighted.push_back(map);
@@ -378,7 +570,6 @@ std::optional<MapEntry> AutoSelectNextMap() {
 			weighted.push_back(map); // 2x chance
 	}
 
-	//const MapEntry *chosen = weighted[rand() % weighted.size()];
 	std::shuffle(eligible.begin(), eligible.end(), game.mapRNG);
 	const MapEntry *chosen = eligible[0];
 
@@ -412,7 +603,7 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 			continue;
 		if (avoidCustomTextures && map.hasCustomTextures)
 			continue;
-		if (!Q_strcasecmp(level.mapname, map.filename.c_str()))
+		if (!Q_strcasecmp(level.mapName, map.filename.c_str()))
 			continue;
 
 		if (isCTF && !map.preferredCTF) preferred = false;

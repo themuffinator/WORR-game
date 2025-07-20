@@ -1473,7 +1473,7 @@ void MatchStats_End() {
 		matchStats.gameType = gt_short_name_upper[g_gametype->integer];
 		matchStats.ruleSet = rs_long_name[game.ruleset];
 		matchStats.serverName = hostname->string;
-		matchStats.mapName = level.mapname;
+		matchStats.mapName = level.mapName;
 		matchStats.ranked = "false";
 		matchStats.totalKills = level.match.totalKills;
 		matchStats.totalSpawnKills = level.match.totalSpawnKills;

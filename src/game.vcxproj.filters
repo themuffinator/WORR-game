@@ -308,6 +308,9 @@
       <Filter>menu</Filter>
     </ClCompile>
     <ClCompile Include="g_horde.cpp" />
+    <ClCompile Include="menu\menu_page_setup.cpp">
+      <Filter>menu</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="bots">

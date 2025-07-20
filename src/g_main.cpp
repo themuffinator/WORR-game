@@ -230,6 +230,8 @@ cvar_t *g_redTeamName;
 
 cvar_t *bot_name_prefix;
 
+cvar_t *g_autoScreenshotTool;
+
 static cvar_t *g_framesPerFrame;
 
 int ii_duel_header;
@@ -421,11 +423,11 @@ void GT_Changes() {
 
 			ec->s.origin = level.intermission.origin;
 			ec->client->ps.pmove.origin = level.intermission.origin;
-			ec->client->ps.viewangles = level.intermission.angles;
+			ec->client->ps.viewAngles = level.intermission.angles;
 
-			ec->client->awaiting_respawn = true;
+			ec->client->awaitingRespawn = true;
 			ec->client->ps.pmove.pm_type = PM_FREEZE;
-			ec->client->ps.rdflags = RDF_NONE;
+			ec->client->ps.rdFlags = RDF_NONE;
 			ec->deadFlag = false;
 			ec->solid = SOLID_NOT;
 			ec->moveType = MOVETYPE_FREECAM;
@@ -451,7 +453,7 @@ void GT_Changes() {
 	//TODO: save ent string so we can simply reload it and Match_Reset
 	//gi.AddCommandString("map_restart");
 
-	gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapname).data());
+	gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapName).data());
 
 	GT_PrecacheAssets();
 	GT_SetLongName();
@@ -743,6 +745,7 @@ static void InitGame() {
 	g_arenaSelfDmgArmor = gi.cvar("g_arenaSelfDmgArmor", "0", CVAR_NOFLAGS);
 	g_arenaStartingArmor = gi.cvar("g_arenaStartingArmor", "200", CVAR_NOFLAGS);
 	g_arenaStartingHealth = gi.cvar("g_arenaStartingHealth", "200", CVAR_NOFLAGS);
+	g_autoScreenshotTool = gi.cvar("g_autoScreenshotTool", "0", CVAR_NOFLAGS);
 	g_coop_health_scaling = gi.cvar("g_coop_health_scaling", "0", CVAR_LATCH);
 	g_damage_scale = gi.cvar("g_damage_scale", "1", CVAR_NOFLAGS);
 	g_disable_player_collision = gi.cvar("g_disable_player_collision", "0", CVAR_NOFLAGS);
@@ -896,7 +899,7 @@ static void InitGame() {
 	LoadAdminList();
 
 	if (g_dm_exec_level_cfg->integer)
-		gi.AddCommandString(G_Fmt("exec {}\n", level.mapname).data());
+		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
 }
 
 //===================================================================
@@ -924,16 +927,17 @@ void FindIntermissionPoint(void) {
 		level.intermission.origin = ent->s.origin;
 
 		// map-specific hacks
-		if (!Q_strncasecmp(level.mapname, "campgrounds", 11)) {
+		if (!Q_strncasecmp(level.mapName, "campgrounds", 11)) {
 			const gvec3_t v = { -320, -96, 503 };
 			if (ent->s.origin == v)
 				level.intermission.angles[PITCH] = -30;
-		} else if (!Q_strncasecmp(level.mapname, "rdm10", 5)) {
+		} else if (!Q_strncasecmp(level.mapName, "rdm10", 5)) {
 			const gvec3_t v = { -1256, -1672, -136 };
 			if (ent->s.origin == v)
 				level.intermission.angles = { 15, 135, 0 };
 		} else {
 			level.intermission.angles = ent->s.angles;
+			//gi.Com_PrintFmt("FindIntermissionPoint angles: {}\n", level.intermission.angles);
 		}
 
 		// face toward target if angle is still unset
@@ -943,7 +947,7 @@ void FindIntermissionPoint(void) {
 				dir = (target->s.origin - ent->s.origin).normalized();
 				AngleVectors(dir);
 				level.intermission.angles = dir * 360.0f;
-				gi.Com_PrintFmt("FindIntermissionPoint angles: {}\n", level.intermission.angles);
+				//gi.Com_PrintFmt("FindIntermissionPoint angles: {}\n", level.intermission.angles);
 			}
 		}
 	}
@@ -993,11 +997,11 @@ void SetIntermissionPoint(void) {
 	level.spawnSpots[SPAWN_SPOT_INTERMISSION] = ent;
 
 	// map-specific hacks
-	if (!Q_strncasecmp(level.mapname, "campgrounds", 11)) {
+	if (!Q_strncasecmp(level.mapName, "campgrounds", 11)) {
 		const gvec3_t v = { -320, -96, 503 };
 		if (ent->s.origin == v)
 			level.intermission.angles[PITCH] = -30;
-	} else if (!Q_strncasecmp(level.mapname, "rdm10", 5)) {
+	} else if (!Q_strncasecmp(level.mapName, "rdm10", 5)) {
 		const gvec3_t v = { -1256, -1672, -136 };
 		if (ent->s.origin == v)
 			level.intermission.angles = { 15, 135, 0 };
@@ -1105,17 +1109,25 @@ static void ClientEndServerFrames() {
 }
 
 /*
-=================
+===============
 CreateTargetChangeLevel
 
-Returns the created target changelevel
-=================
+Creates and returns a target_changelevel entity.
+===============
 */
 gentity_t *CreateTargetChangeLevel(const char *map) {
 	gentity_t *ent = Spawn();
+	if (!ent)
+		return nullptr;
+
 	ent->className = "target_changelevel";
+
+	// Copy into level.nextMap (std::array<char, MAX_QPATH>)
 	Q_strlcpy(level.nextMap, map, sizeof(level.nextMap));
+
+	// Assign the entity's map pointer to the shared buffer
 	ent->map = level.nextMap;
+
 	return ent;
 }
 
@@ -1273,12 +1285,12 @@ void BeginIntermission(gentity_t *targ) {
 		else if (targ->spawnflags.has(SPAWNFLAG_CHANGELEVEL_IMMEDIATE_LEAVE) && !deathmatch->integer) {
 			// Need to call this now
 			ReportMatchDetails(true);
-			level.intermission.preExit = true; // go to the next level soon
+			level.intermission.postIntermission = true; // go to the next level soon
 			return;
 		}
 	} else {
 		if (!deathmatch->integer) {
-			level.intermission.preExit = true; // go to the next level soon
+			level.intermission.postIntermission = true; // go to the next level soon
 			return;
 		}
 	}
@@ -1286,7 +1298,7 @@ void BeginIntermission(gentity_t *targ) {
 	// Call while intermission is running
 	ReportMatchDetails(true);
 
-	level.intermission.preExit = false;
+	level.intermission.postIntermission = false;
 
 	//SetIntermissionPoint();
 
@@ -1329,7 +1341,7 @@ static void TakeIntermissionScreenshot() {
 		const char *n1 = e1 ? e1->client->sess.netName : "player1";
 		const char *n2 = e2 ? e2->client->sess.netName : "player2";
 
-		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapname, timestamp);
+		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapName, timestamp);
 	} else {
 		gentity_t *ent = &g_entities[1];
 		const char *name = (ent->client->followTarget)
@@ -1338,7 +1350,7 @@ static void TakeIntermissionScreenshot() {
 
 		filename = G_Fmt("screenshot {}-{}-{}-{}\n",
 			GametypeIndexToString((gametype_t)g_gametype->integer).c_str(),
-			name, level.mapname, timestamp);
+			name, level.mapName, timestamp);
 	}
 	
 	gi.Com_PrintFmt("[INTERMISSION]: Taking screenshot '{}'", filename.c_str());
@@ -1422,162 +1434,55 @@ void ExitLevel() {
 	level.changeMap = nullptr;
 }
 
-/*
-=============
-MapSelectorFinalize
-=============
-*/
-inline void CloseActiveMenu(gentity_t *ent);
-static void MapSelectorFinalize() {
-	if (level.mapSelectorVoteStartTime == 0_sec)
-		return;
-
-	int voteCounts[3] = { 0 };
-
-	// close vote menu for all players
-	for (auto ec : active_players()) {
-		CloseActiveMenu(ec);
-		ec->client->showScores = false;
-		ec->client->showInventory = false;
-	}
-
-	// Tally votes
-	for (int i = 0; i < MAX_CLIENTS; ++i) {
-		int vote = level.mapSelectorVoteByClient[i];
-		if (vote >= 0 && vote < 3 && level.mapSelectorVoteCandidates[vote]) {
-			voteCounts[vote]++;
-		}
-	}
-
-	// Find max votes
-	int maxVotes = 0;
-	for (int i = 0; i < 3; ++i) {
-		if (voteCounts[i] > maxVotes)
-			maxVotes = voteCounts[i];
-	}
-
-	// Collect all tied top-voted indices
-	std::vector<int> tiedIndices;
-	for (int i = 0; i < 3; ++i) {
-		if (level.mapSelectorVoteCandidates[i] && voteCounts[i] == maxVotes) {
-			tiedIndices.push_back(i);
-		}
-	}
-
-	int selectedIndex = -1;
-
-	if (!tiedIndices.empty() && maxVotes > 0) {
-		selectedIndex = tiedIndices[rand() % tiedIndices.size()];
-	} else {
-		// No votes cast, randomly select from available candidates
-		std::vector<int> available;
-		for (int i = 0; i < 3; ++i) {
-			if (level.mapSelectorVoteCandidates[i])
-				available.push_back(i);
-		}
-		if (!available.empty())
-			selectedIndex = available[rand() % available.size()];
-	}
-
-	if (selectedIndex >= 0 && level.mapSelectorVoteCandidates[selectedIndex]) {
-		const MapEntry *selected = level.mapSelectorVoteCandidates[selectedIndex];
-		level.changeMap = selected->filename.c_str();
-		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
-			selected->filename.c_str(),
-			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
-		AnnouncerSound(world, "vote_passed");
-	} else {
-		// Fallback: use auto-select
-		auto fallback = AutoSelectNextMap();
-		if (fallback) {
-			level.changeMap = fallback->filename.c_str();
-			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
-				fallback->filename.c_str(),
-				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
-		} else {
-			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
-		}
-		AnnouncerSound(world, "vote_failed");
-	}
-
-	level.mapSelectorVoteStartTime = 0_sec;
-	level.intermission.exit = true;
-}
-
-/*
-===========================
-MapSelectorBegin
-===========================
-*/
-void MapSelectorBegin() {
-	level.matchSelectorTried = true;
-
-	// Skip if MyMap queue has entries
-	if (!game.mapSystem.playQueue.empty())
-		return;
-
-	// Only proceed if map selector is enabled
-	if (!g_maps_selector || !g_maps_selector->integer)
-		return;
-
-	// Select up to 3 candidate maps
-	auto candidates = MapSelectorVoteCandidates();
-	if (candidates.empty())
-		return;
-
-	// Initialize vote state
-	memset(level.mapSelectorVoteCandidates, 0, sizeof(level.mapSelectorVoteCandidates));
-	memset(level.mapSelectorVoteCounts, 0, sizeof(level.mapSelectorVoteCounts));
-	std::fill_n(level.mapSelectorVoteByClient, MAX_CLIENTS, -1);
-
-	for (size_t i = 0; i < candidates.size() && i < 3; ++i)
-		level.mapSelectorVoteCandidates[i] = candidates[i];
-
-	level.mapSelectorVoteStartTime = level.time;
-
-	// Open vote menu for all players
-	for (auto ec : active_players()) {
-		ec->client->showInventory = false;
-		ec->client->showHelp = false;
-		ec->client->showScores = false;
-		//G_Menu_MapSelector_Open(ec);
-	}
-
-	AnnouncerSound(world, "vote_now");
-	gi.Broadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have 5 seconds to vote.\n");
-}
-
 
 /*
 =============
-PreExitLevel
+PostIntermission
 
-Additional end of match goodness before actually changing level
+Handles the end-of-match vote and map transition sequence.
 =============
 */
-static void PreExitLevel() {
+void MapSelectorBegin();
+void MapSelectorFinalize();
+
+/*
+=============
+PostIntermission
+=============
+*/
+static void PostIntermission() {
+	auto &ms = level.mapSelector;
+
+	if (!deathmatch->integer) {
+		ExitLevel();
+		return;
+	}
+
+	// Skip voting if play queue exists
 	if (!game.mapSystem.playQueue.empty()) {
 		ExitLevel();
 		return;
 	}
-	if (!level.matchSelectorTried) {
-		MapSelectorBegin();
+
+	// Run voting ONCE
+	if (ms.voteStartTime == 0_sec) {
+		MapSelectorBegin(); // must set voteStartTime inside
 		return;
 	}
 
-	//for (auto ec : active_players())
-	//	UpdateMapSelectorProgressBar(ec);
-
-	if (level.time < level.mapSelectorVoteStartTime + 5_sec)
+	// Wait for vote time to elapse
+	if (level.time < ms.voteStartTime + 5_sec)
 		return;
 
-	if (!level.preExitDelay) {
+	// Finalize vote
+	if (level.intermission.postIntermissionTime == 0_sec) {
 		MapSelectorFinalize();
-		level.preExitDelay = level.time;
+		level.intermission.postIntermissionTime = level.time;
 		return;
 	}
 
-	if (level.time < level.preExitDelay + 2_sec)
+	// Delay before exit
+	if (level.time < level.intermission.postIntermissionTime + 2_sec)
 		return;
 
 	ExitLevel();
@@ -1679,6 +1584,93 @@ static bool G_AnyDeadPlayersWithoutLives() {
 	return false;
 }
 
+static void HostAutoScreenshotsRun() {
+	//gi.Com_Print("==== HostAutoScreenshotsRun ====\n");
+	if (!g_autoScreenshotTool->integer )
+		return;
+	
+	//gi.Com_Print("HostAutoScreenshotsRun: Auto screenshots enabled\n");
+
+	if (!host || !host->client)	// || !host->client->sess.initialised)
+		return;
+	
+	// let everything initialize first
+	if (level.time < 300_ms)
+		return;
+
+	//gi.Com_Print("HostAutoScreenshotsRun: Starting auto screenshots\n");
+
+	if (!level.autoScreenshotTool_initialised) {
+		host->client->initial_menu_shown = true;
+		host->client->showScores = false;
+		host->client->showInventory = false;
+		host->client->menu = nullptr; // close any open menu
+		level.autoScreenshotTool_initialised = true;
+	}
+
+	// time to take screenshot
+	if (level.autoScreenshotTool_delayTime) {
+		
+		if (level.time >= level.autoScreenshotTool_delayTime) {
+			host->client->initial_menu_shown = true;
+			host->client->showScores = false;
+			host->client->showInventory = false;
+			host->client->menu = nullptr; // close any open menu
+			//gi.Com_PrintFmt("HostAutoScreenshotsRun: Taking screenshots for {}\n", host->client->sess.netName);
+
+			std::string_view levelName(level.mapName, strnlen(level.mapName, sizeof(level.mapName)));
+
+			// sanitize level name
+			if (levelName.find_first_of("/\\") != std::string_view::npos) {
+				gi.Com_Print("HostAutoScreenshotsRun: Invalid map name for screenshot, skipping.\n");
+				return;
+			}
+			gi.AddCommandString(G_Fmt("screenshotpng {}_{}\n", levelName.data(), level.autoScreenshotTool_index).data());
+			level.autoScreenshotTool_delayTime = 0_sec;
+			level.autoScreenshotTool_index++;
+		} else {
+			//gi.Com_PrintFmt("HostAutoScreenshotsRun: Waiting for next screenshot in {} seconds\n",
+			//	(level.autoScreenshotTool_delayTime - level.time).seconds<int>());
+			return; // wait for next screenshot
+		}
+	}
+	
+	switch (level.autoScreenshotTool_index) {
+	case 0:
+		//gi.Com_Print("HostAutoScreenshotsRun: Moving host to intermission\n");
+		MoveClientToIntermission(host);
+		host->client->initial_menu_shown = true;
+		host->client->showScores = false;
+		host->client->showInventory = false;
+		host->client->menu = nullptr; // close any open menu
+		level.autoScreenshotTool_delayTime = level.time + 300_ms;
+		break;
+	case 1:
+	case 2:
+	case 3:
+	case 4:
+	case 5:
+		host->client->initial_menu_shown = true;
+		host->client->showScores = false;
+		host->client->showInventory = false;
+		host->client->menu = nullptr; // close any open menu
+		if (level.spawnSpots[level.autoScreenshotTool_index]) {
+			TeleportPlayer(host, level.spawnSpots[level.autoScreenshotTool_index]->s.origin, level.spawnSpots[level.autoScreenshotTool_index]->s.angles);
+			level.autoScreenshotTool_delayTime = level.time + 300_ms;
+		} else {
+			Match_End();
+			level.intermissionTime = level.time + 30_sec;
+			ExitLevel();
+		}
+		break;
+	case 6:
+		Match_End();
+		level.intermissionTime = level.time + 30_sec;
+		ExitLevel();
+		break;
+	}
+}
+
 /*
 ================
 G_RunFrame
@@ -1727,7 +1719,7 @@ static inline void G_RunFrame_(bool main_loop) {
 				float alpha = clamp(1.0f - (level.intermission.fadeTime - level.time - 300_ms).seconds(), 0.f, 1.f);
 
 				for (auto player : active_clients())
-					player->client->ps.screen_blend = { 0, 0, 0, alpha };
+					player->client->ps.screenBlend = { 0, 0, 0, alpha };
 			} else {
 				level.intermission.fade = level.intermission.fading = false;
 				ExitLevel();
@@ -1740,8 +1732,13 @@ static inline void G_RunFrame_(bool main_loop) {
 
 		// exit intermissions
 
-		if (level.intermission.preExit) {
-			PreExitLevel();
+		if (level.intermission.postIntermission) {
+			PostIntermission();
+			ClientEndServerFrames();
+			return;
+		}
+
+		if (level.intermission.exit) {
 			level.inFrame = false;
 			return;
 		}
@@ -1749,7 +1746,7 @@ static inline void G_RunFrame_(bool main_loop) {
 
 	if (!deathmatch->integer) {
 		// reload the map start save if restart time is set (all players are dead)
-		if (level.coopLevelRestartTime > 0_ms && level.time > level.coopLevelRestartTime) {
+		if (level.campaign.coopLevelRestartTime > 0_ms && level.time > level.campaign.coopLevelRestartTime) {
 			ClientEndServerFrames();
 			gi.AddCommandString("restart_level\n");
 		}
@@ -1851,6 +1848,8 @@ static inline void G_RunFrame_(bool main_loop) {
 	// build the playerstate_t structures for all players
 	ClientEndServerFrames();
 
+	HostAutoScreenshotsRun();
+
 	// [Paril-KEX] if not in intermission and player 1 is loaded in
 	// the game as an entity, increase timer on current entry
 	if (level.entry && !level.intermissionTime && g_entities[1].inUse && g_entities[1].client->pers.connected)
@@ -1889,8 +1888,8 @@ void G_RunFrame(bool main_loop) {
 	if (G_AnyClientsSpawned() && !level.intermissionTime) {
 		constexpr gtime_t report_time = 45_sec;
 
-		if (level.time - level.next_match_report > report_time) {
-			level.next_match_report = level.time + report_time;
+		if (level.time - level.campaign.next_match_report > report_time) {
+			level.campaign.next_match_report = level.time + report_time;
 			ReportMatchDetails(false);
 		}
 	}

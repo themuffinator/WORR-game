@@ -914,8 +914,8 @@ void SP_monster_turret(gentity_t *self) {
 		turret_wall_spawn(self);
 		if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT)) {
 			if (g_debug_monster_kills->integer)
-				level.monstersRegistered[level.totalMonsters] = self;
-			level.totalMonsters++;
+				level.campaign.monstersRegistered[level.campaign.totalMonsters] = self;
+			level.campaign.totalMonsters++;
 		}
 	} else {
 		stationarymonster_start(self);

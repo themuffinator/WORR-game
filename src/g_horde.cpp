@@ -205,7 +205,7 @@ void Horde_RunSpawning() {
 	if (!warmup && level.roundState != RoundState::ROUND_IN_PROGRESS)
 		return;
 
-	if (warmup && (level.totalMonsters - level.killedMonsters >= 30))
+	if (warmup && (level.campaign.totalMonsters - level.campaign.killedMonsters >= 30))
 		return;
 
 	if (level.horde_all_spawned)

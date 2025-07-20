@@ -416,7 +416,7 @@ void SP_trigger_deathcount(gentity_t *ent) {
 		ent->count = 10;
 	}
 
-	int kills = deathmatch->integer ? level.match.totalDeaths : level.killedMonsters;
+	int kills = deathmatch->integer ? level.match.totalDeaths : level.campaign.killedMonsters;
 
 	if (!kills)
 		return;
@@ -448,7 +448,7 @@ void SP_trigger_no_monsters(gentity_t *ent) {
 		return;
 	}
 	
-	if (level.killedMonsters < level.totalMonsters)
+	if (level.campaign.killedMonsters < level.campaign.totalMonsters)
 		return;
 	
 	UseTargets(ent, ent);
@@ -471,7 +471,7 @@ void SP_trigger_monsters(gentity_t *ent) {
 		return;
 	}
 	
-	if (level.killedMonsters >= level.totalMonsters)
+	if (level.campaign.killedMonsters >= level.campaign.totalMonsters)
 		return;
 	
 	UseTargets(ent, ent);
@@ -1375,7 +1375,7 @@ static TOUCH(trigger_teleport_touch) (gentity_t *self, gentity_t *other, const t
 		// set angles
 		other->client->ps.pmove.delta_angles = dest->s.angles - other->client->resp.cmdAngles;
 
-		other->client->ps.viewangles = {};
+		other->client->ps.viewAngles = {};
 		other->client->vAngle = {};
 	}
 
@@ -1467,7 +1467,7 @@ static TOUCH(old_teleporter_touch) (gentity_t *self, gentity_t *other, const tra
 	other->s.angles[PITCH] = 0;
 	other->s.angles[YAW] = dest->s.angles[YAW];
 	other->s.angles[ROLL] = 0;
-	other->client->ps.viewangles = dest->s.angles;
+	other->client->ps.viewAngles = dest->s.angles;
 	other->client->vAngle = dest->s.angles;
 
 	// give a little forward velocity
@@ -1549,8 +1549,8 @@ static USE(trigger_disguise_use) (gentity_t *self, gentity_t *other, gentity_t *
 }
 
 void SP_trigger_disguise(gentity_t *self) {
-	if (!level.disguiseIcon)
-		level.disguiseIcon = gi.imageindex("i_disguise");
+	if (!level.campaign.disguiseIcon)
+		level.campaign.disguiseIcon = gi.imageindex("i_disguise");
 
 	if (self->spawnflags.has(SPAWNFLAG_DISGUISE_START_ON))
 		self->solid = SOLID_TRIGGER;

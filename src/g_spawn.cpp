@@ -458,13 +458,13 @@ static const std::initializer_list<spawn_t> spawns = {
 
 
 static void SpawnEnt_MapFixes(gentity_t *ent) {
-	if (!Q_strcasecmp(level.mapname, "bunk1")) {
+	if (!Q_strcasecmp(level.mapName, "bunk1")) {
 		if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 			ent->wait = -1;
 		}
 		return;
 	}
-	if (!Q_strcasecmp(level.mapname, "q64/dm7")) {
+	if (!Q_strcasecmp(level.mapName, "q64/dm7")) {
 		if (ent->s.origin == vec3_t{ 1056, 1056, 40 } && !Q_strcasecmp(ent->className, "info_player_deathmatch")) {
 			// silly location, move this spawn point back away from the lava trap
 			ent->s.origin = vec3_t{ 1312, 928, 40 };
@@ -472,19 +472,19 @@ static void SpawnEnt_MapFixes(gentity_t *ent) {
 		return;
 	}
 	if (!Q_strcasecmp(ent->className, "item_health_mega")) {
-		if (!Q_strcasecmp(level.mapname, "q2dm1")) {
+		if (!Q_strcasecmp(level.mapName, "q2dm1")) {
 			if (ent->s.origin == vec3_t{ 480, 1376, 912 }) {
 				ent->s.angles = { 0, -45, 0 };
 			}
 			return;
 		}
-		if (!Q_strcasecmp(level.mapname, "q2dm8")) {
+		if (!Q_strcasecmp(level.mapName, "q2dm8")) {
 			if (ent->s.origin == vec3_t{ -832, 192, -232 }) {
 				ent->s.angles = { 0, 90, 0 };
 			}
 			return;
 		}
-		if (!Q_strcasecmp(level.mapname, "fact3")) {
+		if (!Q_strcasecmp(level.mapName, "fact3")) {
 			if (ent->s.origin == vec3_t{ -80, 568, 144 }) {
 				ent->s.angles = { 0, -90, 0 };
 			}
@@ -1636,7 +1636,7 @@ MapPostProcess
 ==============
 */
 static void MapPostProcess(gentity_t *ent) {
-	if (!strcmp(level.mapname, "bunk1") && !strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
+	if (!strcmp(level.mapName, "bunk1") && !strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 		ent->wait = -1;
 	}
 }
@@ -1646,13 +1646,13 @@ static void MapPostProcess(gentity_t *ent) {
 TryLoadEntityOverride
 ==============
 */
-static const char *TryLoadEntityOverride(const char *mapname, const char *default_entities) {
+static const char *TryLoadEntityOverride(const char *mapName, const char *default_entities) {
 	std::string overridePath = std::string(G_Fmt("baseq2/{}/{}.ent",
 		g_entityOverrideDir->string[0] ? g_entityOverrideDir->string : "maps",
-		mapname).data());
+		mapName).data());
 
 	// Try to load override
-	if (g_entityOverrideLoad->integer && !strstr(mapname, ".dm2")) {
+	if (g_entityOverrideLoad->integer && !strstr(mapName, ".dm2")) {
 		std::ifstream in(overridePath, std::ios::binary | std::ios::ate);
 		if (in) {
 			std::streamsize size = in.tellg();
@@ -1676,7 +1676,7 @@ static const char *TryLoadEntityOverride(const char *mapname, const char *defaul
 	}
 
 	// Save override if not present
-	if (g_entityOverrideSave->integer && !strstr(mapname, ".dm2")) {
+	if (g_entityOverrideSave->integer && !strstr(mapName, ".dm2")) {
 		std::ifstream test(overridePath);
 		if (!test) {
 			std::ofstream out(overridePath, std::ios::binary);
@@ -1692,68 +1692,77 @@ static const char *TryLoadEntityOverride(const char *mapname, const char *defaul
 }
 
 /*
-==============
+===============
 SpawnEntities
 
 Creates a server's entity / program execution context by
 parsing textual entity definitions out of an ent file.
-==============
+===============
 */
-void SpawnEntities(const char *mapname, const char *entities, const char *spawnpoint) {
-	entities = TryLoadEntityOverride(mapname, entities);
+void SpawnEntities(const char *mapName, const char *entities, const char *spawnPoint) {
+	entities = TryLoadEntityOverride(mapName, entities);
+	if (!entities || !*entities) {
+		gi.Com_ErrorFmt("{}: Empty or null entity string.\n", __FUNCTION__);
+	}
 
+	// Clamp skill level to valid range [0, 4]
+	const int skillLevel = std::clamp(skill->integer, 0, 4);
+	if (skill->integer != skillLevel)
+		gi.cvar_forceset("skill", G_Fmt("{}", skillLevel).data());
+
+	// Clear cached asset indices
 	cached_soundindex::clear_all();
 	cached_modelindex::clear_all();
 	cached_imageindex::clear_all();
 
-	int skill_level = clamp(skill->integer, 0, 4);
-	if (skill->integer != skill_level)
-		gi.cvar_forceset("skill", G_Fmt("{}", skill_level).data());
-
+	// Reset all persistent game state
 	SaveClientData();
 	gi.FreeTags(TAG_LEVEL);
+	std::memset(&level, 0, sizeof(level));
+	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxentities);
 
-	memset(&level, 0, sizeof(level));
-	memset(g_entities, 0, game.maxentities * sizeof(g_entities[0]));
 	globals.server_flags &= SERVER_FLAG_LOADING;
 
-	Q_strlcpy(level.mapname, mapname, sizeof(level.mapname));
-	if (!game.autosaved)
-		Q_strlcpy(game.spawnpoint, spawnpoint, sizeof(game.spawnpoint));
+	Q_strlcpy(level.mapName, mapName, sizeof(level.mapName));
+	if (!game.autosaved) {
+		Q_strlcpy(game.spawnPoint, spawnPoint, sizeof(game.spawnPoint));
+	}
 
-	level.isN64 = strncmp(level.mapname, "q64/", 4) == 0;
-	level.coopScalePlayers = 0;
-	level.coopHealthScaling = clamp(g_coop_health_scaling->value, 0.f, 1.f);
+	std::string_view mapView(level.mapName, strnlen(level.mapName, sizeof(level.mapName)));
+	level.isN64 = mapView.starts_with("q64/");
+	level.campaign.coopScalePlayers = 0;
+	level.campaign.coopHealthScaling = std::clamp(g_coop_health_scaling->value, 0.0f, 1.0f);
 
-	for (size_t i = 0; i < game.maxclients; i++) {
-		g_entities[i + 1].client = game.clients + i;
+	// Initialize all client structs
+	for (size_t i = 0; i < game.maxclients; ++i) {
+		g_entities[i + 1].client = &game.clients[i];
 		game.clients[i].pers.connected = false;
 		game.clients[i].pers.spawned = false;
 	}
 
 	InitBodyQue();
 
-	gentity_t *ent = nullptr;
-	int inhibit = 0;
-	const char *com_token;
+	int inhibited = 0;
+	bool firstEntity = true;
 
 	while (true) {
-		com_token = COM_Parse(&entities);
-		if (!entities || com_token[0] == '\0')
+		const char *token = COM_Parse(&entities);
+		if (!entities || token[0] == '\0')
 			break;
-		if (com_token[0] != '{')
-			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", __FUNCTION__, com_token);
 
-		ent = ent ? Spawn() : g_entities;
+		if (token[0] != '{') {
+			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", __FUNCTION__, token);
+		}
+
+		gentity_t *ent = firstEntity ? g_entities : Spawn();
+		firstEntity = false;
+
 		entities = ED_ParseEntity(entities, ent);
-
-		if (!ent)
-			gi.Com_ErrorFmt("{}: Invalid or empty entity string.\n", __FUNCTION__);
 
 		if (ent != g_entities) {
 			if (G_InhibitEntity(ent)) {
 				FreeEntity(ent);
-				inhibit++;
+				++inhibited;
 				continue;
 			}
 			ent->spawnflags &= ~SPAWNFLAG_EDITOR_MASK;
@@ -1765,9 +1774,11 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 		ent->s.renderfx |= RF_IR_VISIBLE;
 	}
 
-	if (inhibit && g_verbose->integer)
-		gi.Com_PrintFmt("{} entities inhibited.\n", inhibit);
+	if (inhibited > 0 && g_verbose->integer) {
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+	}
 
+	// Level post-processing and setup
 	PrecacheStartItems();
 	PrecacheInventoryItems();
 	G_FindTeams();
@@ -1775,9 +1786,9 @@ void SpawnEntities(const char *mapname, const char *entities, const char *spawnp
 	Tech_SetupSpawn();
 
 	if (deathmatch->integer) {
-		if (g_dm_random_items->integer)
+		if (g_dm_random_items->integer) {
 			PrecacheForRandomRespawn();
-
+		}
 		game.item_inhibit_pu = 0;
 		game.item_inhibit_pa = 0;
 		game.item_inhibit_ht = 0;
@@ -1857,7 +1868,7 @@ static void AddCoopStatus(statusbar_t &sb) {
 		int chars = n > 99 ? 3 : n > 9 ? 2 : 1;
 		sb.ifstat(STAT_ROUND_NUMBER).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_ROUND_NUMBER).xr(0).yt(y += step).loc_rstring("Wave").endifstat();
 
-		n = level.totalMonsters - level.killedMonsters;
+		n = level.campaign.totalMonsters - level.campaign.killedMonsters;
 		chars = n > 99 ? 3 : n > 9 ? 2 : 1;
 		sb.ifstat(STAT_MONSTER_COUNT).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_MONSTER_COUNT).xr(0).yt(y += step).loc_rstring("Monsters").endifstat();
 	}
@@ -2005,6 +2016,89 @@ static int32_t PickRandomArena() {
 	return (irandom(level.arenaTotal) + 1); // irandom is 0-based
 }
 
+/*
+==============
+AssignMapLongName
+
+Sanitizes worldspawn "message" for level.longName.
+Keeps printable ASCII (including space), skips quotes and slashes,
+replaces junk with '-', stops at first linebreak/tab after starting.
+==============
+*/
+static void AssignMapLongName(const gentity_t *ent) {
+	const char *fallback = level.mapName;
+	const char *raw = ent->message;
+
+	if (!raw || !raw[0]) {
+		Q_strlcpy(level.longName, fallback, sizeof(level.longName));
+		gi.configstring(CS_NAME, level.longName);
+		return;
+	}
+
+	std::string clean;
+	bool started = false;
+
+	for (const char *s = raw; *s; ++s) {
+		unsigned char c = static_cast<unsigned char>(*s);
+
+		// Skip leading junk before we've started
+		if (!started && (c < 32 || c >= 127))
+			continue;
+
+		// After starting, stop at linebreak/tab
+		if (started && (c == '\n' || c == '\r' || c == '\t'))
+			break;
+
+		// Skip quotes and backslashes
+		if (c == '"' || c == '\\')
+			continue;
+
+		// Replace anything outside printable ASCII with '-'
+		if (c < 32 || c >= 127) {
+			clean += '-';
+			started = true;
+			continue;
+		}
+
+		// Valid printable ASCII (includes space)
+		clean += static_cast<char>(c);
+		started = true;
+	}
+
+	// Collapse multiple spaces
+	std::string collapsed;
+	bool inSpace = false;
+	for (char c : clean) {
+		if (c == ' ') {
+			if (!inSpace) {
+				collapsed += c;
+				inSpace = true;
+			}
+		} else {
+			collapsed += c;
+			inSpace = false;
+		}
+	}
+
+	// Trim leading/trailing space
+	size_t begin = collapsed.find_first_not_of(' ');
+	size_t end = collapsed.find_last_not_of(' ');
+
+	const char *src = fallback;
+	if (begin != std::string::npos && end != std::string::npos) {
+		std::string final = collapsed.substr(begin, end - begin + 1);
+		if (!final.empty()) {
+			Q_strlcpy(level.longName, final.c_str(), sizeof(level.longName));
+			gi.configstring(CS_NAME, level.longName);
+			return;
+		}
+	}
+
+	// Fallback
+	Q_strlcpy(level.longName, fallback, sizeof(level.longName));
+	gi.configstring(CS_NAME, level.longName);
+}
+
 /*QUAKED worldspawn (0 0 0) ?
 
 Only used for the world.
@@ -2036,7 +2130,7 @@ void SP_worldspawn(gentity_t *ent) {
 	ent->gravity = 1.0f;
 
 	if (st.hub_map) {
-		level.hub_map = true;
+		level.campaign.hub_map = true;
 
 		// clear helps
 		game.help1changed = game.help2changed = 0;
@@ -2069,11 +2163,7 @@ void SP_worldspawn(gentity_t *ent) {
 
 	// make some data visible to the server
 
-	if (ent->message && ent->message[0]) {
-		gi.configstring(CS_NAME, ent->message);
-		Q_strlcpy(level.levelName, ent->message, sizeof(level.levelName));
-	} else
-		Q_strlcpy(level.levelName, level.mapname, sizeof(level.levelName));
+	AssignMapLongName(ent);
 
 	if (st.author && st.author[0])
 		Q_strlcpy(level.author, st.author, sizeof(level.author));
@@ -2124,7 +2214,7 @@ void SP_worldspawn(gentity_t *ent) {
 
 	// [Paril-KEX]
 	if (st.goals) {
-		level.goals = st.goals;
+		level.campaign.goals = st.goals;
 		game.help1changed++;
 	}
 

@@ -756,6 +756,6 @@ void MakronToss(gentity_t *self) {
 
 	// [Paril-KEX] set health bar over to Makron when we throw him out
 	for (size_t i = 0; i < 2; i++)
-		if (level.health_bar_entities[i] && level.health_bar_entities[i]->enemy == self)
-			level.health_bar_entities[i]->enemy = ent;
+		if (level.campaign.health_bar_entities[i] && level.campaign.health_bar_entities[i]->enemy == self)
+			level.campaign.health_bar_entities[i]->enemy = ent;
 }

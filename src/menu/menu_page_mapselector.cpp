@@ -1,46 +1,105 @@
 #include "../g_local.h"
 
-static void OpenMapSelectorMenu(gentity_t *ent) {
-	if (!ent || !ent->client) return;
+void MapSelector_CastVote(gentity_t *ent, int voteIndex);
 
-	MenuSystem::Open(ent, MenuBuilder()
-		.add(hostname->string, MenuAlign::Center)
-		.spacer().spacer().spacer().spacer().spacer()
-		.add("Vote for the next arena:", MenuAlign::Center)
-		.spacer()
-		.add("", MenuAlign::Center)
-		.add("", MenuAlign::Center)
-		.add("", MenuAlign::Center)
-		.spacer().spacer().spacer().spacer().spacer().spacer().spacer()
-		.add("", MenuAlign::Left)
-		.update([](gentity_t *ent, const Menu &m) {
-			auto &menu = const_cast<Menu &>(m);
-			const int totalBars = 24;
-			float elapsed = (level.time - level.mapSelectorVoteStartTime).seconds();
-			elapsed = std::clamp(elapsed, 0.0f, 5.0f);
+/*
+========================
+OpenMapSelectorMenu
+========================
+*/
+void OpenMapSelectorMenu(gentity_t *ent) {
+	if (!ent || !ent->client)
+		return;
 
-			int filled = static_cast<int>((elapsed / 10.0f) * totalBars);
-			int empty = totalBars - filled;
-			std::string bar = std::string(empty, '>');
+	constexpr int NUM_CANDIDATES = 3;
+	constexpr int TOTAL_BAR_SEGMENTS = 28;	//24;
+	constexpr gtime_t VOTE_DURATION = 5_sec;
 
-			menu.entries[0].text = hostname->string;
-			menu.entries[6].text = "Vote for the next arena:";
+	auto &ms = level.mapSelector;
+	MenuBuilder builder;
 
-			for (int i = 0; i < 3; ++i) {
-				int index = 8 + i;
-				auto *candidate = level.mapSelectorVoteCandidates[i];
+	// --- Initial spacing ---
+	builder.spacer().spacer();
+
+	// --- Header ---
+	const int headerIndex = builder.size();
+	builder.add("Vote for the next arena:", MenuAlign::Center);
+	builder.spacer();
+
+	// --- Map vote entries ---
+	std::array<int, NUM_CANDIDATES> voteEntryIndices{};
+	for (int i = 0; i < NUM_CANDIDATES; ++i) {
+		voteEntryIndices[i] = builder.size();
+		builder.add("(loading...)", MenuAlign::Center, [i](gentity_t *ent, Menu &menu) {
+			MapSelector_CastVote(ent, i);
+			});
+	}
+
+	builder.spacer().spacer();
+
+	// --- Acknowledgement lines ---
+	const int ackIndex = builder.size();
+	builder.add("", MenuAlign::Center);
+	builder.add("", MenuAlign::Center);
+
+	// --- Progress bar line ---
+	const int barIndex = builder.size();
+	builder.add("", MenuAlign::Center);
+
+	// --- Update logic ---
+	builder.update([=](gentity_t *ent, const Menu &m) {
+		auto &menu = const_cast<Menu &>(m);
+		const int clientNum = ent->s.number;
+		const int vote = ms.votes[clientNum];
+		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && ms.candidates[vote]);
+
+		if (!hasVoted) {
+			menu.entries[headerIndex].text = "Vote for the next arena:";
+
+			for (int i = 0; i < NUM_CANDIDATES; ++i) {
+				const int idx = voteEntryIndices[i];
+				auto *candidate = ms.candidates[i];
+
 				if (candidate) {
-					menu.entries[index] = VoteEntry(
-						candidate->longName.empty() ? candidate->filename : candidate->longName,
-						i
-					);
+					menu.entries[idx].text = candidate->longName.empty()
+						? candidate->filename
+						: candidate->longName;
+
+					menu.entries[idx].onSelect = [i](gentity_t *ent, Menu &menu) {
+						MapSelector_CastVote(ent, i);
+						};
+					menu.entries[idx].align = MenuAlign::Left;
 				} else {
-					menu.entries[index].text.clear();
-					menu.entries[index].onSelect = nullptr;
+					menu.entries[idx].text.clear();
+					menu.entries[idx].onSelect = nullptr;
 				}
 			}
 
-			menu.entries[17].text = bar;
-			})
-		.build());
+			menu.entries[ackIndex].text.clear();
+		} else {
+			// Hide vote options, show result
+			menu.entries[headerIndex].text.clear();
+			for (int idx : voteEntryIndices) {
+				menu.entries[idx].text.clear();
+				menu.entries[idx].onSelect = nullptr;
+			}
+
+			const MapEntry *voted = ms.candidates[vote];
+			const std::string name = voted->longName.empty() ? voted->filename : voted->longName;
+			menu.entries[ackIndex].text = "Vote cast:";
+			menu.entries[ackIndex+1].text = G_Fmt("{}", name);
+		}
+
+		// --- Progress bar ---
+		float elapsed = (level.time - ms.voteStartTime).seconds();
+		elapsed = std::clamp(elapsed, 0.0f, VOTE_DURATION.seconds());
+
+		int filled = static_cast<int>((elapsed / VOTE_DURATION.seconds()) * TOTAL_BAR_SEGMENTS);
+		int empty = TOTAL_BAR_SEGMENTS - filled;
+
+		menu.entries[barIndex].text = std::string(filled, '=') + std::string(empty, ' ');
+		menu.entries[barIndex].align = MenuAlign::Left;
+		});
+
+	MenuSystem::Open(ent, builder.build());
 }

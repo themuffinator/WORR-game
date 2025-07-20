@@ -175,8 +175,8 @@ void PlayerNoise(gentity_t *who, const vec3_t &where, player_noise_t type) {
 
 	if (who->flags & FL_DISGUISED) {
 		if (type == PNOISE_WEAPON) {
-			level.disguiseViolator = who;
-			level.disguiseViolationTime = level.time + 500_ms;
+			level.campaign.disguiseViolator = who;
+			level.campaign.disguiseViolationTime = level.time + 500_ms;
 		}
 		return;
 	}
@@ -380,16 +380,16 @@ void Change_Weapon(gentity_t *ent) {
 
 	if (!client->pers.weapon) {
 		// No weapon: hide model
-		client->ps.gunindex = 0;
-		client->ps.gunskin = 0;
+		client->ps.gunIndex = 0;
+		client->ps.gunSkin = 0;
 		return;
 	}
 
 	// Begin weapon animation
 	client->weaponState = WEAPON_ACTIVATING;
 	client->ps.gunframe = 0;
-	client->ps.gunindex = gi.modelindex(client->pers.weapon->view_model);
-	client->ps.gunskin = 0;
+	client->ps.gunIndex = gi.modelindex(client->pers.weapon->view_model);
+	client->ps.gunSkin = 0;
 	client->weaponSound = 0;
 
 	// Apply transition animation
@@ -3011,7 +3011,7 @@ static void Weapon_PlasmaBeam_Fire(gentity_t *ent) {
 	if (!firing || !hasAmmo) {
 		ent->client->ps.gunframe = 13;
 		ent->client->weaponSound = 0;
-		ent->client->ps.gunskin = 0;
+		ent->client->ps.gunSkin = 0;
 
 		if (firing && !hasAmmo)
 			NoAmmoWeaponChange(ent, true);
@@ -3029,7 +3029,7 @@ static void Weapon_PlasmaBeam_Fire(gentity_t *ent) {
 
 	// Set weapon sound and visual effects
 	ent->client->weaponSound = gi.soundindex("weapons/tesla.wav");
-	ent->client->ps.gunskin = 1;
+	ent->client->ps.gunSkin = 1;
 
 	// Determine damage and kick
 	int damage = 15;

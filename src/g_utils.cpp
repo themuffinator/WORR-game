@@ -403,7 +403,7 @@ THINK(FreeEntity) (gentity_t *ed) -> void {
 
 	if ((ed - g_entities) <= (ptrdiff_t)(game.maxclients + BODY_QUEUE_SIZE)) {
 #ifdef _DEBUG
-		gi.Com_Print("Tried to free special entity.\n");
+		gi.Com_PrintFmt("Tried to free special entity: {}.\n", *ed);
 #endif
 		return;
 	}
@@ -1164,7 +1164,7 @@ void TeleportPlayer(gentity_t *player, vec3_t origin, vec3_t angles) {
 	player->client->ps.pmove.delta_angles = angles - player->client->resp.cmdAngles;
 
 	player->s.angles = {};
-	player->client->ps.viewangles = {};
+	player->client->ps.viewAngles = {};
 	player->client->vAngle = {};
 	AngleVectors(player->client->vAngle, player->client->vForward, nullptr, nullptr);
 

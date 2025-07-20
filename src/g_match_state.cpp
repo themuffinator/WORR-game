@@ -54,8 +54,8 @@ static void Monsters_KillAll() {
 			continue;
 		FreeEntity(&g_entities[i]);
 	}
-	level.totalMonsters = 0;
-	level.killedMonsters = 0;
+	level.campaign.totalMonsters = 0;
+	level.campaign.killedMonsters = 0;
 }
 
 static void Entities_ItemTeams_Reset() {
@@ -122,7 +122,9 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
 				ec->client->pers.readyStatus = false;
 				ec->moveType = MOVETYPE_NOCLIP;
 				ec->client->respawnMaxTime = level.time + FRAME_TIME_MS;
+				ec->svFlags &= ~SVF_NOCLIENT;
 				ClientSpawn(ec);
+				G_PostRespawn(ec);
 				memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
 
 				gi.linkentity(ec);
@@ -145,7 +147,8 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
 		if (!ent->inUse)
 			continue;
 
-		if (Q_strcasecmp(ent->className, "bodyque") == 0 || Q_strcasecmp(ent->className, "gib") == 0) {
+		//if (Q_strcasecmp(ent->className, "bodyque") == 0 || Q_strcasecmp(ent->className, "gib") == 0) {
+		if (Q_strcasecmp(ent->className, "gib") == 0) {
 			ent->svFlags = SVF_NOCLIENT;
 			ent->takeDamage = false;
 			ent->solid = SOLID_NOT;
@@ -255,7 +258,7 @@ static void CheckRoundTimeLimitCA() {
 
 static void CheckRoundHorde() {
 	Horde_RunSpawning();
-	if (level.horde_all_spawned && !(level.totalMonsters - level.killedMonsters)) {
+	if (level.horde_all_spawned && !(level.campaign.totalMonsters - level.campaign.killedMonsters)) {
 		gi.Broadcast_Print(PRINT_CENTER, "Monsters eliminated!\n");
 		gi.positioned_sound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundindex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
 		Round_End();
@@ -770,7 +773,7 @@ void Match_End() {
 	//for (auto ec : active_players())
 	//	ec->client->sess.playEndRealTime = now;
 	MatchStats_End();
-	SetMapLastPlayedTime(level.mapname);
+	SetMapLastPlayedTime(level.mapName);
 
 	level.matchState = MatchState::MATCH_ENDED;
 	level.matchStateTimer = 0_sec;
@@ -779,11 +782,11 @@ void Match_End() {
 
 	// stay on same level flag
 	if (match_map_sameLevel->integer) {
-		BeginIntermission(CreateTargetChangeLevel(level.mapname));
+		BeginIntermission(CreateTargetChangeLevel(level.mapName));
 		return;
 	}
 
-	if (*level.forceMap) {
+	if (level.forceMap[0]) {
 		BeginIntermission(CreateTargetChangeLevel(level.forceMap));
 		return;
 	}
@@ -821,14 +824,14 @@ void Match_End() {
 			if (!*map)
 				break;
 
-			if (Q_strcasecmp(map, level.mapname) == 0) {
+			if (Q_strcasecmp(map, level.mapName) == 0) {
 				// it's in the list, go to the next one
 				map = COM_ParseEx(&str, " ");
 				if (!*map) {
 					// end of list, go to first one
 					if (!first_map[0]) // there isn't a first one, same level
 					{
-						BeginIntermission(CreateTargetChangeLevel(level.mapname));
+						BeginIntermission(CreateTargetChangeLevel(level.mapName));
 						return;
 					} else {
 						// [Paril-KEX] re-shuffle if necessary
@@ -837,14 +840,15 @@ void Match_End() {
 
 							if (values.size() == 1) {
 								// meh
-								BeginIntermission(CreateTargetChangeLevel(level.mapname));
+								BeginIntermission(CreateTargetChangeLevel(level.mapName));
 								return;
 							}
 
 							std::shuffle(values.begin(), values.end(), mt_rand);
 
 							// if the current map is the map at the front, push it to the end
-							if (values[0] == level.mapname)
+							std::string_view mapView(level.mapName, strnlen(level.mapName, sizeof(level.mapName)));
+							if (values[0] == mapView)
 								std::swap(values[0], values[values.size() - 1]);
 
 							gi.cvar_forceset("match_maps_list", fmt::format("{}", join_strings(values, " ")).data());
@@ -876,7 +880,7 @@ void Match_End() {
 
 	if (!ent) { // the map designer didn't include a changelevel,
 		// so create a fake ent that goes back to the same level
-		BeginIntermission(CreateTargetChangeLevel(level.mapname));
+		BeginIntermission(CreateTargetChangeLevel(level.mapName));
 		return;
 	}
 
@@ -909,7 +913,7 @@ void Match_Reset() {
 	level.warmupNoticeTime = 0_sec;
 	level.matchStateTimer = 0_sec;
 	level.intermissionQueued = 0_sec;
-	level.intermission.preExit = false;
+	level.intermission.postIntermission = false;
 	level.intermissionTime = 0_sec;
 	memset(&level.match, 0, sizeof(level.match));
 
@@ -1377,73 +1381,76 @@ void CheckVote(void) {
 	level.vote.time = 0_sec;
 }
 
-
 /*
-=================
+===========================
 CheckDMIntermissionExit
 
-The level will stay at the intermission for a minimum of 5 seconds
-If all players wish to continue, the level will then exit.
-If one or more players have not acknowledged the continue, the game will
-wait 10 seconds before going on.
-
-Adapted from Quake III
-=================
+The level will stay at intermission for a minimum of 5 seconds.
+If all human players confirm readiness, the level exits immediately.
+Otherwise, it waits up to 10 seconds after the first readiness.
+===========================
 */
+static void CheckDMIntermissionExit() {
+	// Never exit in less than five seconds unless already timed
+	if (level.time < level.intermissionTime + 5_sec && (level.intermission.postIntermission || level.exitTime))
+		return;
 
-static void CheckDMIntermissionExit(void) {
-	int ready, not_ready;
+	int numReady = 0;
+	int numNotReady = 0;
+	int numHumans = 0;
 
-	// see which players are ready
-	ready = not_ready = 0;
 	for (auto ec : active_clients()) {
-		if (!ClientIsPlaying(ec->client))
+		auto *cl = ec->client;
+
+		if (!ClientIsPlaying(cl))
 			continue;
 
-		if (ec->client->sess.is_a_bot)
-			ec->client->readyToExit = true;
+		if (cl->sess.is_a_bot)
+			continue;
 
-		if (ec->client->readyToExit)
-			ready++;
+		numHumans++;
+
+		if (cl->readyToExit)
+			numReady++;
 		else
-			not_ready++;
+			numNotReady++;
 	}
 
-	// vote in progress
-	if (level.vote.time || level.vote.executeTime) {
-		ready = 0;
-		not_ready = 1;
+	// If humans are present
+	if (numHumans > 0) {
+		// If a vote is running or pending execution, defer exit
+		if (level.vote.time || level.vote.executeTime) {
+			numReady = 0;
+			numNotReady = 1;
+		}
+
+		// No one wants to exit yet
+		if (numReady == 0 && numNotReady > 0) {
+			level.readyToExit = false;
+			return;
+		}
+
+		// Everyone is ready
+		if (numNotReady == 0) {
+			//ExitLevel();
+			level.intermission.postIntermission = true;
+			return;
+		}
 	}
 
-	// never exit in less than five seconds
-	if (level.time < level.intermissionTime + 5_sec && !level.exitTime)
-		return;
-
-	// if nobody wants to go, clear timer
-	// skip this if no players present
-	if (!ready && not_ready) {
-		level.readyToExit = false;
-		return;
-	}
-
-	// if everyone wants to go, go now
-	if (!not_ready) {
-		ExitLevel();
-		return;
-	}
-
-	// the first person to ready starts the ten second timeout
-	if (ready && !level.readyToExit) {
+	// Start 10s timeout if someone is ready or there are no humans
+	if ((numReady > 0 || numHumans == 0) && !level.readyToExit) {
 		level.readyToExit = true;
 		level.exitTime = level.time + 10_sec;
 	}
 
-	// if we have waited ten seconds since at least one player
-	// wanted to exit, go ahead
+	// If the timeout hasn't expired yet, wait
 	if (level.time < level.exitTime)
 		return;
 
-	ExitLevel();
+	// Force exit
+	//ExitLevel();
+	level.intermission.postIntermission = true;
 }
 
 /*
@@ -1516,7 +1523,7 @@ void CheckDMExitRules() {
 		return;
 
 	if (GT(GT_HORDE)) {
-		if ((level.totalMonsters - level.killedMonsters) >= 100) {
+		if ((level.campaign.totalMonsters - level.campaign.killedMonsters) >= 100) {
 			gi.Broadcast_Print(PRINT_CENTER, "DEFEATED!");
 			QueueIntermission("OVERRUN BY MONSTERS!", true, false);
 			return;

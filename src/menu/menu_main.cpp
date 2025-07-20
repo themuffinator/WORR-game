@@ -57,9 +57,8 @@ void Menu::Render(gentity_t *ent) const {
 	if (onUpdate)
 		onUpdate(ent, *this);
 
-	// Bounds check to avoid accessing invalid index
-	if (current < 0 || current >= static_cast<int>(entries.size()))
-		return;
+	// Do not early-return if current is invalid; still render the menu
+	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;
 
 	statusbar_t sb;
 	sb.xv(32).yv(8).picn("inventory");
@@ -84,34 +83,35 @@ void Menu::Render(gentity_t *ent) const {
 	int y = 32;
 
 	for (const MenuEntry *entry : visibleEntries) {
-		if (entry->text.empty())
-			continue;
-
 		int x = 64;
 		const char *loc_func = "loc_string";
 
-		switch (entry->align) {
-		case MenuAlign::Center:
-			x = 0;
-			loc_func = "loc_cstring";
-			break;
-		case MenuAlign::Right:
-			x = 260;
-			loc_func = "loc_rstring";
-			break;
-		default:
-			break;
+		if (!entry->text.empty()) {
+			switch (entry->align) {
+			case MenuAlign::Center:
+				x = 0;
+				loc_func = "loc_cstring";
+				break;
+			case MenuAlign::Right:
+				x = 260;
+				loc_func = "loc_rstring";
+				break;
+			default:
+				break;
+			}
+
+			sb.yv(y).xv(x);
+
+			if (selected >= 0 && entry == &entries[selected]) {
+				sb.string2("> ");
+				sb.xv(x + 12); // indent text slightly after >
+				sb.string2(entry->text.c_str());
+			} else {
+				sb.sb << loc_func << " 1 \"" << entry->text << "\" \"" << entry->textArg << "\" ";
+			}
 		}
 
-		sb.yv(y).xv(x);
-		sb.sb << loc_func << " 1 \"" << entry->text << "\" \"" << entry->textArg << "\" ";
-
-		if (entry == &entries[current]) {
-			sb.xv(56);
-			sb.string2("> ");
-		}
-
-		y += 8;
+		y += 8;  // always advance line
 	}
 
 	if (scrolledDown) {

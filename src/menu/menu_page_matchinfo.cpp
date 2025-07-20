@@ -7,8 +7,8 @@ void OpenMatchInfoMenu(gentity_t *ent) {
 	builder.add("Match Info", MenuAlign::Center)
 		.spacer()
 		.add(level.gametype_name.data(), MenuAlign::Left)
-		.add(fmt::format("map: {}", level.levelName), MenuAlign::Left)
-		.add(fmt::format("mapname: {}", level.mapname), MenuAlign::Left);
+		.add(fmt::format("map: {}", level.longName), MenuAlign::Left)
+		.add(fmt::format("mapname: {}", level.mapName), MenuAlign::Left);
 
 	if (level.author[0])
 		builder.add(fmt::format("author: {}", level.author), MenuAlign::Left);

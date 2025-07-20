@@ -170,7 +170,7 @@ void Entity_ForceLookAtPoint(gentity_t *entity, gvec3_cref_t point) {
 
 	if (entity->client != nullptr) {
 		entity->client->ps.pmove.delta_angles = (viewAngles - entity->client->resp.cmdAngles);
-		entity->client->ps.viewangles = {};
+		entity->client->ps.viewAngles = {};
 		entity->client->vAngle = {};
 		entity->s.angles = {};
 	}

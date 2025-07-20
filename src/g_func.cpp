@@ -3219,7 +3219,7 @@ constexpr spawnflags_t SPAWNFLAG_KILLBOX_EXACT_COLLISION = 4_spawnflag;
 
 static USE(use_killbox) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
 	if (self->spawnflags.has(SPAWNFLAG_KILLBOX_DEADLY_COOP))
-		level.deadly_kill_box = true;
+		level.campaign.deadly_kill_box = true;
 
 	self->solid = SOLID_TRIGGER;
 	gi.linkentity(self);
@@ -3229,7 +3229,7 @@ static USE(use_killbox) (gentity_t *self, gentity_t *other, gentity_t *activator
 	self->solid = SOLID_NOT;
 	gi.linkentity(self);
 
-	level.deadly_kill_box = false;
+	level.campaign.deadly_kill_box = false;
 }
 
 void SP_func_killbox(gentity_t *ent) {

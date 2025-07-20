@@ -2344,11 +2344,11 @@ void G_CheckAutoSwitch(gentity_t *ent, Item *item, bool is_new) {
 	}
 
 	// check autoswitch setting
-	if (ent->client->pers.autoswitch == auto_switch_t::NEVER)
+	if (ent->client->pers.autoswitch == WeaponAutoSwitch::NEVER)
 		return;
-	else if ((item->flags & IF_AMMO) && ent->client->pers.autoswitch == auto_switch_t::ALWAYS_NO_AMMO)
+	else if ((item->flags & IF_AMMO) && ent->client->pers.autoswitch == WeaponAutoSwitch::ALWAYS_NO_AMMO)
 		return;
-	else if (ent->client->pers.autoswitch == auto_switch_t::SMART) {
+	else if (ent->client->pers.autoswitch == WeaponAutoSwitch::SMART) {
 		// smartness algorithm: in DM, we will always switch if we have the blaster out
 		// otherwise leave our active weapon alone
 		if (deathmatch->integer) {
@@ -3194,7 +3194,7 @@ bool CheckItemEnabled(Item *item) {
 		return true;
 	}
 
-	cv = gi.cvar(G_Fmt("{}_disable_{}", level.mapname, item->className).data(), "0", CVAR_NOFLAGS);
+	cv = gi.cvar(G_Fmt("{}_disable_{}", level.mapName, item->className).data(), "0", CVAR_NOFLAGS);
 	if (cv->integer) return false;
 
 	cv = gi.cvar(G_Fmt("disable_{}", item->className).data(), "0", CVAR_NOFLAGS);
@@ -3293,7 +3293,7 @@ CheckItemReplacements
 Item *CheckItemReplacements(Item *item) {
 	cvar_t *cv;
 
-	cv = gi.cvar(G_Fmt("{}_replace_{}", level.mapname, item->className).data(), "", CVAR_NOFLAGS);
+	cv = gi.cvar(G_Fmt("{}_replace_{}", level.mapName, item->className).data(), "", CVAR_NOFLAGS);
 	if (*cv->string) {
 		Item *out = FindItemByClassname(cv->string);
 		return out ? out : item;
@@ -3484,7 +3484,7 @@ static void Use_Flashlight(gentity_t *ent, Item *inv) {
 constexpr size_t MAX_TEMP_POI_POINTS = 128;
 
 void Compass_Update(gentity_t *ent, bool first) {
-	vec3_t *&points = level.poiPoints[ent->s.number - 1];
+	vec3_t *&points = level.poi.points[ent->s.number - 1];
 
 	// deleted for some reason
 	if (!points)
@@ -3532,25 +3532,25 @@ static void Use_Compass(gentity_t *ent, Item *inv) {
 		Cmd_ReadyUp_f(ent);
 		return;
 	}
-	if (!level.validPOI) {
+	if (!level.poi.valid) {
 		gi.LocClient_Print(ent, PRINT_HIGH, "$no_valid_poi");
 		return;
 	}
 
-	if (level.currentDynamicPOI)
-		level.currentDynamicPOI->use(level.currentDynamicPOI, ent, ent);
+	if (level.poi.currentDynamic)
+		level.poi.currentDynamic->use(level.poi.currentDynamic, ent, ent);
 
-	ent->client->help_poi_location = level.currentPOI;
-	ent->client->help_poi_image = level.currentPOIImage;
+	ent->client->help_poi_location = level.poi.current;
+	ent->client->help_poi_image = level.poi.currentImage;
 
-	vec3_t *&points = level.poiPoints[ent->s.number - 1];
+	vec3_t *&points = level.poi.points[ent->s.number - 1];
 
 	if (!points)
 		points = (vec3_t *)gi.TagMalloc(sizeof(vec3_t) * (MAX_TEMP_POI_POINTS + 1), TAG_LEVEL);
 
 	PathRequest request;
 	request.start = ent->s.origin;
-	request.goal = level.currentPOI;
+	request.goal = level.poi.current;
 	request.moveDist = 64.f;
 	request.pathFlags = PathFlags::All;
 	request.nodeSearch.ignoreNodeFlags = true;

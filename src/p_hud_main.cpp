@@ -17,38 +17,28 @@ MoveClientToIntermission
 ===============
 */
 void MoveClientToIntermission(gentity_t *ent) {
-	if (ent->client->ps.pmove.pm_type != PM_FREEZE) {
+	if (ent->svFlags & SVF_NOCLIENT) {
 		ent->s.event = EV_OTHER_TELEPORT;
-	}
-
-	const bool isDeathmatch = (deathmatch->integer != 0);
-
-	if (isDeathmatch) {
-		ent->client->showScores = true;
-		ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
 	}
 
 	// Set client view and movement
 	ent->s.origin = level.intermission.origin;
-	ent->client->ps.pmove.origin = level.intermission.origin;
-	ent->client->ps.viewangles = level.intermission.angles;
+	//ent->client->ps.pmove.origin = level.intermission.origin;
+	ent->s.angles = level.intermission.angles;
+	//gi.Com_PrintFmt("Moving client {} to intermission at origin {} with angles {}\n",
+	//	ent->client->sess.netName, level.intermission.origin, level.intermission.angles);
+	ent->client->ps.viewAngles = ent->s.angles;
+	ent->client->vAngle = ent->s.angles;
+	ent->client->ps.pmove.delta_angles[PITCH] = ent->s.angles[PITCH];
 	ent->client->ps.pmove.pm_type = PM_FREEZE;
-	ent->client->ps.gunindex = 0;
-	ent->client->ps.gunskin = 0;
+	ent->client->ps.gunIndex = 0;
+	ent->client->ps.gunSkin = 0;
 	ent->client->ps.damageBlend[3] = 0;
-	ent->client->ps.screen_blend[3] = 0;
-	ent->client->ps.rdflags = RDF_NONE;
+	ent->client->ps.screenBlend[3] = 0;
+	ent->client->ps.rdFlags = RDF_NONE;
 
 	// Reset powerup timers
-	ent->client->powerupTime.quadDamage = 0_ms;
-	ent->client->powerupTime.battleSuit = 0_ms;
-	ent->client->powerupTime.rebreather = 0_ms;
-	ent->client->powerupTime.enviroSuit = 0_ms;
-	ent->client->powerupTime.invisibility = 0_ms;
-	ent->client->powerupTime.regeneration = 0_ms;
-	ent->client->powerupTime.haste = 0_ms;
-	ent->client->powerupTime.doubleDamage = 0_ms;
-	ent->client->powerupTime.spawnProtection = 0_ms;
+	ent->client->powerupTime = {};
 
 	// Reset grenade and timers
 	ent->client->grenadeBlewUp = false;
@@ -60,6 +50,7 @@ void MoveClientToIntermission(gentity_t *ent) {
 	// Reset HUD flags
 	ent->client->showHelp = false;
 	ent->client->showScores = false;
+	ent->client->showInventory = false;
 
 	// Clear slow time flag
 	globals.server_flags &= ~SERVER_FLAG_SLOW_TIME;
@@ -76,9 +67,11 @@ void MoveClientToIntermission(gentity_t *ent) {
 
 	gi.linkentity(ent);
 
-	if (isDeathmatch) {
-		MultiplayerScoreboard(ent);
-		ent->client->showScores = true;
+	if (deathmatch->integer) {
+		if (!g_autoScreenshotTool->integer) {
+			MultiplayerScoreboard(ent);
+			ent->client->showScores = true;
+		}
 		ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
 	}
 }
@@ -92,10 +85,10 @@ void UpdateLevelEntry() {
 	if (!level.entry)
 		return;
 
-	level.entry->foundSecrets = level.foundSecrets;
-	level.entry->totalSecrets = level.totalSecrets;
-	level.entry->killedMonsters = level.killedMonsters;
-	level.entry->totalMonsters = level.totalMonsters;
+	level.entry->foundSecrets = level.campaign.foundSecrets;
+	level.entry->totalSecrets = level.campaign.totalSecrets;
+	level.entry->killedMonsters = level.campaign.killedMonsters;
+	level.entry->totalMonsters = level.campaign.totalMonsters;
 }
 
 /*
@@ -338,7 +331,7 @@ static void DrawHelpComputer(gentity_t *ent) {
 
 	// Background and level name
 	layout += G_Fmt("xv 32 yv 8 picn help "
-		"xv 0 yv 25 cstring2 \"{}\" ", level.levelName).data();
+		"xv 0 yv 25 cstring2 \"{}\" ", level.longName).data();
 
 	if (level.isN64) {
 		// N64 layout
@@ -366,9 +359,9 @@ static void DrawHelpComputer(gentity_t *ent) {
 		"xv 55 yv 172 loc_string2 1 \"{{}}: {}/{}\" \"$g_pc_kills\" "
 		"xv 265 yv 172 loc_rstring2 1 \"{{}}: {}/{}\" \"$g_pc_secrets\" ",
 		skillName,
-		level.foundGoals, level.totalGoals,
-		level.killedMonsters, level.totalMonsters,
-		level.foundSecrets, level.totalSecrets).data();
+		level.campaign.foundGoals, level.campaign.totalGoals,
+		level.campaign.killedMonsters, level.campaign.totalMonsters,
+		level.campaign.foundSecrets, level.campaign.totalSecrets).data();
 
 	// Send to client
 	gi.WriteByte(svc_layout);
@@ -434,7 +427,7 @@ void SetCoopStats(gentity_t *ent) {
 	// Monster count (if horde)
 	if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
 		if (GT(GT_HORDE)) {
-			ent->client->ps.stats[STAT_MONSTER_COUNT] = level.totalMonsters - level.killedMonsters;
+			ent->client->ps.stats[STAT_MONSTER_COUNT] = level.campaign.totalMonsters - level.campaign.killedMonsters;
 		} else {
 			ent->client->ps.stats[STAT_MONSTER_COUNT] = 0;
 		}
@@ -835,7 +828,7 @@ SetHealthStats
 */
 static void SetHealthStats(gentity_t *ent) {
 	if (ent->s.renderfx & RF_USE_DISGUISE) {
-		ent->client->ps.stats[STAT_HEALTH_ICON] = level.disguiseIcon;
+		ent->client->ps.stats[STAT_HEALTH_ICON] = level.campaign.disguiseIcon;
 	} else {
 		switch (ent->client->sess.team) {
 		case TEAM_RED:
@@ -1092,8 +1085,8 @@ static void SetLayoutStats(gentity_t *ent) {
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HELP;
 	}
 
-	if (level.intermissionTime || ent->client->awaiting_respawn) {
-		if (ent->client->awaiting_respawn ||
+	if (level.intermissionTime || ent->client->awaitingRespawn) {
+		if (ent->client->awaitingRespawn ||
 			level.intermission.endOfUnit ||
 			level.isN64 ||
 			(deathmatch->integer && (ent->client->showScores || level.intermissionTime))) {
@@ -1112,7 +1105,7 @@ static void SetLayoutStats(gentity_t *ent) {
 		else
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_CROSSHAIR;
 	} else {
-		if (level.story_active)
+		if (level.campaign.story_active)
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_CROSSHAIR;
 		else
 			ent->client->ps.stats[STAT_LAYOUTS] &= ~LAYOUTS_HIDE_CROSSHAIR;
@@ -1176,7 +1169,7 @@ SetHealthBarStats
 static void SetHealthBarStats(gentity_t *ent) {
 	for (size_t i = 0; i < MAX_HEALTH_BARS; ++i) {
 		byte *hb = reinterpret_cast<byte *>(&ent->client->ps.stats[STAT_HEALTH_BARS]) + i;
-		auto *e = level.health_bar_entities[i];
+		auto *e = level.campaign.health_bar_entities[i];
 
 		if (!e) {
 			*hb = 0;
@@ -1185,7 +1178,7 @@ static void SetHealthBarStats(gentity_t *ent) {
 
 		if (e->timeStamp) {
 			if (e->timeStamp < level.time) {
-				level.health_bar_entities[i] = nullptr;
+				level.campaign.health_bar_entities[i] = nullptr;
 				*hb = 0;
 				continue;
 			}
@@ -1205,7 +1198,7 @@ static void SetHealthBarStats(gentity_t *ent) {
 				e->timeStamp = level.time + gtime_t::from_sec(e->delay);
 				*hb = 0b10000000;
 			} else {
-				level.health_bar_entities[i] = nullptr;
+				level.campaign.health_bar_entities[i] = nullptr;
 				*hb = 0;
 			}
 			continue;

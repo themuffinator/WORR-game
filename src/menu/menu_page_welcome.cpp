@@ -57,7 +57,8 @@ void OpenJoinMenu(gentity_t *ent) {
 	if (maxPlayers < 1) maxPlayers = 1;
 
 	MenuBuilder builder;
-	builder.add("Join Menu", MenuAlign::Center).spacer();
+	builder.add(G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data(), MenuAlign::Center).spacer();
+	builder.add("---", MenuAlign::Center).spacer().spacer();
 
 	AddJoinOptions(builder, ent, maxPlayers);
 
@@ -92,6 +93,9 @@ void OpenJoinMenu(gentity_t *ent) {
 			});
 	}
 
+	builder.spacer().spacer().spacer().spacer();
 	builder.add("visit darkmatter-quake.com", MenuAlign::Center);
+	builder.add(":: community :: matches ::", MenuAlign::Center);
+	builder.add(":: content :: news ::", MenuAlign::Center);
 	MenuSystem::Open(ent, builder.build());
 }

@@ -194,6 +194,7 @@
     <ClCompile Include="menu\menu_page_admin.cpp" />
     <ClCompile Include="menu\menu_page_callvote.cpp" />
     <ClCompile Include="menu\menu_page_hostinfo.cpp" />
+    <ClCompile Include="menu\menu_page_setup.cpp" />
     <ClCompile Include="menu\menu_page_welcome.cpp" />
     <ClCompile Include="menu\menu_page_mapselector.cpp" />
     <ClCompile Include="menu\menu_page_matchinfo.cpp" />

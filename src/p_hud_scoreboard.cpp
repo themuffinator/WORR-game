@@ -80,7 +80,7 @@ static void AddScoreboardHeaderAndFooter(std::string &layout, gentity_t *viewer,
 	fmt::format_to(std::back_inserter(layout),
 		"xv 0 yv -40 cstring2 \"{} on '{}'\" "
 		"xv 0 yv -30 cstring2 \"Score Limit: {}\" ",
-		level.gametype_name.data(), level.levelName, GT_ScoreLimit());
+		level.gametype_name.data(), level.longName, GT_ScoreLimit());
 
 	// During intermission
 	if (level.intermissionTime) {

@@ -32,7 +32,7 @@ static THINK(Respawn_Think) (gentity_t *ent) -> void {
 		}
 
 		vec3_t forward;
-		AngleVectors(cl->client->ps.viewangles, forward, nullptr, nullptr);
+		AngleVectors(cl->client->ps.viewAngles, forward, nullptr, nullptr);
 
 		vec3_t dir = spawnOrigin - cl->s.origin;
 		dir.normalize();

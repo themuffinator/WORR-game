@@ -15,13 +15,13 @@ void FreeFollower(gentity_t *ent) {
 	ent->client->ps.kick_angles = {};
 	ent->client->ps.gunangles = {};
 	ent->client->ps.gunoffset = {};
-	ent->client->ps.gunindex = 0;
-	ent->client->ps.gunskin = 0;
+	ent->client->ps.gunIndex = 0;
+	ent->client->ps.gunSkin = 0;
 	ent->client->ps.gunframe = 0;
 	ent->client->ps.gunrate = 0;
-	ent->client->ps.screen_blend = {};
+	ent->client->ps.screenBlend = {};
 	ent->client->ps.damageBlend = {};
-	ent->client->ps.rdflags = RDF_NONE;
+	ent->client->ps.rdFlags = RDF_NONE;
 }
 
 void FreeClientFollowers(gentity_t *ent) {
@@ -60,18 +60,18 @@ void UpdateChaseCam(gentity_t *ent) {
 		targ->svFlags |= SVF_INSTANCED;
 
 		// copy everything from ps but pmove, pov, stats, and team
-		ent->client->ps.viewangles = targ->client->ps.viewangles;
+		ent->client->ps.viewAngles = targ->client->ps.viewAngles;
 		ent->client->ps.viewoffset = targ->client->ps.viewoffset;
 		ent->client->ps.kick_angles = targ->client->ps.kick_angles;
 		ent->client->ps.gunangles = targ->client->ps.gunangles;
 		ent->client->ps.gunoffset = targ->client->ps.gunoffset;
-		ent->client->ps.gunindex = targ->client->ps.gunindex;
-		ent->client->ps.gunskin = targ->client->ps.gunskin;
+		ent->client->ps.gunIndex = targ->client->ps.gunIndex;
+		ent->client->ps.gunSkin = targ->client->ps.gunSkin;
 		ent->client->ps.gunframe = targ->client->ps.gunframe;
 		ent->client->ps.gunrate = targ->client->ps.gunrate;
-		ent->client->ps.screen_blend = targ->client->ps.screen_blend;
+		ent->client->ps.screenBlend = targ->client->ps.screenBlend;
 		ent->client->ps.damageBlend = targ->client->ps.damageBlend;
-		ent->client->ps.rdflags = targ->client->ps.rdflags;
+		ent->client->ps.rdFlags = targ->client->ps.rdFlags;
 
 		// do pmove stuff so view looks right, but not pm_flags
 		ent->client->ps.pmove.origin = targ->client->ps.pmove.origin;
@@ -137,8 +137,8 @@ void UpdateChaseCam(gentity_t *ent) {
 			goal[2] += 6;
 		}
 
-		ent->client->ps.gunindex = 0;
-		ent->client->ps.gunskin = 0;
+		ent->client->ps.gunIndex = 0;
+		ent->client->ps.gunSkin = 0;
 		ent->s.modelindex = 0;
 		ent->s.modelindex2 = 0;
 		ent->s.modelindex3 = 0;
@@ -153,11 +153,11 @@ void UpdateChaseCam(gentity_t *ent) {
 	ent->client->ps.pmove.delta_angles = targ->client->vAngle - ent->client->resp.cmdAngles;
 
 	if (targ->deadFlag) {
-		ent->client->ps.viewangles[ROLL] = 40;
-		ent->client->ps.viewangles[PITCH] = -15;
-		ent->client->ps.viewangles[YAW] = targ->client->killer_yaw;
+		ent->client->ps.viewAngles[ROLL] = 40;
+		ent->client->ps.viewAngles[PITCH] = -15;
+		ent->client->ps.viewAngles[YAW] = targ->client->killer_yaw;
 	} else {
-		ent->client->ps.viewangles = targ->client->vAngle;
+		ent->client->ps.viewAngles = targ->client->vAngle;
 		ent->client->vAngle = targ->client->vAngle;
 		AngleVectors(ent->client->vAngle, ent->client->vForward, nullptr, nullptr);
 	}
