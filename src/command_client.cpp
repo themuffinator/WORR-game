@@ -1045,7 +1045,7 @@ namespace Commands {
 		RegisterCommand("forfeit", &Forfeit, AllowDead, true);
 		RegisterCommand("help", &Help, AllowDead | AllowSpectator, true);
 		RegisterCommand("hook", &Hook, {}, true);
-		RegisterCommand("impulse", &Impulse);
+               RegisterCommand("impulse", &Impulse, {}, true);
 		RegisterCommand("id", &CrosshairID, AllowSpectator | AllowDead);
 		RegisterCommand("inv_drop", &InvDrop);
 		RegisterCommand("inven", &Inven, AllowDead | AllowSpectator, true);
