@@ -114,7 +114,7 @@ namespace Commands {
 		for (auto ec : active_clients()) {
 			if (!ec || !ec->client) continue;
 			int ci = int(ec->client - game.clients);
-			if (ci < 0 || ci >= game.maxClients) continue;
+			if (ci < 0 || ci >= static_cast<int>(game.maxClients)) continue;
 			rows.push_back({ ci, ec });
 		}
 
@@ -694,13 +694,13 @@ namespace Commands {
 
 	void MapInfo(gentity_t* ent, const CommandArgs& args) {
 		if (level.mapName[0]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "MAP INFO:\nfilename: {}\n", level.mapName);
+			gi.LocClient_Print(ent, PRINT_HIGH, "MAP INFO:\nfilename: {}\n", level.mapName.data());
 		}
 		else {
 			return;
 		}
 		if (level.longName[0]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "longname: {}\n", level.longName);
+			gi.LocClient_Print(ent, PRINT_HIGH, "longname: {}\n", level.longName.data());
 		}
 		if (level.author[0]) {
 			std::string authors = level.author;
@@ -708,7 +708,7 @@ namespace Commands {
 				authors += ", ";
 				authors += level.author2;
 			}
-			gi.LocClient_Print(ent, PRINT_HIGH, "author{}: {}\n", level.author2[0] ? "s" : "", authors);
+			gi.LocClient_Print(ent, PRINT_HIGH, "author{}: {}\n", level.author2[0] ? "s" : "", authors.c_str());
 		}
 	}
 
@@ -724,7 +724,7 @@ namespace Commands {
 
 	void Motd(gentity_t* ent, const CommandArgs& args) {
 		if (!game.motd.empty()) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Message of the Day:\n{}\n", game.motd);
+			gi.LocClient_Print(ent, PRINT_HIGH, "Message of the Day:\n{}\n", game.motd.c_str());
 		}
 		else {
 			gi.Client_Print(ent, PRINT_HIGH, "No Message of the Day set.\n");
@@ -771,7 +771,7 @@ namespace Commands {
 			numPlayers++;
 		}
 		int averageSkill = (numPlayers > 0) ? (totalSkill / numPlayers) : 0;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Your Skill Rating in {}: {} (server avg: {})\n", level.gametype_name, ent->client->sess.skillRating, averageSkill);
+		gi.LocClient_Print(ent, PRINT_HIGH, "Your Skill Rating in {}: {} (server avg: {})\n", level.gametype_name.data(), ent->client->sess.skillRating, averageSkill);
 	}
 
 	void NotReady(gentity_t* ent, const CommandArgs& args) {
@@ -833,7 +833,7 @@ namespace Commands {
 				ent->client->sess.weaponPrefs.push_back(token);
 			}
 			else {
-				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token);
+				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token.c_str());
 			}
 		}
 		gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
@@ -1025,7 +1025,7 @@ namespace Commands {
 		const auto& angles = ent->client->ps.viewAngles;
 		std::string location = std::format("{:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f}",
 			origin[X], origin[Y], origin[Z], angles[PITCH], angles[YAW], angles[ROLL]);
-		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location);
+		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location.c_str());
 		gi.SendToClipBoard(location.c_str());
 	}
 
