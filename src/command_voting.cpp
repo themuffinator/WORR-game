@@ -12,6 +12,7 @@
 #include <format>
 #include <unordered_map>
 #include <sstream>
+#include <string_view>
 
 namespace Commands {
 
@@ -22,20 +23,34 @@ namespace Commands {
 	// --- Voting System Internals ---
 
 	// Use a map for efficient O(1) lookup of vote commands.
-	static std::unordered_map<std::string, VoteCommand, StringViewHash, std::equal_to<>> s_voteCommands;
+        static std::unordered_map<std::string, VoteCommand, StringViewHash, std::equal_to<>> s_voteCommands;
+
+        bool IsVoteCommandEnabled(std::string_view name) {
+                if (!g_allowVoting || !g_allowVoting->integer) {
+                        return false;
+                }
+
+                auto it = s_voteCommands.find(std::string(name));
+                if (it == s_voteCommands.end()) {
+                        return false;
+                }
+
+                const VoteCommand& cmd = it->second;
+                return (g_vote_flags->integer & cmd.flag) != 0;
+        }
 
 	// Helper to make registering vote commands clean and consistent.
-	static void RegisterVoteCommand(
-		std::string_view name,
-		bool (*validateFn)(gentity_t*, const CommandArgs&),
-		void (*executeFn)(),
-		int32_t flag,
-		int8_t minArgs,
-		std::string_view argsUsage,
-		std::string_view helpText)
-	{
-		s_voteCommands[std::string(name)] = { name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
-	}
+        static void RegisterVoteCommand(
+                std::string_view name,
+                bool (*validateFn)(gentity_t*, const CommandArgs&),
+                void (*executeFn)(),
+                int32_t flag,
+                int8_t minArgs,
+                std::string_view argsUsage,
+                std::string_view helpText)
+        {
+                s_voteCommands[std::string(name)] = { name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+        }
 
 
 	// --- Vote Execution Functions ("Pass_*") ---

@@ -18,6 +18,11 @@
 #include "../g_local.hpp"
 #include <string>
 #include <array>
+#include <string_view>
+
+namespace Commands {
+        bool IsVoteCommandEnabled(std::string_view name);
+}
 
 extern void OpenJoinMenu(gentity_t* ent);
 
@@ -27,15 +32,8 @@ Helpers
 ===============
 */
 
-static inline bool VoteEnabled(const char* name) {
-	for (const auto& vc : vote_cmds) {
-		if (vc.name == name) {
-			// g_vote_flags disables flags present in vc.flag
-			return !(g_vote_flags->integer & vc.flag);
-		}
-	}
-	// unknown name: hide
-	return false;
+static inline bool VoteEnabled(std::string_view name) {
+        return Commands::IsVoteCommandEnabled(name);
 }
 
 /*
@@ -266,18 +264,18 @@ static void OpenCallvoteTimelimit(gentity_t* ent) {
 	builder.add(G_Fmt("Current: {}", cur ? TimeString(cur * 60000, false, false) : "Disabled").data(), MenuAlign::Left);
 
 	// Disable
-	builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-		if (TryStartVote(e, "timeLimit", "0", true))
-			MenuSystem::Close(e);
-		});
+        builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
+                if (TryStartVote(e, "timelimit", "0", true))
+                        MenuSystem::Close(e);
+                });
 
 	// Common presets (minutes)
 	static const int kTimes[] = { 5, 10, 15, 20, 30, 45, 60, 90, 120 };
 	for (int m : kTimes) {
-		builder.add(G_Fmt("Set {} {}", m, m == 1 ? "minute" : "minutes").data(), MenuAlign::Left, [m](gentity_t* e, Menu&) {
-			if (TryStartVote(e, "timeLimit", std::to_string(m), true))
-				MenuSystem::Close(e);
-			});
+                builder.add(G_Fmt("Set {} {}", m, m == 1 ? "minute" : "minutes").data(), MenuAlign::Left, [m](gentity_t* e, Menu&) {
+                        if (TryStartVote(e, "timelimit", std::to_string(m), true))
+                                MenuSystem::Close(e);
+                        });
 	}
 
 	AddReturnToCallvoteMenu(builder);
@@ -427,11 +425,11 @@ void OpenCallvoteMenu(gentity_t* ent) {
 	}
 
 	// Next Map
-	if (VoteEnabled("nextMap")) {
-		builder.add("Next Map", MenuAlign::Left, [](gentity_t* e, Menu&) {
-			OpenSimpleCallvote("nextMap", e);
-			});
-	}
+        if (VoteEnabled("nextmap")) {
+                builder.add("Next Map", MenuAlign::Left, [](gentity_t* e, Menu&) {
+                        OpenSimpleCallvote("nextmap", e);
+                        });
+        }
 
 	// Restart
 	if (VoteEnabled("restart")) {
@@ -455,11 +453,11 @@ void OpenCallvoteMenu(gentity_t* ent) {
 	}
 
 	// Timelimit
-	if (VoteEnabled("timeLimit")) {
-		builder.add("Timelimit", MenuAlign::Left, [](gentity_t* e, Menu&) {
-			OpenCallvoteTimelimit(e);
-			});
-	}
+        if (VoteEnabled("timelimit")) {
+                builder.add("Timelimit", MenuAlign::Left, [](gentity_t* e, Menu&) {
+                        OpenCallvoteTimelimit(e);
+                        });
+        }
 
 	// Scorelimit
 	if (VoteEnabled("scorelimit")) {
