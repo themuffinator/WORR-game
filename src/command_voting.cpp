@@ -7,6 +7,7 @@
 
 #include "g_local.hpp"
 #include "command_registration.hpp"
+#include "command_voting_utils.hpp"
 #include <string>
 #include <vector>
 #include <format>
@@ -224,16 +225,25 @@ namespace Commands {
 		RegisterVoteCommand("ruleset", &Validate_Ruleset, &Pass_Ruleset, 2048, 2, "<q1|q2|q3a>", "Changes the current ruleset");
 	}
 
-	static void VoteCommandStore(gentity_t* ent, const VoteCommand* vote_cmd, std::string_view arg) {
-		level.vote.client = ent->client;
-		level.vote.time = level.time;
-		level.vote.countYes = 1;
-		level.vote.countNo = 0;
-		level.vote.cmd = vote_cmd;
-		level.vote.arg = arg;
+        static void VoteCommandStore(
+                gentity_t* ent,
+                const VoteCommand* vote_cmd,
+                std::string_view arg,
+                std::string_view displayArg = {})
+        {
+                level.vote.client = ent->client;
+                level.vote.time = level.time;
+                level.vote.countYes = 1;
+                level.vote.countNo = 0;
+                level.vote.cmd = vote_cmd;
+                level.vote.arg = arg;
 
-		gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
-			level.vote.client->sess.netName, vote_cmd->name.data(), arg.empty() ? "" : std::format(" {}", arg).c_str());
+                std::string_view effectiveArg = displayArg.empty() ? arg : displayArg;
+
+                gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
+                        level.vote.client->sess.netName,
+                        vote_cmd->name.data(),
+                        effectiveArg.empty() ? "" : std::format(" {}", effectiveArg).c_str());
 
 		for (auto ec : active_clients()) {
 			ec->client->pers.voted = (ec == ent) ? 1 : 0;
@@ -311,14 +321,39 @@ namespace Commands {
 				return;
 			}
 
-			std::string vote_arg_str;
-			if (args.count() >= 3) {
-				vote_arg_str = args.getString(2);
-			}
+                        level.vote_flags_enable = 0;
+                        level.vote_flags_disable = 0;
 
-			VoteCommandStore(ent, &found_cmd, vote_arg_str);
-		}
-	}
+                        std::string vote_arg_str;
+                        std::string vote_display_str;
+
+                        if (found_cmd.name == "map") {
+                                std::vector<std::string> mapArgs;
+                                for (int i = 2; i < args.count(); ++i) {
+                                        mapArgs.emplace_back(args.getString(i));
+                                }
+
+                                std::string parseError;
+                                auto parsed = ParseMapVoteArguments(mapArgs, parseError);
+                                if (!parsed) {
+                                        gi.LocClient_Print(ent, PRINT_HIGH, "{}\n", parseError.c_str());
+                                        return;
+                                }
+
+                                vote_arg_str = parsed->mapName;
+                                vote_display_str = parsed->displayArg;
+                                level.vote_flags_enable = parsed->enableFlags;
+                                level.vote_flags_disable = parsed->disableFlags;
+                        }
+                        else {
+                                if (args.count() >= 3) {
+                                        vote_arg_str = args.getString(2);
+                                }
+                        }
+
+                        VoteCommandStore(ent, &found_cmd, vote_arg_str, vote_display_str);
+                }
+        }
 
 	void Vote(gentity_t* ent, const CommandArgs& args) {
 		if (!level.vote.time) {
