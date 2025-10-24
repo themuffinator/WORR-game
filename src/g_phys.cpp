@@ -1,8 +1,26 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-// g_phys.c
 
-#include "g_local.h"
+// g_phys.cpp (Game Physics)
+// This file is responsible for the server-side physics simulation of all
+// non-player entities. It is called every frame for each active entity to
+// update its position and state based on its `moveType`.
+//
+// Key Responsibilities:
+// - Physics Dispatcher: `G_RunEntity` is the main function that selects the
+//   correct physics function (e.g., `G_Physics_Pusher`, `G_Physics_Toss`)
+//   based on the entity's `moveType`.
+// - Mover Physics: Implements `G_Physics_Pusher` for solid, moving brush
+//   models like doors and platforms, including the complex logic for pushing
+//   other entities.
+// - Projectile and Gib Physics: Implements `G_Physics_Toss` for entities
+//   that are affected by gravity and can bounce off surfaces.
+// - Static and NoClip Physics: Handles entities that do not move or that move
+//   without any collision.
+// - Core Utilities: Contains fundamental physics helpers like `G_AddGravity`
+//   and `G_Impact` for handling collisions.
+
+#include "g_local.hpp"
 
 /*
 
@@ -12,12 +30,12 @@ and push normal objects when they move.
 
 onground is set for toss objects when they come to a complete rest.  it is set for steping or walking objects
 
-doors, plats, etc are SOLID_BSP, and MOVETYPE_PUSH
-bonus items are SOLID_TRIGGER touch, and MOVETYPE_TOSS
-corpses are SOLID_NOT and MOVETYPE_TOSS
-crates are SOLID_BBOX and MOVETYPE_TOSS
-walking monsters are SOLID_SLIDEBOX and MOVETYPE_STEP
-flying/floating monsters are SOLID_SLIDEBOX and MOVETYPE_FLY
+doors, plats, etc are SOLID_BSP, and MoveType::Push
+bonus items are SOLID_TRIGGER touch, and MoveType::Toss
+corpses are SOLID_NOT and MoveType::Toss
+crates are SOLID_BBOX and MoveType::Toss
+walking monsters are SOLID_SLIDEBOX and MoveType::Step
+flying/floating monsters are SOLID_SLIDEBOX and MoveType::Fly
 
 solid_edge items only clip against bsp models.
 
@@ -64,7 +82,7 @@ static gentity_t *G_TestEntityPosition(gentity_t *ent) {
 
 	trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, ent->s.origin, ent, G_GetClipMask(ent));
 
-	if (trace.startsolid)
+	if (trace.startSolid)
 		return g_entities;
 
 	return nullptr;
@@ -93,7 +111,7 @@ Runs thinking code for this frame if necessary
 =============
 */
 bool G_RunThink(gentity_t *ent) {
-	gtime_t thinktime = ent->nextThink;
+	GameTime thinktime = ent->nextThink;
 	if (thinktime <= 0_ms)
 		return true;
 	if (thinktime > level.time)
@@ -136,7 +154,7 @@ void G_FlyMove(gentity_t *ent, float time, contents_t mask) {
 	ent->groundEntity = nullptr;
 
 	touch_list_t touch;
-	PM_StepSlideMove_Generic(ent->s.origin, ent->velocity, time, ent->mins, ent->maxs, touch, false, [&](const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end) {
+	PM_StepSlideMove_Generic(ent->s.origin, ent->velocity, time, ent->mins, ent->maxs, touch, false, [&](const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end) {
 		return gi.trace(start, mins, maxs, end, ent, mask);
 		});
 
@@ -168,7 +186,7 @@ G_AddGravity
 ============
 */
 void G_AddGravity(gentity_t *ent) {
-	ent->velocity += ent->gravityVector * (ent->gravity * level.gravity * gi.frame_time_s);
+	ent->velocity += ent->gravityVector * (ent->gravity * level.gravity * gi.frameTimeSec);
 }
 
 /*
@@ -186,23 +204,23 @@ G_PushEntity
 Does not change the entities velocity at all
 ============
 */
-static trace_t G_PushEntity(gentity_t *ent, const vec3_t &push) {
-	vec3_t start = ent->s.origin;
-	vec3_t end = start + push;
+static trace_t G_PushEntity(gentity_t *ent, const Vector3 &push) {
+	Vector3 start = ent->s.origin;
+	Vector3 end = start + push;
 
 	trace_t trace = gi.trace(start, ent->mins, ent->maxs, end, ent, G_GetClipMask(ent));
 
-	ent->s.origin = trace.endpos + (trace.plane.normal * .5f);
-	gi.linkentity(ent);
+	ent->s.origin = trace.endPos + (trace.plane.normal * .5f);
+	gi.linkEntity(ent);
 
-	if (trace.fraction != 1.0f || trace.startsolid) {
+	if (trace.fraction != 1.0f || trace.startSolid) {
 		G_Impact(ent, trace);
 
 		// if the pushed entity went away and the pusher is still there
 		if (!trace.ent->inUse && ent->inUse) {
 			// move the pusher back and try again
 			ent->s.origin = start;
-			gi.linkentity(ent);
+			gi.linkEntity(ent);
 			return G_PushEntity(ent, push);
 		}
 	}
@@ -218,8 +236,8 @@ static trace_t G_PushEntity(gentity_t *ent, const vec3_t &push) {
 
 struct pushed_t {
 	gentity_t *ent = nullptr;
-	vec3_t	 origin = vec3_origin;
-	vec3_t	 angles = vec3_origin;
+	Vector3	 origin = vec3_origin;
+	Vector3	 angles = vec3_origin;
 	bool	 rotated = false;
 	float	 yaw = 0;
 };
@@ -236,11 +254,11 @@ Objects need to be moved back on a failed push,
 otherwise riders would continue to slide.
 ============
 */
-static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
+static bool G_Push(gentity_t *pusher, Vector3 &move, Vector3 &amove) {
 	gentity_t *check, *block = nullptr;
-	vec3_t	  mins, maxs;
+	Vector3	  mins, maxs;
 	pushed_t *p;
-	vec3_t	  org, org2{}, move2, forward, right, up;
+	Vector3	  org, org2{}, move2, forward, right, up;
 
 	// find the bounding box
 	mins = pusher->absMin + move;
@@ -260,15 +278,15 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 	// move the pusher to it's final position
 	pusher->s.origin += move;
 	pusher->s.angles += amove;
-	gi.linkentity(pusher);
+	gi.linkEntity(pusher);
 
 	// see if any solid entities are inside the final position
 	check = g_entities + 1;
-	for (uint32_t e = 1; e < globals.num_entities; e++, check++) {
+	for (uint32_t e = 1; e < globals.numEntities; e++, check++) {
 		if (!check->inUse)
 			continue;
-		if (check->moveType == MOVETYPE_PUSH || check->moveType == MOVETYPE_STOP || check->moveType == MOVETYPE_NONE ||
-			check->moveType == MOVETYPE_NOCLIP || check->moveType == MOVETYPE_FREECAM)
+		if (check->moveType == MoveType::Push || check->moveType == MoveType::Stop || check->moveType == MoveType::None ||
+			check->moveType == MoveType::NoClip || check->moveType == MoveType::FreeCam)
 			continue;
 
 		if (!check->linked)
@@ -286,25 +304,25 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 				continue;
 		}
 
-		if (pusher && (pusher->moveType == MOVETYPE_PUSH) || (check->groundEntity == pusher)) {
+		if (pusher && (pusher->moveType == MoveType::Push) || (check->groundEntity == pusher)) {
 			// move this entity
 			pushed_p->ent = check;
 			pushed_p->origin = check->s.origin;
 			pushed_p->angles = check->s.angles;
 			pushed_p->rotated = !!amove[YAW];
 			if (pusher && pushed_p->rotated)
-				pushed_p->yaw = pusher->client ? (float)pusher->client->ps.pmove.delta_angles[YAW] : pusher->s.angles[YAW];
+				pushed_p->yaw = pusher->client ? (float)pusher->client->ps.pmove.deltaAngles[YAW] : pusher->s.angles[YAW];
 			pushed_p++;
 
-			vec3_t old_position = check->s.origin;
+			Vector3 old_position = check->s.origin;
 
 			// try moving the contacted entity
 			check->s.origin += move;
 			if (check->client) {
-				// Paril: disabled because in vanilla delta_angles are never
-				// lerped. delta_angles can probably be lerped as long as event
+				// Paril: disabled because in vanilla deltaAngles are never
+				// lerped. deltaAngles can probably be lerped as long as event
 				// isn't EV_PLAYER_TELEPORT or a new RDF flag is set
-				// check->client->ps.pmove.delta_angles[YAW] += amove[YAW];
+				// check->client->ps.pmove.deltaAngles[YAW] += amove[YAW];
 			} else
 				check->s.angles[YAW] += amove[YAW];
 
@@ -331,7 +349,7 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 			}
 
 			if (!block) { // pushed ok
-				gi.linkentity(check);
+				gi.linkEntity(check);
 				// impact?
 				continue;
 			}
@@ -359,11 +377,11 @@ static bool G_Push(gentity_t *pusher, vec3_t &move, vec3_t &amove) {
 			}
 			if (p->rotated) {
 				//if (p->ent->client)
-				//	p->ent->client->ps.pmove.delta_angles[YAW] = p->yaw;
+				//	p->ent->client->ps.pmove.deltaAngles[YAW] = p->yaw;
 				//else
 				p->ent->s.angles[YAW] = p->yaw;
 			}
-			gi.linkentity(p->ent);
+			gi.linkEntity(p->ent);
 		}
 		return false;
 	}
@@ -385,7 +403,7 @@ push all box objects
 ================
 */
 static void G_Physics_Pusher(gentity_t *ent) {
-	vec3_t	 move, amove;
+	Vector3	 move, amove;
 	gentity_t *part;
 
 	// if not a team captain, so movement will be handled elsewhere
@@ -400,8 +418,8 @@ retry:
 	for (part = ent; part; part = part->teamChain) {
 		if (part->velocity[0] || part->velocity[1] || part->velocity[2] || part->aVelocity[0] || part->aVelocity[1] ||
 			part->aVelocity[2]) { // object is moving
-			move = part->velocity * gi.frame_time_s;
-			amove = part->aVelocity * gi.frame_time_s;
+			move = part->velocity * gi.frameTimeSec;
+			amove = part->aVelocity * gi.frameTimeSec;
 
 			if (!G_Push(part, move, amove))
 				break; // move was blocked
@@ -413,9 +431,9 @@ retry:
 	if (part) {
 		// if the pusher has a "blocked" function, call it
 		// otherwise, just stay in place until the obstacle is gone
-		if (part->moveinfo.blocked) {
-			if (obstacle->inUse && obstacle->moveType != MOVETYPE_FREECAM && obstacle->moveType != MOVETYPE_NOCLIP)
-				part->moveinfo.blocked(part, obstacle);
+		if (part->moveInfo.blocked) {
+			if (obstacle->inUse && obstacle->moveType != MoveType::FreeCam && obstacle->moveType != MoveType::NoClip)
+				part->moveInfo.blocked(part, obstacle);
 		}
 
 		if (!obstacle->inUse)
@@ -456,10 +474,10 @@ static void G_Physics_NoClip(gentity_t *ent) {
 	if (!G_RunThink(ent) || !ent->inUse)
 		return;
 
-	ent->s.angles += (ent->aVelocity * gi.frame_time_s);
-	ent->s.origin += (ent->velocity * gi.frame_time_s);
+	ent->s.angles += (ent->aVelocity * gi.frameTimeSec);
+	ent->s.origin += (ent->velocity * gi.frameTimeSec);
 
-	gi.linkentity(ent);
+	gi.linkEntity(ent);
 }
 
 /*
@@ -479,12 +497,12 @@ Toss, bounce, and fly movement.  When onground, do nothing.
 */
 static void G_Physics_Toss(gentity_t *ent) {
 	trace_t	 trace;
-	vec3_t	 move;
+	Vector3	 move;
 	float	 backoff;
 	gentity_t *slave;
 	bool	 wasinwater;
 	bool	 isinwater;
-	vec3_t	 old_origin;
+	Vector3	 oldOrigin;
 
 	// regular thinking
 	G_RunThink(ent);
@@ -508,27 +526,27 @@ static void G_Physics_Toss(gentity_t *ent) {
 	if (ent->groundEntity && ent->gravity > 0.0f) // PGM - gravity hack
 	{
 		if (ent->svFlags & SVF_MONSTER) {
-			M_CatagorizePosition(ent, ent->s.origin, ent->waterlevel, ent->watertype);
+			M_CatagorizePosition(ent, ent->s.origin, ent->waterLevel, ent->waterType);
 			M_WorldEffects(ent);
 		}
 
 		return;
 	}
 
-	old_origin = ent->s.origin;
+	oldOrigin = ent->s.origin;
 
 	G_CheckVelocity(ent);
 
 	// add gravity
-	if (ent->moveType != MOVETYPE_FLY && ent->moveType != MOVETYPE_FLYMISSILE && ent->moveType != MOVETYPE_WALLBOUNCE)
+	if (ent->moveType != MoveType::Fly && ent->moveType != MoveType::FlyMissile && ent->moveType != MoveType::WallBounce)
 		G_AddGravity(ent);
 
 	// move angles
-	ent->s.angles += (ent->aVelocity * gi.frame_time_s);
+	ent->s.angles += (ent->aVelocity * gi.frameTimeSec);
 
 	// move origin
 	int num_tries = 5;
-	float time_left = gi.frame_time_s;
+	float time_left = gi.frameTimeSec;
 
 	while (time_left) {
 		if (num_tries == 0)
@@ -545,7 +563,7 @@ static void G_Physics_Toss(gentity_t *ent) {
 			break;
 		// [Paril-KEX] don't build up velocity if we're stuck.
 		// just assume that the object we hit is our ground.
-		else if (trace.allsolid) {
+		else if (trace.allSolid) {
 			ent->groundEntity = trace.ent;
 			ent->groundEntity_linkCount = trace.ent->linkCount;
 			ent->velocity = {};
@@ -555,10 +573,10 @@ static void G_Physics_Toss(gentity_t *ent) {
 
 		time_left -= time_left * trace.fraction;
 
-		if (ent->moveType == MOVETYPE_TOSS)
+		if (ent->moveType == MoveType::Toss)
 			ent->velocity = SlideClipVelocity(ent->velocity, trace.plane.normal, 0.5f);
 		else {
-			if (ent->moveType == MOVETYPE_WALLBOUNCE)
+			if (ent->moveType == MoveType::WallBounce)
 				backoff = 2.0f;
 			else
 				backoff = 1.6f;
@@ -566,14 +584,14 @@ static void G_Physics_Toss(gentity_t *ent) {
 			ent->velocity = ClipVelocity(ent->velocity, trace.plane.normal, backoff);
 		}
 
-		if (ent->moveType == MOVETYPE_WALLBOUNCE)
-			ent->s.angles = vectoangles(ent->velocity);
+		if (ent->moveType == MoveType::WallBounce)
+			ent->s.angles = VectorToAngles(ent->velocity);
 
 		// stop if on ground
 		else {
 			if (trace.plane.normal[2] > 0.7f) {
-				if ((ent->moveType == MOVETYPE_TOSS && ent->velocity.length() < 60.f) ||
-					(ent->moveType != MOVETYPE_TOSS && ent->velocity.scaled(trace.plane.normal).length() < 60.f)) {
+				if ((ent->moveType == MoveType::Toss && ent->velocity.length() < 60.f) ||
+					(ent->moveType != MoveType::Toss && ent->velocity.scaled(trace.plane.normal).length() < 60.f)) {
 					if (!(ent->flags & FL_NO_STANDING) || trace.ent->solid == SOLID_BSP) {
 						ent->groundEntity = trace.ent;
 						ent->groundEntity_linkCount = trace.ent->linkCount;
@@ -584,7 +602,7 @@ static void G_Physics_Toss(gentity_t *ent) {
 				}
 
 				// friction for tossing stuff (gibs, etc)
-				if (ent->moveType == MOVETYPE_TOSS) {
+				if (ent->moveType == MoveType::Toss) {
 					ent->velocity *= 0.75f;
 					ent->aVelocity *= 0.75f;
 				}
@@ -592,39 +610,39 @@ static void G_Physics_Toss(gentity_t *ent) {
 		}
 
 		// only toss "slides" multiple times
-		if (ent->moveType != MOVETYPE_TOSS)
+		if (ent->moveType != MoveType::Toss)
 			break;
 	}
 
 	// check for water transition
-	wasinwater = (ent->watertype & MASK_WATER);
-	ent->watertype = gi.pointcontents(ent->s.origin);
-	isinwater = ent->watertype & MASK_WATER;
+	wasinwater = (ent->waterType & MASK_WATER);
+	ent->waterType = gi.pointContents(ent->s.origin);
+	isinwater = ent->waterType & MASK_WATER;
 
 	if (isinwater)
-		ent->waterlevel = WATER_FEET;
+		ent->waterLevel = WATER_FEET;
 	else
-		ent->waterlevel = WATER_NONE;
+		ent->waterLevel = WATER_NONE;
 
 	if (ent->svFlags & SVF_MONSTER) {
-		M_CatagorizePosition(ent, ent->s.origin, ent->waterlevel, ent->watertype);
+		M_CatagorizePosition(ent, ent->s.origin, ent->waterLevel, ent->waterType);
 		M_WorldEffects(ent);
 	} else {
 		if (!wasinwater && isinwater)
-			gi.positioned_sound(old_origin, g_entities, CHAN_AUTO, gi.soundindex("misc/h2ohit1.wav"), 1, 1, 0);
+			gi.positionedSound(oldOrigin, g_entities, CHAN_AUTO, gi.soundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 		else if (wasinwater && !isinwater)
-			gi.positioned_sound(ent->s.origin, g_entities, CHAN_AUTO, gi.soundindex("misc/h2ohit1.wav"), 1, 1, 0);
+			gi.positionedSound(ent->s.origin, g_entities, CHAN_AUTO, gi.soundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 	}
 
 	// prevent softlocks from keys falling into slime/lava
-	if (isinwater && ent->watertype & (CONTENTS_SLIME | CONTENTS_LAVA) && ent->item &&
-		(ent->item->flags & IF_KEY) && ent->spawnflags.has(SPAWNFLAG_ITEM_DROPPED))
+	if (isinwater && ent->waterType & (CONTENTS_SLIME | CONTENTS_LAVA) && ent->item &&
+		(ent->item->flags & IF_KEY) && ent->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED))
 		ent->velocity = { crandom_open() * 300, crandom_open() * 300, 300.f + (crandom_open() * 300.f) };
 
 	// move teamslaves
 	for (slave = ent->teamChain; slave; slave = slave->teamChain) {
 		slave->s.origin = ent->s.origin;
-		gi.linkentity(slave);
+		gi.linkEntity(slave);
 	}
 }
 
@@ -639,13 +657,13 @@ slide.
 */
 void G_Physics_NewToss(gentity_t *ent) {
 	trace_t trace;
-	vec3_t	move;
+	Vector3	move;
 	//	float		backoff;
 	gentity_t *slave;
 	bool	 wasinwater;
 	bool	 isinwater;
 	float	 speed, newSpeed;
-	vec3_t	 old_origin;
+	Vector3	 oldOrigin;
 	//	float		firstmove;
 	//	int			mask;
 
@@ -656,7 +674,7 @@ void G_Physics_NewToss(gentity_t *ent) {
 	if (ent->flags & FL_TEAMSLAVE)
 		return;
 
-	wasinwater = ent->waterlevel;
+	wasinwater = ent->waterLevel;
 
 	// find out what we're sitting on.
 	move = ent->s.origin;
@@ -674,7 +692,7 @@ void G_Physics_NewToss(gentity_t *ent) {
 	}
 
 	// store the old origin
-	old_origin = ent->s.origin;
+	oldOrigin = ent->s.origin;
 
 	G_CheckVelocity(ent);
 
@@ -686,9 +704,9 @@ void G_Physics_NewToss(gentity_t *ent) {
 
 	// add friction
 	speed = ent->velocity.length();
-	if (ent->waterlevel) // friction for water movement
+	if (ent->waterLevel) // friction for water movement
 	{
-		newSpeed = speed - (g_waterfriction * 6 * (float)ent->waterlevel);
+		newSpeed = speed - (g_water_friction * 6 * (float)ent->waterLevel);
 		if (newSpeed < 0)
 			newSpeed = 0;
 		newSpeed /= speed;
@@ -709,30 +727,30 @@ void G_Physics_NewToss(gentity_t *ent) {
 		ent->velocity *= newSpeed;
 	}
 
-	G_FlyMove(ent, gi.frame_time_s, ent->clipMask);
-	gi.linkentity(ent);
+	G_FlyMove(ent, gi.frameTimeSec, ent->clipMask);
+	gi.linkEntity(ent);
 
 	TouchTriggers(ent);
 
 	// check for water transition
-	wasinwater = (ent->watertype & MASK_WATER);
-	ent->watertype = gi.pointcontents(ent->s.origin);
-	isinwater = ent->watertype & MASK_WATER;
+	wasinwater = (ent->waterType & MASK_WATER);
+	ent->waterType = gi.pointContents(ent->s.origin);
+	isinwater = ent->waterType & MASK_WATER;
 
 	if (isinwater)
-		ent->waterlevel = WATER_FEET;
+		ent->waterLevel = WATER_FEET;
 	else
-		ent->waterlevel = WATER_NONE;
+		ent->waterLevel = WATER_NONE;
 
 	if (!wasinwater && isinwater)
-		gi.positioned_sound(old_origin, g_entities, CHAN_AUTO, gi.soundindex("misc/h2ohit1.wav"), 1, 1, 0);
+		gi.positionedSound(oldOrigin, g_entities, CHAN_AUTO, gi.soundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 	else if (wasinwater && !isinwater)
-		gi.positioned_sound(ent->s.origin, g_entities, CHAN_AUTO, gi.soundindex("misc/h2ohit1.wav"), 1, 1, 0);
+		gi.positionedSound(ent->s.origin, g_entities, CHAN_AUTO, gi.soundIndex("misc/h2ohit1.wav"), 1, 1, 0);
 
 	// move teamslaves
 	for (slave = ent->teamChain; slave; slave = slave->teamChain) {
 		slave->s.origin = ent->s.origin;
-		gi.linkentity(slave);
+		gi.linkEntity(slave);
 	}
 }
 
@@ -760,8 +778,8 @@ void G_AddRotationalFriction(gentity_t *ent) {
 	int	  n;
 	float adjustment;
 
-	ent->s.angles += (ent->aVelocity * gi.frame_time_s);
-	adjustment = gi.frame_time_s * g_stopspeed->value * g_friction;
+	ent->s.angles += (ent->aVelocity * gi.frameTimeSec);
+	adjustment = gi.frameTimeSec * g_stopspeed->value * g_friction;
 
 	for (n = 0; n < 3; n++) {
 		if (ent->aVelocity[n] > 0) {
@@ -810,19 +828,19 @@ static void G_Physics_Step(gentity_t *ent) {
 	//   swimming monsters who are in the water
 	if (!wasonground)
 		if (!(ent->flags & FL_FLY))
-			if (!((ent->flags & FL_SWIM) && (ent->waterlevel > WATER_WAIST))) {
+			if (!((ent->flags & FL_SWIM) && (ent->waterLevel > WATER_WAIST))) {
 				if (ent->velocity[2] < level.gravity * -0.1f)
 					hitsound = true;
-				if (ent->waterlevel != WATER_UNDER)
+				if (ent->waterLevel != WATER_UNDER)
 					G_AddGravity(ent);
 			}
 
 	// friction for flying monsters that have been given vertical velocity
 	if ((ent->flags & FL_FLY) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
-		speed = fabsf(ent->velocity[2]);
+		speed = std::fabs(ent->velocity[2]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
 		friction = g_friction / 3;
-		newSpeed = speed - (gi.frame_time_s * control * friction);
+		newSpeed = speed - (gi.frameTimeSec * control * friction);
 		if (newSpeed < 0)
 			newSpeed = 0;
 		newSpeed /= speed;
@@ -831,9 +849,9 @@ static void G_Physics_Step(gentity_t *ent) {
 
 	// friction for flying monsters that have been given vertical velocity
 	if ((ent->flags & FL_SWIM) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
-		speed = fabsf(ent->velocity[2]);
+		speed = std::fabs(ent->velocity[2]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
-		newSpeed = speed - (gi.frame_time_s * control * g_waterfriction * (float)ent->waterlevel);
+		newSpeed = speed - (gi.frameTimeSec * control * g_water_friction * (float)ent->waterLevel);
 		if (newSpeed < 0)
 			newSpeed = 0;
 		newSpeed /= speed;
@@ -853,7 +871,7 @@ static void G_Physics_Step(gentity_t *ent) {
 					friction *= 0.5f;
 
 				control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
-				newSpeed = speed - gi.frame_time_s * control * friction;
+				newSpeed = speed - gi.frameTimeSec * control * friction;
 
 				if (newSpeed < 0)
 					newSpeed = 0;
@@ -864,15 +882,15 @@ static void G_Physics_Step(gentity_t *ent) {
 			}
 		}
 
-		vec3_t old_origin = ent->s.origin;
+		Vector3 oldOrigin = ent->s.origin;
 
-		G_FlyMove(ent, gi.frame_time_s, mask);
+		G_FlyMove(ent, gi.frameTimeSec, mask);
 
-		G_TouchProjectiles(ent, old_origin);
+		G_TouchProjectiles(ent, oldOrigin);
 
 		M_CheckGround(ent, mask);
 
-		gi.linkentity(ent);
+		gi.linkEntity(ent);
 
 		// ========
 		// PGM - reset this every time they move.
@@ -898,13 +916,13 @@ static void G_Physics_Step(gentity_t *ent) {
 		return;
 
 	if (ent->svFlags & SVF_MONSTER) {
-		M_CatagorizePosition(ent, ent->s.origin, ent->waterlevel, ent->watertype);
+		M_CatagorizePosition(ent, ent->s.origin, ent->waterLevel, ent->waterType);
 		M_WorldEffects(ent);
 
 		// [Paril-KEX] last minute hack to fix Stalker upside down gravity
 		if (wasonground != !!ent->groundEntity) {
-			if (ent->monsterInfo.physics_change)
-				ent->monsterInfo.physics_change(ent);
+			if (ent->monsterInfo.physicsChange)
+				ent->monsterInfo.physicsChange(ent);
 		}
 	}
 
@@ -926,7 +944,7 @@ static inline void G_RunBmodelAnimation(gentity_t *ent) {
 
 	const auto &speed = anim.alternate ? anim.alt_speed : anim.speed;
 
-	anim.next_tick = level.time + gtime_t::from_ms(speed);
+	anim.next_tick = level.time + GameTime::from_ms(speed);
 
 	const auto &style = anim.alternate ? anim.alt_style : anim.style;
 
@@ -955,9 +973,9 @@ static inline void G_RunBmodelAnimation(gentity_t *ent) {
 
 	if (nowrap) {
 		if (end >= start)
-			ent->s.frame = clamp(ent->s.frame, start, end);
+			ent->s.frame = std::clamp(ent->s.frame, start, end);
 		else
-			ent->s.frame = clamp(ent->s.frame, end, start);
+			ent->s.frame = std::clamp(ent->s.frame, end, start);
 	} else {
 		if (ent->s.frame < start)
 			ent->s.frame = end;
@@ -976,84 +994,86 @@ G_RunEntity
 */
 void G_RunEntity(gentity_t *ent) {
 	trace_t trace;
-	vec3_t	previous_origin;
-	bool	has_previous_origin = false;
+	Vector3	previousOrigin;
+	bool	has_previousOrigin = false;
 
 	if (level.timeoutActive)
 		return;
 
-	if (ent->moveType == MOVETYPE_STEP) {
-		previous_origin = ent->s.origin;
-		has_previous_origin = true;
+	if (ent->moveType == MoveType::Step) {
+		previousOrigin = ent->s.origin;
+		has_previousOrigin = true;
 	}
 
-	if (ent->prethink)
-		ent->prethink(ent);
+	if (ent->preThink)
+		ent->preThink(ent);
 
 	// bmodel animation stuff runs first, so custom entities
 	// can override them
 	if (ent->bmodel_anim.enabled)
 		G_RunBmodelAnimation(ent);
 
-	switch ((int)ent->moveType) {
-	case MOVETYPE_PUSH:
-	case MOVETYPE_STOP:
+	switch (ent->moveType) {
+		using enum MoveType;
+	case Push:
+	case Stop:
 		G_Physics_Pusher(ent);
 		break;
-	case MOVETYPE_NONE:
+	case None:
 		G_Physics_None(ent);
 		break;
-	case MOVETYPE_NOCLIP:
-	case MOVETYPE_FREECAM:
+	case NoClip:
+	case FreeCam:
 		G_Physics_NoClip(ent);
 		break;
-	case MOVETYPE_STEP:
+	case Step:
 		G_Physics_Step(ent);
 		break;
-	case MOVETYPE_TOSS:
-	case MOVETYPE_BOUNCE:
-	case MOVETYPE_FLY:
-	case MOVETYPE_FLYMISSILE:
-	case MOVETYPE_WALLBOUNCE:
+	case Toss:
+	case Bounce:
+	case Fly:
+	case FlyMissile:
+	case WallBounce:
 		G_Physics_Toss(ent);
 		break;
-	case MOVETYPE_NEWTOSS:
+	case NewToss:
 		G_Physics_NewToss(ent);
 		break;
 	default:
 		gi.Com_ErrorFmt("{}: bad moveType {}", __FUNCTION__, (int32_t)ent->moveType);
 	}
 
-	if (has_previous_origin && ent->moveType == MOVETYPE_STEP) {
+	if (has_previousOrigin && ent->moveType == MoveType::Step) {
 		// if we moved, check and fix origin if needed
-		if (ent->s.origin != previous_origin) {
-			trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, previous_origin, ent, G_GetClipMask(ent));
-			if (trace.allsolid || trace.startsolid)
-				ent->s.origin = previous_origin;
+		if (ent->s.origin != previousOrigin) {
+			trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, previousOrigin, ent, G_GetClipMask(ent));
+			if (trace.allSolid || trace.startSolid)
+				ent->s.origin = previousOrigin;
 		}
 	}
 
 	// try to fix buggy lifts this way
-	if (has_previous_origin && ent->moveType == MOVETYPE_STOP) {
-		if (ent->s.origin == previous_origin) {
-			switch (ent->moveinfo.state) {
-			case STATE_UP:
-				ent->s.origin[2] = (int)ceil(ent->s.origin[2]);
+	if (has_previousOrigin && ent->moveType == MoveType::Stop) {
+		if (ent->s.origin == previousOrigin) {
+			switch (ent->moveInfo.state) {
+				using enum MoveState;
+			case Up:
+				ent->s.origin[Z] = (int)ceil(ent->s.origin[Z]);
 				gi.Com_Print("attempting mover fix\n");
 				break;
-			case STATE_DOWN:
-				ent->s.origin[2] = (int)floor(ent->s.origin[2]);
+			case Down:
+				ent->s.origin[Z] = (int)floor(ent->s.origin[Z]);
 				gi.Com_Print("attempting mover fix\n");
 				break;
 			}
-			if (ent->s.origin != previous_origin) {
+			if (ent->s.origin != previousOrigin) {
 				trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, ent->s.origin, ent, G_GetClipMask(ent));
-				if (trace.allsolid || trace.startsolid)
-					ent->s.origin = previous_origin;
+				if (trace.allSolid || trace.startSolid)
+					ent->s.origin = previousOrigin;
 			}
 		}
 	}
 
-	if (ent->postthink)
-		ent->postthink(ent);
+	if (ent->postThink)
+		ent->postThink(ent);
 }

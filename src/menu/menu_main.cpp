@@ -1,5 +1,21 @@
-#include "../g_local.h"
-#include "../g_statusbar.h"
+// menu_main.cpp (Menu Main)
+// This file serves as the primary entry point and hub for the modern, C++
+// object-oriented menu system. It defines the main join menu that players
+// first see, from which they can navigate to other menus like settings,
+// server info, or calling a vote.
+//
+// Key Responsibilities:
+// - Main Menu Construction: `OpenJoinMenu` (and its helper `G_Menu_Join_Update`)
+//   dynamically builds the main menu based on the current gametype (FFA vs. Team),
+//   player counts, and server settings.
+// - Navigation Hub: Provides the functions that act as entry points to all
+//   other sub-menus (e.g., `G_Menu_HostInfo`, `G_Menu_CallVote`).
+// - State-Sensitive Options: Dynamically enables or disables menu options based
+//   on game state, such as showing "Admin" options only for admin players or
+//   hiding team-join options in FFA.
+
+#include "../g_local.hpp"
+#include "../g_statusbar.hpp"
 
 /*
 ===============

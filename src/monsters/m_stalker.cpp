@@ -7,19 +7,17 @@ stalker
 
 ==============================================================================
 */
+#include "../g_local.hpp"
+#include "m_stalker.hpp"
 
-#include "../g_local.h"
-#include "m_stalker.h"
-#include <float.h>
+static cached_soundIndex sound_pain;
+static cached_soundIndex sound_die;
+static cached_soundIndex sound_sight;
+static cached_soundIndex sound_punch_hit1;
+static cached_soundIndex sound_punch_hit2;
+static cached_soundIndex sound_idle;
 
-static cached_soundindex sound_pain;
-static cached_soundindex sound_die;
-static cached_soundindex sound_sight;
-static cached_soundindex sound_punch_hit1;
-static cached_soundindex sound_punch_hit2;
-static cached_soundindex sound_idle;
-
-bool stalker_do_pounce(gentity_t *self, const vec3_t &dest);
+bool stalker_do_pounce(gentity_t *self, const Vector3 &dest);
 void stalker_walk(gentity_t *self);
 void stalker_dodge_jump(gentity_t *self);
 void stalker_swing_attack(gentity_t *self);
@@ -38,7 +36,7 @@ static inline bool STALKER_ON_CEILING(gentity_t *ent) {
 //=========================
 bool stalker_ok_to_transition(gentity_t *self) {
 	trace_t trace;
-	vec3_t	pt, start;
+	Vector3	pt, start;
 	float	max_dist;
 	float	margin;
 	float	end_height;
@@ -76,48 +74,48 @@ bool stalker_ok_to_transition(gentity_t *self) {
 		}
 	}
 
-	end_height = trace.endpos[2];
+	end_height = trace.endPos[2];
 
 	// check the four corners, tracing only to the endpoint of the center trace (vertically).
 	pt[0] = self->absMin[0];
 	pt[1] = self->absMin[1];
-	pt[2] = trace.endpos[2] + margin; // give a little margin of error to allow slight inclines
+	pt[2] = trace.endPos[2] + margin; // give a little margin of error to allow slight inclines
 	start = pt;
-	start[2] = self->s.origin[2];
-	trace = gi.traceline(start, pt, self, MASK_MONSTERSOLID);
+	start[2] = self->s.origin[Z];
+	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
-	if (fabsf(end_height + margin - trace.endpos[2]) > 8)
+	if (std::fabs(end_height + margin - trace.endPos[2]) > 8)
 		return false;
 
 	pt[0] = self->absMax[0];
 	pt[1] = self->absMin[1];
 	start = pt;
-	start[2] = self->s.origin[2];
-	trace = gi.traceline(start, pt, self, MASK_MONSTERSOLID);
+	start[2] = self->s.origin[Z];
+	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
-	if (fabsf(end_height + margin - trace.endpos[2]) > 8)
+	if (std::fabs(end_height + margin - trace.endPos[2]) > 8)
 		return false;
 
 	pt[0] = self->absMax[0];
 	pt[1] = self->absMax[1];
 	start = pt;
-	start[2] = self->s.origin[2];
-	trace = gi.traceline(start, pt, self, MASK_MONSTERSOLID);
+	start[2] = self->s.origin[Z];
+	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
-	if (fabsf(end_height + margin - trace.endpos[2]) > 8)
+	if (std::fabs(end_height + margin - trace.endPos[2]) > 8)
 		return false;
 
 	pt[0] = self->absMin[0];
 	pt[1] = self->absMax[1];
 	start = pt;
-	start[2] = self->s.origin[2];
-	trace = gi.traceline(start, pt, self, MASK_MONSTERSOLID);
+	start[2] = self->s.origin[Z];
+	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
-	if (fabsf(end_height + margin - trace.endpos[2]) > 8)
+	if (std::fabs(end_height + margin - trace.endPos[2]) > 8)
 		return false;
 
 	return true;
@@ -137,7 +135,7 @@ static void stalker_idle_noise(gentity_t *self) {
 	gi.sound(self, CHAN_VOICE, sound_idle, 0.5, ATTN_IDLE, 0);
 }
 
-mframe_t stalker_frames_idle[] = {
+MonsterFrame stalker_frames_idle[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -166,7 +164,7 @@ mframe_t stalker_frames_idle[] = {
 };
 MMOVE_T(stalker_move_idle) = { FRAME_idle01, FRAME_idle21, stalker_frames_idle, stalker_stand };
 
-mframe_t stalker_frames_idle2[] = {
+MonsterFrame stalker_frames_idle2[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -196,7 +194,7 @@ MONSTERINFO_IDLE(stalker_idle) (gentity_t *self) -> void {
 // STAND
 // ******************
 
-mframe_t stalker_frames_stand[] = {
+MonsterFrame stalker_frames_stand[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -236,7 +234,7 @@ MONSTERINFO_STAND(stalker_stand) (gentity_t *self) -> void {
 // RUN
 // ******************
 
-mframe_t stalker_frames_run[] = {
+MonsterFrame stalker_frames_run[] = {
 	{ ai_run, 13, monster_footstep },
 	{ ai_run, 17 },
 	{ ai_run, 21, monster_footstep },
@@ -255,7 +253,7 @@ MONSTERINFO_RUN(stalker_run) (gentity_t *self) -> void {
 // WALK
 // ******************
 
-mframe_t stalker_frames_walk[] = {
+MonsterFrame stalker_frames_walk[] = {
 	{ ai_walk, 4, monster_footstep },
 	{ ai_walk, 6 },
 	{ ai_walk, 8 },
@@ -275,7 +273,7 @@ MONSTERINFO_WALK(stalker_walk) (gentity_t *self) -> void {
 // ******************
 // false death
 // ******************
-mframe_t stalker_frames_reactivate[] = {
+MonsterFrame stalker_frames_reactivate[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -294,15 +292,15 @@ static void stalker_heal(gentity_t *self) {
 	else
 		self->health++;
 
-	self->monsterInfo.setskin(self);
+	self->monsterInfo.setSkin(self);
 
-	if (self->health >= self->max_health) {
-		self->health = self->max_health;
+	if (self->health >= self->maxHealth) {
+		self->health = self->maxHealth;
 		stalker_reactivate(self);
 	}
 }
 
-mframe_t stalker_frames_false_death[] = {
+MonsterFrame stalker_frames_false_death[] = {
 	{ ai_move, 0, stalker_heal },
 	{ ai_move, 0, stalker_heal },
 	{ ai_move, 0, stalker_heal },
@@ -321,7 +319,7 @@ void stalker_false_death(gentity_t *self) {
 	M_SetAnimation(self, &stalker_move_false_death);
 }
 
-mframe_t stalker_frames_false_death_start[] = {
+MonsterFrame stalker_frames_false_death_start[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -347,7 +345,7 @@ void stalker_false_death_start(gentity_t *self) {
 // PAIN
 // ******************
 
-mframe_t stalker_frames_pain[] = {
+MonsterFrame stalker_frames_pain[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -355,7 +353,7 @@ mframe_t stalker_frames_pain[] = {
 };
 MMOVE_T(stalker_move_pain) = { FRAME_pain01, FRAME_pain04, stalker_frames_pain, stalker_run };
 
-static PAIN(stalker_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const mod_t &mod) -> void {
+static PAIN(stalker_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	if (self->deadFlag)
 		return;
 
@@ -372,7 +370,7 @@ static PAIN(stalker_pain) (gentity_t *self, gentity_t *other, float kick, int da
 		return;
 	}
 
-	if ((self->health > 0) && (self->health < (self->max_health / 4))) {
+	if ((self->health > 0) && (self->health < (self->maxHealth / 4))) {
 		if (frandom() < 0.30f) {
 			if (!STALKER_ON_CEILING(self) || stalker_ok_to_transition(self)) {
 				stalker_false_death_start(self);
@@ -388,7 +386,7 @@ static PAIN(stalker_pain) (gentity_t *self, gentity_t *other, float kick, int da
 
 	gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
 
-	if (mod.id == MOD_CHAINFIST || damage > 10) // don't react unless the damage was significant
+	if (mod.id == ModID::Chainfist || damage > 10) // don't react unless the damage was significant
 	{
 		// stalker should dodge jump periodically to help avoid damage.
 		if (self->groundEntity && (frandom() < 0.5f))
@@ -399,10 +397,10 @@ static PAIN(stalker_pain) (gentity_t *self, gentity_t *other, float kick, int da
 }
 
 MONSTERINFO_SETSKIN(stalker_setskin) (gentity_t *self) -> void {
-	if (self->health < (self->max_health / 2))
-		self->s.skinnum = 1;
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum = 1;
 	else
-		self->s.skinnum = 0;
+		self->s.skinNum = 0;
 }
 
 // ******************
@@ -410,8 +408,8 @@ MONSTERINFO_SETSKIN(stalker_setskin) (gentity_t *self) -> void {
 // ******************
 
 static void stalker_shoot_attack(gentity_t *self) {
-	vec3_t	offset, start, f, r, dir;
-	vec3_t	end;
+	Vector3	offset, start, f, r, dir;
+	Vector3	end;
 	float	dist;
 	trace_t trace;
 
@@ -438,7 +436,7 @@ static void stalker_shoot_attack(gentity_t *self) {
 	else
 		end = self->enemy->s.origin;
 
-	trace = gi.traceline(start, end, self, MASK_PROJECTILE);
+	trace = gi.traceLine(start, end, self, MASK_PROJECTILE);
 	if (trace.ent == self->enemy || trace.ent == world) {
 		dir.normalize();
 		monster_fire_blaster2(self, start, dir, 5, 800, MZ2_STALKER_BLASTER, EF_BLASTER);
@@ -450,7 +448,7 @@ static void stalker_shoot_attack2(gentity_t *self) {
 		stalker_shoot_attack(self);
 }
 
-mframe_t stalker_frames_shoot[] = {
+MonsterFrame stalker_frames_shoot[] = {
 	{ ai_charge, 13 },
 	{ ai_charge, 17, stalker_shoot_attack },
 	{ ai_charge, 21 },
@@ -464,11 +462,11 @@ MONSTERINFO_ATTACK(stalker_attack_ranged) (gentity_t *self) -> void {
 
 	// PMM - circle strafe stuff
 	if (frandom() > 0.5f) {
-		self->monsterInfo.attack_state = AS_STRAIGHT;
+		self->monsterInfo.attackState = MonsterAttackState::Straight;
 	} else {
 		if (frandom() <= 0.5f) // switch directions
 			self->monsterInfo.lefty = !self->monsterInfo.lefty;
-		self->monsterInfo.attack_state = AS_SLIDING;
+		self->monsterInfo.attackState = MonsterAttackState::Sliding;
 	}
 	M_SetAnimation(self, &stalker_move_shoot);
 }
@@ -478,7 +476,7 @@ MONSTERINFO_ATTACK(stalker_attack_ranged) (gentity_t *self) -> void {
 // ******************
 
 void stalker_swing_attack(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, 0, 0 };
+	Vector3 aim = { MELEE_DISTANCE, 0, 0 };
 	if (fire_hit(self, aim, irandom(5, 10), 50)) {
 		if (self->s.frame < FRAME_attack08)
 			gi.sound(self, CHAN_WEAPON, sound_punch_hit2, 1, ATTN_NORM, 0);
@@ -488,7 +486,7 @@ void stalker_swing_attack(gentity_t *self) {
 		self->monsterInfo.melee_debounce_time = level.time + 0.8_sec;
 }
 
-mframe_t stalker_frames_swing_l[] = {
+MonsterFrame stalker_frames_swing_l[] = {
 	{ ai_charge, 2 },
 	{ ai_charge, 4 },
 	{ ai_charge, 6 },
@@ -501,7 +499,7 @@ mframe_t stalker_frames_swing_l[] = {
 };
 MMOVE_T(stalker_move_swing_l) = { FRAME_attack01, FRAME_attack08, stalker_frames_swing_l, stalker_run };
 
-mframe_t stalker_frames_swing_r[] = {
+MonsterFrame stalker_frames_swing_r[] = {
 	{ ai_charge, 4 },
 	{ ai_charge, 6, monster_footstep },
 	{ ai_charge, 6, stalker_swing_attack },
@@ -526,36 +524,36 @@ MONSTERINFO_MELEE(stalker_attack_melee) (gentity_t *self) -> void {
 
 // ====================
 // ====================
-static bool stalker_check_lz(gentity_t *self, gentity_t *target, const vec3_t &dest) {
-	if ((gi.pointcontents(dest) & MASK_WATER) || (target->waterlevel))
+static bool stalker_check_lz(gentity_t *self, gentity_t *target, const Vector3 &dest) {
+	if ((gi.pointContents(dest) & MASK_WATER) || (target->waterLevel))
 		return false;
 
 	if (!target->groundEntity)
 		return false;
 
-	vec3_t jumpLZ{};
+	Vector3 jumpLZ{};
 
 	// check under the player's four corners
 	// if they're not solid, bail.
 	jumpLZ[0] = self->enemy->mins[0];
 	jumpLZ[1] = self->enemy->mins[1];
 	jumpLZ[2] = self->enemy->mins[2] - 0.25f;
-	if (!(gi.pointcontents(jumpLZ) & MASK_SOLID))
+	if (!(gi.pointContents(jumpLZ) & MASK_SOLID))
 		return false;
 
 	jumpLZ[0] = self->enemy->maxs[0];
 	jumpLZ[1] = self->enemy->mins[1];
-	if (!(gi.pointcontents(jumpLZ) & MASK_SOLID))
+	if (!(gi.pointContents(jumpLZ) & MASK_SOLID))
 		return false;
 
 	jumpLZ[0] = self->enemy->maxs[0];
 	jumpLZ[1] = self->enemy->maxs[1];
-	if (!(gi.pointcontents(jumpLZ) & MASK_SOLID))
+	if (!(gi.pointContents(jumpLZ) & MASK_SOLID))
 		return false;
 
 	jumpLZ[0] = self->enemy->mins[0];
 	jumpLZ[1] = self->enemy->maxs[1];
-	if (!(gi.pointcontents(jumpLZ) & MASK_SOLID))
+	if (!(gi.pointContents(jumpLZ) & MASK_SOLID))
 		return false;
 
 	return true;
@@ -563,11 +561,11 @@ static bool stalker_check_lz(gentity_t *self, gentity_t *target, const vec3_t &d
 
 // ====================
 // ====================
-bool stalker_do_pounce(gentity_t *self, const vec3_t &dest) {
-	vec3_t	dist;
+bool stalker_do_pounce(gentity_t *self, const Vector3 &dest) {
+	Vector3	dist;
 	float	length;
-	vec3_t	jumpAngles;
-	vec3_t	jumpLZ;
+	Vector3	jumpAngles;
+	Vector3	jumpLZ;
 	float	velocity = 400.1f;
 
 	// don't pounce when we're on the ceiling
@@ -580,8 +578,8 @@ bool stalker_do_pounce(gentity_t *self, const vec3_t &dest) {
 	dist = dest - self->s.origin;
 
 	// make sure we're pointing in that direction 15deg margin of error.
-	jumpAngles = vectoangles(dist);
-	if (fabsf(jumpAngles[YAW] - self->s.angles[YAW]) > 45)
+	jumpAngles = VectorToAngles(dist);
+	if (std::fabs(jumpAngles[YAW] - self->s.angles[YAW]) > 45)
 		return false; // not facing the player...
 
 	if (isnan(jumpAngles[YAW]))
@@ -595,7 +593,7 @@ bool stalker_do_pounce(gentity_t *self, const vec3_t &dest) {
 		return false; // can't jump that far...
 
 	jumpLZ = dest;
-	vec3_t dir = dist.normalized();
+	Vector3 dir = dist.normalized();
 
 	// find a valid angle/velocity combination
 	while (velocity <= 800) {
@@ -645,7 +643,7 @@ void stalker_jump_straightup(gentity_t *self) {
 	}
 }
 
-mframe_t stalker_frames_jump_straightup[] = {
+MonsterFrame stalker_frames_jump_straightup[] = {
 	{ ai_move, 1, stalker_jump_straightup },
 	{ ai_move, 1, stalker_jump_wait_land },
 	{ ai_move, -1, monster_footstep },
@@ -662,7 +660,7 @@ void stalker_dodge_jump(gentity_t *self) {
 	M_SetAnimation(self, &stalker_move_jump_straightup);
 }
 
-MONSTERINFO_DODGE(stalker_dodge) (gentity_t *self, gentity_t *attacker, gtime_t eta, trace_t *tr, bool gravity) -> void {
+MONSTERINFO_DODGE(stalker_dodge) (gentity_t *self, gentity_t *attacker, GameTime eta, trace_t *tr, bool gravity) -> void {
 	if (!self->groundEntity || self->health <= 0)
 		return;
 
@@ -692,7 +690,7 @@ MONSTERINFO_DODGE(stalker_dodge) (gentity_t *self, gentity_t *attacker, gtime_t 
 //===================
 //===================
 static void stalker_jump_down(gentity_t *self) {
-	vec3_t forward, up;
+	Vector3 forward, up;
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 	self->velocity += (forward * 100);
@@ -702,7 +700,7 @@ static void stalker_jump_down(gentity_t *self) {
 //===================
 //===================
 static void stalker_jump_up(gentity_t *self) {
-	vec3_t forward, up;
+	Vector3 forward, up;
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 	self->velocity += (forward * 200);
@@ -712,8 +710,8 @@ static void stalker_jump_up(gentity_t *self) {
 //===================
 //===================
 void stalker_jump_wait_land(gentity_t *self) {
-	if ((frandom() < 0.4f) && (level.time >= self->monsterInfo.attack_finished)) {
-		self->monsterInfo.attack_finished = level.time + 300_ms;
+	if ((frandom() < 0.4f) && (level.time >= self->monsterInfo.attackFinished)) {
+		self->monsterInfo.attackFinished = level.time + 300_ms;
 		stalker_shoot_attack(self);
 	}
 
@@ -731,7 +729,7 @@ void stalker_jump_wait_land(gentity_t *self) {
 	}
 }
 
-mframe_t stalker_frames_jump_up[] = {
+MonsterFrame stalker_frames_jump_up[] = {
 	{ ai_move, -8 },
 	{ ai_move, -8 },
 	{ ai_move, -8 },
@@ -743,7 +741,7 @@ mframe_t stalker_frames_jump_up[] = {
 };
 MMOVE_T(stalker_move_jump_up) = { FRAME_jump01, FRAME_jump07, stalker_frames_jump_up, stalker_run };
 
-mframe_t stalker_frames_jump_down[] = {
+MonsterFrame stalker_frames_jump_down[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -759,11 +757,11 @@ MMOVE_T(stalker_move_jump_down) = { FRAME_jump01, FRAME_jump07, stalker_frames_j
 // stalker_jump - this is only used for jumping onto or off of things. for dodge jumping,
 //		use stalker_dodge_jump
 //============
-static void stalker_jump(gentity_t *self, blocked_jump_result_t result) {
+static void stalker_jump(gentity_t *self, BlockedJumpResult result) {
 	if (!self->enemy)
 		return;
 
-	if (result == blocked_jump_result_t::JUMP_JUMP_UP)
+	if (result == BlockedJumpResult::Jump_Turn_Up)
 		M_SetAnimation(self, &stalker_move_jump_up);
 	else
 		M_SetAnimation(self, &stalker_move_jump_down);
@@ -779,8 +777,8 @@ MONSTERINFO_BLOCKED(stalker_blocked) (gentity_t *self, float dist) -> bool {
 	bool onCeiling = STALKER_ON_CEILING(self);
 
 	if (!onCeiling) {
-		if (auto result = blocked_checkjump(self, dist); result != blocked_jump_result_t::NO_JUMP) {
-			if (result != blocked_jump_result_t::JUMP_TURN)
+		if (auto result = blocked_checkjump(self, dist); result != BlockedJumpResult::No_Jump) {
+			if (result != BlockedJumpResult::Jump_Turn)
 				stalker_jump(self, result);
 			return true;
 		}
@@ -826,7 +824,7 @@ static void stalker_dead(gentity_t *self) {
 	monster_dead(self);
 }
 
-mframe_t stalker_frames_death[] = {
+MonsterFrame stalker_frames_death[] = {
 	{ ai_move },
 	{ ai_move, -5 },
 	{ ai_move, -10 },
@@ -841,17 +839,17 @@ mframe_t stalker_frames_death[] = {
 };
 MMOVE_T(stalker_move_death) = { FRAME_death01, FRAME_death09, stalker_frames_death, stalker_dead };
 
-static DIE(stalker_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(stalker_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, const MeansOfDeath &mod) -> void {
 	// dude bit it, make him fall!
-	self->moveType = MOVETYPE_TOSS;
+	self->moveType = MoveType::Toss;
 	self->s.angles[ROLL] = 0;
 	self->gravityVector = { 0, 0, -1 };
 
 	// check for gib
 	if (M_CheckGib(self, mod)) {
-		gi.sound(self, CHAN_VOICE, gi.soundindex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 
-		self->s.skinnum /= 2;
+		self->s.skinNum /= 2;
 
 		ThrowGibs(self, damage, {
 			{ 2, "models/objects/gibs/sm_meat/tris.md2" },
@@ -887,8 +885,8 @@ Spider Monster
   ONROOF - Monster starts sticking to the roof.
 */
 
-constexpr spawnflags_t SPAWNFLAG_STALKER_ONROOF = 8_spawnflag;
-constexpr spawnflags_t SPAWNFLAG_STALKER_NOJUMPING = 16_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_STALKER_ONROOF = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_STALKER_NOJUMPING = 16_spawnflag;
 
 void SP_monster_stalker(gentity_t *self) {
 	if (!M_AllowSpawn(self)) {
@@ -904,20 +902,20 @@ void SP_monster_stalker(gentity_t *self) {
 	sound_idle.assign("stalker/idle.wav");
 
 	// PMM - precache bolt2
-	gi.modelindex("models/objects/laser/tris.md2");
+	gi.modelIndex("models/objects/laser/tris.md2");
 
-	self->s.modelindex = gi.modelindex("models/monsters/stalker/tris.md2");
+	self->s.modelIndex = gi.modelIndex("models/monsters/stalker/tris.md2");
 
-	gi.modelindex("models/monsters/stalker/gibs/bodya.md2");
-	gi.modelindex("models/monsters/stalker/gibs/bodyb.md2");
-	gi.modelindex("models/monsters/stalker/gibs/claw.md2");
-	gi.modelindex("models/monsters/stalker/gibs/foot.md2");
-	gi.modelindex("models/monsters/stalker/gibs/head.md2");
-	gi.modelindex("models/monsters/stalker/gibs/leg.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/bodya.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/bodyb.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/claw.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/foot.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/head.md2");
+	gi.modelIndex("models/monsters/stalker/gibs/leg.md2");
 
 	self->mins = { -28, -28, -18 };
 	self->maxs = { 28, 28, 18 };
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
 
 	self->health = 250 * st.health_multiplier;
@@ -936,22 +934,22 @@ void SP_monster_stalker(gentity_t *self) {
 	self->monsterInfo.dodge = stalker_dodge;
 	self->monsterInfo.blocked = stalker_blocked;
 	self->monsterInfo.melee = stalker_attack_melee;
-	self->monsterInfo.setskin = stalker_setskin;
-	self->monsterInfo.physics_change = stalker_physics_change;
+	self->monsterInfo.setSkin = stalker_setskin;
+	self->monsterInfo.physicsChange = stalker_physics_change;
 
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
 	M_SetAnimation(self, &stalker_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;
 
-	if (self->spawnflags.has(SPAWNFLAG_STALKER_ONROOF)) {
+	if (self->spawnFlags.has(SPAWNFLAG_STALKER_ONROOF)) {
 		self->s.angles[ROLL] = 180;
 		self->gravityVector[2] = 1;
 	}
 
-	self->monsterInfo.can_jump = !self->spawnflags.has(SPAWNFLAG_STALKER_NOJUMPING);
-	self->monsterInfo.drop_height = 256;
-	self->monsterInfo.jump_height = 68;
+	self->monsterInfo.canJump = !self->spawnFlags.has(SPAWNFLAG_STALKER_NOJUMPING);
+	self->monsterInfo.dropHeight = 256;
+	self->monsterInfo.jumpHeight = 68;
 
 	walkmonster_start(self);
 }

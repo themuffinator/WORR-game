@@ -1,7 +1,23 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#include "g_local.h"
+// g_ai_new.cpp (Game AI - Advanced)
+// This file contains advanced and alternative AI behaviors, extending the base
+// logic from g_ai.cpp. It implements more complex actions and decision-making
+// processes for monsters.
+//
+// Key Responsibilities:
+// - Advanced Movement: Implements logic for monster jumping (`blocked_checkjump`),
+//   dodging projectiles (`M_MonsterDodge`), and ducking under fire.
+// - Pathfinding: Contains the "hint path" system, a legacy node-based pathing
+//   mechanism that allows monsters to navigate complex environments when they
+//   lose sight of a player (`monsterlost_checkhint`).
+// - Special Interactions: Handles specific AI behaviors, such as targeting
+//   and reacting to Tesla mines (`TargetTesla`).
+// - Utility Functions: Provides various helper functions for AI, like checking
+//   if a target is behind a monster (`inback`) or exploding bosses (`BossExplode`).
+
+#include "g_local.hpp"
 
 //===============================
 // BLOCKED Logic
@@ -14,8 +30,8 @@ bool face_wall(gentity_t *self);
 bool blocked_checkplat(gentity_t *self, float dist) {
 	int		 playerPosition;
 	trace_t	 trace;
-	vec3_t	 pt1, pt2;
-	vec3_t	 forward;
+	Vector3	 pt1, pt2;
+	Vector3	 forward;
 	gentity_t *plat;
 
 	if (!self->enemy)
@@ -48,8 +64,8 @@ bool blocked_checkplat(gentity_t *self, float dist) {
 		pt2 = pt1;
 		pt2[2] -= 384;
 
-		trace = gi.traceline(pt1, pt2, self, MASK_MONSTERSOLID);
-		if (trace.fraction < 1 && !trace.allsolid && !trace.startsolid) {
+		trace = gi.traceLine(pt1, pt2, self, MASK_MONSTERSOLID);
+		if (trace.fraction < 1 && !trace.allSolid && !trace.startSolid) {
 			if (!strncmp(trace.ent->className, "func_plat", 8)) {
 				plat = trace.ent;
 			}
@@ -59,14 +75,14 @@ bool blocked_checkplat(gentity_t *self, float dist) {
 	// if we've found a plat, trigger it.
 	if (plat && plat->use) {
 		if (playerPosition == 1) {
-			if ((self->groundEntity == plat && plat->moveinfo.state == STATE_BOTTOM) ||
-				(self->groundEntity != plat && plat->moveinfo.state == STATE_TOP)) {
+			if ((self->groundEntity == plat && plat->moveInfo.state == MoveState::Bottom) ||
+				(self->groundEntity != plat && plat->moveInfo.state == MoveState::Top)) {
 				plat->use(plat, self, self);
 				return true;
 			}
 		} else if (playerPosition == -1) {
-			if ((self->groundEntity == plat && plat->moveinfo.state == STATE_TOP) ||
-				(self->groundEntity != plat && plat->moveinfo.state == STATE_BOTTOM)) {
+			if ((self->groundEntity == plat && plat->moveInfo.state == MoveState::Top) ||
+				(self->groundEntity != plat && plat->moveInfo.state == MoveState::Bottom)) {
 				plat->use(plat, self, self);
 				return true;
 			}
@@ -88,11 +104,11 @@ static inline void monster_jump_start(gentity_t *self) {
 
 bool monster_jump_finished(gentity_t *self) {
 	// if we lost our forward velocity, give us more
-	vec3_t forward;
+	Vector3 forward;
 
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 
-	vec3_t forward_velocity = self->velocity.scaled(forward);
+	Vector3 forward_velocity = self->velocity.scaled(forward);
 
 	if (forward_velocity.length() < 150.f) {
 		float z_velocity = self->velocity.z;
@@ -105,23 +121,23 @@ bool monster_jump_finished(gentity_t *self) {
 
 // blocked_checkjump
 //	dist: how far they are trying to walk.
-//  self->monsterInfo.drop_height/self->monsterInfo.jump_height: how far they'll ok a jump for. set to 0 to disable that direction.
-blocked_jump_result_t blocked_checkjump(gentity_t *self, float dist) {
+//  self->monsterInfo.dropHeight/self->monsterInfo.jumpHeight: how far they'll ok a jump for. set to 0 to disable that direction.
+BlockedJumpResult blocked_checkjump(gentity_t *self, float dist) {
 	// can't jump even if we physically can
-	if (!self->monsterInfo.can_jump)
-		return blocked_jump_result_t::NO_JUMP;
+	if (!self->monsterInfo.canJump)
+		return BlockedJumpResult::No_Jump;
 	// no enemy to path to
 	else if (!self->enemy)
-		return blocked_jump_result_t::NO_JUMP;
+		return BlockedJumpResult::No_Jump;
 
 	// we just jumped recently, don't try again
 	if (self->monsterInfo.jump_time > level.time)
-		return blocked_jump_result_t::NO_JUMP;
+		return BlockedJumpResult::No_Jump;
 
 	// if we're pathing, the nodes will ensure we can reach the destination.
 	if (self->monsterInfo.aiFlags & AI_PATHING) {
 		if (self->monsterInfo.nav_path.returnCode != PathReturnCode::TraversalPending)
-			return blocked_jump_result_t::NO_JUMP;
+			return BlockedJumpResult::No_Jump;
 
 		float yaw = vectoyaw((self->monsterInfo.nav_path.firstMovePoint - self->monsterInfo.nav_path.secondMovePoint).normalized());
 		self->ideal_yaw = yaw + 180;
@@ -130,106 +146,106 @@ blocked_jump_result_t blocked_checkjump(gentity_t *self, float dist) {
 
 		if (!FacingIdeal(self)) {
 			M_ChangeYaw(self);
-			return blocked_jump_result_t::JUMP_TURN;
+			return BlockedJumpResult::Jump_Turn;
 		}
 
 		monster_jump_start(self);
 
 		if (self->monsterInfo.nav_path.secondMovePoint.z > self->monsterInfo.nav_path.firstMovePoint.z)
-			return blocked_jump_result_t::JUMP_JUMP_UP;
+			return BlockedJumpResult::Jump_Turn_Up;
 		else
-			return blocked_jump_result_t::JUMP_JUMP_DOWN;
+			return BlockedJumpResult::Jump_Turn_Down;
 	}
 
 	int		playerPosition;
 	trace_t trace;
-	vec3_t	pt1, pt2;
-	vec3_t	forward, up;
+	Vector3	pt1, pt2;
+	Vector3	forward, up;
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 
 	if (self->monsterInfo.aiFlags & AI_PATHING) {
-		if (self->monsterInfo.nav_path.secondMovePoint[2] > (self->absMin[2] + (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		if (self->monsterInfo.nav_path.secondMovePoint[2] > (self->absMin[2] + (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = 1;
-		else if (self->monsterInfo.nav_path.secondMovePoint[2] < (self->absMin[2] - (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		else if (self->monsterInfo.nav_path.secondMovePoint[2] < (self->absMin[2] - (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = -1;
 		else
 			playerPosition = 0;
 	} else {
-		if (self->enemy->absMin[2] > (self->absMin[2] + (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		if (self->enemy->absMin[2] > (self->absMin[2] + (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = 1;
-		else if (self->enemy->absMin[2] < (self->absMin[2] - (self->s.origin[2] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		else if (self->enemy->absMin[2] < (self->absMin[2] - (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = -1;
 		else
 			playerPosition = 0;
 	}
 
-	if (playerPosition == -1 && self->monsterInfo.drop_height) {
+	if (playerPosition == -1 && self->monsterInfo.dropHeight) {
 		// check to make sure we can even get to the spot we're going to "fall" from
 		pt1 = self->s.origin + (forward * 48);
 		trace = gi.trace(self->s.origin, self->mins, self->maxs, pt1, self, MASK_MONSTERSOLID);
 		if (trace.fraction < 1)
-			return blocked_jump_result_t::NO_JUMP;
+			return BlockedJumpResult::No_Jump;
 
 		pt2 = pt1;
-		pt2[2] = self->absMin[2] - self->monsterInfo.drop_height - 1;
+		pt2[2] = self->absMin[2] - self->monsterInfo.dropHeight - 1;
 
-		trace = gi.traceline(pt1, pt2, self, MASK_MONSTERSOLID | MASK_WATER);
-		if (trace.fraction < 1 && !trace.allsolid && !trace.startsolid) {
+		trace = gi.traceLine(pt1, pt2, self, MASK_MONSTERSOLID | MASK_WATER);
+		if (trace.fraction < 1 && !trace.allSolid && !trace.startSolid) {
 			// check how deep the water is
 			if (trace.contents & CONTENTS_WATER) {
-				trace_t deep = gi.traceline(trace.endpos, pt2, self, MASK_MONSTERSOLID);
+				trace_t deep = gi.traceLine(trace.endPos, pt2, self, MASK_MONSTERSOLID);
 
-				water_level_t waterlevel;
-				contents_t watertype;
-				M_CatagorizePosition(self, deep.endpos, waterlevel, watertype);
+				water_level_t waterLevel;
+				contents_t waterType;
+				M_CatagorizePosition(self, deep.endPos, waterLevel, waterType);
 
-				if (waterlevel > WATER_WAIST)
-					return blocked_jump_result_t::NO_JUMP;
+				if (waterLevel > WATER_WAIST)
+					return BlockedJumpResult::No_Jump;
 			}
 
-			if ((self->absMin[2] - trace.endpos[2]) >= 24 && (trace.contents & (MASK_SOLID | CONTENTS_WATER))) {
+			if ((self->absMin[2] - trace.endPos[2]) >= 24 && (trace.contents & (MASK_SOLID | CONTENTS_WATER))) {
 				if (self->monsterInfo.aiFlags & AI_PATHING) {
-					if ((self->monsterInfo.nav_path.secondMovePoint[2] - trace.endpos[2]) > 32)
-						return blocked_jump_result_t::NO_JUMP;
+					if ((self->monsterInfo.nav_path.secondMovePoint[2] - trace.endPos[2]) > 32)
+						return BlockedJumpResult::No_Jump;
 				} else {
-					if ((self->enemy->absMin[2] - trace.endpos[2]) > 32)
-						return blocked_jump_result_t::NO_JUMP;
+					if ((self->enemy->absMin[2] - trace.endPos[2]) > 32)
+						return BlockedJumpResult::No_Jump;
 
 					if (trace.plane.normal[2] < 0.9f)
-						return blocked_jump_result_t::NO_JUMP;
+						return BlockedJumpResult::No_Jump;
 				}
 
 				monster_jump_start(self);
 
-				return blocked_jump_result_t::JUMP_JUMP_DOWN;
+				return BlockedJumpResult::Jump_Turn_Down;
 			}
 		}
-	} else if (playerPosition == 1 && self->monsterInfo.jump_height) {
+	} else if (playerPosition == 1 && self->monsterInfo.jumpHeight) {
 		pt1 = self->s.origin + (forward * 48);
 		pt2 = pt1;
-		pt1[2] = self->absMax[2] + self->monsterInfo.jump_height;
+		pt1[2] = self->absMax[2] + self->monsterInfo.jumpHeight;
 
-		trace = gi.traceline(pt1, pt2, self, MASK_MONSTERSOLID | MASK_WATER);
-		if (trace.fraction < 1 && !trace.allsolid && !trace.startsolid) {
-			if ((trace.endpos[2] - self->absMin[2]) <= self->monsterInfo.jump_height && (trace.contents & (MASK_SOLID | CONTENTS_WATER))) {
+		trace = gi.traceLine(pt1, pt2, self, MASK_MONSTERSOLID | MASK_WATER);
+		if (trace.fraction < 1 && !trace.allSolid && !trace.startSolid) {
+			if ((trace.endPos[2] - self->absMin[2]) <= self->monsterInfo.jumpHeight && (trace.contents & (MASK_SOLID | CONTENTS_WATER))) {
 				face_wall(self);
 
 				monster_jump_start(self);
 
-				return blocked_jump_result_t::JUMP_JUMP_UP;
+				return BlockedJumpResult::Jump_Turn_Up;
 			}
 		}
 	}
 
-	return blocked_jump_result_t::NO_JUMP;
+	return BlockedJumpResult::No_Jump;
 }
 
 // *************************
 // HINT PATHS
 // *************************
 
-constexpr spawnflags_t SPAWNFLAG_HINT_ENDPOINT = 0x0001_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_HINT_ENDPOINT = 0x0001_spawnflag;
 constexpr size_t   MAX_HINT_CHAINS = 100;
 
 int		 hint_paths_present;
@@ -250,26 +266,26 @@ static gentity_t *hintpath_findstart(gentity_t *ent) {
 	if (ent->target) // starting point
 	{
 		last = world;
-		e = G_FindByString<&gentity_t::targetname>(nullptr, ent->target);
+		e = G_FindByString<&gentity_t::targetName>(nullptr, ent->target);
 		while (e) {
 			last = e;
 			if (!e->target)
 				break;
-			e = G_FindByString<&gentity_t::targetname>(nullptr, e->target);
+			e = G_FindByString<&gentity_t::targetName>(nullptr, e->target);
 		}
 	} else // end point
 	{
 		last = world;
-		e = G_FindByString<&gentity_t::target>(nullptr, ent->targetname);
+		e = G_FindByString<&gentity_t::target>(nullptr, ent->targetName);
 		while (e) {
 			last = e;
-			if (!e->targetname)
+			if (!e->targetName)
 				break;
-			e = G_FindByString<&gentity_t::target>(nullptr, e->targetname);
+			e = G_FindByString<&gentity_t::target>(nullptr, e->targetName);
 		}
 	}
 
-	if (!last->spawnflags.has(SPAWNFLAG_HINT_ENDPOINT))
+	if (!last->spawnFlags.has(SPAWNFLAG_HINT_ENDPOINT))
 		return nullptr;
 
 	if (last == world)
@@ -287,26 +303,26 @@ static gentity_t *hintpath_other_end(gentity_t *ent) {
 	if (ent->target) // starting point
 	{
 		last = world;
-		e = G_FindByString<&gentity_t::targetname>(nullptr, ent->target);
+		e = G_FindByString<&gentity_t::targetName>(nullptr, ent->target);
 		while (e) {
 			last = e;
 			if (!e->target)
 				break;
-			e = G_FindByString<&gentity_t::targetname>(nullptr, e->target);
+			e = G_FindByString<&gentity_t::targetName>(nullptr, e->target);
 		}
 	} else // end point
 	{
 		last = world;
-		e = G_FindByString<&gentity_t::target>(nullptr, ent->targetname);
+		e = G_FindByString<&gentity_t::target>(nullptr, ent->targetName);
 		while (e) {
 			last = e;
-			if (!e->targetname)
+			if (!e->targetName)
 				break;
-			e = G_FindByString<&gentity_t::target>(nullptr, e->targetname);
+			e = G_FindByString<&gentity_t::target>(nullptr, e->targetName);
 		}
 	}
 
-	if (!(last->spawnflags & SPAWNFLAG_HINT_ENDPOINT))
+	if (!(last->spawnFlags & SPAWNFLAG_HINT_ENDPOINT))
 		return nullptr;
 
 	if (last == world)
@@ -319,17 +335,17 @@ static gentity_t *hintpath_other_end(gentity_t *ent) {
 //		disables all contrary AI flags.
 // =============
 static void hintpath_go(gentity_t *self, gentity_t *point) {
-	vec3_t dir;
+	Vector3 dir;
 
 	dir = point->s.origin - self->s.origin;
 
 	self->ideal_yaw = vectoyaw(dir);
-	self->goalentity = self->movetarget = point;
+	self->goalEntity = self->moveTarget = point;
 	self->monsterInfo.pauseTime = 0_ms;
 	self->monsterInfo.aiFlags |= AI_HINT_PATH;
 	self->monsterInfo.aiFlags &= ~(AI_SOUND_TARGET | AI_PURSUIT_LAST_SEEN | AI_PURSUE_NEXT | AI_PURSUE_TEMP);
 	// run for it
-	self->monsterInfo.search_time = level.time;
+	self->monsterInfo.searchTime = level.time;
 	self->monsterInfo.run(self);
 }
 
@@ -337,8 +353,8 @@ static void hintpath_go(gentity_t *self, gentity_t *point) {
 // hintpath_stop - bails a monster out of following hint paths
 // =============
 void hintpath_stop(gentity_t *self) {
-	self->goalentity = nullptr;
-	self->movetarget = nullptr;
+	self->goalEntity = nullptr;
+	self->moveTarget = nullptr;
 	self->monsterInfo.last_hint_time = level.time;
 	self->monsterInfo.goal_hint = nullptr;
 	self->monsterInfo.aiFlags &= ~AI_HINT_PATH;
@@ -389,7 +405,7 @@ bool monsterlost_checkhint(gentity_t *self) {
 	if (self->monsterInfo.aiFlags & (AI_STAND_GROUND | AI_PATHING))
 		return false;
 
-	if (!strcmp(self->className, "monster_turret"))
+	if (!Q_strcasecmp(self->className, "monster_turret"))
 		return false;
 
 	monster_pathchain = nullptr;
@@ -647,7 +663,7 @@ static TOUCH(hint_path_touch) (gentity_t *self, gentity_t *other, const trace_t 
 	bool goalFound = false;
 
 	// make sure we're the target of it's obsession
-	if (other->movetarget == self) {
+	if (other->moveTarget == self) {
 		goal = other->monsterInfo.goal_hint;
 
 		// if the monster is where he wants to be
@@ -687,7 +703,7 @@ static TOUCH(hint_path_touch) (gentity_t *self, gentity_t *other, const trace_t 
 		// have the monster freeze if the hint path we just touched has a wait time
 		// on it, for example, when riding a plat.
 		if (self->wait)
-			other->nextThink = level.time + gtime_t::from_sec(self->wait);
+			other->nextThink = level.time + GameTime::from_sec(self->wait);
 	}
 }
 
@@ -704,7 +720,7 @@ void SP_hint_path(gentity_t *self) {
 		return;
 	}
 
-	if (!self->targetname && !self->target) {
+	if (!self->targetName && !self->target) {
 		gi.Com_PrintFmt("{}: unlinked\n", *self);
 		FreeEntity(self);
 		return;
@@ -715,7 +731,7 @@ void SP_hint_path(gentity_t *self) {
 	self->mins = { -8, -8, -8 };
 	self->maxs = { 8, 8, 8 };
 	self->svFlags |= SVF_NOCLIENT;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 // ============
@@ -737,13 +753,13 @@ void InitHintPaths() {
 	memset(hint_path_start, 0, MAX_HINT_CHAINS * sizeof(gentity_t *));
 	num_hint_paths = 0;
 	while (e) {
-		if (e->spawnflags.has(SPAWNFLAG_HINT_ENDPOINT)) {
+		if (e->spawnFlags.has(SPAWNFLAG_HINT_ENDPOINT)) {
 			if (e->target) // start point
 			{
-				if (e->targetname) // this is a bad end, ignore it
+				if (e->targetName) // this is a bad end, ignore it
 				{
-					gi.Com_PrintFmt("{}: marked as endpoint with both target ({}) and targetname ({})\n",
-						*e, e->target, e->targetname);
+					gi.Com_PrintFmt("{}: marked as endpoint with both target ({}) and targetName ({})\n",
+						*e, e->target, e->targetName);
 				} else {
 					if (num_hint_paths >= MAX_HINT_CHAINS)
 						break;
@@ -758,8 +774,8 @@ void InitHintPaths() {
 	for (i = 0; i < num_hint_paths; i++) {
 		current = hint_path_start[i];
 		current->hint_chain_id = i;
-		e = G_FindByString<&gentity_t::targetname>(nullptr, current->target);
-		if (G_FindByString<&gentity_t::targetname>(e, current->target)) {
+		e = G_FindByString<&gentity_t::targetName>(nullptr, current->target);
+		if (G_FindByString<&gentity_t::targetName>(e, current->target)) {
 			gi.Com_PrintFmt("{}: Forked path detected for chain {}, target {}\n",
 				*current, num_hint_paths, current->target);
 			hint_path_start[i]->hint_chain = nullptr;
@@ -767,8 +783,8 @@ void InitHintPaths() {
 		}
 		while (e) {
 			if (e->hint_chain) {
-				gi.Com_PrintFmt("{}: Circular path detected for chain {}, targetname {}\n",
-					*e, num_hint_paths, e->targetname);
+				gi.Com_PrintFmt("{}: Circular path detected for chain {}, targetName {}\n",
+					*e, num_hint_paths, e->targetName);
 				hint_path_start[i]->hint_chain = nullptr;
 				break;
 			}
@@ -777,8 +793,8 @@ void InitHintPaths() {
 			current->hint_chain_id = i;
 			if (!current->target)
 				break;
-			e = G_FindByString<&gentity_t::targetname>(nullptr, current->target);
-			if (G_FindByString<&gentity_t::targetname>(e, current->target)) {
+			e = G_FindByString<&gentity_t::targetName>(nullptr, current->target);
+			if (G_FindByString<&gentity_t::targetName>(e, current->target)) {
 				gi.Com_PrintFmt("{}: Forked path detected for chain {}, target {}\n",
 					*current, num_hint_paths, current->target);
 				hint_path_start[i]->hint_chain = nullptr;
@@ -797,9 +813,9 @@ void InitHintPaths() {
 // if it looks a lot like infront, well, there's a reason
 
 bool inback(gentity_t *self, gentity_t *other) {
-	vec3_t vec;
+	Vector3 vec;
 	float  dot;
-	vec3_t forward;
+	Vector3 forward;
 
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 	vec = other->s.origin - self->s.origin;
@@ -809,7 +825,7 @@ bool inback(gentity_t *self, gentity_t *other) {
 }
 
 float realrange(gentity_t *self, gentity_t *other) {
-	vec3_t dir;
+	Vector3 dir;
 
 	dir = self->s.origin - other->s.origin;
 
@@ -817,16 +833,16 @@ float realrange(gentity_t *self, gentity_t *other) {
 }
 
 bool face_wall(gentity_t *self) {
-	vec3_t	pt;
-	vec3_t	forward;
-	vec3_t	ang;
+	Vector3	pt;
+	Vector3	forward;
+	Vector3	ang;
 	trace_t tr;
 
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 	pt = self->s.origin + (forward * 64);
-	tr = gi.traceline(self->s.origin, pt, self, MASK_MONSTERSOLID);
-	if (tr.fraction < 1 && !tr.allsolid && !tr.startsolid) {
-		ang = vectoangles(tr.plane.normal);
+	tr = gi.traceLine(self->s.origin, pt, self, MASK_MONSTERSOLID);
+	if (tr.fraction < 1 && !tr.allSolid && !tr.startSolid) {
+		ang = VectorToAngles(tr.plane.normal);
 		self->ideal_yaw = ang[YAW] + 180;
 		if (self->ideal_yaw > 360)
 			self->ideal_yaw -= 360;
@@ -844,9 +860,9 @@ bool face_wall(gentity_t *self) {
 
 static TOUCH(badarea_touch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {}
 
-gentity_t *SpawnBadArea(const vec3_t &mins, const vec3_t &maxs, gtime_t lifespan, gentity_t *owner) {
+gentity_t *SpawnBadArea(const Vector3 &mins, const Vector3 &maxs, GameTime lifespan, gentity_t *owner) {
 	gentity_t *badarea;
-	vec3_t	 origin;
+	Vector3	 origin;
 
 	origin = mins + maxs;
 	origin *= 0.5f;
@@ -857,10 +873,10 @@ gentity_t *SpawnBadArea(const vec3_t &mins, const vec3_t &maxs, gtime_t lifespan
 	badarea->maxs = maxs - origin;
 	badarea->mins = mins - origin;
 	badarea->touch = badarea_touch;
-	badarea->moveType = MOVETYPE_NONE;
+	badarea->moveType = MoveType::None;
 	badarea->solid = SOLID_TRIGGER;
 	badarea->className = "bad_area";
-	gi.linkentity(badarea);
+	gi.linkEntity(badarea);
 
 	if (lifespan) {
 		badarea->think = FreeEntity;
@@ -888,7 +904,7 @@ static BoxEntitiesResult_t CheckForBadArea_BoxFilter(gentity_t *hit, void *data)
 //		This is a customized version of TouchTriggers that will check
 //		for bad area triggers and return them if they're touched.
 gentity_t *CheckForBadArea(gentity_t *ent) {
-	vec3_t	 mins, maxs;
+	Vector3	 mins, maxs;
 
 	mins = ent->s.origin + ent->mins;
 	maxs = ent->s.origin + ent->maxs;
@@ -903,7 +919,7 @@ gentity_t *CheckForBadArea(gentity_t *ent) {
 constexpr float TESLA_DAMAGE_RADIUS = 128;
 
 bool MarkTeslaArea(gentity_t *self, gentity_t *tesla) {
-	vec3_t	 mins, maxs;
+	Vector3	 mins, maxs;
 	gentity_t *e;
 	gentity_t *tail;
 	gentity_t *area;
@@ -961,9 +977,9 @@ bool MarkTeslaArea(gentity_t *self, gentity_t *tesla) {
 // eye_height is a boolean to say whether or not to adjust to targets eye_height
 // offset is how much time to miss by
 // aimDir is the resulting aim direction (pass in nullptr if you don't want it)
-// aimpoint is the resulting aimpoint (pass in nullptr if don't want it)
-void PredictAim(gentity_t *self, gentity_t *target, const vec3_t &start, float bolt_speed, bool eye_height, float offset, vec3_t *aimDir, vec3_t *aimpoint) {
-	vec3_t dir, vec;
+// aimPoint is the resulting aimPoint (pass in nullptr if don't want it)
+void PredictAim(gentity_t *self, gentity_t *target, const Vector3 &start, float bolt_speed, bool eye_height, float offset, Vector3 *aimDir, Vector3 *aimPoint) {
+	Vector3 dir, vec;
 	float  dist, time;
 
 	if (!target || !target->inUse) {
@@ -977,7 +993,7 @@ void PredictAim(gentity_t *self, gentity_t *target, const vec3_t &start, float b
 	dist = dir.length();
 
 	// [Paril-KEX] if our current attempt is blocked, try the opposite one
-	trace_t tr = gi.traceline(start, start + dir, self, MASK_PROJECTILE);
+	trace_t tr = gi.traceLine(start, start + dir, self, MASK_PROJECTILE);
 
 	if (tr.ent != target) {
 		eye_height = !eye_height;
@@ -999,7 +1015,7 @@ void PredictAim(gentity_t *self, gentity_t *target, const vec3_t &start, float b
 		vec = target->s.origin;
 	else {
 		// if the shot is going to impact a nearby wall from our prediction, just fire it straight.	
-		if (gi.traceline(start, vec, nullptr, MASK_SOLID).fraction < 0.9f)
+		if (gi.traceLine(start, vec, nullptr, MASK_SOLID).fraction < 0.9f)
 			vec = target->s.origin;
 	}
 
@@ -1009,39 +1025,39 @@ void PredictAim(gentity_t *self, gentity_t *target, const vec3_t &start, float b
 	if (aimDir)
 		*aimDir = (vec - start).normalized();
 
-	if (aimpoint)
-		*aimpoint = vec;
+	if (aimPoint)
+		*aimPoint = vec;
 }
 
 // [Paril-KEX] find a pitch that will at some point land on or near the player.
 // very approximate. aim will be adjusted to the correct aim vector.
-bool M_CalculatePitchToFire(gentity_t *self, const vec3_t &target, const vec3_t &start, vec3_t &aim, float speed, float time_remaining, bool mortar, bool destroy_on_touch) {
+bool M_CalculatePitchToFire(gentity_t *self, const Vector3 &target, const Vector3 &start, Vector3 &aim, float speed, float time_remaining, bool mortar, bool destroy_on_touch) {
 	constexpr float pitches[] = { -80.f, -70.f, -60.f, -50.f, -40.f, -30.f, -20.f, -10.f, -5.f };
 	float best_pitch = 0.f;
 	float best_dist = std::numeric_limits<float>::infinity();
 
 	constexpr float sim_time = 0.1f;
-	vec3_t pitched_aim = vectoangles(aim);
+	Vector3 pitched_aim = VectorToAngles(aim);
 
 	for (auto &pitch : pitches) {
 		if (mortar && pitch >= -30.f)
 			break;
 
 		pitched_aim[PITCH] = pitch;
-		vec3_t fwd = AngleVectors(pitched_aim).forward;
+		Vector3 fwd = AngleVectors(pitched_aim).forward;
 
-		vec3_t velocity = fwd * speed;
-		vec3_t origin = start;
+		Vector3 velocity = fwd * speed;
+		Vector3 origin = start;
 
 		float t = time_remaining;
 
 		while (t > 0.f) {
-			velocity += vec3_t{ 0, 0, -1 } *level.gravity * sim_time;
+			velocity += Vector3{ 0, 0, -1 } *level.gravity * sim_time;
 
-			vec3_t end = origin + (velocity * sim_time);
-			trace_t tr = gi.traceline(origin, end, nullptr, MASK_SHOT);
+			Vector3 end = origin + (velocity * sim_time);
+			trace_t tr = gi.traceLine(origin, end, nullptr, MASK_SHOT);
 
-			origin = tr.endpos;
+			origin = tr.endPos;
 
 			if (tr.fraction < 1.0f) {
 				if (tr.surface->flags & SURF_SKY)
@@ -1075,9 +1091,9 @@ bool M_CalculatePitchToFire(gentity_t *self, const vec3_t &target, const vec3_t 
 }
 
 bool below(gentity_t *self, gentity_t *other) {
-	vec3_t vec;
+	Vector3 vec;
 	float  dot;
-	vec3_t down;
+	Vector3 down;
 
 	vec = other->s.origin - self->s.origin;
 	vec.normalize();
@@ -1099,11 +1115,11 @@ void drawbbox(gentity_t *self) {
 
 	int starts[4] = { 0, 3, 5, 6 };
 
-	vec3_t pt[8]{};
+	Vector3 pt[8]{};
 	int	   i, j, k;
-	vec3_t coords[2]{};
-	vec3_t newbox;
-	vec3_t f, r, u, dir;
+	Vector3 coords[2]{};
+	Vector3 newbox;
+	Vector3 f, r, u, dir;
 
 	coords[0] = self->absMin;
 	coords[1] = self->absMax;
@@ -1128,7 +1144,7 @@ void drawbbox(gentity_t *self) {
 		}
 	}
 
-	dir = vectoangles(self->s.angles);
+	dir = VectorToAngles(self->s.angles);
 	AngleVectors(dir, f, r, u);
 
 	newbox = self->s.origin + (f * 50);
@@ -1165,7 +1181,7 @@ static inline bool G_SkillCheck(const std::initializer_list<float> &skills) {
 //
 // New dodge code
 //
-MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t eta, trace_t *tr, bool gravity) -> void {
+MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, GameTime eta, trace_t *tr, bool gravity) -> void {
 	float r = frandom();
 	float height;
 	bool  ducker = false, dodger = false;
@@ -1199,7 +1215,7 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 	if (ducker && tr) {
 		height = self->absMax[2] - 32 - 1; // the -1 is because the absMax is s.origin + maxs + 1
 
-		if ((!dodger) && ((tr->endpos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)))
+		if ((!dodger) && ((tr->endPos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)))
 			return;
 	} else
 		height = self->absMax[2];
@@ -1210,18 +1226,18 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 			return;
 
 		// if we're ducking already, or the shot is at our knees
-		if ((!ducker || !tr || tr->endpos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)) {
+		if ((!ducker || !tr || tr->endPos[2] <= height) || (self->monsterInfo.aiFlags & AI_DUCKED)) {
 			// on Easy & Normal, don't sideStep as often (25% on Easy, 50% on Normal)
 			if (!G_SkillCheck({ 0.25f, 0.50f, 1.0f, 1.0f, 1.0f })) {
-				gtime_t delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.8_sec, 1.4_sec);
+				GameTime delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.8_sec, 1.4_sec);
 				self->monsterInfo.dodge_time = level.time + delay;
 				return;
 			} else {
 				if (tr) {
-					vec3_t right, diff;
+					Vector3 right, diff;
 
 					AngleVectors(self->s.angles, nullptr, right, nullptr);
-					diff = tr->endpos - self->s.origin;
+					diff = tr->endPos - self->s.origin;
 
 					if (right.dot(diff) < 0)
 						self->monsterInfo.lefty = false;
@@ -1237,9 +1253,9 @@ MONSTERINFO_DODGE(M_MonsterDodge) (gentity_t *self, gentity_t *attacker, gtime_t
 						self->monsterInfo.unDuck(self);
 
 					self->monsterInfo.aiFlags |= AI_DODGING;
-					self->monsterInfo.attack_state = AS_SLIDING;
+					self->monsterInfo.attackState = MonsterAttackState::Sliding;
 
-					gtime_t delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.4_sec, 2.0_sec);
+					GameTime delay = skill->integer > 3 ? random_time(400_ms, 500_ms) : random_time(0.4_sec, 2.0_sec);
 					self->monsterInfo.dodge_time = level.time + delay;
 				}
 				return;
@@ -1279,7 +1295,7 @@ void monster_duck_down(gentity_t *self) {
 	self->maxs[2] = self->monsterInfo.base_height - 32;
 	self->takeDamage = true;
 	self->monsterInfo.next_duck_time = level.time + DUCK_INTERVAL;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 void monster_duck_hold(gentity_t *self) {
@@ -1299,7 +1315,7 @@ MONSTERINFO_UNDUCK(monster_duck_up) (gentity_t *self) -> void {
 	// we finished a duck-up successfully, so cut the time remaining in half
 	if (self->monsterInfo.next_duck_time > level.time)
 		self->monsterInfo.next_duck_time = level.time + ((self->monsterInfo.next_duck_time - level.time) / 2);
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 //=========================
@@ -1356,7 +1372,7 @@ gentity_t *PickCoopTarget(gentity_t *self) {
 	if (!CooperativeModeOn())
 		return nullptr;
 
-	targets = (gentity_t **)alloca(sizeof(gentity_t *) * game.maxclients);
+	targets = (gentity_t **)alloca(sizeof(gentity_t *) * game.maxClients);
 
 	for (auto ec : active_clients())
 		if (visible(self, ec))
@@ -1386,12 +1402,12 @@ int CountPlayers() {
 
 static THINK(BossExplode_think) (gentity_t *self) -> void {
 	// owner gone or changed
-	if (!self->owner->inUse || self->owner->s.modelindex != self->style || self->count != self->owner->spawn_count) {
+	if (!self->owner->inUse || self->owner->s.modelIndex != self->style || self->count != self->owner->spawn_count) {
 		FreeEntity(self);
 		return;
 	}
 
-	vec3_t org = self->owner->s.origin + self->owner->mins;
+	Vector3 org = self->owner->s.origin + self->owner->mins;
 
 	org.x += frandom() * self->owner->size.x;
 	org.y += frandom() * self->owner->size.y;
@@ -1409,13 +1425,13 @@ static THINK(BossExplode_think) (gentity_t *self) -> void {
 
 void BossExplode(gentity_t *self) {
 	// no blowy on deady
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
 		return;
 
 	gentity_t *exploder = Spawn();
 	exploder->owner = self;
 	exploder->count = self->spawn_count;
-	exploder->style = self->s.modelindex;
+	exploder->style = self->s.modelIndex;
 	exploder->think = BossExplode_think;
 	exploder->nextThink = level.time + random_time(75_ms, 250_ms);
 	exploder->viewHeight = 0;

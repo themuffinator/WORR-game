@@ -1,4 +1,17 @@
-#include "../g_local.h"
+// menu_page_matchstats.cpp (Menu Page - Match Stats)
+// This file implements the in-game menu page for players to view their own
+// performance statistics for the current match.
+//
+// Key Responsibilities:
+// - Stats Display: The `onUpdate` callback dynamically populates the menu
+//   with the player's current stats.
+// - Data Source: It reads data directly from the `client_match_stats_t`
+//   struct associated with the player's client entity.
+// - Real-Time Updates: Because it uses the `onUpdate` callback, the stats
+//   displayed in the menu are updated live as the match progresses whenever
+//   the menu is open.
+
+#include "../g_local.hpp"
 
 void OpenPlayerMatchStatsMenu(gentity_t *ent) {
 	auto menu = std::make_unique<Menu>();

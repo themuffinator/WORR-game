@@ -1,15 +1,15 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#include "../g_local.h"
-#include "bot_utils.h"
-#include "bot_debug.h"
+#include "../g_local.hpp"
+#include "bot_utils.hpp"
+#include "bot_debug.hpp"
 
 static const gentity_t *escortBot = nullptr;
 static const gentity_t *escortActor = nullptr;
 
 static const gentity_t *moveToPointBot = nullptr;
-static vec3_t moveToPointPos = vec3_origin;
+static Vector3 moveToPointPos = vec3_origin;
 
 // how close the bot will try to get to the move to point goal
 constexpr float moveToPointTolerance = 16.0f;
@@ -27,7 +27,7 @@ static void ShowMonsterPathToPlayer(const gentity_t *player) {
 
 	const float moveDist = 8.0f;
 
-	std::array<vec3_t, 512> pathPoints{};
+	std::array<Vector3, 512> pathPoints{};
 
 	PathRequest request;
 	request.start = monster->s.origin;
@@ -74,18 +74,18 @@ static void UpdateFollowActorDebug(const gentity_t *localPlayer) {
 			escortActor = FindActorUnderCrosshair(localPlayer);
 
 			if (gi.Bot_FollowActor(escortBot, escortActor) != GoalReturnCode::Error) {
-				gi.cvar_set("bot_debug_follow_actor", "2");
+				gi.cvarSet("bot_debug_follow_actor", "2");
 				gi.Com_Print("Follow_Actor: Bot Found Actor To Follow!\n");
 			} else {
 				gi.Com_Print("Follow_Actor: Hover Over Monster/Player To Follow...\n");
 			}
 		} else {
 			if (gi.Bot_FollowActor(escortBot, escortActor) != GoalReturnCode::Error) {
-				gi.Draw_Bounds(escortActor->absMin, escortActor->absMax, rgba_yellow, gi.frame_time_s, false);
-				gi.Draw_Bounds(escortBot->absMin, escortBot->absMax, rgba_cyan, gi.frame_time_s, false);
+				gi.Draw_Bounds(escortActor->absMin, escortActor->absMax, rgba_yellow, gi.frameTimeSec, false);
+				gi.Draw_Bounds(escortBot->absMin, escortBot->absMax, rgba_cyan, gi.frameTimeSec, false);
 			} else {
 				gi.Com_Print("Follow_Actor: Bot Or Actor Removed...\n");
-				gi.cvar_set("bot_debug_follow_actor", "0");
+				gi.cvarSet("bot_debug_follow_actor", "0");
 			}
 		}
 	} else {
@@ -116,19 +116,19 @@ static void UpdateMoveToPointDebug(const gentity_t *localPlayer) {
 	if (bot_debug_move_to_point->integer) {
 		if (bot_debug_move_to_point->integer == 1) {
 			if (localPlayer->client->buttons & BUTTON_ATTACK) {
-				vec3_t localPlayerForward, right, up;
+				Vector3 localPlayerForward, right, up;
 				AngleVectors(localPlayer->client->vAngle, localPlayerForward, right, up);
 
-				const vec3_t localPlayerViewPos = (localPlayer->s.origin + vec3_t{ 0.0f, 0.0f, (float)localPlayer->viewHeight });
-				const vec3_t end = (localPlayerViewPos + (localPlayerForward * 8192.0f));
+				const Vector3 localPlayerViewPos = (localPlayer->s.origin + Vector3{ 0.0f, 0.0f, (float)localPlayer->viewHeight });
+				const Vector3 end = (localPlayerViewPos + (localPlayerForward * 8192.0f));
 				const contents_t mask = (MASK_PROJECTILE & ~CONTENTS_DEADMONSTER);
 
-				trace_t tr = gi.traceline(localPlayerViewPos, end, localPlayer, mask);
-				moveToPointPos = tr.endpos;
+				trace_t tr = gi.traceLine(localPlayerViewPos, end, localPlayer, mask);
+				moveToPointPos = tr.endPos;
 
 				moveToPointBot = FindFirstBot();
 				if (gi.Bot_MoveToPoint(moveToPointBot, moveToPointPos, moveToPointTolerance) != GoalReturnCode::Error) {
-					gi.cvar_set("bot_debug_move_to_point", "2");
+					gi.cvarSet("bot_debug_move_to_point", "2");
 					gi.Com_Print("Move_To_Point: Bot Has Position To Move Toward!\n");
 				}
 			} else {
@@ -137,14 +137,14 @@ static void UpdateMoveToPointDebug(const gentity_t *localPlayer) {
 		} else {
 			const GoalReturnCode result = gi.Bot_MoveToPoint(moveToPointBot, moveToPointPos, moveToPointTolerance);
 			if (result == GoalReturnCode::Error) {
-				gi.cvar_set("bot_debug_move_to_point", "0");
+				gi.cvarSet("bot_debug_move_to_point", "0");
 				gi.Com_Print("Move_To_Point: Bot Can't Reach Goal Position!\n");
 			} else if (result == GoalReturnCode::Finished) {
-				gi.cvar_set("bot_debug_move_to_point", "0");
+				gi.cvarSet("bot_debug_move_to_point", "0");
 				gi.Com_Print("Move_To_Point: Bot Reached Goal Position!\n");
 			} else {
-				gi.Draw_Point(moveToPointPos, 8.0f, rgba_yellow, gi.frame_time_s, false);
-				gi.Draw_Bounds(moveToPointBot->absMin, moveToPointBot->absMax, rgba_cyan, gi.frame_time_s, false);
+				gi.Draw_Point(moveToPointPos, 8.0f, rgba_yellow, gi.frameTimeSec, false);
+				gi.Draw_Bounds(moveToPointBot->absMin, moveToPointBot->absMax, rgba_cyan, gi.frameTimeSec, false);
 			}
 		}
 	} else {

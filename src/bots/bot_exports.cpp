@@ -1,8 +1,8 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#include "../g_local.h"
-#include "bot_exports.h"
+#include "../g_local.hpp"
+#include "bot_exports.hpp"
 
 /*
 ================
@@ -32,7 +32,7 @@ void Bot_SetWeapon(gentity_t *bot, const int weaponIndex, const bool instantSwit
 		} // already have the gun in hand.
 	}
 
-	const Item *pendingGun = client->newWeapon;
+	const Item *pendingGun = client->weapon.pending;
 	if (pendingGun != nullptr) {
 		if (pendingGun->id == weaponItemID) {
 			return;
@@ -99,20 +99,20 @@ void Bot_UseItem(gentity_t *bot, const int32_t itemID) {
 	}
 
 	const item_id_t desiredItemID = item_id_t(itemID);
-	bot->client->pers.selected_item = desiredItemID;
+	bot->client->pers.selectedItem = desiredItemID;
 
 	ValidateSelectedItem(bot);
 
-	if (bot->client->pers.selected_item == IT_NULL) {
+	if (bot->client->pers.selectedItem == IT_NULL) {
 		return;
 	}
 
-	if (bot->client->pers.selected_item != desiredItemID) {
+	if (bot->client->pers.selectedItem != desiredItemID) {
 		return;
 	} // the itemID changed on us - don't use it!
 
-	Item *item = &itemList[bot->client->pers.selected_item];
-	bot->client->pers.selected_item = IT_NULL;
+	Item *item = &itemList[bot->client->pers.selectedItem];
+	bot->client->pers.selectedItem = IT_NULL;
 
 	if (item->use == nullptr) {
 		return;
@@ -133,7 +133,7 @@ int32_t Bot_GetItemID(const char *className) {
 	}
 
 	if (Q_strcasecmp(className, "none") == 0) {
-		return Item_Null;
+		return ITEM_NULL;
 	}
 
 	for (int i = 0; i < IT_TOTAL; ++i) {
@@ -156,20 +156,20 @@ Entity_ForceLookAtPoint
 ================
 */
 void Entity_ForceLookAtPoint(gentity_t *entity, gvec3_cref_t point) {
-	vec3_t viewOrigin = entity->s.origin;
+	Vector3 viewOrigin = entity->s.origin;
 	if (entity->client != nullptr) {
-		viewOrigin += entity->client->ps.viewoffset;
+		viewOrigin += entity->client->ps.viewOffset;
 	}
 
-	const vec3_t ideal = (point - viewOrigin).normalized();
+	const Vector3 ideal = (point - viewOrigin).normalized();
 
-	vec3_t viewAngles = vectoangles(ideal);
+	Vector3 viewAngles = VectorToAngles(ideal);
 	if (viewAngles.x < -180.0f) {
 		viewAngles.x = anglemod(viewAngles.x + 360.0f);
 	}
 
 	if (entity->client != nullptr) {
-		entity->client->ps.pmove.delta_angles = (viewAngles - entity->client->resp.cmdAngles);
+		entity->client->ps.pmove.deltaAngles = (viewAngles - entity->client->resp.cmdAngles);
 		entity->client->ps.viewAngles = {};
 		entity->client->vAngle = {};
 		entity->s.angles = {};
@@ -187,5 +187,5 @@ bool Bot_PickedUpItem(gentity_t *bot, gentity_t *item) {
 	if (bot->s.number == 0 || bot->s.number > MAX_CLIENTS)
 		return false; // invalid or out of range
 
-	return item->item_picked_up_by[static_cast<int>(bot->s.number - 1)];
+	return item->itemPickedUpBy[static_cast<int>(bot->s.number - 1)];
 }

@@ -1,10 +1,28 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
+// g_save.cpp (Game Save/Load)
+// This file implements a modern, robust save and load system for the game
+// state, using JSON as the serialization format. It is designed to be
+// forwards and backwards compatible by using a descriptive, field-based
+// approach rather than raw memory dumps.
+//
+// Key Responsibilities:
+// - Serialization: `WriteGameJson` and `WriteLevelJson` traverse the game
+//   state (clients, entities) and serialize their data into a JSON object
+//   based on detailed structure definitions (`save_struct_t`).
+// - Deserialization: `ReadGameJson` and `ReadLevelJson` parse a JSON string,
+//   reconstruct the game state, and correctly link entity references and
+//   function pointers.
+// - Type Safety and Reflection: Uses a system of templates and macros
+//   (`FIELD_AUTO`, `SAVE_STRUCT_START`) to automatically deduce the type of
+//   each field to be saved, making the system easy to extend and maintain.
+// - Pointer Marshalling: Safely handles saving and restoring function pointers
+//   and entity pointers by converting them to names or ID numbers.
+
 #include <sstream>
 
-#include "g_local.h"
-#include <float.h>
+#include "g_local.hpp"
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma GCC diagnostic ignored "-Weverything"
@@ -24,11 +42,9 @@
 //   does have some C-isms in here.
 constexpr size_t SAVE_FORMAT_VERSION = 1;
 
-#include <unordered_map>
-
 // Professor Daniel J. Bernstein; https://www.partow.net/programming/hashfunctions/#APHashFunction MIT
 struct cstring_hash {
-	inline std::size_t operator()(const char *str) const {
+	inline std::size_t operator()(const char* str) const {
 		size_t   len = strlen(str);
 		uint32_t hash = 5381;
 		size_t i = 0;
@@ -41,22 +57,22 @@ struct cstring_hash {
 };
 
 struct cstring_equal {
-	inline bool operator()(const char *a, const char *b) const {
+	inline bool operator()(const char* a, const char* b) const {
 		return strcmp(a, b) == 0;
 	}
 };
 
 struct ptr_tag_hash {
-	inline std::size_t operator()(const std::tuple<const void *, save_data_tag_t> &v) const {
-		return (std::hash<const void *>()(std::get<0>(v)) * 8747) + std::get<1>(v);
+	inline std::size_t operator()(const std::tuple<const void*, save_data_tag_t>& v) const {
+		return (std::hash<const void*>()(std::get<0>(v)) * 8747) + std::get<1>(v);
 	}
 };
 
 static bool save_data_initialized = false;
-static const save_data_list_t *list_head = nullptr;
-static std::unordered_map<const void *, const save_data_list_t *> list_hash;
-static std::unordered_map<const char *, const save_data_list_t *, cstring_hash, cstring_equal> list_str_hash;
-static std::unordered_map<std::tuple<const void *, save_data_tag_t>, const save_data_list_t *, ptr_tag_hash> list_from_ptr_hash;
+static const save_data_list_t* list_head = nullptr;
+static std::unordered_map<const void*, const save_data_list_t*> list_hash;
+static std::unordered_map<const char*, const save_data_list_t*, cstring_hash, cstring_equal> list_str_hash;
+static std::unordered_map<std::tuple<const void*, save_data_tag_t>, const save_data_list_t*, ptr_tag_hash> list_from_ptr_hash;
 
 #include <cassert>
 
@@ -69,12 +85,12 @@ void G_InitSave() {
 	if (save_data_initialized)
 		return;
 
-	for (const save_data_list_t *link = list_head; link; link = link->next) {
-		const void *link_ptr = link;
+	for (const save_data_list_t* link = list_head; link; link = link->next) {
+		const void* link_ptr = link;
 
 		auto it = list_hash.find(link_ptr);
 		if (it != list_hash.end()) {
-			const auto &existing = *it;
+			const auto& existing = *it;
 
 			assert(false || "invalid save pointer; break here to find which pointer it is"[0]);
 
@@ -88,7 +104,7 @@ void G_InitSave() {
 
 		auto sit = list_str_hash.find(link->name);
 		if (sit != list_str_hash.end()) {
-			const auto &existing = *sit;
+			const auto& existing = *sit;
 
 			assert(false || "invalid save pointer; break here to find which pointer it is"[0]);
 
@@ -109,7 +125,7 @@ void G_InitSave() {
 }
 
 // initializer for save data
-save_data_list_t::save_data_list_t(const char *name_in, save_data_tag_t tag_in, const void *ptr_in) :
+save_data_list_t::save_data_list_t(const char* name_in, save_data_tag_t tag_in, const void* ptr_in) :
 	name(name_in),
 	tag(tag_in),
 	ptr(ptr_in) {
@@ -120,7 +136,7 @@ save_data_list_t::save_data_list_t(const char *name_in, save_data_tag_t tag_in, 
 	list_head = this;
 }
 
-const save_data_list_t *save_data_list_t::fetch(const void *ptr, save_data_tag_t tag) {
+const save_data_list_t* save_data_list_t::fetch(const void* ptr, save_data_tag_t tag) {
 	auto link = list_from_ptr_hash.find(std::make_tuple(ptr, tag));
 
 	if (link != list_from_ptr_hash.end() && link->second->tag == tag)
@@ -139,7 +155,7 @@ const save_data_list_t *save_data_list_t::fetch(const void *ptr, save_data_tag_t
 
 std::string json_error_stack;
 
-static void json_push_stack(const std::string &stack) {
+static void json_push_stack(const std::string& stack) {
 	json_error_stack += "::" + stack;
 }
 
@@ -150,7 +166,7 @@ static void json_pop_stack() {
 		json_error_stack.resize(o - 1);
 }
 
-static void json_print_error(const char *field, const char *message, bool fatal) {
+static void json_print_error(const char* field, const char* message, bool fatal) {
 	if (fatal || g_strict_saves->integer)
 		gi.Com_ErrorFmt("Error loading JSON\n{}.{}: {}", json_error_stack, field, message);
 
@@ -159,85 +175,85 @@ static void json_print_error(const char *field, const char *message, bool fatal)
 
 using save_void_t = save_data_t<void, UINT_MAX>;
 
-enum save_type_id_t {
+enum class SaveTypeID {
 	// never valid
-	ST_INVALID,
+	Invalid,
 
 	// integral types
-	ST_BOOL,
-	ST_INT8,
-	ST_INT16,
-	ST_INT32,
-	ST_INT64,
-	ST_UINT8,
-	ST_UINT16,
-	ST_UINT32,
-	ST_UINT64,
-	ST_ENUM, // "count" = sizeof(enum_type)
+	Boolean,
+	Int8,
+	Int16,
+	Int32,
+	Int64,
+	UInt8,
+	UInt16,
+	UInt32,
+	UInt64,
+	ENum, // "count" = sizeof(enum_type)
 
 	// floating point
-	ST_FLOAT,
-	ST_DOUBLE,
+	Float,
+	Double,
 
-	ST_STRING, // "tag" = memory tag, "count" = fixed length if specified, otherwise dynamic
+	String, // "tag" = memory tag, "count" = fixed length if specified, otherwise dynamic
 
-	ST_FIXED_STRING, // "count" = length
+	FixedString, // "count" = length
 
-	ST_FIXED_ARRAY,
+	FixedArray,
 	// for simple types (ones that don't require extra info), "tag" = type and "count" = N
 	// otherwise, "type_resolver" for nested arrays, structures, string/function arrays, etc
 
-	ST_STRUCT, // "count" = sizeof(struct), "structure" = ptr to save_struct_t to save
+	Struct, // "count" = sizeof(struct), "structure" = ptr to save_struct_t to save
 
-	ST_BITSET, // bitset; "count" = N bits
+	BitSet, // bitset; "count" = N bits
 
 	// special Quake types
-	ST_ENTITY,		 // serialized as s.number
-	ST_ITEM_POINTER, // serialized as className
-	ST_ITEM_INDEX,	 // serialized as className
-	ST_TIME,		 // serialized as milliseconds
-	ST_DATA,		 // serialized as name of data ptr from global list; `tag` = list tag
-	ST_INVENTORY,	 // serialized as className => number key/value pairs
-	ST_REINFORCEMENTS, // serialized as array of data
-	ST_SAVABLE_DYNAMIC // serialized similar to ST_FIXED_ARRAY but includes count
+	Entity,		 // serialized as s.number
+	ItemPointer, // serialized as className
+	ItemIndex,	 // serialized as className
+	Time,		 // serialized as milliseconds
+	Data,		 // serialized as name of data ptr from global list; `tag` = list tag
+	Inventory,	 // serialized as className => number key/value pairs
+	Reinforcements, // serialized as array of data
+	SavableDynamic // serialized similar to FixedArray but includes count
 };
 
 struct save_struct_t;
 
 struct save_type_t {
-	save_type_id_t id;
-	int32_t		   tag = 0;
-	size_t		   count = 0;
+	SaveTypeID	id = SaveTypeID::Invalid;
+	int			tag = 0;
+	size_t		count = 0;
 	save_type_t(*type_resolver)() = nullptr;
-	const save_struct_t *structure = nullptr;
-	bool				 never_empty = false;	  // this should be persisted even if all empty
-	bool (*is_empty)(const void *data) = nullptr; // override default check
+	const save_struct_t* structure = nullptr;
+	bool		never_empty = false;	  // this should be persisted even if all empty
+	bool (*is_empty)(const void* data) = nullptr; // override default check
 
-	void (*read)(void *data, const Json::Value &json, const char *field) = nullptr; // for custom reading
-	bool (*write)(const void *data, bool null_for_empty, Json::Value &output) = nullptr; // for custom writing
+	void (*read)(void* data, const Json::Value& json, const char* field) = nullptr; // for custom reading
+	bool (*write)(const void* data, bool null_for_empty, Json::Value& output) = nullptr; // for custom writing
 };
 
 struct save_field_t {
-	const char *name;
+	const char* name;
 	size_t		offset;
 	save_type_t type;
 
 	// for easily chaining with FIELD_AUTO
-	constexpr save_field_t &set_is_empty(decltype(save_type_t::is_empty) empty) {
+	constexpr save_field_t& set_is_empty(decltype(save_type_t::is_empty) empty) {
 		type.is_empty = empty;
 		return *this;
 	}
 };
 
 struct save_struct_t {
-	const char *name;
+	const char* name;
 	const std::initializer_list<save_field_t> fields; // field list
 
 	std::string debug() const {
 		std::stringstream s;
 
-		for (auto &field : fields)
-			s << field.name << " " << field.offset << " " << field.type.id << " " << field.type.tag << " "
+		for (auto& field : fields)
+			s << field.name << " " << field.offset << " " << static_cast<int>(field.type.id) << " " << static_cast<int>(field.type.tag) << " "
 			<< field.type.count << '\n';
 
 		return s.str();
@@ -261,7 +277,7 @@ struct save_struct_t {
 
 template<typename T, typename T2 = void>
 struct save_type_deducer {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
 		static_assert(
 			!std::is_same_v<T2, void>,
 			"Can't automatically deduce type for save; implement save_type_deducer or use an explicit FIELD_ macro.");
@@ -272,126 +288,134 @@ struct save_type_deducer {
 // bool
 template<>
 struct save_type_deducer<bool> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_BOOL } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Boolean } };
 	}
 };
 
 // integral
 template<>
 struct save_type_deducer<int8_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_INT8 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Int8 } };
 	}
 };
 template<>
 struct save_type_deducer<int16_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_INT16 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Int16 } };
 	}
 };
 template<>
 struct save_type_deducer<int32_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_INT32 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Int32 } };
 	}
 };
 template<>
 struct save_type_deducer<int64_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_INT64 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Int64 } };
 	}
 };
 template<>
 struct save_type_deducer<uint8_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_UINT8 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::UInt8 } };
 	}
 };
 template<>
 struct save_type_deducer<uint16_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_UINT16 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::UInt16 } };
 	}
 };
 template<>
 struct save_type_deducer<uint32_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_UINT32 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::UInt32 } };
 	}
 };
 template<>
 struct save_type_deducer<uint64_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_UINT64 } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::UInt64 } };
 	}
 };
 
 // floating point
 template<>
 struct save_type_deducer<float> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_FLOAT } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Float } };
 	}
 };
 template<>
 struct save_type_deducer<double> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_DOUBLE } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Double } };
 	}
 };
 
 // special types
 template<>
-struct save_type_deducer<gentity_t *> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_ENTITY } };
+struct save_type_deducer<gentity_t*> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Entity } };
 	}
 };
 
 template<>
-struct save_type_deducer<Item *> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_ITEM_POINTER } };
+struct save_type_deducer<Item*> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::ItemPointer } };
 	}
 };
 
 template<>
 struct save_type_deducer<item_id_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_ITEM_INDEX } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::ItemIndex } };
 	}
 };
 
 template<>
-struct save_type_deducer<gtime_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_TIME } };
+struct save_type_deducer<GameTime> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Time } };
 	}
 };
 
 template<>
-struct save_type_deducer<spawnflags_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_UINT32 } };
+struct save_type_deducer<SpawnFlags> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::UInt32 } };
 	}
 };
 
 // static strings
 template<size_t N>
 struct save_type_deducer<char[N]> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_FIXED_STRING, 0, N } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::FixedString, 0, N } };
+	}
+};
+
+// std::array<char, N> as fixed-length string
+template<size_t N>
+struct save_type_deducer<std::array<char, N>> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::FixedString, 0, N } };
 	}
 };
 
 // enums
 template<typename T>
 struct save_type_deducer<T, typename std::enable_if_t<std::is_enum_v<T>>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name,
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name,
 				 offset,
-				 { ST_ENUM, 0,
+				 { SaveTypeID::ENum, 0,
 				   std::is_same_v<std::underlying_type_t<T>, uint64_t> ? 8
 				   : std::is_same_v<std::underlying_type_t<T>, uint32_t> ? 4
 				   : std::is_same_v<std::underlying_type_t<T>, uint16_t> ? 2
@@ -406,68 +430,68 @@ struct save_type_deducer<T, typename std::enable_if_t<std::is_enum_v<T>>> {
 
 // vector
 template<>
-struct save_type_deducer<vec3_t> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_FIXED_ARRAY, ST_FLOAT, 3 } };
+struct save_type_deducer<Vector3> {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::FixedArray, static_cast<int>(SaveTypeID::Float), 3 } };
 	}
 };
 
 // fixed-size arrays
 template<typename T, size_t N>
 struct save_type_deducer<T[N], typename std::enable_if_t<!std::is_same_v<T, char>>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
 		auto type = save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type;
 
-		if (type.id <= ST_BOOL || type.id >= ST_DOUBLE)
-			return { name, offset, { ST_FIXED_ARRAY, ST_INVALID, 0, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
+		if (type.id <= SaveTypeID::Boolean || type.id >= SaveTypeID::Double)
+			return save_field_t{ name, offset, { SaveTypeID::FixedArray, SaveTypeID::Invalid, 0, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
 
-		return { name,
+		return save_field_t{ name,
 				 offset,
-				 { ST_FIXED_ARRAY, type.id, N } };
+				 { SaveTypeID::FixedArray, type.id, N } };
 	}
 };
 
 // std::array
 template<typename T, size_t N>
 struct save_type_deducer<std::array<T, N>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
 		auto type = save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type;
 
-		if (type.id <= ST_BOOL || type.id >= ST_DOUBLE)
-			return { name, offset, { ST_FIXED_ARRAY, ST_INVALID, N, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
+		if (type.id <= SaveTypeID::Boolean || type.id >= SaveTypeID::Double)
+			return save_field_t{ name, offset, { SaveTypeID::FixedArray, static_cast<int32_t>(SaveTypeID::Invalid), N, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
 
-		return { name, offset, { ST_FIXED_ARRAY, type.id, N } };
+		return save_field_t{ name, offset, { SaveTypeID::FixedArray, static_cast<int32_t>(type.id), N } };
 	}
 };
 
 // savable_allocated_memory_t
 template<typename T, int32_t Tag>
 struct save_type_deducer<savable_allocated_memory_t<T, Tag>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
 		auto type = save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type;
 
-		if (type.id <= ST_BOOL || type.id >= ST_DOUBLE)
-			return { name, offset, { ST_SAVABLE_DYNAMIC, ST_INVALID, Tag, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
+		if (type.id <= SaveTypeID::Boolean || type.id >= SaveTypeID::Double)
+			return save_field_t{ name, offset, { SaveTypeID::SavableDynamic, static_cast<int32_t>(SaveTypeID::Invalid), Tag, []() { return save_type_deducer<std::remove_extent_t<T>>::get_save_type(nullptr, 0).type; } } };
 
-		return { name, offset, { ST_SAVABLE_DYNAMIC, type.id, Tag } };
+		return save_field_t{ name, offset, { SaveTypeID::SavableDynamic, static_cast<int32_t>(type.id), Tag } };
 	}
 };
 
 // save_data_ref<T>
 template<typename T, size_t Tag>
 struct save_type_deducer<save_data_t<T, Tag>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_DATA, Tag, 0, nullptr, nullptr, false, nullptr } };
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::Data, Tag, 0, nullptr, nullptr, false, nullptr } };
 	}
 };
 
 // std::bitset<N>
 template<size_t N>
 struct save_type_deducer<std::bitset<N>> {
-	static constexpr save_field_t get_save_type(const char *name, size_t offset) {
-		return { name, offset, { ST_BITSET, 0, N, nullptr, nullptr, false, nullptr,
-				[](void *data, const Json::Value &json, const char *field) {
-					std::bitset<N> &as_bitset = *(std::bitset<N> *) data;
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::BitSet, 0, N, nullptr, nullptr, false, nullptr,
+				[](void* data, const Json::Value& json, const char* field) {
+					std::bitset<N>& as_bitset = *(std::bitset<N> *) data;
 
 					as_bitset.reset();
 
@@ -476,7 +500,7 @@ struct save_type_deducer<std::bitset<N>> {
 					else if (strlen(json.asCString()) > N)
 						json_print_error(field, "bitset length overflow", false);
 					else {
-						const char *str = json.asCString();
+						const char* str = json.asCString();
 						size_t len = strlen(str);
 
 						for (size_t i = 0; i < len; i++) {
@@ -489,8 +513,8 @@ struct save_type_deducer<std::bitset<N>> {
 						}
 					}
 				},
-				[](const void *data, bool null_for_empty, Json::Value &output) -> bool {
-					const std::bitset<N> &as_bitset = *(std::bitset<N> *) data;
+				[](const void* data, bool null_for_empty, Json::Value& output) -> bool {
+					const std::bitset<N>& as_bitset = *(std::bitset<N> *) data;
 
 					if (as_bitset.none()) {
 						if (null_for_empty)
@@ -534,7 +558,7 @@ struct save_type_deducer<std::bitset<N>> {
 	{                                                                                                                  \
 		FIELD(f),                                                                                                      \
 		{                                                                                                              \
-			ST_STRING, TAG_LEVEL                                                                                       \
+			SaveTypeID::String, TAG_LEVEL                                                                                       \
 		}                                                                                                              \
 	}
 
@@ -543,7 +567,7 @@ struct save_type_deducer<std::bitset<N>> {
 	{                                                                                                                  \
 		FIELD(f),                                                                                                      \
 		{                                                                                                              \
-			ST_STRING, TAG_GAME                                                                                        \
+			SaveTypeID::String, TAG_GAME                                                                                        \
 		}                                                                                                              \
 	}
 
@@ -552,7 +576,7 @@ struct save_type_deducer<std::bitset<N>> {
 	{                                                                                                                  \
 		FIELD(f),                                                                                                      \
 		{                                                                                                              \
-			ST_STRUCT, 0, sizeof(t), nullptr, &t##_savestruct                                                          \
+			SaveTypeID::Struct, 0, sizeof(t), nullptr, &t##_savestruct                                                          \
 		}                                                                                                              \
 	}
 
@@ -573,14 +597,14 @@ struct save_type_deducer<t> \
 { \
 	static constexpr save_field_t get_save_type(const char *name, size_t offset) \
 	{ \
-		return { name, offset, { ST_STRUCT, 0, sizeof(t), nullptr, &t##_savestruct } }; \
+		return { name, offset, { SaveTypeID::Struct, 0, sizeof(t), nullptr, &t##_savestruct } }; \
 	} \
 };
 
-#define DECLARE_SAVE_STRUCT level_entry_t
+#define DECLARE_SAVE_STRUCT LevelEntry
 SAVE_STRUCT_START
-FIELD_AUTO(map_name),
-FIELD_AUTO(pretty_name),
+FIELD_AUTO(mapName),
+FIELD_AUTO(longMapName),
 FIELD_AUTO(totalSecrets),
 FIELD_AUTO(foundSecrets),
 FIELD_AUTO(totalMonsters),
@@ -590,32 +614,32 @@ FIELD_AUTO(visit_order)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 
-MAKE_STRUCT_SAVE_DEDUCER(level_entry_t);
+MAKE_STRUCT_SAVE_DEDUCER(LevelEntry);
 
 // clang-format off
-#define DECLARE_SAVE_STRUCT game_locals_t
+#define DECLARE_SAVE_STRUCT GameLocals
 SAVE_STRUCT_START
-FIELD_AUTO(helpmessage1),
-FIELD_AUTO(helpmessage2),
-FIELD_AUTO(help1changed),
-FIELD_AUTO(help2changed),
+FIELD_AUTO(help[0].message),
+FIELD_AUTO(help[1].message),
+FIELD_AUTO(help[0].modificationCount),
+FIELD_AUTO(help[1].modificationCount),
 
 // clients is set by load/init only
 
 FIELD_AUTO(spawnPoint),
 
-FIELD_AUTO(maxclients),
-FIELD_AUTO(maxentities),
+FIELD_AUTO(maxClients),
+FIELD_AUTO(maxEntities),
 
-FIELD_AUTO(cross_level_flags),
-FIELD_AUTO(cross_unit_flags),
+FIELD_AUTO(crossLevelFlags),
+FIELD_AUTO(crossUnitFlags),
 
-FIELD_AUTO(autosaved),
-FIELD_AUTO(level_entries)
+FIELD_AUTO(autoSaved),
+FIELD_AUTO(levelEntries)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 
-#define DECLARE_SAVE_STRUCT level_locals_t
+#define DECLARE_SAVE_STRUCT LevelLocals
 SAVE_STRUCT_START
 FIELD_AUTO(time),
 
@@ -623,7 +647,7 @@ FIELD_AUTO(longName),
 FIELD_AUTO(mapName),
 FIELD_AUTO(nextMap),
 
-FIELD_AUTO(intermissionTime),
+FIELD_AUTO(intermission.time),
 FIELD_LEVEL_STRING(changeMap),
 FIELD_LEVEL_STRING(achievement),
 FIELD_AUTO(intermission.postIntermission),
@@ -679,13 +703,13 @@ SAVE_STRUCT_END
 
 #define DECLARE_SAVE_STRUCT pmove_state_t
 SAVE_STRUCT_START
-FIELD_AUTO(pm_type),
+FIELD_AUTO(pmType),
 FIELD_AUTO(origin),
 FIELD_AUTO(velocity),
-FIELD_AUTO(pm_flags),
-FIELD_AUTO(pm_time),
+FIELD_AUTO(pmFlags),
+FIELD_AUTO(pmTime),
 FIELD_AUTO(gravity),
-FIELD_AUTO(delta_angles),
+FIELD_AUTO(deltaAngles),
 FIELD_AUTO(viewHeight)
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
@@ -695,13 +719,13 @@ SAVE_STRUCT_START
 FIELD_STRUCT(pmove, pmove_state_t),
 
 FIELD_AUTO(viewAngles),
-FIELD_AUTO(viewoffset),
-// kick_angles only last 1 frame
+FIELD_AUTO(viewOffset),
+// kickAngles only last 1 frame
 
-FIELD_AUTO(gunangles),
-FIELD_AUTO(gunoffset),
+FIELD_AUTO(gunAngles),
+FIELD_AUTO(gunOffset),
 FIELD_AUTO(gunIndex),
-FIELD_AUTO(gunframe),
+FIELD_AUTO(gunFrame),
 FIELD_AUTO(gunSkin),
 // blend is calculated by ClientEndServerFrame
 FIELD_AUTO(fov),
@@ -724,15 +748,15 @@ SAVE_STRUCT_END
 SAVE_STRUCT_START
 FIELD_AUTO(userInfo),
 FIELD_AUTO(socialID),
-FIELD_AUTO(netname),
+FIELD_AUTO(netName),
 FIELD_AUTO(hand),
 
 FIELD_AUTO(health),
-FIELD_AUTO(max_health),
+FIELD_AUTO(maxHealth),
 FIELD_AUTO(saved_flags),
 
-FIELD_AUTO(selected_item),
-FIELD_SIMPLE(inventory, ST_INVENTORY),
+FIELD_AUTO(selectedItem),
+FIELD_SIMPLE(inventory, SaveTypeID::Inventory),
 
 FIELD_AUTO(ammoMax),
 
@@ -775,30 +799,30 @@ FIELD_AUTO(resp.cmdAngles),
 // showScores, showInventory, showHelp not necessary
 
 // buttons, oldButtons, latchedButtons not necessary
-// weaponThunk not necessary
+// weapon.thunk not necessary
 
-FIELD_AUTO(newWeapon),
+FIELD_AUTO(weapon.pending),
 
 // damage_ members are calculated on damage
 
-FIELD_AUTO(killer_yaw),
+FIELD_AUTO(killerYaw),
 
 FIELD_AUTO(weaponState),
 FIELD_AUTO(kick.angles),
 FIELD_AUTO(kick.origin),
 FIELD_AUTO(kick.total),
 FIELD_AUTO(kick.time),
-FIELD_AUTO(quakeTime),
-FIELD_AUTO(vDamageRoll),
-FIELD_AUTO(vDamagePitch),
-FIELD_AUTO(vDamageTime),
-FIELD_AUTO(fallTime),
-FIELD_AUTO(fallValue),
-FIELD_AUTO(damageAlpha),
-FIELD_AUTO(bonusAlpha),
-FIELD_AUTO(damageBlend),
+FIELD_AUTO(feedback.quakeTime),
+FIELD_AUTO(feedback.vDamageRoll),
+FIELD_AUTO(feedback.vDamagePitch),
+FIELD_AUTO(feedback.vDamageTime),
+FIELD_AUTO(feedback.fallTime),
+FIELD_AUTO(feedback.fallValue),
+FIELD_AUTO(feedback.damageAlpha),
+FIELD_AUTO(feedback.bonusAlpha),
+FIELD_AUTO(feedback.damageBlend),
 FIELD_AUTO(vAngle),
-FIELD_AUTO(bobTime),
+FIELD_AUTO(feedback.bobTime),
 FIELD_AUTO(oldViewAngles),
 FIELD_AUTO(oldVelocity),
 FIELD_AUTO(oldGroundEntity),
@@ -865,18 +889,18 @@ FIELD_AUTO(sound_entity_time),
 FIELD_AUTO(sound2_entity),
 FIELD_AUTO(sound2_entity_time),
 
-FIELD_AUTO(last_firing_time),
+FIELD_AUTO(lastFiringTime),
 SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 // clang-format on
 
-static bool edict_t_gravity_is_empty(const void *data) {
-	return *((const float *)data) == 1.f;
+static bool edict_t_gravity_is_empty(const void* data) {
+	return *((const float*)data) == 1.f;
 }
 
-static bool edict_t_gravityVector_is_empty(const void *data) {
-	constexpr vec3_t up_vector = { 0, 0, -1 };
-	return *(const vec3_t *)data == up_vector;
+static bool edict_t_gravityVector_is_empty(const void* data) {
+	constexpr Vector3 up_vector = { 0, 0, -1 };
+	return *(const Vector3*)data == up_vector;
 }
 
 // clang-format off
@@ -886,33 +910,33 @@ SAVE_STRUCT_START
 // so no need to do a whole save struct
 FIELD_AUTO(s.origin),
 FIELD_AUTO(s.angles),
-FIELD_AUTO(s.old_origin),
-FIELD_AUTO(s.modelindex),
-FIELD_AUTO(s.modelindex2),
-FIELD_AUTO(s.modelindex3),
-FIELD_AUTO(s.modelindex4),
+FIELD_AUTO(s.oldOrigin),
+FIELD_AUTO(s.modelIndex),
+FIELD_AUTO(s.modelIndex2),
+FIELD_AUTO(s.modelIndex3),
+FIELD_AUTO(s.modelIndex4),
 FIELD_AUTO(s.frame),
-FIELD_AUTO(s.skinnum),
+FIELD_AUTO(s.skinNum),
 FIELD_AUTO(s.effects),
-FIELD_AUTO(s.renderfx),
-// s.solid is set by linkentity
+FIELD_AUTO(s.renderFX),
+// s.solid is set by linkEntity
 // events are cleared on each frame, no need to save
 FIELD_AUTO(s.sound),
 FIELD_AUTO(s.alpha),
 FIELD_AUTO(s.scale),
-FIELD_AUTO(s.instance_bits),
+FIELD_AUTO(s.instanceBits),
 
 // server stuff
 // client is auto-set
 // inUse is implied
 FIELD_AUTO(linkCount),
-// area, num_clusters, clusternums, headnode, areanum, areanum2
-// are set by linkentity and can't be saved
+// area, num_clusters, clusternums, headnode, areaNum, areaNum2
+// are set by linkEntity and can't be saved
 
 FIELD_AUTO(svFlags),
 FIELD_AUTO(mins),
 FIELD_AUTO(maxs),
-// absMin, absMax and size are set by linkentity
+// absMin, absMax and size are set by linkEntity
 FIELD_AUTO(solid),
 FIELD_AUTO(clipMask),
 FIELD_AUTO(owner),
@@ -927,26 +951,26 @@ FIELD_AUTO(freeTime),
 
 FIELD_LEVEL_STRING(message),
 FIELD_LEVEL_STRING(className), // FIXME: should allow loading from constants
-FIELD_AUTO(spawnflags),
+FIELD_AUTO(spawnFlags),
 
 FIELD_AUTO(timeStamp),
 
 FIELD_AUTO(angle),
 FIELD_LEVEL_STRING(target),
-FIELD_LEVEL_STRING(targetname),
-FIELD_LEVEL_STRING(killtarget),
+FIELD_LEVEL_STRING(targetName),
+FIELD_LEVEL_STRING(killTarget),
 FIELD_LEVEL_STRING(team),
-FIELD_LEVEL_STRING(pathtarget),
-FIELD_LEVEL_STRING(deathtarget),
-FIELD_LEVEL_STRING(healthtarget),
-FIELD_LEVEL_STRING(itemtarget),
-FIELD_LEVEL_STRING(combattarget),
-FIELD_AUTO(target_ent),
+FIELD_LEVEL_STRING(pathTarget),
+FIELD_LEVEL_STRING(deathTarget),
+FIELD_LEVEL_STRING(healthTarget),
+FIELD_LEVEL_STRING(itemTarget),
+FIELD_LEVEL_STRING(combatTarget),
+FIELD_AUTO(targetEnt),
 
 FIELD_AUTO(speed),
 FIELD_AUTO(accel),
 FIELD_AUTO(decel),
-FIELD_AUTO(movedir),
+FIELD_AUTO(moveDir),
 FIELD_AUTO(pos1),
 FIELD_AUTO(pos2),
 FIELD_AUTO(pos3),
@@ -957,14 +981,14 @@ FIELD_AUTO(mass),
 FIELD_AUTO(airFinished),
 FIELD_AUTO(gravity).set_is_empty(edict_t_gravity_is_empty),
 
-FIELD_AUTO(goalentity),
-FIELD_AUTO(movetarget),
-FIELD_AUTO(yaw_speed),
+FIELD_AUTO(goalEntity),
+FIELD_AUTO(moveTarget),
+FIELD_AUTO(yawSpeed),
 FIELD_AUTO(ideal_yaw),
 
 FIELD_AUTO(nextThink),
-FIELD_AUTO(prethink),
-FIELD_AUTO(postthink),
+FIELD_AUTO(preThink),
+FIELD_AUTO(postThink),
 FIELD_AUTO(think),
 FIELD_AUTO(touch),
 FIELD_AUTO(use),
@@ -978,14 +1002,14 @@ FIELD_AUTO(fly_sound_debounce_time),
 FIELD_AUTO(last_move_time),
 
 FIELD_AUTO(health),
-FIELD_AUTO(max_health),
+FIELD_AUTO(maxHealth),
 FIELD_AUTO(gibHealth),
 FIELD_AUTO(deadFlag),
 FIELD_AUTO(show_hostile),
 
 FIELD_AUTO(powerarmor_time),
 
-FIELD_LEVEL_STRING(map),
+FIELD_AUTO(map),
 
 FIELD_AUTO(viewHeight),
 FIELD_AUTO(takeDamage),
@@ -1004,11 +1028,11 @@ FIELD_AUTO(groundEntity_linkCount),
 FIELD_AUTO(teamChain),
 FIELD_AUTO(teamMaster),
 
-FIELD_AUTO(mynoise),
-FIELD_AUTO(mynoise2),
+FIELD_AUTO(myNoise),
+FIELD_AUTO(myNoise2),
 
-FIELD_AUTO(noise_index),
-FIELD_AUTO(noise_index2),
+FIELD_AUTO(noiseIndex),
+FIELD_AUTO(noiseIndex2),
 FIELD_AUTO(volume),
 FIELD_AUTO(attenuation),
 
@@ -1016,13 +1040,13 @@ FIELD_AUTO(wait),
 FIELD_AUTO(delay),
 FIELD_AUTO(random),
 
-FIELD_AUTO(teleport_time),
+FIELD_AUTO(teleportTime),
 
-FIELD_AUTO(watertype),
-FIELD_AUTO(waterlevel),
+FIELD_AUTO(waterType),
+FIELD_AUTO(waterLevel),
 
-FIELD_AUTO(move_origin),
-FIELD_AUTO(move_angles),
+FIELD_AUTO(moveOrigin),
+FIELD_AUTO(moveAngles),
 
 FIELD_AUTO(style),
 FIELD_LEVEL_STRING(style_on),
@@ -1031,44 +1055,44 @@ FIELD_LEVEL_STRING(style_off),
 FIELD_AUTO(item),
 FIELD_AUTO(crosslevel_flags),
 
-// moveinfo_t
-FIELD_AUTO(moveinfo.start_origin),
-FIELD_AUTO(moveinfo.start_angles),
-FIELD_AUTO(moveinfo.end_origin),
-FIELD_AUTO(moveinfo.end_angles),
-FIELD_AUTO(moveinfo.end_angles_reversed),
+// MoveInfo
+FIELD_AUTO(moveInfo.startOrigin),
+FIELD_AUTO(moveInfo.startAngles),
+FIELD_AUTO(moveInfo.endOrigin),
+FIELD_AUTO(moveInfo.endAngles),
+FIELD_AUTO(moveInfo.endAnglesReversed),
 
-FIELD_AUTO(moveinfo.sound_start),
-FIELD_AUTO(moveinfo.sound_middle),
-FIELD_AUTO(moveinfo.sound_end),
+FIELD_AUTO(moveInfo.sound_start),
+FIELD_AUTO(moveInfo.sound_middle),
+FIELD_AUTO(moveInfo.sound_end),
 
-FIELD_AUTO(moveinfo.accel),
-FIELD_AUTO(moveinfo.speed),
-FIELD_AUTO(moveinfo.decel),
-FIELD_AUTO(moveinfo.distance),
+FIELD_AUTO(moveInfo.accel),
+FIELD_AUTO(moveInfo.speed),
+FIELD_AUTO(moveInfo.decel),
+FIELD_AUTO(moveInfo.distance),
 
-FIELD_AUTO(moveinfo.wait),
+FIELD_AUTO(moveInfo.wait),
 
-FIELD_AUTO(moveinfo.state),
-FIELD_AUTO(moveinfo.reversing),
-FIELD_AUTO(moveinfo.dir),
-FIELD_AUTO(moveinfo.dest),
-FIELD_AUTO(moveinfo.current_speed),
-FIELD_AUTO(moveinfo.move_speed),
-FIELD_AUTO(moveinfo.next_speed),
-FIELD_AUTO(moveinfo.remaining_distance),
-FIELD_AUTO(moveinfo.decel_distance),
-FIELD_AUTO(moveinfo.endFunc),
-FIELD_AUTO(moveinfo.blocked),
+FIELD_AUTO(moveInfo.state),
+FIELD_AUTO(moveInfo.reversing),
+FIELD_AUTO(moveInfo.dir),
+FIELD_AUTO(moveInfo.dest),
+FIELD_AUTO(moveInfo.currentSpeed),
+FIELD_AUTO(moveInfo.moveSpeed),
+FIELD_AUTO(moveInfo.nextSpeed),
+FIELD_AUTO(moveInfo.remainingDistance),
+FIELD_AUTO(moveInfo.decelDistance),
+FIELD_AUTO(moveInfo.endFunc),
+FIELD_AUTO(moveInfo.blocked),
 
-FIELD_AUTO(moveinfo.curve_ref),
-FIELD_AUTO(moveinfo.curve_positions),
-FIELD_AUTO(moveinfo.curve_frame),
-FIELD_AUTO(moveinfo.subframe),
-FIELD_AUTO(moveinfo.num_subframes),
-FIELD_AUTO(moveinfo.num_frames_done),
+FIELD_AUTO(moveInfo.curveRef),
+FIELD_AUTO(moveInfo.curvePositions),
+FIELD_AUTO(moveInfo.curveFrame),
+FIELD_AUTO(moveInfo.subFrame),
+FIELD_AUTO(moveInfo.numSubFrames),
+FIELD_AUTO(moveInfo.numFramesDone),
 
-// monsterinfo_t
+// MonsterInfo
 FIELD_AUTO(monsterInfo.active_move),
 FIELD_AUTO(monsterInfo.next_move),
 FIELD_AUTO(monsterInfo.aiFlags),
@@ -1085,27 +1109,27 @@ FIELD_AUTO(monsterInfo.attack),
 FIELD_AUTO(monsterInfo.melee),
 FIELD_AUTO(monsterInfo.sight),
 FIELD_AUTO(monsterInfo.checkAttack),
-FIELD_AUTO(monsterInfo.setskin),
+FIELD_AUTO(monsterInfo.setSkin),
 
 FIELD_AUTO(monsterInfo.pauseTime),
-FIELD_AUTO(monsterInfo.attack_finished),
-FIELD_AUTO(monsterInfo.fire_wait),
+FIELD_AUTO(monsterInfo.attackFinished),
+FIELD_AUTO(monsterInfo.fireWait),
 
-FIELD_AUTO(monsterInfo.saved_goal),
-FIELD_AUTO(monsterInfo.search_time),
-FIELD_AUTO(monsterInfo.trail_time),
-FIELD_AUTO(monsterInfo.last_sighting),
-FIELD_AUTO(monsterInfo.attack_state),
+FIELD_AUTO(monsterInfo.savedGoal),
+FIELD_AUTO(monsterInfo.searchTime),
+FIELD_AUTO(monsterInfo.trailTime),
+FIELD_AUTO(monsterInfo.lastSighting),
+FIELD_AUTO(monsterInfo.attackState),
 FIELD_AUTO(monsterInfo.lefty),
-FIELD_AUTO(monsterInfo.idle_time),
+FIELD_AUTO(monsterInfo.idleTime),
 FIELD_AUTO(monsterInfo.linkCount),
 
 FIELD_AUTO(monsterInfo.powerArmorType),
 FIELD_AUTO(monsterInfo.powerArmorPower),
-FIELD_AUTO(monsterInfo.initial_power_armor_type),
+FIELD_AUTO(monsterInfo.initialPowerArmorType),
 FIELD_AUTO(monsterInfo.max_power_armor_power),
 FIELD_AUTO(monsterInfo.weaponSound),
-FIELD_AUTO(monsterInfo.engine_sound),
+FIELD_AUTO(monsterInfo.engineSound),
 
 FIELD_AUTO(monsterInfo.blocked),
 FIELD_AUTO(monsterInfo.last_hint_time),
@@ -1121,11 +1145,11 @@ FIELD_AUTO(monsterInfo.base_height),
 FIELD_AUTO(monsterInfo.next_duck_time),
 FIELD_AUTO(monsterInfo.duck_wait_time),
 FIELD_AUTO(monsterInfo.last_player_enemy),
-FIELD_AUTO(monsterInfo.blindfire),
-FIELD_AUTO(monsterInfo.can_jump),
+FIELD_AUTO(monsterInfo.blindFire),
+FIELD_AUTO(monsterInfo.canJump),
 FIELD_AUTO(monsterInfo.had_visibility),
-FIELD_AUTO(monsterInfo.drop_height),
-FIELD_AUTO(monsterInfo.jump_height),
+FIELD_AUTO(monsterInfo.dropHeight),
+FIELD_AUTO(monsterInfo.jumpHeight),
 FIELD_AUTO(monsterInfo.blind_fire_delay),
 FIELD_AUTO(monsterInfo.blind_fire_target),
 FIELD_AUTO(monsterInfo.monster_slots),
@@ -1136,7 +1160,7 @@ FIELD_AUTO(monsterInfo.invincibility_time),
 FIELD_AUTO(monsterInfo.double_time),
 
 FIELD_AUTO(monsterInfo.surprise_time),
-FIELD_AUTO(monsterInfo.armor_type),
+FIELD_AUTO(monsterInfo.armorType),
 FIELD_AUTO(monsterInfo.armor_power),
 FIELD_AUTO(monsterInfo.close_sight_tripped),
 FIELD_AUTO(monsterInfo.melee_debounce_time),
@@ -1149,7 +1173,7 @@ FIELD_AUTO(monsterInfo.bump_time),
 FIELD_AUTO(monsterInfo.random_change_time),
 FIELD_AUTO(monsterInfo.path_blocked_counter),
 FIELD_AUTO(monsterInfo.path_wait_time),
-FIELD_AUTO(monsterInfo.combat_style),
+FIELD_AUTO(monsterInfo.combatStyle),
 
 FIELD_AUTO(monsterInfo.fly_max_distance),
 FIELD_AUTO(monsterInfo.fly_min_distance),
@@ -1165,15 +1189,17 @@ FIELD_AUTO(monsterInfo.fly_recovery_time),
 FIELD_AUTO(monsterInfo.fly_recovery_dir),
 
 FIELD_AUTO(monsterInfo.checkattack_time),
-FIELD_AUTO(monsterInfo.start_frame),
+FIELD_AUTO(monsterInfo.startFrame),
 FIELD_AUTO(monsterInfo.dodge_time),
 FIELD_AUTO(monsterInfo.move_block_counter),
 FIELD_AUTO(monsterInfo.move_block_change_time),
 FIELD_AUTO(monsterInfo.react_to_damage_time),
 FIELD_AUTO(monsterInfo.jump_time),
 
-FIELD_SIMPLE(monsterInfo.reinforcements, ST_REINFORCEMENTS),
+FIELD_SIMPLE(monsterInfo.reinforcements, SaveTypeID::Reinforcements),
 FIELD_AUTO(monsterInfo.chosen_reinforcements),
+
+FIELD_AUTO(monsterInfo.physicsChange),
 
 // back to gentity_t
 FIELD_AUTO(plat2flags),
@@ -1192,7 +1218,7 @@ FIELD_AUTO(beam2),
 FIELD_AUTO(proboscus),
 FIELD_AUTO(disintegrator),
 FIELD_AUTO(disintegrator_time),
-FIELD_AUTO(hackflags),
+FIELD_AUTO(hackFlags),
 
 FIELD_AUTO(fog.color),
 FIELD_AUTO(fog.density),
@@ -1215,7 +1241,7 @@ FIELD_AUTO(heightfog.start_dist_off),
 FIELD_AUTO(heightfog.end_color_off),
 FIELD_AUTO(heightfog.end_dist_off),
 
-FIELD_AUTO(item_picked_up_by),
+FIELD_AUTO(itemPickedUpBy),
 FIELD_AUTO(slime_debounce_time),
 
 FIELD_AUTO(bmodel_anim.start),
@@ -1242,34 +1268,34 @@ SAVE_STRUCT_END
 #undef DECLARE_SAVE_STRUCT
 // clang-format on
 
-inline size_t get_simple_type_size(save_type_id_t id, bool fatal = true) {
+inline size_t get_simple_type_size(SaveTypeID id, bool fatal = true) {
 	switch (id) {
-	case ST_BOOL:
+	case SaveTypeID::Boolean:
 		return sizeof(bool);
-	case ST_INT8:
-	case ST_UINT8:
+	case SaveTypeID::Int8:
+	case SaveTypeID::UInt8:
 		return sizeof(uint8_t);
-	case ST_INT16:
-	case ST_UINT16:
+	case SaveTypeID::Int16:
+	case SaveTypeID::UInt16:
 		return sizeof(uint16_t);
-	case ST_INT32:
-	case ST_UINT32:
+	case SaveTypeID::Int32:
+	case SaveTypeID::UInt32:
 		return sizeof(uint32_t);
-	case ST_INT64:
-	case ST_UINT64:
-	case ST_TIME:
+	case SaveTypeID::Int64:
+	case SaveTypeID::UInt64:
+	case SaveTypeID::Time:
 		return sizeof(uint64_t);
-	case ST_FLOAT:
+	case SaveTypeID::Float:
 		return sizeof(float);
-	case ST_DOUBLE:
+	case SaveTypeID::Double:
 		return sizeof(double);
-	case ST_ENTITY:
-	case ST_ITEM_POINTER:
+	case SaveTypeID::Entity:
+	case SaveTypeID::ItemPointer:
 		return sizeof(size_t);
-	case ST_ITEM_INDEX:
+	case SaveTypeID::ItemIndex:
 		return sizeof(uint32_t);
-	case ST_SAVABLE_DYNAMIC:
-		return sizeof(savable_allocated_memory_t<void *, 0>);
+	case SaveTypeID::SavableDynamic:
+		return sizeof(savable_allocated_memory_t<void*, 0>);
 	default:
 		if (fatal)
 			gi.Com_ErrorFmt("Can't calculate static size for type ID {}", (int32_t)id);
@@ -1279,24 +1305,25 @@ inline size_t get_simple_type_size(save_type_id_t id, bool fatal = true) {
 	return 0;
 }
 
-static size_t get_complex_type_size(const save_type_t &type) {
+static size_t get_complex_type_size(const save_type_t& type) {
 	// these are simple types
 	if (auto simple = get_simple_type_size(type.id, false))
 		return simple;
 
 	switch (type.id) {
-	case ST_STRUCT:
+	case SaveTypeID::Struct:
 		return type.count;
-	case ST_FIXED_ARRAY: {
+	case SaveTypeID::FixedArray: {
 		save_type_t element_type;
 		size_t element_size;
 
 		if (type.type_resolver) {
 			element_type = type.type_resolver();
 			element_size = get_complex_type_size(element_type);
-		} else {
-			element_size = get_simple_type_size((save_type_id_t)type.tag);
-			element_type = { (save_type_id_t)type.tag };
+		}
+		else {
+			element_size = get_simple_type_size((SaveTypeID)type.tag);
+			element_type = { (SaveTypeID)type.tag };
 		}
 
 		return element_size * type.count;
@@ -1308,17 +1335,18 @@ static size_t get_complex_type_size(const save_type_t &type) {
 	return 0;
 }
 
-void read_save_struct_json(const Json::Value &json, void *data, const save_struct_t *structure);
+void read_save_struct_json(const Json::Value& json, void* data, const save_struct_t* structure);
 
-static void read_save_type_json(const Json::Value &json, void *data, const save_type_t *type, const char *field) {
+static void read_save_type_json(const Json::Value& json, void* data, const save_type_t* type, const char* field) {
 	switch (type->id) {
-	case ST_BOOL:
+		using enum SaveTypeID;
+	case Boolean:
 		if (!json.isBool())
 			json_print_error(field, "expected boolean", false);
 		else
-			*((bool *)data) = json.asBool();
+			*((bool*)data) = json.asBool();
 		return;
-	case ST_ENUM:
+	case ENum:
 		if (!json.isIntegral())
 			json_print_error(field, "expected integer", false);
 		else if (type->count == 1) {
@@ -1326,52 +1354,61 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 				if (json.asInt() < INT8_MIN || json.asInt() > INT8_MAX)
 					json_print_error(field, "int8 out of range", false);
 				else
-					*((int8_t *)data) = json.asInt();
-			} else if (json.isUInt()) {
+					*((int8_t*)data) = json.asInt();
+			}
+			else if (json.isUInt()) {
 				if (json.asUInt() > UINT8_MAX)
 					json_print_error(field, "uint8 out of range", false);
 				else
-					*((uint8_t *)data) = json.asUInt();
-			} else
+					*((uint8_t*)data) = json.asUInt();
+			}
+			else
 				json_print_error(field, "int8 out of range (is 64-bit)", false);
 			return;
-		} else if (type->count == 2) {
+		}
+		else if (type->count == 2) {
 			if (json.isInt()) {
 				if (json.asInt() < INT16_MIN || json.asInt() > INT16_MAX)
 					json_print_error(field, "int16 out of range", false);
 				else
-					*((int16_t *)data) = json.asInt();
-			} else if (json.isUInt()) {
+					*((int16_t*)data) = json.asInt();
+			}
+			else if (json.isUInt()) {
 				if (json.asUInt() > UINT16_MAX)
 					json_print_error(field, "uint16 out of range", false);
 				else
-					*((uint16_t *)data) = json.asUInt();
-			} else
+					*((uint16_t*)data) = json.asUInt();
+			}
+			else
 				json_print_error(field, "int16 out of range (is 64-bit)", false);
 			return;
-		} else if (type->count == 4) {
+		}
+		else if (type->count == 4) {
 			if (json.isInt()) {
 				if (json.asInt64() < INT32_MIN || json.asInt64() > INT32_MAX)
 					json_print_error(field, "int32 out of range", false);
 				else
-					*((int32_t *)data) = json.asInt();
-			} else if (json.isUInt()) {
+					*((int32_t*)data) = json.asInt();
+			}
+			else if (json.isUInt()) {
 				if (json.asUInt64() > UINT32_MAX)
 					json_print_error(field, "uint32 out of range", false);
 				else
-					*((uint32_t *)data) = json.asUInt();
-			} else
+					*((uint32_t*)data) = json.asUInt();
+			}
+			else
 				json_print_error(field, "int32 out of range (is 64-bit)", false);
 			return;
-		} else if (type->count == 8) {
+		}
+		else if (type->count == 8) {
 			if (json.isInt64())
-				*((int64_t *)data) = json.asInt64();
+				*((int64_t*)data) = json.asInt64();
 			else if (json.isUInt64())
-				*((int64_t *)data) = json.asUInt64();
+				*((int64_t*)data) = json.asUInt64();
 			else if (json.isInt())
-				*((int64_t *)data) = json.asInt();
+				*((int64_t*)data) = json.asInt();
 			else if (json.isUInt())
-				*((int64_t *)data) = json.asUInt();
+				*((int64_t*)data) = json.asUInt();
 			else
 				json_print_error(field, "int64 not integral", false);
 			return;
@@ -1379,101 +1416,102 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 
 		json_print_error(field, "invalid enum size", true);
 		return;
-	case ST_INT8:
+	case Int8:
 		if (!json.isInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asInt() < INT8_MIN || json.asInt() > INT8_MAX)
 			json_print_error(field, "int8 out of range", false);
 		else
-			*((int8_t *)data) = json.asInt();
+			*((int8_t*)data) = json.asInt();
 		return;
-	case ST_INT16:
+	case Int16:
 		if (!json.isInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asInt() < INT16_MIN || json.asInt() > INT16_MAX)
 			json_print_error(field, "int16 out of range", false);
 		else
-			*((int16_t *)data) = json.asInt();
+			*((int16_t*)data) = json.asInt();
 		return;
-	case ST_INT32:
+	case Int32:
 		if (!json.isInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asInt() < INT32_MIN || json.asInt() > INT32_MAX)
 			json_print_error(field, "int32 out of range", false);
 		else
-			*((int32_t *)data) = json.asInt();
+			*((int32_t*)data) = json.asInt();
 		return;
-	case ST_INT64:
+	case Int64:
 		if (!json.isInt64())
 			json_print_error(field, "expected integer", false);
 		else
-			*((int64_t *)data) = json.asInt64();
+			*((int64_t*)data) = json.asInt64();
 		return;
-	case ST_UINT8:
+	case UInt8:
 		if (!json.isUInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asUInt() > UINT8_MAX)
 			json_print_error(field, "uint8 out of range", false);
 		else
-			*((uint8_t *)data) = json.asUInt();
+			*((uint8_t*)data) = json.asUInt();
 		return;
-	case ST_UINT16:
+	case UInt16:
 		if (!json.isUInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asUInt() > UINT16_MAX)
 			json_print_error(field, "uint16 out of range", false);
 		else
-			*((uint16_t *)data) = json.asUInt();
+			*((uint16_t*)data) = json.asUInt();
 		return;
-	case ST_UINT32:
+	case UInt32:
 		if (!json.isUInt())
 			json_print_error(field, "expected integer", false);
 		else if (json.asUInt() > UINT32_MAX)
 			json_print_error(field, "uint32 out of range", false);
 		else
-			*((uint32_t *)data) = json.asUInt();
+			*((uint32_t*)data) = json.asUInt();
 		return;
-	case ST_UINT64:
+	case UInt64:
 		if (!json.isUInt64())
 			json_print_error(field, "expected integer", false);
 		else
-			*((uint64_t *)data) = json.asUInt64();
+			*((uint64_t*)data) = json.asUInt64();
 		return;
-	case ST_FLOAT:
+	case Float:
 		if (!json.isDouble())
 			json_print_error(field, "expected number", false);
 		else if (isnan(json.asDouble()))
-			*((float *)data) = std::numeric_limits<float>::quiet_NaN();
+			*((float*)data) = std::numeric_limits<float>::quiet_NaN();
 		else
-			*((float *)data) = json.asFloat();
+			*((float*)data) = json.asFloat();
 		return;
-	case ST_DOUBLE:
+	case Double:
 		if (!json.isDouble())
 			json_print_error(field, "expected number", false);
 		else
-			*((double *)data) = json.asDouble();
+			*((double*)data) = json.asDouble();
 		return;
-	case ST_STRING:
+	case String:
 		if (json.isNull())
-			*((char **)data) = nullptr;
+			*((char**)data) = nullptr;
 		else if (json.isString()) {
 			if (type->count && strlen(json.asCString()) >= type->count)
 				json_print_error(field, "static-length dynamic string overrun", false);
 			else {
 				size_t len = strlen(json.asCString());
-				char *str = *((char **)data) = (char *)gi.TagMalloc(type->count ? type->count : (len + 1), type->tag);
+				char* str = *((char**)data) = (char*)gi.TagMalloc(type->count ? type->count : (len + 1), static_cast<int>(type->tag));
 				strcpy(str, json.asCString());
 				str[len] = 0;
 			}
-		} else if (json.isArray()) {
+		}
+		else if (json.isArray()) {
 			if (type->count && json.size() >= type->count - 1)
 				json_print_error(field, "static-length dynamic string overrun", false);
 			else {
 				size_t len = json.size();
-				char *str = *((char **)data) = (char *)gi.TagMalloc(type->count ? type->count : (len + 1), type->tag);
+				char* str = *((char**)data) = (char*)gi.TagMalloc(type->count ? type->count : (len + 1), static_cast<int>(type->tag));
 
 				for (Json::Value::ArrayIndex i = 0; i < json.size(); i++) {
-					const Json::Value &chr = json[i];
+					const Json::Value& chr = json[i];
 
 					if (!chr.isInt())
 						json_print_error(field, "expected number", false);
@@ -1485,172 +1523,178 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 
 				str[len] = 0;
 			}
-		} else
+		}
+		else
 			json_print_error(field, "expected string, array or null", false);
 		return;
-	case ST_FIXED_STRING:
+	case FixedString:
 		if (json.isString()) {
 			if (type->count && strlen(json.asCString()) >= type->count)
 				json_print_error(field, "fixed length string overrun", false);
 			else
-				strcpy((char *)data, json.asCString());
-		} else if (json.isArray()) {
+				strcpy((char*)data, json.asCString());
+		}
+		else if (json.isArray()) {
 			if (type->count && json.size() >= type->count - 1)
 				json_print_error(field, "fixed length string overrun", false);
 			else {
 				Json::Value::ArrayIndex i;
 
 				for (i = 0; i < json.size(); i++) {
-					const Json::Value &chr = json[i];
+					const Json::Value& chr = json[i];
 
 					if (!chr.isInt())
 						json_print_error(field, "expected number", false);
 					else if (chr.asInt() < 0 || chr.asInt() > UINT8_MAX)
 						json_print_error(field, "char out of range", false);
 
-					((char *)data)[i] = chr.asInt();
+					((char*)data)[i] = chr.asInt();
 				}
 
-				((char *)data)[i] = 0;
+				((char*)data)[i] = 0;
 			}
-		} else
+		}
+		else
 			json_print_error(field, "expected string or array", false);
 		return;
-	case ST_FIXED_ARRAY:
+	case FixedArray:
 		if (!json.isArray())
 			json_print_error(field, "expected array", false);
 		else if (type->count != json.size())
 			json_print_error(field, "fixed array length mismatch", false);
 		else {
-			uint8_t *element = (uint8_t *)data;
+			uint8_t* element = (uint8_t*)data;
 			size_t			  element_size;
 			save_type_t       element_type;
 
 			if (type->type_resolver) {
 				element_type = type->type_resolver();
 				element_size = get_complex_type_size(element_type);
-			} else {
-				element_size = get_simple_type_size((save_type_id_t)type->tag);
-				element_type = { (save_type_id_t)type->tag };
+			}
+			else {
+				element_size = get_simple_type_size((SaveTypeID)type->tag);
+				element_type = { (SaveTypeID)type->tag };
 			}
 
 			for (Json::Value::ArrayIndex i = 0; i < type->count; i++, element += element_size) {
-				const Json::Value &v = json[i];
+				const Json::Value& v = json[i];
 				read_save_type_json(v, element, &element_type,
 					fmt::format("[{}]", i).c_str());
 			}
 		}
 
 		return;
-	case ST_SAVABLE_DYNAMIC:
+	case SavableDynamic:
 		if (!json.isArray())
 			json_print_error(field, "expected array", false);
 		else {
-			savable_allocated_memory_t<void, 0> *savptr = (savable_allocated_memory_t<void, 0> *) data;
+			savable_allocated_memory_t<void, 0>* savptr = (savable_allocated_memory_t<void, 0> *) data;
 			size_t			  element_size;
 			save_type_t       element_type;
 
 			if (type->type_resolver) {
 				element_type = type->type_resolver();
 				element_size = get_complex_type_size(element_type);
-			} else {
-				element_size = get_simple_type_size((save_type_id_t)type->tag);
-				element_type = { (save_type_id_t)type->tag };
+			}
+			else {
+				element_size = get_simple_type_size((SaveTypeID)type->tag);
+				element_type = { (SaveTypeID)type->tag };
 			}
 
 			savptr->count = json.size();
 			savptr->ptr = gi.TagMalloc(element_size * savptr->count, type->count);
 
-			byte *out_element = (byte *)savptr->ptr;
+			byte* out_element = (byte*)savptr->ptr;
 
 			for (Json::Value::ArrayIndex i = 0; i < savptr->count; i++, out_element += element_size) {
-				const Json::Value &v = json[i];
+				const Json::Value& v = json[i];
 				read_save_type_json(v, out_element, &element_type,
 					fmt::format("[{}]", i).c_str());
 			}
 		}
 
 		return;
-	case ST_BITSET:
+	case BitSet:
 		type->read(data, json, field);
 		return;
-	case ST_STRUCT:
+	case Struct:
 		if (!json.isNull()) {
 			json_push_stack(field);
 			read_save_struct_json(json, data, type->structure);
 			json_pop_stack();
 		}
 		return;
-	case ST_ENTITY:
+	case Entity:
 		if (json.isNull())
-			*((gentity_t **)data) = nullptr;
+			*((gentity_t**)data) = nullptr;
 		else if (!json.isUInt())
 			json_print_error(field, "expected null or integer", false);
-		else if (json.asUInt() >= globals.max_entities)
+		else if (json.asUInt() >= globals.maxEntities)
 			json_print_error(field, "entity index out of range", false);
 		else
-			*((gentity_t **)data) = globals.gentities + json.asUInt();
+			*((gentity_t**)data) = globals.gentities + json.asUInt();
 
 		return;
-	case ST_ITEM_POINTER:
-	case ST_ITEM_INDEX: {
-		Item *item;
+	case ItemPointer:
+	case ItemIndex: {
+		Item* item;
 
 		if (json.isNull())
 			item = nullptr;
 		else if (json.isString()) {
-			const char *className = json.asCString();
+			const char* className = json.asCString();
 			item = FindItemByClassname(className);
 
 			if (item == nullptr) {
 				json_print_error(field, G_Fmt("item {} missing", className).data(), false);
 				return;
 			}
-		} else {
+		}
+		else {
 			json_print_error(field, "expected null or string", false);
 			return;
 		}
 
-		if (type->id == ST_ITEM_POINTER)
-			*((Item **)data) = item;
+		if (type->id == ItemPointer)
+			*((Item**)data) = item;
 		else
-			*((int32_t *)data) = item ? item->id : 0;
+			*((int32_t*)data) = item ? item->id : 0;
 		return;
 	}
-	case ST_TIME:
+	case Time:
 		if (!json.isInt64())
 			json_print_error(field, "expected integer", false);
 		else
-			*((gtime_t *)data) = gtime_t::from_ms(json.asInt64());
+			*((GameTime*)data) = GameTime::from_ms(json.asInt64());
 		return;
-	case ST_DATA:
+	case Data:
 		if (json.isNull())
-			*((void **)data) = nullptr;
+			*((void**)data) = nullptr;
 		else if (!json.isString())
 			json_print_error(field, "expected null or string", false);
 		else {
-			const char *name = json.asCString();
+			const char* name = json.asCString();
 			auto link = list_str_hash.find(name);
 
 			if (link == list_str_hash.end())
 				json_print_error(
 					field, G_Fmt("unknown pointer {} in list {}", name, type->tag).data(), false);
 			else
-				(*reinterpret_cast<save_void_t *>(data)) = save_void_t(link->second);
+				(*reinterpret_cast<save_void_t*>(data)) = save_void_t(link->second);
 		}
 		return;
-	case ST_INVENTORY:
+	case Inventory:
 		if (!json.isObject())
 			json_print_error(field, "expected object", false);
 		else {
-			int32_t *inventory_ptr = (int32_t *)data;
+			int32_t* inventory_ptr = (int32_t*)data;
 
 			//for (auto key : json.getMemberNames())
 			for (auto it = json.begin(); it != json.end(); it++) {
 				//const char		   *className = key.c_str();
-				const char *dummy;
-				const char *className = it.memberName(&dummy);
-				const Json::Value &value = *it;
+				const char* dummy;
+				const char* className = it.memberName(&dummy);
+				const Json::Value& value = *it;
 
 				if (!value.isInt()) {
 					json_push_stack(className);
@@ -1659,7 +1703,7 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 					continue;
 				}
 
-				Item *item = FindItemByClassname(className);
+				Item* item = FindItemByClassname(className);
 
 				if (!item) {
 					json_push_stack(className);
@@ -1673,19 +1717,19 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 			return;
 		}
 		return;
-	case ST_REINFORCEMENTS:
+	case Reinforcements:
 		if (!json.isArray())
 			json_print_error(field, "expected array", false);
 		else {
-			reinforcement_list_t *list_ptr = (reinforcement_list_t *)data;
+			reinforcement_list_t* list_ptr = (reinforcement_list_t*)data;
 
 			list_ptr->num_reinforcements = json.size();
-			list_ptr->reinforcements = (reinforcement_t *)gi.TagMalloc(sizeof(reinforcement_t) * list_ptr->num_reinforcements, TAG_LEVEL);
+			list_ptr->reinforcements = (reinforcement_t*)gi.TagMalloc(sizeof(reinforcement_t) * list_ptr->num_reinforcements, TAG_LEVEL);
 
-			reinforcement_t *p = list_ptr->reinforcements;
+			reinforcement_t* p = list_ptr->reinforcements;
 
 			for (Json::Value::ArrayIndex i = 0; i < json.size(); i++, p++) {
-				const Json::Value &value = json[i];
+				const Json::Value& value = json[i];
 
 				if (!value.isObject()) {
 					json_push_stack(fmt::format("{}", i));
@@ -1740,11 +1784,11 @@ static void read_save_type_json(const Json::Value &json, void *data, const save_
 	}
 }
 
-bool write_save_struct_json(const void *data, const save_struct_t *structure, bool null_for_empty, Json::Value &output);
+bool write_save_struct_json(const void* data, const save_struct_t* structure, bool null_for_empty, Json::Value& output);
 
 #define TYPED_DATA_IS_EMPTY(type, expr) (type->is_empty ? type->is_empty(data) : (expr))
 
-static inline bool string_is_high(const char *c) {
+static inline bool string_is_high(const char* c) {
 	for (size_t i = 0; i < strlen(c); i++)
 		if (c[i] & 128)
 			return true;
@@ -1752,7 +1796,7 @@ static inline bool string_is_high(const char *c) {
 	return false;
 }
 
-static inline Json::Value string_to_bytes(const char *c) {
+static inline Json::Value string_to_bytes(const char* c) {
 	Json::Value array(Json::arrayValue);
 
 	for (size_t i = 0; i < strlen(c); i++)
@@ -1766,116 +1810,119 @@ static inline Json::Value string_to_bytes(const char *c) {
 // values that are the same as zero'd memory, to save
 // space in the resulting JSON. output will be
 // unmodified in that case.
-static bool write_save_type_json(const void *data, const save_type_t *type, bool null_for_empty, Json::Value &output) {
+static bool write_save_type_json(const void* data, const save_type_t* type, bool null_for_empty, Json::Value& output) {
 	switch (type->id) {
-	case ST_BOOL:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const bool *)data))
+	case SaveTypeID::Boolean:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const bool*)data))
 			return false;
 
-		output = Json::Value(*(const bool *)data);
+		output = Json::Value(*(const bool*)data);
 		return true;
-	case ST_ENUM:
+	case SaveTypeID::ENum:
 		if (type->count == 1) {
-			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int8_t *)data))
+			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int8_t*)data))
 				return false;
 
-			output = Json::Value(*(const int8_t *)data);
+			output = Json::Value(*(const int8_t*)data);
 			return true;
-		} else if (type->count == 2) {
-			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int16_t *)data))
+		}
+		else if (type->count == 2) {
+			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int16_t*)data))
 				return false;
 
-			output = Json::Value(*(const int16_t *)data);
+			output = Json::Value(*(const int16_t*)data);
 			return true;
-		} else if (type->count == 4) {
-			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int32_t *)data))
+		}
+		else if (type->count == 4) {
+			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int32_t*)data))
 				return false;
 
-			output = Json::Value(*(const int32_t *)data);
+			output = Json::Value(*(const int32_t*)data);
 			return true;
-		} else if (type->count == 8) {
-			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int64_t *)data))
+		}
+		else if (type->count == 8) {
+			if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int64_t*)data))
 				return false;
 
-			output = Json::Value(*(const int64_t *)data);
+			output = Json::Value(*(const int64_t*)data);
 			return true;
 		}
 		gi.Com_Error("invalid enum length");
 		break;
-	case ST_INT8:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int8_t *)data))
+	case SaveTypeID::Int8:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int8_t*)data))
 			return false;
 
-		output = Json::Value(*(const int8_t *)data);
+		output = Json::Value(*(const int8_t*)data);
 		return true;
-	case ST_INT16:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int16_t *)data))
+	case SaveTypeID::Int16:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int16_t*)data))
 			return false;
 
-		output = Json::Value(*(const int16_t *)data);
+		output = Json::Value(*(const int16_t*)data);
 		return true;
-	case ST_INT32:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int32_t *)data))
+	case SaveTypeID::Int32:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int32_t*)data))
 			return false;
 
-		output = Json::Value(*(const int32_t *)data);
+		output = Json::Value(*(const int32_t*)data);
 		return true;
-	case ST_INT64:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int64_t *)data))
+	case SaveTypeID::Int64:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const int64_t*)data))
 			return false;
 
-		output = Json::Value(*(const int64_t *)data);
+		output = Json::Value(*(const int64_t*)data);
 		return true;
-	case ST_UINT8:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint8_t *)data))
+	case SaveTypeID::UInt8:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint8_t*)data))
 			return false;
 
-		output = Json::Value(*(const uint8_t *)data);
+		output = Json::Value(*(const uint8_t*)data);
 		return true;
-	case ST_UINT16:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint16_t *)data))
+	case SaveTypeID::UInt16:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint16_t*)data))
 			return false;
 
-		output = Json::Value(*(const uint16_t *)data);
+		output = Json::Value(*(const uint16_t*)data);
 		return true;
-	case ST_UINT32:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint32_t *)data))
+	case SaveTypeID::UInt32:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint32_t*)data))
 			return false;
 
-		output = Json::Value(*(const uint32_t *)data);
+		output = Json::Value(*(const uint32_t*)data);
 		return true;
-	case ST_UINT64:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint64_t *)data))
+	case SaveTypeID::UInt64:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const uint64_t*)data))
 			return false;
 
-		output = Json::Value(*(const uint64_t *)data);
+		output = Json::Value(*(const uint64_t*)data);
 		return true;
-	case ST_FLOAT:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const float *)data))
+	case SaveTypeID::Float:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const float*)data))
 			return false;
 
-		output = Json::Value(static_cast<double>(*(const float *)data));
+		output = Json::Value(static_cast<double>(*(const float*)data));
 		return true;
-	case ST_DOUBLE:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const double *)data))
+	case SaveTypeID::Double:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const double*)data))
 			return false;
 
-		output = Json::Value(*(const double *)data);
+		output = Json::Value(*(const double*)data);
 		return true;
-	case ST_STRING: {
-		const char *const *str = reinterpret_cast<const char *const *>(data);
+	case SaveTypeID::String: {
+		const char* const* str = reinterpret_cast<const char* const*>(data);
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, *str == nullptr))
 			return false;
 		output = *str == nullptr ? Json::Value::nullSingleton() : string_is_high(*str) ? Json::Value(string_to_bytes(*str)) : Json::Value(Json::StaticString(*str));
 		return true;
 	}
-	case ST_FIXED_STRING:
-		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !strlen((const char *)data)))
+	case SaveTypeID::FixedString:
+		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !strlen((const char*)data)))
 			return false;
-		output = string_is_high((const char *)data) ? Json::Value(string_to_bytes((const char *)data)) : Json::Value(Json::StaticString((const char *)data));
+		output = string_is_high((const char*)data) ? Json::Value(string_to_bytes((const char*)data)) : Json::Value(Json::StaticString((const char*)data));
 		return true;
-	case ST_FIXED_ARRAY: {
-		const uint8_t *element = (const uint8_t *)data;
+	case SaveTypeID::FixedArray: {
+		const uint8_t* element = (const uint8_t*)data;
 		size_t			  i;
 		size_t			  element_size;
 		save_type_t       element_type;
@@ -1883,16 +1930,18 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		if (type->type_resolver) {
 			element_type = type->type_resolver();
 			element_size = get_complex_type_size(element_type);
-		} else {
-			element_size = get_simple_type_size((save_type_id_t)type->tag);
-			element_type = { (save_type_id_t)type->tag };
+		}
+		else {
+			element_size = get_simple_type_size((SaveTypeID)type->tag);
+			element_type = { (SaveTypeID)type->tag };
 		}
 
 		if (null_for_empty) {
 			if (type->is_empty) {
 				if (type->is_empty(data))
 					return false;
-			} else {
+			}
+			else {
 				for (i = 0; i < type->count; i++, element += element_size) {
 					Json::Value value;
 					bool valid_value = write_save_type_json(element, &element_type, !element_type.never_empty, value);
@@ -1906,7 +1955,7 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 			}
 		}
 
-		element = (const uint8_t *)data;
+		element = (const uint8_t*)data;
 		Json::Value v(Json::arrayValue);
 
 		for (i = 0; i < type->count; i++, element += element_size) {
@@ -1918,8 +1967,8 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = std::move(v);
 		return true;
 	}
-	case ST_SAVABLE_DYNAMIC: {
-		const savable_allocated_memory_t<void, 0> *savptr = (const savable_allocated_memory_t<void, 0> *) data;
+	case SaveTypeID::SavableDynamic: {
+		const savable_allocated_memory_t<void, 0>* savptr = (const savable_allocated_memory_t<void, 0> *) data;
 		size_t			  i;
 		size_t			  element_size;
 		save_type_t       element_type;
@@ -1927,18 +1976,20 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		if (type->type_resolver) {
 			element_type = type->type_resolver();
 			element_size = get_complex_type_size(element_type);
-		} else {
-			element_size = get_simple_type_size((save_type_id_t)type->tag);
-			element_type = { (save_type_id_t)type->tag };
+		}
+		else {
+			element_size = get_simple_type_size((SaveTypeID)type->tag);
+			element_type = { (SaveTypeID)type->tag };
 		}
 
-		const uint8_t *element = (const uint8_t *)savptr->ptr;
+		const uint8_t* element = (const uint8_t*)savptr->ptr;
 
 		if (null_for_empty) {
 			if (type->is_empty) {
 				if (type->is_empty(data))
 					return false;
-			} else {
+			}
+			else {
 				for (i = 0; i < savptr->count; i++, element += element_size) {
 					Json::Value value;
 					bool valid_value = write_save_type_json(element, &element_type, !element_type.never_empty, value);
@@ -1952,7 +2003,7 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 			}
 		}
 
-		element = (const uint8_t *)savptr->ptr;
+		element = (const uint8_t*)savptr->ptr;
 		Json::Value v(Json::arrayValue);
 
 		for (i = 0; i < savptr->count; i++, element += element_size) {
@@ -1964,9 +2015,9 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = std::move(v);
 		return true;
 	}
-	case ST_BITSET:
+	case SaveTypeID::BitSet:
 		return type->write(data, null_for_empty, output);
-	case ST_STRUCT: {
+	case SaveTypeID::Struct: {
 		if (type->is_empty && type->is_empty(data))
 			return false;
 
@@ -1979,8 +2030,8 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = std::move(obj);
 		return true;
 	}
-	case ST_ENTITY: {
-		const gentity_t *entity = *reinterpret_cast<const gentity_t *const *>(data);
+	case SaveTypeID::Entity: {
+		const gentity_t* entity = *reinterpret_cast<const gentity_t* const*>(data);
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, entity == nullptr))
 			return false;
@@ -1993,12 +2044,12 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = Json::Value(entity->s.number);
 		return true;
 	}
-	case ST_ITEM_POINTER: {
-		const Item *item = *reinterpret_cast<const Item *const *>(data);
+	case SaveTypeID::ItemPointer: {
+		const Item* item = *reinterpret_cast<const Item* const*>(data);
 
 		if (item != nullptr && item->id != 0)
 			if (!strlen(item->className))
-				gi.Com_ErrorFmt("Attempt to persist invalid item {} (index {})", item->pickup_name, (int32_t)item->id);
+				gi.Com_ErrorFmt("Attempt to persist invalid item {} (index {})", item->pickupName, (int32_t)item->id);
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, item == nullptr))
 			return false;
@@ -2011,17 +2062,17 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = Json::Value(Json::StaticString(item->className));
 		return true;
 	}
-	case ST_ITEM_INDEX: {
-		const item_id_t index = *reinterpret_cast<const item_id_t *>(data);
+	case SaveTypeID::ItemIndex: {
+		const item_id_t index = *reinterpret_cast<const item_id_t*>(data);
 
 		if (index < IT_NULL || index >= IT_TOTAL)
 			gi.Com_ErrorFmt("Attempt to persist invalid item index {}", (int32_t)index);
 
-		const Item *item = GetItemByIndex(index);
+		const Item* item = GetItemByIndex(index);
 
 		if (index)
 			if (!strlen(item->className))
-				gi.Com_ErrorFmt("Attempt to persist invalid item {} (index {})", item->pickup_name, (int32_t)item->id);
+				gi.Com_ErrorFmt("Attempt to persist invalid item {} (index {})", item->pickupName, (int32_t)item->id);
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, item == nullptr))
 			return false;
@@ -2034,8 +2085,8 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = Json::Value(Json::StaticString(item->className));
 		return true;
 	}
-	case ST_TIME: {
-		const gtime_t &time = *(const gtime_t *)data;
+	case SaveTypeID::Time: {
+		const GameTime& time = *(const GameTime*)data;
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !time))
 			return false;
@@ -2043,8 +2094,8 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = Json::Value(time.milliseconds());
 		return true;
 	}
-	case ST_DATA: {
-		const save_void_t &ptr = *reinterpret_cast<const save_void_t *>(data);
+	case SaveTypeID::Data: {
+		const save_void_t& ptr = *reinterpret_cast<const save_void_t*>(data);
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !ptr))
 			return false;
@@ -2062,12 +2113,12 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = Json::Value(Json::StaticString(ptr.save_list()->name));
 		return true;
 	}
-	case ST_INVENTORY: {
+	case SaveTypeID::Inventory: {
 		Json::Value	   inventory = Json::Value(Json::objectValue);
-		const int32_t *inventory_ptr = (const int32_t *)data;
+		const int32_t* inventory_ptr = (const int32_t*)data;
 
 		for (item_id_t i = static_cast<item_id_t>(IT_NULL + 1); i < IT_TOTAL; i = static_cast<item_id_t>(i + 1)) {
-			Item *item = GetItemByIndex(i);
+			Item* item = GetItemByIndex(i);
 
 			if (!item || !item->className) {
 				if (inventory_ptr[i])
@@ -2086,8 +2137,8 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		output = std::move(inventory);
 		return true;
 	}
-	case ST_REINFORCEMENTS: {
-		const reinforcement_list_t *reinforcement_ptr = (const reinforcement_list_t *)data;
+	case SaveTypeID::Reinforcements: {
+		const reinforcement_list_t* reinforcement_ptr = (const reinforcement_list_t*)data;
 
 		if (null_for_empty && !reinforcement_ptr->num_reinforcements)
 			return false;
@@ -2096,7 +2147,7 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 		reinforcements.resize(reinforcement_ptr->num_reinforcements);
 
 		for (uint32_t i = 0; i < reinforcement_ptr->num_reinforcements; i++) {
-			const reinforcement_t *reinforcement = &reinforcement_ptr->reinforcements[i];
+			const reinforcement_t* reinforcement = &reinforcement_ptr->reinforcements[i];
 
 			Json::Value obj = Json::Value(Json::objectValue);
 
@@ -2124,11 +2175,11 @@ static bool write_save_type_json(const void *data, const save_type_t *type, bool
 
 // write the specified data+structure to the JSON object
 // referred to by `json`.
-bool write_save_struct_json(const void *data, const save_struct_t *structure, bool null_for_empty, Json::Value &output) {
+bool write_save_struct_json(const void* data, const save_struct_t* structure, bool null_for_empty, Json::Value& output) {
 	Json::Value obj(Json::objectValue);
 
-	for (auto &field : structure->fields) {
-		const void *p = ((const uint8_t *)data) + field.offset;
+	for (auto& field : structure->fields) {
+		const void* p = ((const uint8_t*)data) + field.offset;
 		Json::Value value;
 		bool		valid_value = write_save_type_json(p, &field.type, !field.type.never_empty, value);
 
@@ -2145,7 +2196,7 @@ bool write_save_struct_json(const void *data, const save_struct_t *structure, bo
 
 // read the specified data+structure from the JSON object
 // referred to by `json`.
-void read_save_struct_json(const Json::Value &json, void *data, const save_struct_t *structure) {
+void read_save_struct_json(const Json::Value& json, void* data, const save_struct_t* structure) {
 	if (!json.isObject()) {
 		json_print_error("", "expected object", false);
 		return;
@@ -2154,14 +2205,14 @@ void read_save_struct_json(const Json::Value &json, void *data, const save_struc
 	//for (auto key : json.getMemberNames())
 	for (auto it = json.begin(); it != json.end(); it++) {
 		//const char		   *className = key.c_str();
-		const char *dummy;
-		const char *key = it.memberName(&dummy);
-		const Json::Value &value = *it;//json[key];
-		const save_field_t *field;
+		const char* dummy;
+		const char* key = it.memberName(&dummy);
+		const Json::Value& value = *it;//json[key];
+		const save_field_t* field;
 
 		for (field = structure->fields.begin(); field != structure->fields.end(); field++) {
 			if (strcmp(key, field->name) == 0) {
-				void *p = ((uint8_t *)data) + field->offset;
+				void* p = ((uint8_t*)data) + field->offset;
 				read_save_type_json(value, p, &field->type, field->name);
 				break;
 			}
@@ -2175,7 +2226,7 @@ void read_save_struct_json(const Json::Value &json, void *data, const save_struc
 #include <fstream>
 #include <memory>
 
-static Json::Value parseJson(const char *jsonString) {
+static Json::Value parseJson(const char* jsonString) {
 	Json::CharReaderBuilder reader;
 	reader["allowSpecialFloats"] = true;
 	Json::Value		  json;
@@ -2191,7 +2242,7 @@ static Json::Value parseJson(const char *jsonString) {
 	return json;
 }
 
-static char *saveJson(const Json::Value &json, size_t *out_size) {
+static char* saveJson(const Json::Value& json, size_t* out_size) {
 	Json::StreamWriterBuilder builder;
 	builder["indentation"] = "\t";
 	builder["useSpecialFloats"] = true;
@@ -2199,7 +2250,7 @@ static char *saveJson(const Json::Value &json, size_t *out_size) {
 	std::stringstream						  ss(std::ios_base::out | std::ios_base::binary);
 	writer->write(json, &ss);
 	*out_size = ss.tellp();
-	char *const out = static_cast<char *>(gi.TagMalloc(*out_size + 1, TAG_GAME));
+	char* const out = static_cast<char*>(gi.TagMalloc(*out_size + 1, TAG_GAME));
 	// FIXME: some day...
 	std::string v = ss.str();
 	memcpy(out, v.c_str(), *out_size);
@@ -2209,7 +2260,7 @@ static char *saveJson(const Json::Value &json, size_t *out_size) {
 
 // new entry point for WriteGame.
 // returns pointer to TagMalloc'd JSON string.
-char *WriteGameJson(bool autosave, size_t *out_size) {
+char* WriteGameJson(bool autosave, size_t* out_size) {
 	if (!autosave)
 		SaveClientData();
 
@@ -2219,13 +2270,13 @@ char *WriteGameJson(bool autosave, size_t *out_size) {
 	// TODO: engine version ID?
 
 	// write game
-	game.autosaved = autosave;
-	write_save_struct_json(&game, &game_locals_t_savestruct, false, json["game"]);
-	game.autosaved = false;
+	game.autoSaved = autosave;
+	write_save_struct_json(&game, &GameLocals_savestruct, false, json["game"]);
+	game.autoSaved = false;
 
 	// write clients
 	Json::Value clients(Json::arrayValue);
-	for (size_t i = 0; i < game.maxclients; i++) {
+	for (size_t i = 0; i < game.maxClients; i++) {
 		Json::Value v;
 		write_save_struct_json(&game.clients[i], &gclient_t_savestruct, false, v);
 		clients.append(std::move(v));
@@ -2240,35 +2291,35 @@ void PrecacheInventoryItems();
 // new entry point for ReadGame.
 // takes in pointer to JSON data. does
 // not store or modify it.
-void ReadGameJson(const char *jsonString) {
+void ReadGameJson(const char* jsonString) {
 	gi.FreeTags(TAG_GAME);
 
 	Json::Value json = parseJson(jsonString);
 
-	uint32_t max_entities = game.maxentities;
-	uint32_t max_clients = game.maxclients;
+	uint32_t maxEntities = game.maxEntities;
+	uint32_t max_clients = game.maxClients;
 
 	game = {};
-	g_entities = (gentity_t *)gi.TagMalloc(max_entities * sizeof(g_entities[0]), TAG_GAME);
-	game.clients = (gclient_t *)gi.TagMalloc(max_clients * sizeof(game.clients[0]), TAG_GAME);
+	g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
+	game.clients = (gclient_t*)gi.TagMalloc(max_clients * sizeof(game.clients[0]), TAG_GAME);
 	globals.gentities = g_entities;
 
 	// read game
 	json_push_stack("game");
-	read_save_struct_json(json["game"], &game, &game_locals_t_savestruct);
+	read_save_struct_json(json["game"], &game, &GameLocals_savestruct);
 	json_pop_stack();
 
 	// read clients
-	const Json::Value &clients = json["clients"];
+	const Json::Value& clients = json["clients"];
 
 	if (!clients.isArray())
 		gi.Com_Error("expected \"clients\" to be array");
-	else if (clients.size() != game.maxclients)
+	else if (clients.size() != game.maxClients)
 		gi.Com_Error("mismatched client size");
 
 	size_t i = 0;
 
-	for (auto &v : clients) {
+	for (auto& v : clients) {
 		json_push_stack(fmt::format("clients[{}]", i));
 		read_save_struct_json(v, &game.clients[i++], &gclient_t_savestruct);
 		json_pop_stack();
@@ -2279,7 +2330,7 @@ void ReadGameJson(const char *jsonString) {
 
 // new entry point for WriteLevel.
 // returns pointer to TagMalloc'd JSON string.
-char *WriteLevelJson(bool transition, size_t *out_size) {
+char* WriteLevelJson(bool transition, size_t* out_size) {
 	// update current level entry now, just so we can
 	// use gamemap to test EOU
 	UpdateLevelEntry();
@@ -2289,19 +2340,19 @@ char *WriteLevelJson(bool transition, size_t *out_size) {
 	json["save_version"] = SAVE_FORMAT_VERSION;
 
 	// write level
-	write_save_struct_json(&level, &level_locals_t_savestruct, false, json["level"]);
+	write_save_struct_json(&level, &LevelLocals_savestruct, false, json["level"]);
 
 	// write entities
 	Json::Value entities(Json::objectValue);
 	char		number[16];
 
-	for (size_t i = 0; i < globals.num_entities; i++) {
+	for (size_t i = 0; i < globals.numEntities; i++) {
 		if (!globals.gentities[i].inUse)
 			continue;
 		// clear all the client inUse flags before saving so that
 		// when the level is re-entered, the clients will spawn
 		// at spawn points instead of occupying body shells
-		else if (transition && i >= 1 && i <= game.maxclients)
+		else if (transition && i >= 1 && i <= game.maxClients)
 			continue;
 
 		auto result = std::to_chars(number, number + sizeof(number) - 1, i);
@@ -2322,7 +2373,7 @@ char *WriteLevelJson(bool transition, size_t *out_size) {
 // new entry point for ReadLevel.
 // takes in pointer to JSON data. does
 // not store or modify it.
-void ReadLevelJson(const char *jsonString) {
+void ReadLevelJson(const char* jsonString) {
 	// free any dynamic memory allocated by loading the level
 	// base state
 	gi.FreeTags(TAG_LEVEL);
@@ -2330,49 +2381,49 @@ void ReadLevelJson(const char *jsonString) {
 	Json::Value json = parseJson(jsonString);
 
 	// wipe all the entities
-	memset(g_entities, 0, game.maxentities * sizeof(g_entities[0]));
-	globals.num_entities = game.maxclients + 1;
+	memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
+	globals.numEntities = game.maxClients + 1;
 
 	// read level
 	json_push_stack("level");
-	read_save_struct_json(json["level"], &level, &level_locals_t_savestruct);
+	read_save_struct_json(json["level"], &level, &LevelLocals_savestruct);
 	json_pop_stack();
 
 	// read entities
-	const Json::Value &entities = json["entities"];
+	const Json::Value& entities = json["entities"];
 
 	if (!entities.isObject())
 		gi.Com_Error("expected \"entities\" to be object");
 
 	//for (auto key : json.getMemberNames())
 	for (auto it = entities.begin(); it != entities.end(); it++) {
-		const char *dummy;
-		const char *id = it.memberName(&dummy);
-		const Json::Value &value = *it;//json[key];
+		const char* dummy;
+		const char* id = it.memberName(&dummy);
+		const Json::Value& value = *it;//json[key];
 		uint32_t		   number = strtoul(id, nullptr, 10);
 
-		if (number >= globals.num_entities)
-			globals.num_entities = number + 1;
+		if (number >= globals.numEntities)
+			globals.numEntities = number + 1;
 
-		gentity_t *ent = &g_entities[number];
+		gentity_t* ent = &g_entities[number];
 		InitGEntity(ent);
 		json_push_stack(fmt::format("entities[{}]", number));
 		read_save_struct_json(value, ent, &gentity_t_savestruct);
 		json_pop_stack();
-		gi.linkentity(ent);
+		gi.linkEntity(ent);
 	}
 
 	// mark all clients as unconnected
-	for (size_t i = 0; i < game.maxclients; i++) {
-		gentity_t *ent = &g_entities[i + 1];
+	for (size_t i = 0; i < game.maxClients; i++) {
+		gentity_t* ent = &g_entities[i + 1];
 		ent->client = game.clients + i;
 		ent->client->pers.connected = false;
 		ent->client->pers.spawned = false;
 	}
 
 	// do any load time things at this point
-	for (size_t i = 0; i < globals.num_entities; i++) {
-		gentity_t *ent = &g_entities[i];
+	for (size_t i = 0; i < globals.numEntities; i++) {
+		gentity_t* ent = &g_entities[i];
 
 		if (!ent->inUse)
 			continue;
@@ -2381,34 +2432,34 @@ void ReadLevelJson(const char *jsonString) {
 		if (ent->className)
 			if (strcmp(ent->className, "target_crosslevel_target") == 0 ||
 				strcmp(ent->className, "target_crossunit_target") == 0)
-				ent->nextThink = level.time + gtime_t::from_sec(ent->delay);
+				ent->nextThink = level.time + GameTime::from_sec(ent->delay);
 	}
 
 	PrecacheInventoryItems();
 
 	// clear cached indices
-	cached_soundindex::reset_all();
-	cached_modelindex::reset_all();
-	cached_imageindex::reset_all();
+	cached_soundIndex::reset_all();
+	cached_modelIndex::reset_all();
+	cached_imageIndex::reset_all();
 
 	G_LoadShadowLights();
 }
 
 // [Paril-KEX]
 bool CanSave() {
-	if (game.maxclients == 1 && g_entities[1].health <= 0) {
+	if (game.maxClients == 1 && g_entities[1].health <= 0) {
 		gi.LocClient_Print(&g_entities[1], PRINT_CENTER, "$g_no_save_dead");
 		return false;
 	}
 	// don't allow saving during cameras/intermissions as this
 	// causes the game to act weird when these are loaded
-	else if (level.intermissionTime) {
+	else if (level.intermission.time) {
 		return false;
 	}
 
 	return true;
 }
 
-/*static*/ template<> cached_soundindex *cached_soundindex::head = nullptr;
-/*static*/ template<> cached_modelindex *cached_modelindex::head = nullptr;
-/*static*/ template<> cached_imageindex *cached_imageindex::head = nullptr;
+/*static*/ template<> cached_soundIndex* cached_soundIndex::head = nullptr;
+/*static*/ template<> cached_modelIndex* cached_modelIndex::head = nullptr;
+/*static*/ template<> cached_imageIndex* cached_imageIndex::head = nullptr;

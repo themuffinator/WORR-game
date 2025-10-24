@@ -1,129 +1,177 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="bg_local.h" />
-    <ClInclude Include="cg_local.h" />
-    <ClInclude Include="g_local.h" />
-    <ClInclude Include="g_statusbar.h" />
-    <ClInclude Include="game.h" />
-    <ClInclude Include="q_std.h" />
-    <ClInclude Include="q_vec3.h" />
-    <ClInclude Include="bots\bot_debug.h">
+    <ClInclude Include="bg_local.hpp" />
+    <ClInclude Include="cg_local.hpp" />
+    <ClInclude Include="g_local.hpp" />
+    <ClInclude Include="g_statusbar.hpp" />
+    <ClInclude Include="game.hpp" />
+    <ClInclude Include="q_std.hpp" />
+    <ClInclude Include="q_vec3.hpp" />
+    <ClInclude Include="bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_exports.h">
+    <ClInclude Include="bots\bot_exports.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_includes.h">
+    <ClInclude Include="bots\bot_includes.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_think.h">
+    <ClInclude Include="bots\bot_think.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_utils.h">
+    <ClInclude Include="bots\bot_utils.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_actor.h">
+    <ClInclude Include="monsters\m_actor.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_arachnid.h">
+    <ClInclude Include="monsters\m_arachnid.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_berserk.h">
+    <ClInclude Include="monsters\m_berserk.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_boss2.h">
+    <ClInclude Include="monsters\m_hornet.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_boss31.h">
+    <ClInclude Include="monsters\m_jorg.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_boss32.h">
+    <ClInclude Include="monsters\m_makron.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_brain.h">
+    <ClInclude Include="monsters\m_brain.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_carrier.h">
+    <ClInclude Include="monsters\m_carrier.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_chick.h">
+    <ClInclude Include="monsters\m_chick.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_fixbot.h">
+    <ClInclude Include="monsters\m_fixbot.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_flash.h">
+    <ClInclude Include="monsters\m_flash.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_flipper.h">
+    <ClInclude Include="monsters\m_shark.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_float.h">
+    <ClInclude Include="monsters\m_float.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_flyer.h">
+    <ClInclude Include="monsters\m_flyer.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gekk.h">
+    <ClInclude Include="monsters\m_gekk.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gladiator.h">
+    <ClInclude Include="monsters\m_gladiator.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_guardian.h">
+    <ClInclude Include="monsters\m_guardian.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gunner.h">
+    <ClInclude Include="monsters\m_gunner.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_hover.h">
+    <ClInclude Include="monsters\m_hover.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_infantry.h">
+    <ClInclude Include="monsters\m_infantry.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_insane.h">
+    <ClInclude Include="monsters\m_insane.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_medic.h">
+    <ClInclude Include="monsters\m_medic.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_mutant.h">
+    <ClInclude Include="monsters\m_mutant.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_parasite.h">
+    <ClInclude Include="monsters\m_parasite.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_player.h">
+    <ClInclude Include="monsters\m_player.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_rider.h">
+    <ClInclude Include="monsters\m_rider.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_shambler.h">
+    <ClInclude Include="monsters\m_shambler.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_soldier.h">
+    <ClInclude Include="monsters\m_soldier.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_stalker.h">
+    <ClInclude Include="monsters\m_stalker.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_supertank.h">
+    <ClInclude Include="monsters\m_supertank.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_tank.h">
+    <ClInclude Include="monsters\m_tank.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_turret.h">
+    <ClInclude Include="monsters\m_turret.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_widow.h">
+    <ClInclude Include="monsters\m_widow.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_widow2.h">
+    <ClInclude Include="monsters\m_widow2.hpp">
       <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_dog.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_ogre.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_rotfish.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_grunt.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_fiend.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_zombie.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_spawn.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_vore.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_enforcer.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_hellknight.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_knight.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_shub.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_chthon.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_scrag.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="command_registration.hpp">
+      <Filter>commands</Filter>
+    </ClInclude>
+    <ClInclude Include="command_system.hpp">
+      <Filter>commands</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -131,7 +179,6 @@
     <ClCompile Include="cg_screen.cpp" />
     <ClCompile Include="g_ai.cpp" />
     <ClCompile Include="g_spectator.cpp" />
-    <ClCompile Include="g_cmds.cpp" />
     <ClCompile Include="g_combat.cpp" />
     <ClCompile Include="g_func.cpp" />
     <ClCompile Include="g_items.cpp" />
@@ -177,16 +224,13 @@
     <ClCompile Include="monsters\m_berserk.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_boss2.cpp">
+    <ClCompile Include="monsters\m_hornet.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_boss3.cpp">
+    <ClCompile Include="monsters\m_jorg.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_boss31.cpp">
-      <Filter>monsters</Filter>
-    </ClCompile>
-    <ClCompile Include="monsters\m_boss32.cpp">
+    <ClCompile Include="monsters\m_makron.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_brain.cpp">
@@ -201,7 +245,7 @@
     <ClCompile Include="monsters\m_fixbot.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_flipper.cpp">
+    <ClCompile Include="monsters\m_shark.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_float.cpp">
@@ -300,7 +344,6 @@
     <ClCompile Include="menu\menu_page_voting.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="g_cmds_voting.cpp" />
     <ClCompile Include="menu\menu_main.cpp">
       <Filter>menu</Filter>
     </ClCompile>
@@ -310,6 +353,65 @@
     <ClCompile Include="g_horde.cpp" />
     <ClCompile Include="menu\menu_page_setup.cpp">
       <Filter>menu</Filter>
+    </ClCompile>
+    <ClCompile Include="g_combat_heatmap.cpp" />
+    <ClCompile Include="monsters\m_dog.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_ogre.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_rotfish.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_grunt.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_fiend.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_zombie.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_spawn.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_vore.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_enforcer.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_hellknight.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_knight.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_shub.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_chthon.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_scrag.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="g_player_spawn.cpp" />
+    <ClCompile Include="command_admin.cpp">
+      <Filter>commands</Filter>
+    </ClCompile>
+    <ClCompile Include="command_cheats.cpp">
+      <Filter>commands</Filter>
+    </ClCompile>
+    <ClCompile Include="command_client.cpp">
+      <Filter>commands</Filter>
+    </ClCompile>
+    <ClCompile Include="command_system.cpp">
+      <Filter>commands</Filter>
+    </ClCompile>
+    <ClCompile Include="command_voting.cpp">
+      <Filter>commands</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -321,6 +423,9 @@
     </Filter>
     <Filter Include="menu">
       <UniqueIdentifier>{4edcbabc-5d0b-4aa6-bc36-bfe9bcb6f9e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="commands">
+      <UniqueIdentifier>{c39401cc-cb9a-4041-97a4-eb429a55caff}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

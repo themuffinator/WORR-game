@@ -1,8 +1,24 @@
 ﻿// Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-// g_utils.c -- misc utility functions for game module
-#pragma once
-#include "g_local.h"
+
+// g_utils.cpp (Game Utilities)
+// This file is a collection of miscellaneous utility and helper functions
+// that are used throughout the server-side game module. It contains common,
+// reusable code that doesn't belong to a more specific system like items or AI.
+//
+// Key Responsibilities:
+// - Entity Searching: Provides functions like `FindEntity`, `FindRadius`, and
+//   `PickTarget` for locating specific entities in the game world.
+// - Spawning and Linking: Contains the core `Spawn` and `FreeEntity` functions
+//   that manage the entity lifecycle.
+// - String and Text Manipulation: Includes functions for formatting strings,
+//   such as `TimeString` for displaying time.
+// - Team and Gametype Logic: Provides helper functions for team-based checks
+//   (`OnSameTeam`, `Teams_TeamName`) and gametype validation.
+// - World Interaction: Implements `KillBox` for killing entities within a
+//   volume and `TouchTriggers` for activating triggers.
+
+#include "g_local.hpp"
 #include <chrono>	// get real time
 
 /*
@@ -51,7 +67,7 @@ gentity_t *FindEntity(gentity_t *from, std::function<bool(gentity_t *e)> matcher
 	else
 		from++;
 
-	for (; from < &g_entities[globals.num_entities]; from++) {
+	for (; from < &g_entities[globals.numEntities]; from++) {
 		if (!from->inUse)
 			continue;
 		if (matcher(from))
@@ -70,15 +86,15 @@ Returns entities that have origins within a spherical area
 FindRadius (origin, radius)
 =================
 */
-gentity_t *FindRadius(gentity_t *from, const vec3_t &org, float rad) {
-	vec3_t eorg{};
+gentity_t *FindRadius(gentity_t *from, const Vector3 &org, float rad) {
+	Vector3 eorg{};
 	int	   j;
 
 	if (!from)
 		from = g_entities;
 	else
 		from++;
-	for (; from < &g_entities[globals.num_entities]; from++) {
+	for (; from < &g_entities[globals.numEntities]; from++) {
 		if (!from->inUse)
 			continue;
 		if (from->solid == SOLID_NOT)
@@ -107,18 +123,18 @@ nullptr will be returned if the end of the list is reached.
 */
 constexpr size_t MAXCHOICES = 8;
 
-gentity_t *PickTarget(const char *targetname) {
+gentity_t *PickTarget(const char *targetName) {
 	gentity_t *choice[MAXCHOICES]{};
 	gentity_t	*ent = nullptr;
 	int		num_choices = 0;
 
-	if (!targetname) {
-		gi.Com_PrintFmt("{}: called with nullptr targetname.\n", __FUNCTION__);
+	if (!targetName) {
+		gi.Com_PrintFmt("{}: called with nullptr targetName.\n", __FUNCTION__);
 		return nullptr;
 	}
 
 	while (1) {
-		ent = G_FindByString<&gentity_t::targetname>(ent, targetname);
+		ent = G_FindByString<&gentity_t::targetName>(ent, targetName);
 		if (!ent)
 			break;
 		choice[num_choices++] = ent;
@@ -127,7 +143,7 @@ gentity_t *PickTarget(const char *targetname) {
 	}
 
 	if (!num_choices) {
-		gi.Com_PrintFmt("{}: target {} not found\n", __FUNCTION__, targetname);
+		gi.Com_PrintFmt("{}: target {} not found\n", __FUNCTION__, targetName);
 		return nullptr;
 	}
 
@@ -150,24 +166,24 @@ void PrintActivationMessage(gentity_t *ent, gentity_t *activator, bool coop_glob
 			gi.LocCenter_Print(activator, "{}", ent->message);
 
 		// [Paril-KEX] allow non-noisy centerprints
-		if (ent->noise_index >= 0) {
-			if (ent->noise_index)
-				gi.sound(activator, CHAN_AUTO, ent->noise_index, 1, ATTN_NORM, 0);
+		if (ent->noiseIndex >= 0) {
+			if (ent->noiseIndex)
+				gi.sound(activator, CHAN_AUTO, ent->noiseIndex, 1, ATTN_NORM, 0);
 			else
-				gi.sound(activator, CHAN_AUTO, gi.soundindex("misc/talk1.wav"), 1, ATTN_NORM, 0);
+				gi.sound(activator, CHAN_AUTO, gi.soundIndex("misc/talk1.wav"), 1, ATTN_NORM, 0);
 		}
 	}
 }
 
-void BroadcastFriendlyMessage(team_t team, const char *msg) {
+void BroadcastFriendlyMessage(Team team, const char *msg) {
 	for (auto ce : active_clients()) {
 		if (!ClientIsPlaying(ce->client) || (Teams() && ce->client->sess.team == team)) {
-			gi.LocClient_Print(ce, PRINT_HIGH, G_Fmt("{}{}", ce->client->sess.team != TEAM_SPECTATOR ? "[TEAM]: " : "", msg).data());
+			gi.LocClient_Print(ce, PRINT_HIGH, G_Fmt("{}{}", ce->client->sess.team != Team::Spectator ? "[TEAM]: " : "", msg).data());
 		}
 	}
 }
 
-void BroadcastTeamMessage(team_t team, print_type_t level, const char *msg) {
+void BroadcastTeamMessage(Team team, print_type_t level, const char *msg) {
 	for (auto ce : active_clients()) {
 		if (ce->client->sess.team != team)
 			continue;
@@ -190,7 +206,7 @@ do the SUB_UseTargets after that many seconds have passed.
 
 Centerprints any self.message to the activator.
 
-Search for (string)targetname in all entities that
+Search for (string)targetName in all entities that
 match (string)self.target and call their .use function
 
 ==============================
@@ -211,14 +227,14 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 		// create a temp object to fire at a later time
 		t = Spawn();
 		t->className = "DelayedUse";
-		t->nextThink = level.time + gtime_t::from_sec(ent->delay);
+		t->nextThink = level.time + GameTime::from_sec(ent->delay);
 		t->think = Think_Delay;
 		t->activator = activator;
 		if (!activator)
 			gi.Com_PrintFmt("{}: {} with no activator.\n", __FUNCTION__, *t);
 		t->message = ent->message;
 		t->target = ent->target;
-		t->killtarget = ent->killtarget;
+		t->killTarget = ent->killTarget;
 		return;
 	}
 
@@ -230,9 +246,9 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 	//
 	// kill killtargets
 	//
-	if (ent->killtarget) {
+	if (ent->killTarget) {
 		t = nullptr;
-		while ((t = G_FindByString<&gentity_t::targetname>(t, ent->killtarget))) {
+		while ((t = G_FindByString<&gentity_t::targetName>(t, ent->killTarget))) {
 			if (t->teamMaster) {
 				// if this entity is part of a chain, cleanly remove it
 				if (t->flags & FL_TEAMSLAVE) {
@@ -259,9 +275,9 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 				}
 			}
 
-			// [Paril-KEX] if we killtarget a monster, clean up properly
+			// [Paril-KEX] if we killTarget a monster, clean up properly
 			if (t->svFlags & SVF_MONSTER) {
-				if (!t->deadFlag && !(t->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !(t->spawnflags & SPAWNFLAG_MONSTER_DEAD))
+				if (!t->deadFlag && !(t->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !t->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
 					G_MonsterKilled(t);
 			}
 
@@ -279,7 +295,7 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 	//
 	if (ent->target) {
 		t = nullptr;
-		while ((t = G_FindByString<&gentity_t::targetname>(t, ent->target))) {
+		while ((t = G_FindByString<&gentity_t::targetName>(t, ent->target))) {
 			// doors fire area portals in a specific way
 			if (!Q_strcasecmp(t->className, "func_areaportal") &&
 				(!Q_strcasecmp(ent->className, "func_door") || !Q_strcasecmp(ent->className, "func_door_rotating")
@@ -305,11 +321,11 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 SetMoveDir
 ===============
 */
-void SetMoveDir(vec3_t &angles, vec3_t &moveDir) {
-	static vec3_t VEC_UP		= { 0, -1, 0 };
-	static vec3_t MOVEDIR_UP	= { 0, 0, 1 };
-	static vec3_t VEC_DOWN		= { 0, -2, 0 };
-	static vec3_t MOVEDIR_DOWN	= { 0, 0, -1 };
+void SetMoveDir(Vector3 &angles, Vector3 &moveDir) {
+	static Vector3 VEC_UP		= { 0, -1, 0 };
+	static Vector3 MOVEDIR_UP	= { 0, 0, 1 };
+	static Vector3 VEC_DOWN		= { 0, -2, 0 };
+	static Vector3 MOVEDIR_DOWN	= { 0, 0, -1 };
 
 	if (angles == VEC_UP) {
 		moveDir = MOVEDIR_UP;
@@ -366,10 +382,10 @@ angles and bad trails.
 =================
 */
 gentity_t *Spawn() {
-	gentity_t *e = &g_entities[static_cast<size_t>(game.maxclients) + 1];
+	gentity_t *e = &g_entities[static_cast<size_t>(game.maxClients) + 1];
 	size_t i;
 
-	for (i = static_cast<size_t>(game.maxclients + 1); i < globals.num_entities; i++, e++) {
+	for (i = static_cast<size_t>(game.maxClients + 1); i < globals.numEntities; i++, e++) {
 		// the first couple seconds of server time can involve a lot of
 		// freeing and allocating, so relax the replacement policy
 		if (!e->inUse && (e->freeTime < 2_sec || level.time - e->freeTime > 500_ms)) {
@@ -378,10 +394,10 @@ gentity_t *Spawn() {
 		}
 	}
 
-	if (i == game.maxentities)
+	if (i == game.maxEntities)
 		gi.Com_ErrorFmt("{}: no free entities.", __FUNCTION__);
 
-	globals.num_entities++;
+	globals.numEntities++;
 	InitGEntity(e);
 	//gi.Com_PrintFmt("{}: total:{}\n", __FUNCTION__, i);
 	return e;
@@ -399,9 +415,9 @@ THINK(FreeEntity) (gentity_t *ed) -> void {
 	if (!ed->inUse)
 		return;
 
-	gi.unlinkentity(ed); // unlink from world
+	gi.unlinkEntity(ed); // unlink from world
 
-	if ((ed - g_entities) <= (ptrdiff_t)(game.maxclients + BODY_QUEUE_SIZE)) {
+	if ((ed - g_entities) <= (ptrdiff_t)(game.maxClients + BODY_QUEUE_SIZE)) {
 #ifdef _DEBUG
 		gi.Com_PrintFmt("Tried to free special entity: {}.\n", *ed);
 #endif
@@ -455,7 +471,7 @@ void TouchTriggers(gentity_t *ent) {
 			continue;
 		if (!hit->touch)
 			continue;
-		if (ent->moveType == MOVETYPE_FREECAM)
+		if (ent->moveType == MoveType::FreeCam)
 			if (!strstr(hit->className, "teleport"))
 				continue;
 
@@ -465,7 +481,7 @@ void TouchTriggers(gentity_t *ent) {
 
 // [Paril-KEX] scan for projectiles between our movement positions
 // to see if we need to collide against them
-void G_TouchProjectiles(gentity_t *ent, vec3_t previous_origin) {
+void G_TouchProjectiles(gentity_t *ent, Vector3 previous_origin) {
 	struct skipped_projectile {
 		gentity_t *projectile;
 		int32_t		spawn_count;
@@ -524,9 +540,9 @@ static BoxEntitiesResult_t KillBox_BoxFilter(gentity_t *hit, void *) {
 	return BoxEntitiesResult_t::Keep;
 }
 
-bool KillBox(gentity_t *ent, bool from_spawning, mod_id_t mod, bool bsp_clipping) {
+bool KillBox(gentity_t *ent, bool from_spawning, ModID mod, bool bsp_clipping) {
 	// don't telefrag as spectator or noclip player...
-	if (ent->moveType == MOVETYPE_NOCLIP || ent->moveType == MOVETYPE_FREECAM)
+	if (ent->moveType == MoveType::NoClip || ent->moveType == MoveType::FreeCam)
 		return true;
 
 	contents_t mask = CONTENTS_MONSTER | CONTENTS_PLAYER;
@@ -567,7 +583,7 @@ bool KillBox(gentity_t *ent, bool from_spawning, mod_id_t mod, bool bsp_clipping
 			continue;
 		}
 
-		Damage(hit, ent, ent, vec3_origin, ent->s.origin, vec3_origin, 100000, 0, DAMAGE_NO_PROTECTION, mod);
+		Damage(hit, ent, ent, vec3_origin, ent->s.origin, vec3_origin, 100000, 0, DamageFlags::NoProtection, mod);
 	}
 
 	return true; // all clear
@@ -575,38 +591,38 @@ bool KillBox(gentity_t *ent, bool from_spawning, mod_id_t mod, bool bsp_clipping
 
 /*--------------------------------------------------------------------------*/
 
-const char *Teams_TeamName(team_t team) {
+const char *Teams_TeamName(Team team) {
 	switch (team) {
-	case TEAM_RED:
+	case Team::Red:
 		return "RED";
-	case TEAM_BLUE:
+	case Team::Blue:
 		return "BLUE";
-	case TEAM_SPECTATOR:
+	case Team::Spectator:
 		return "SPECTATOR";
-	case TEAM_FREE:
+	case Team::Free:
 		return "FREE";
 	}
 	return "NONE";
 }
 
-const char *Teams_OtherTeamName(team_t team) {
+const char *Teams_OtherTeamName(Team team) {
 	switch (team) {
-	case TEAM_RED:
+	case Team::Red:
 		return "BLUE";
-	case TEAM_BLUE:
+	case Team::Blue:
 		return "RED";
 	}
 	return "UNKNOWN";
 }
 
-team_t Teams_OtherTeam(team_t team) {
+Team Teams_OtherTeam(Team team) {
 	switch (team) {
-	case TEAM_RED:
-		return TEAM_BLUE;
-	case TEAM_BLUE:
-		return TEAM_RED;
+	case Team::Red:
+		return Team::Blue;
+	case Team::Blue:
+		return Team::Red;
 	}
-	return TEAM_SPECTATOR; // invalid value
+	return Team::Spectator; // invalid value
 }
 
 /*
@@ -654,10 +670,10 @@ void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
 
 	const char *teamColor = nullptr;
 	switch (ent->client->sess.team) {
-	case TEAM_RED:
+	case Team::Red:
 		teamColor = "red";
 		break;
-	case TEAM_BLUE:
+	case Team::Blue:
 		teamColor = "blue";
 		break;
 	default:
@@ -672,7 +688,7 @@ void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
 		finalSkin = G_Fmt("{}\\{}\\default", ent->client->sess.netName, cleanSkin);
 	}
 
-	gi.configstring(CS_PLAYERSKINS + playernum, finalSkin.c_str());
+	gi.configString(CS_PLAYERSKINS + playernum, finalSkin.c_str());
 }
 
 /*
@@ -686,7 +702,7 @@ void G_AdjustPlayerScore(gclient_t *cl, int32_t offset, bool adjust_team, int32_
 	if (ScoringIsDisabled())
 		return;
 
-	if (level.intermissionQueued)
+	if (level.intermission.queued)
 		return;
 
 	if (offset || team_offset) {
@@ -696,12 +712,12 @@ void G_AdjustPlayerScore(gclient_t *cl, int32_t offset, bool adjust_team, int32_
 		if (adjust_team && team_offset) {
 			//G_AdjustTeamScore(cl->sess.team, team_offset);
 
-			if (Teams() && notGT(GT_RR)) {
+			if (Teams() && Game::IsNot(GameType::RedRover)) {
 
-				if (cl->sess.team == TEAM_RED)
-					level.teamScores[TEAM_RED] += offset;
-				else if (cl->sess.team == TEAM_BLUE)
-					level.teamScores[TEAM_BLUE] += offset;
+				if (cl->sess.team == Team::Red)
+					level.teamScores[static_cast<int>(Team::Red)] += offset;
+				else if (cl->sess.team == Team::Blue)
+					level.teamScores[static_cast<int>(Team::Blue)] += offset;
 
 				//gi.Com_PrintFmt("G_AdjustPlayerScore: team: {}\n", offset);
 			}
@@ -717,7 +733,7 @@ Horde_AdjustPlayerScore
 ===================
 */
 void Horde_AdjustPlayerScore(gclient_t *cl, int32_t offset) {
-	if (notGT(GT_HORDE)) return;
+	if (Game::IsNot(GameType::Horde)) return;
 	if (!cl || !cl->pers.connected) return;
 
 	if (ScoringIsDisabled())
@@ -747,17 +763,17 @@ void G_SetPlayerScore(gclient_t *cl, int32_t value) {
 G_AdjustTeamScore
 ===================
 */
-void G_AdjustTeamScore(team_t team, int32_t offset) {
+void G_AdjustTeamScore(Team team, int32_t offset) {
 	if (ScoringIsDisabled())
 		return;
 
-	if (!Teams() || GT(GT_RR))
+	if (!Teams() || Game::Is(GameType::RedRover))
 		return;
 
-	if (team == TEAM_RED)
-		level.teamScores[TEAM_RED] += offset;
-	else if (team == TEAM_BLUE)
-		level.teamScores[TEAM_BLUE] += offset;
+	if (team == Team::Red)
+		level.teamScores[static_cast<int>(Team::Red)] += offset;
+	else if (team == Team::Blue)
+		level.teamScores[static_cast<int>(Team::Blue)] += offset;
 	else return;
 	CalculateRanks();
 }
@@ -767,17 +783,17 @@ void G_AdjustTeamScore(team_t team, int32_t offset) {
 G_SetTeamScore
 ===================
 */
-void G_SetTeamScore(team_t team, int32_t value) {
+void G_SetTeamScore(Team team, int32_t value) {
 	if (ScoringIsDisabled())
 		return;
 
-	if (!Teams() || GT(GT_RR))
+	if (!Teams() || Game::Is(GameType::RedRover))
 		return;
 
-	if (team == TEAM_RED)
-		level.teamScores[TEAM_RED] = value;
-	else if (team == TEAM_BLUE)
-		level.teamScores[TEAM_BLUE] = value;
+	if (team == Team::Red)
+		level.teamScores[static_cast<int>(Team::Red)] = value;
+	else if (team == Team::Blue)
+		level.teamScores[static_cast<int>(Team::Blue)] = value;
 	else return;
 	CalculateRanks();
 }
@@ -821,9 +837,9 @@ ItemSpawnsEnabled
 bool ItemSpawnsEnabled() {
 	if (g_no_items->integer)
 		return false;
-	if (g_instagib->integer || g_nadefest->integer)
+	if (g_instaGib->integer || g_nadeFest->integer)
 		return false;
-	if (GTF(GTF_ARENA))
+	if (Game::Has(GameFlags::Arena))
 		return false;
 	return true;
 }
@@ -833,7 +849,7 @@ bool ItemSpawnsEnabled() {
 LocBuildBoxPoints
 =================
 */
-static void LocBuildBoxPoints(vec3_t(&p)[8], const vec3_t &org, const vec3_t &mins, const vec3_t &maxs) {
+static void LocBuildBoxPoints(Vector3(&p)[8], const Vector3 &org, const Vector3 &mins, const Vector3 &maxs) {
 	// Bottom
 	p[0] = org + mins;
 	p[1] = p[0]; p[1][0] += (maxs[0] - mins[0]);
@@ -855,17 +871,17 @@ bool LocCanSee(gentity_t *targetEnt, gentity_t *sourceEnt) {
 	if (!targetEnt || !sourceEnt)
 		return false;
 
-	if (targetEnt->moveType == MOVETYPE_PUSH)
+	if (targetEnt->moveType == MoveType::Push)
 		return false; // bmodels not supported
 
-	vec3_t targpoints[8];
+	Vector3 targpoints[8];
 	LocBuildBoxPoints(targpoints, targetEnt->s.origin, targetEnt->mins, targetEnt->maxs);
 
-	vec3_t viewpoint = sourceEnt->s.origin;
+	Vector3 viewpoint = sourceEnt->s.origin;
 	viewpoint[2] += sourceEnt->viewHeight;
 
 	for (int i = 0; i < 8; i++) {
-		trace_t trace = gi.traceline(viewpoint, targpoints[i], sourceEnt, CONTENTS_MIST | MASK_WATER | MASK_SOLID);
+		trace_t trace = gi.traceLine(viewpoint, targpoints[i], sourceEnt, CONTENTS_MIST | MASK_WATER | MASK_SOLID);
 		if (trace.fraction == 1.0f)
 			return true; // Early exit if any point is visible
 	}
@@ -879,8 +895,8 @@ Teams
 =================
 */
 bool Teams() {
-	return GTF(GTF_TEAMS);
-	//return GT(GT_CTF) || GT(GT_TDM) || GT(GT_FREEZE) || GT(GT_CA) || GT(GT_STRIKE) || GT(GT_RR);
+	return Game::Has(GameFlags::Teams);
+	//return Game::Is(GameType::CaptureTheFlag) || Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::FreezeTag) || Game::Is(GameType::ClanArena) || Game::Is(GameType::CaptureStrike) || Game::Is(GameType::RedRover);
 }
 
 /*
@@ -892,9 +908,9 @@ const char *TimeString(int msec, bool showMilliseconds, bool state) {
 	static char timeString[32];
 
 	if (state) {
-		if (level.matchState < MatchState::MATCH_COUNTDOWN)
+		if (level.matchState < MatchState::Countdown)
 			return "WARMUP";
-		if (level.intermissionQueued || level.intermissionTime)
+		if (level.intermission.queued || level.intermission.time)
 			return "MATCH END";
 	}
 
@@ -933,48 +949,48 @@ const char *TimeString(int msec, bool showMilliseconds, bool state) {
 StringToTeamNum
 =================
 */
-team_t StringToTeamNum(const char *in) {
+Team StringToTeamNum(const char *in) {
 	struct {
 		const char *name;
-		team_t team;
+		Team team;
 	} mappings[] = {
-		{ "spectator", team_t::TEAM_SPECTATOR },
-		{ "s",         team_t::TEAM_SPECTATOR },
-		{ "auto",      team_t::TEAM_NONE }, // special case handled separately
-		{ "a",         team_t::TEAM_NONE }, // special case handled separately
-		{ "blue",      team_t::TEAM_BLUE },
-		{ "b",         team_t::TEAM_BLUE },
-		{ "red",       team_t::TEAM_RED },
-		{ "r",         team_t::TEAM_RED },
-		{ "free",      team_t::TEAM_FREE },
-		{ "f",         team_t::TEAM_FREE },
+		{ "spectator", Team::Spectator },
+		{ "s",         Team::Spectator },
+		{ "auto",      Team::None }, // special case handled separately
+		{ "a",         Team::None }, // special case handled separately
+		{ "blue",      Team::Blue },
+		{ "b",         Team::Blue },
+		{ "red",       Team::Red },
+		{ "r",         Team::Red },
+		{ "free",      Team::Free },
+		{ "f",         Team::Free },
 	};
 
 	if (!in || !*in) {
-		gi.Com_Print("StringToTeamNum: TEAM_NONE returned early.\n");
-		return team_t::TEAM_NONE;
+		gi.Com_Print("StringToTeamNum: Team::None returned early.\n");
+		return Team::None;
 	}
 	for (const auto &map : mappings) {
 		if (!Q_strcasecmp(in, map.name)) {
-			if (map.team == team_t::TEAM_NONE) {
+			if (map.team == Team::None) {
 				return PickTeam(-1); // 'auto' special case
 			}
 			if (!Teams()) {
 				// Only allow free-for-all team if not in team mode
-				if (map.team == team_t::TEAM_FREE || map.team == team_t::TEAM_SPECTATOR) {
+				if (map.team == Team::Free || map.team == Team::Spectator) {
 					return map.team;
 				}
 				// Ignore team picks if no teams
-				return team_t::TEAM_NONE;
+				return Team::None;
 			}
-			if (map.team == team_t::TEAM_FREE) {
+			if (map.team == Team::Free) {
 				return PickTeam(-1);
 			}
 			// Normal team return
 			return map.team;
 		}
 	}
-	return team_t::TEAM_NONE;
+	return Team::None;
 }
 
 /*
@@ -985,9 +1001,9 @@ InAMatch
 bool InAMatch() {
 	if (!deathmatch->integer)
 		return false;
-	if (level.intermissionQueued)
+	if (level.intermission.queued)
 		return false;
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS)
+	if (level.matchState == MatchState::In_Progress)
 		return true;
 
 	return false;
@@ -1001,16 +1017,16 @@ CombatIsDisabled
 bool CombatIsDisabled() {
 	if (!deathmatch->integer)
 		return false;
-	if (level.intermissionQueued)
+	if (level.intermission.queued)
 		return true;
-	if (level.intermissionTime)
+	if (level.intermission.time)
 		return true;
-	if (level.matchState == MatchState::MATCH_COUNTDOWN)
+	if (level.matchState == MatchState::Countdown)
 		return true;
-	if (GTF(GTF_ROUNDS) && level.matchState == MatchState::MATCH_IN_PROGRESS) {
+	if (Game::Has(GameFlags::Rounds) && level.matchState == MatchState::In_Progress) {
 		// added round ended to allow gibbing etc. at end of rounds
 		// scoring to be explicitly disabled during this time
-		if (level.roundState == RoundState::ROUND_COUNTDOWN && (notGT(GT_HORDE)))
+		if (level.roundState == RoundState::Countdown && (Game::IsNot(GameType::Horde)))
 			return true;
 	}
 	if (level.timeoutActive)
@@ -1026,11 +1042,11 @@ ItemPickupsAreDisabled
 bool ItemPickupsAreDisabled() {
 	if (!deathmatch->integer)
 		return false;
-	if (level.intermissionQueued)
+	if (level.intermission.queued)
 		return true;
-	if (level.intermissionTime)
+	if (level.intermission.time)
 		return true;
-	if (level.matchState == MatchState::MATCH_COUNTDOWN)
+	if (level.matchState == MatchState::Countdown)
 		return true;
 	return false;
 }
@@ -1041,13 +1057,13 @@ ScoringIsDisabled
 =================
 */
 bool ScoringIsDisabled() {
-	if (level.matchState != MatchState::MATCH_IN_PROGRESS)
+	if (level.matchState != MatchState::In_Progress)
 		return true;
 	if (CombatIsDisabled())
 		return true;
-	if (GTF(GTF_ROUNDS) && level.roundState != RoundState::ROUND_IN_PROGRESS)
+	if (Game::Has(GameFlags::Rounds) && level.roundState != RoundState::In_Progress)
 		return true;
-	if (level.intermissionQueued)
+	if (level.intermission.queued)
 		return true;
 	return false;
 }
@@ -1057,28 +1073,19 @@ bool ScoringIsDisabled() {
 GametypeStringToIndex
 =================
 */
-gametype_t GametypeStringToIndex(const std::string &input) {
-	auto to_lower = [](const std::string &str) -> std::string {
-		std::string result = str;
-		std::transform(result.begin(), result.end(), result.begin(), [](unsigned char c) {
-			return std::tolower(c);
-			});
-		return result;
-		};
-
-	std::string lowered_input = to_lower(input);
-
-	for (size_t i = 0; i < static_cast<size_t>(gametype_t::GT_NUM_GAMETYPES); i++) {
-		if (lowered_input == to_lower(gt_short_name_upper[i]))
-			return static_cast<gametype_t>(i);
+GameType GametypeStringToIndex(std::string_view input) {
+	// Iterate through each defined game mode once.
+	for (const auto& mode : GAME_MODES) {
+		// Use an efficient, case-insensitive comparison that avoids memory allocation.
+		if (Game::AreStringsEqualIgnoreCase(input, mode.short_name) ||
+			Game::AreStringsEqualIgnoreCase(input, mode.long_name) ||
+			Game::AreStringsEqualIgnoreCase(input, mode.spawn_name)) {
+			return mode.type;
+		}
 	}
 
-	for (size_t i = 0; i < static_cast<size_t>(gametype_t::GT_NUM_GAMETYPES); i++) {
-		if (lowered_input == to_lower(gt_long_name[i]))
-			return static_cast<gametype_t>(i);
-	}
-
-	return gametype_t::GT_NONE;
+	// Return a default value if no match is found.
+	return GameType::None;
 }
 
 /*
@@ -1086,12 +1093,16 @@ gametype_t GametypeStringToIndex(const std::string &input) {
 GametypeIndexToString
 =================
 */
-std::string GametypeIndexToString(gametype_t gametype) {
-	if (gametype != gametype_t::GT_NONE &&
-			static_cast<size_t>(gametype) < static_cast<size_t>(gametype_t::GT_NUM_GAMETYPES)) {
-		return gt_short_name_upper[static_cast<size_t>(gametype)];
+std::string_view GametypeIndexToString(GameType gametype) {
+	const auto index = static_cast<size_t>(gametype);
+
+	// Validate that the gametype is within the bounds of our defined modes.
+	if (index > 0 && index < GAME_MODES.size()) {
+		return GAME_MODES[index].short_name_upper;
 	}
-	return "GT_NONE";
+
+	// Return a default for GameType::None or any out-of-bounds value.
+	return "NONE";
 }
 
 /*
@@ -1100,14 +1111,19 @@ GametypeOptionList
 =================
 */
 std::string GametypeOptionList() {
-	std::string result = "<";
-	for (size_t i = 0; i < gt_short_name.size(); ++i) {
-		result += gt_short_name[i];
-		if (i != gt_short_name.size() - 1)
-			result += "|";
+	std::stringstream ss;
+	ss << "<";
+
+	// Iterate through all gametypes, skipping the default 'None' type.
+	for (size_t i = static_cast<size_t>(GameType::FreeForAll); i < GAME_MODES.size(); ++i) {
+		ss << GAME_MODES[i].short_name;
+		if (i < GAME_MODES.size() - 1) {
+			ss << "|";
+		}
 	}
-	result += ">";
-	return result;
+
+	ss << ">";
+	return ss.str();
 }
 
 /*
@@ -1139,8 +1155,8 @@ void TeleporterVelocity(gentity_t *ent, gvec3_t angles) {
 	AngleVectors(angles, ent->velocity, NULL, NULL);
 	ent->velocity *= len;
 
-	ent->client->ps.pmove.pm_time = 160; // hold time
-	ent->client->ps.pmove.pm_flags |= PMF_TIME_KNOCKBACK;
+	ent->client->ps.pmove.pmTime = 160; // hold time
+	ent->client->ps.pmove.pmFlags |= PMF_TIME_KNOCKBACK;
 }
 
 /*
@@ -1148,38 +1164,41 @@ void TeleporterVelocity(gentity_t *ent, gvec3_t angles) {
 TeleportPlayer
 =================
 */
-void TeleportPlayer(gentity_t *player, vec3_t origin, vec3_t angles) {
+void TeleportPlayer(gentity_t *player, Vector3 origin, Vector3 angles) {
 	Weapon_Grapple_DoReset(player->client);
 
 	// unlink to make sure it can't possibly interfere with KillBox
-	gi.unlinkentity(player);
+	gi.unlinkEntity(player);
 
 	player->s.origin = origin;
-	player->s.old_origin = origin;
-	player->s.origin[2] += 10;
+	player->s.oldOrigin = origin;
+	player->s.origin[Z] += 10;
 
 	TeleporterVelocity(player, angles);
 
 	// set angles
-	player->client->ps.pmove.delta_angles = angles - player->client->resp.cmdAngles;
+	player->client->ps.pmove.deltaAngles = angles - player->client->resp.cmdAngles;
 
 	player->s.angles = {};
 	player->client->ps.viewAngles = {};
 	player->client->vAngle = {};
 	AngleVectors(player->client->vAngle, player->client->vForward, nullptr, nullptr);
 
-	gi.linkentity(player);
+	gi.linkEntity(player);
 
 	// kill anything at the destination
 	KillBox(player, !!player->client);
+
+	// destroy nearby mines
+	G_ExplodeNearbyMinesSafe(player->s.origin, 202.0f, player);
 
 	// [Paril-KEX] move sphere, if we own it
 	if (player->client->ownedSphere) {
 		gentity_t *sphere = player->client->ownedSphere;
 		sphere->s.origin = player->s.origin;
-		sphere->s.origin[2] = player->absMax[2];
+		sphere->s.origin[Z] = player->absMax[2];
 		sphere->s.angles[YAW] = player->s.angles[YAW];
-		gi.linkentity(sphere);
+		gi.linkEntity(sphere);
 	}
 }
 
@@ -1190,7 +1209,7 @@ TeleportPlayerToRandomSpawnPoint
 */
 void TeleportPlayerToRandomSpawnPoint(gentity_t *ent, bool fx) {
 	bool	valid_spawn = false;
-	vec3_t	spawn_origin, spawn_angles;
+	Vector3	spawn_origin, spawn_angles;
 	bool	is_landmark = false;
 
 	valid_spawn = SelectSpawnPoint(ent, spawn_origin, spawn_angles, true, is_landmark);
@@ -1209,7 +1228,7 @@ CooperativeModeOn
 =================
 */
 bool CooperativeModeOn() {
-	return coop->integer || GT(GT_HORDE);
+	return coop->integer || Game::Is(GameType::Horde);
 }
 
 /*
@@ -1225,7 +1244,7 @@ gentity_t *ClientEntFromString(const char *in) {
 
 	// otherwise check client num
 	uint32_t num = strtoul(in, nullptr, 10);
-	if (num >= 0 && num < game.maxclients)
+	if (num >= 0 && num < game.maxClients)
 		return &g_entities[&game.clients[num] - game.clients + 1];
 
 	return nullptr;
@@ -1236,21 +1255,29 @@ gentity_t *ClientEntFromString(const char *in) {
 RS_IndexFromString
 =================
 */
-ruleset_t RS_IndexFromString(const char *in) {
-	for (size_t i = 1; i < (int)RS_NUM_RULESETS; i++) {
-		if (!strcmp(in, rs_short_name[i]))
-			return (ruleset_t)i;
-		if (!strcmp(in, rs_long_name[i]))
-			return (ruleset_t)i;
+ruleset_t RS_IndexFromString(const char* in) {
+	if (!in || !*in)
+		return ruleset_t::RS_NONE;
+
+	std::string_view input{ in };
+
+	for (size_t i = 1; i < static_cast<size_t>(ruleset_t::RS_NUM_RULESETS); ++i) {
+		// Check all aliases
+		for (const auto& alias : rs_short_name[i]) {
+			if (!alias.empty() && Q_strcasecmp(input.data(), alias.data()) == 0)
+				return static_cast<ruleset_t>(i);
+		}
+
+		// Check long name
+		if (rs_long_name[i] && *rs_long_name[i]) {
+			if (Q_strcasecmp(input.data(), rs_long_name[i]) == 0)
+				return static_cast<ruleset_t>(i);
+		}
 	}
+
 	return ruleset_t::RS_NONE;
 }
 
-/*
-===============
-AnnouncerSound
-===============
-*/
 /*
 ===============
 AnnouncerSound
@@ -1260,7 +1287,7 @@ void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
 	if (soundKey.empty()) return;
 
 	const std::string path = G_Fmt("vo/{}.wav", soundKey).data();
-	const int idx = gi.soundindex(path.c_str());
+	const int idx = gi.soundIndex(path.c_str());
 
 	constexpr soundchan_t SOUND_FLAGS = static_cast<soundchan_t>(CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX);
 	constexpr float VOLUME = 1.0f;
@@ -1269,7 +1296,7 @@ void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
 	const float TIME_OFFSET = 0;
 
 	if (announcer == world) {
-		gi.positioned_sound(
+		gi.positionedSound(
 			world->s.origin,
 			world,
 			SOUND_FLAGS,
@@ -1286,14 +1313,14 @@ void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
 		bool hear = false;
 
 		if (!ClientIsPlaying(cl)) {
-			hear = (cl->followTarget == announcer);
+			hear = (cl->follow.target == announcer);
 		} else {
 			hear = (targetEnt == announcer && !cl->sess.is_a_bot);
 		}
 
 		if (!hear) continue;
 
-		gi.local_sound(
+		gi.localSound(
 			targetEnt,
 			SOUND_FLAGS,
 			idx,
@@ -1314,20 +1341,26 @@ void CreateSpawnPad(gentity_t *ent) {
 	if (level.no_dm_spawnpads || level.arenaTotal)
 		return;
 
+	if (notRS(RS_Q2))
+		return;
+
+	if (level.isN64)
+		return;
+
 	if (!match_allowSpawnPads->integer)
 		return;
 
-	if (match_allowSpawnPads->integer == 1 && (!ItemSpawnsEnabled() || GT(GT_HORDE)))
+	if (!ItemSpawnsEnabled() || Game::Is(GameType::Horde))
 		return;
 
-	gi.setmodel(ent, "models/objects/dmspot/tris.md2");
-	ent->s.skinnum = 0;
+	gi.setModel(ent, "models/objects/dmspot/tris.md2");
+	ent->s.skinNum = 0;
 	ent->solid = SOLID_BBOX;
 	ent->clipMask |= MASK_SOLID;
 
 	ent->mins = { -32, -32, -24 };
 	ent->maxs = { 32, 32, -16 };
-	gi.linkentity(ent);
+	gi.linkEntity(ent);
 }
 
 /*
@@ -1363,9 +1396,9 @@ G_LogEvent
 ==================
 */
 void G_LogEvent(std::string str) {
-	match_event_t ev;
+	MatchEvent ev;
 	
-	if (level.matchState < MatchState::MATCH_COUNTDOWN) {
+	if (level.matchState < MatchState::Countdown) {
 		return;
 	}
 	if (str.empty()) {
@@ -1395,10 +1428,10 @@ void GT_SetLongName() {
 		cvar_t *cvar;
 		const char *prefix;
 	} suffixModes[] = {
-		{ g_instagib,        "Insta" },
+		{ g_instaGib,        "Insta" },
 		{ g_vampiric_damage, "Vampiric" },
 		{ g_frenzy,          "Frenzy" },
-		{ g_nadefest,        "NadeFest" },
+		{ g_nadeFest,        "NadeFest" },
 		{ g_quadhog,         "Quad Hog" },
 	};
 
@@ -1417,9 +1450,9 @@ void GT_SetLongName() {
 			}
 		}
 
-		if (g_gametype->integer >= 0 && g_gametype->integer < GT_NUM_GAMETYPES) {
-			base = useShort ? gt_short_name_upper[g_gametype->integer]
-				: gt_long_name[g_gametype->integer];
+		if (g_gametype->integer >= 0 && g_gametype->integer < static_cast<int>(GameType::Total)) {
+			base = useShort ? Game::GetCurrentInfo().short_name_upper.data()
+				: Game::GetCurrentInfo().long_name.data();
 		} else {
 			base = "Unknown";
 		}
@@ -1475,9 +1508,9 @@ static void HandleLeadChanges() {
 			for (auto spec : active_clients()) {
 				if (!ClientIsPlaying(spec->client) &&
 					spec->client->sess.pc.follow_leader &&
-					spec->client->followTarget != ec) {
-					spec->client->followQueuedTarget = ec;
-					spec->client->followQueuedTime = level.time;
+					spec->client->follow.target != ec) {
+					spec->client->follow.queuedTarget = ec;
+					spec->client->follow.queuedTime = level.time;
 				}
 			}
 		} else if (previousRank == 0) {
@@ -1498,14 +1531,14 @@ static void HandleTeamLeadChanges() {
 	int previousRank = 2; // 2 = tied, 0 = red leads, 1 = blue leads
 	int newRank = 2;
 
-	if (level.teamOldScores[TEAM_RED] > level.teamOldScores[TEAM_BLUE])
+	if (level.teamOldScores[static_cast<int>(Team::Red)] > level.teamOldScores[static_cast<int>(Team::Blue)])
 		previousRank = 0;
-	else if (level.teamOldScores[TEAM_BLUE] > level.teamOldScores[TEAM_RED])
+	else if (level.teamOldScores[static_cast<int>(Team::Blue)] > level.teamOldScores[static_cast<int>(Team::Red)])
 		previousRank = 1;
 
-	if (level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE])
+	if (level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)])
 		newRank = 0;
-	else if (level.teamScores[TEAM_BLUE] > level.teamScores[TEAM_RED])
+	else if (level.teamScores[static_cast<int>(Team::Blue)] > level.teamScores[static_cast<int>(Team::Red)])
 		newRank = 1;
 
 	if (previousRank != newRank) {
@@ -1519,8 +1552,8 @@ static void HandleTeamLeadChanges() {
 	}
 
 	// Update old scores for next comparison
-	level.teamOldScores[TEAM_RED] = level.teamScores[TEAM_RED];
-	level.teamOldScores[TEAM_BLUE] = level.teamScores[TEAM_BLUE];
+	level.teamOldScores[static_cast<int>(Team::Red)] = level.teamScores[static_cast<int>(Team::Red)];
+	level.teamOldScores[static_cast<int>(Team::Blue)] = level.teamScores[static_cast<int>(Team::Blue)];
 }
 
 /*
@@ -1538,15 +1571,14 @@ void CalculateRanks() {
 	level.pop = {};
 	level.follow1 = level.follow2 = -1;
 
-	for (size_t i = 0; i < MAX_CLIENTS; ++i)
-		level.sorted_clients[i] = -1;
+	level.sortedClients.fill(-1);
 
 	// Phase 1: Gather active clients
 	for (auto ec : active_clients()) {
 		gclient_t *cl = ec->client;
 		int clientNum = cl - game.clients;
 
-		level.sorted_clients[level.pop.num_connected_clients++] = clientNum;
+		level.sortedClients[level.pop.num_connected_clients++] = clientNum;
 		if (cl->sess.consolePlayer)
 			level.pop.num_console_clients++;
 
@@ -1570,7 +1602,7 @@ void CalculateRanks() {
 			level.follow2 = clientNum;
 
 		if (teams) {
-			if (cl->sess.team == TEAM_RED) {
+			if (cl->sess.team == Team::Red) {
 				level.pop.num_playing_red++;
 				if (cl->pers.health > 0)
 					level.pop.num_living_red++;
@@ -1586,72 +1618,93 @@ void CalculateRanks() {
 		}
 	}
 
-	// Phase 2: Sort using modern std::sort
-	std::sort(level.sorted_clients, level.sorted_clients + level.pop.num_connected_clients,
-		[](int a, int b) {
-			gclient_t *ca = &game.clients[a];
-			gclient_t *cb = &game.clients[b];
+	// Phase 2: Collect valid and unique client indices
+	std::array<uint16_t, MAX_CLIENTS> sorted{}; // or int16_t
+	std::bitset<MAX_CLIENTS> used{};
+	int sortedCount = 0;
 
-			// Connecting clients come last
-			if (!ca->pers.connected) return false;
-			if (!cb->pers.connected) return true;
+	for (auto ec : active_clients()) {
+		// Convert entity number (1..maxClients) to 0-based client index
+		int clientNum = ec->s.number - 1;            // FIX: was ec->s.number
+		if (clientNum < 0 || clientNum >= MAX_CLIENTS)
+			continue;
 
-			// Spectator handling
-			bool caPlaying = ClientIsPlaying(ca);
-			bool cbPlaying = ClientIsPlaying(cb);
+		if (used[clientNum])
+			continue;
 
-			if (!caPlaying && !cbPlaying) {
-				// Both queued
-				if (ca->sess.matchQueued && cb->sess.matchQueued) {
-					if (ca->sess.teamJoinTime != cb->sess.teamJoinTime)
-						return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
-				}
-				if (ca->sess.matchQueued) return true;
-				if (cb->sess.matchQueued) return false;
+		used.set(clientNum);
+		sorted[sortedCount++] = static_cast<uint16_t>(clientNum);
+	}
 
-				return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
+	// Sort validated list
+	std::sort(sorted.begin(), sorted.begin() + sortedCount, [](int a, int b) {
+		gclient_t *ca = &game.clients[a];
+		gclient_t *cb = &game.clients[b];
+
+		if (!ca->pers.connected) return false;
+		if (!cb->pers.connected) return true;
+
+		bool caPlaying = ClientIsPlaying(ca);
+		bool cbPlaying = ClientIsPlaying(cb);
+
+		if (!caPlaying && !cbPlaying) {
+			if (ca->sess.matchQueued && cb->sess.matchQueued) {
+				if (ca->sess.teamJoinTime != cb->sess.teamJoinTime)
+					return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
 			}
-			if (!caPlaying) return false;
-			if (!cbPlaying) return true;
+			if (ca->sess.matchQueued) return true;
+			if (cb->sess.matchQueued) return false;
 
-			// Playing clients: score sort
-			if (ca->resp.score != cb->resp.score)
-				return ca->resp.score > cb->resp.score;
-
-			// Fallback: join time
 			return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
 		}
-	);
+		if (!caPlaying) return false;
+		if (!cbPlaying) return true;
+
+		if (ca->resp.score != cb->resp.score)
+			return ca->resp.score > cb->resp.score;
+
+		return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
+		});
+
+	// Write back to level.sortedClients
+	level.sortedClients.fill(-1);
+
+	for (int i = 0; i < sortedCount; ++i)
+		level.sortedClients[i] = sorted[i];
+
+	level.pop.num_connected_clients = sortedCount;
 
 	// Phase 3: Assign ranks
-	if (teams && notGT(GT_RR)) {
+	if (teams && Game::IsNot(GameType::RedRover)) {
 		for (size_t i = 0; i < level.pop.num_connected_clients; ++i) {
-			gclient_t *cl = &game.clients[level.sorted_clients[i]];
+			gclient_t *cl = &game.clients[level.sortedClients[i]];
 
-			if (level.teamScores[TEAM_RED] == level.teamScores[TEAM_BLUE])
+			if (level.teamScores[static_cast<int>(Team::Red)] == level.teamScores[static_cast<int>(Team::Blue)])
 				cl->pers.currentRank = 2; // tied
-			else if (level.teamScores[TEAM_RED] > level.teamScores[TEAM_BLUE])
+			else if (level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)])
 				cl->pers.currentRank = 0; // red leads
 			else
 				cl->pers.currentRank = 1; // blue leads
 		}
 	} else {
-		int last_score = -99999;
-		int current_rank = 0;
+		int lastScore = -99999;
+		int currentRank = 0;
 
 		for (size_t i = 0; i < level.pop.num_playing_clients; ++i) {
-			gclient_t *cl = &game.clients[level.sorted_clients[i]];
+			gclient_t *cl = &game.clients[level.sortedClients[i]];
 			cl->pers.previousRank = cl->pers.currentRank;
 
-			if (cl->resp.score != last_score) {
-				current_rank = i;
-				cl->pers.currentRank = current_rank;
+			if (cl->resp.score != lastScore) {
+				currentRank = i;
+				cl->pers.currentRank = currentRank;
 			} else {
-				cl->pers.currentRank = current_rank | RANK_TIED_FLAG;
-				game.clients[level.sorted_clients[i - 1]].pers.currentRank = current_rank | RANK_TIED_FLAG;
+				cl->pers.currentRank = currentRank | RANK_TIED_FLAG;
+				if (i > 0) {
+					game.clients[level.sortedClients[i - 1]].pers.currentRank = currentRank | RANK_TIED_FLAG;
+				}
 			}
 
-			last_score = cl->resp.score;
+			lastScore = cl->resp.score;
 		}
 	}
 
@@ -1659,19 +1712,19 @@ void CalculateRanks() {
 	if (!level.pop.num_playing_clients && !level.no_players_time)
 		level.no_players_time = level.time;
 	else if (level.pop.num_playing_clients)
-		level.no_players_time = 0_sec;
+		level.no_players_time = 0_ms;
 
 	level.warmupNoticeTime = level.time;
 
 	// Phase 5: Frag limit warnings
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS && GTF(GTF_FRAGS)) {
-		if (fraglimit->integer > 3) {
-			int lead_score = game.clients[level.sorted_clients[0]].resp.score;
-			int score_diff = fraglimit->integer - lead_score;
+	if (level.matchState == MatchState::In_Progress && Game::Has(GameFlags::Frags)) {
+		if (fragLimit->integer > 3) {
+			int leadScore = game.clients[level.sortedClients[0]].resp.score;
+			int scoreDiff = fragLimit->integer - leadScore;
 
-			if (score_diff <= 3 && !level.fragWarning[score_diff - 1]) {
-				AnnouncerSound(world, G_Fmt("{}_frag{}", score_diff, score_diff > 1 ? "s" : "").data());
-				level.fragWarning[score_diff - 1] = true;
+			if (scoreDiff <= 3 && !level.fragWarning[scoreDiff - 1]) {
+				AnnouncerSound(world, G_Fmt("{}_frag{}", scoreDiff, scoreDiff > 1 ? "s" : "").data());
+				level.fragWarning[scoreDiff - 1] = true;
 				CheckDMExitRules();
 				return;
 			}
@@ -1679,10 +1732,10 @@ void CalculateRanks() {
 	}
 
 	// Phase 6: Lead/tied/lost sounds
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
-		if (!teams && game.clients[level.sorted_clients[0]].resp.score > 0) {
+	if (level.matchState == MatchState::In_Progress) {
+		if (!teams && game.clients[level.sortedClients[0]].resp.score > 0) {
 			HandleLeadChanges();
-		} else if (teams && GTF(GTF_FRAGS)) {
+		} else if (teams && Game::Has(GameFlags::Frags)) {
 			HandleTeamLeadChanges();
 		}
 	}
@@ -1765,32 +1818,18 @@ std::string FormatDuration(int seconds) {
 /*
 =============
 GetWeaponIndexByAbbrev
-Returns WEAP_NONE if not found.
+Returns Weapon::None if not found.
 =============
 */
-int GetWeaponIndexByAbbrev(const std::string &abbr) {
+Weapon GetWeaponIndexByAbbrev(const std::string &abbr) {
 	std::string query = abbr;
 	std::transform(query.begin(), query.end(), query.begin(), ::toupper);
 
 	for (int i = 0; i < weaponAbbreviations.size(); ++i) {
 		if (weaponAbbreviations[i] == query)
-			return i;
+			return static_cast<Weapon>(i);
 	}
-	return WEAP_NONE;
-}
-
-/*
-=============
-GetCurrentRealTime
-=============
-*/
-time_t GetCurrentRealTime() {
-	auto now = std::chrono::system_clock::now();
-	auto millis = std::chrono::duration_cast<std::chrono::milliseconds>(
-		now.time_since_epoch()
-	).count();
-
-	return millis;
+	return Weapon::None;
 }
 
 /*
@@ -1840,17 +1879,143 @@ bool Vote_Menu_Active(gentity_t *ent) {
 	return true;
 }
 
+bool ReadyConditions(gentity_t* ent, bool admin_cmd) {
+	if (level.matchState == MatchState::Warmup_ReadyUp)
+		return true;
+
+	const char* reason = admin_cmd ? "You cannot force ready status until " : "You cannot change your ready status until ";
+	switch (level.warmupState) {
+	case WarmupState::Too_Few_Players:
+	{
+		int minp = Game::Has(GameFlags::OneVOne) ? 2 : minplayers->integer;
+		int req = minp - level.pop.num_playing_clients;
+		gi.LocClient_Print(ent, PRINT_HIGH, "{}{} more player{} present.\n", reason, req, req > 1 ? "s are" : " is");
+		break;
+	}
+	case WarmupState::Teams_Imbalanced:
+		gi.LocClient_Print(ent, PRINT_HIGH, "{}teams are balanced.\n", reason);
+		break;
+	default:
+		gi.LocClient_Print(ent, PRINT_HIGH, "You cannot use this command at this stage of the match.\n");
+		break;
+	}
+	return false;
+}
+
+/*
+=================
+ClientListSortByJoinTime
+=================
+*/
+static int ClientListSortByJoinTime(const void* a, const void* b) {
+	int anum, bnum;
+	anum = *(const int*)a;
+	bnum = *(const int*)b;
+	anum = game.clients[anum].sess.teamJoinTime.milliseconds();
+	bnum = game.clients[bnum].sess.teamJoinTime.milliseconds();
+	if (anum > bnum)
+		return -1;
+	if (anum < bnum)
+		return 1;
+	return 0;
+}
+
 /*
 ================
-ApplyPlayerStatus
+TeamBalance
+Balance the teams without shuffling.
+Switch last joined player(s) from stacked team.
 ================
 */
-void ApplyPlayerStatus(gentity_t *ent, std::string socialID) {
-	if (socialID.empty())
-		return;
+int TeamBalance(bool force) {
+	if (!Teams())
+		return 0;
+	if (Game::Is(GameType::RedRover))
+		return 0;
+	int delta = abs(level.pop.num_playing_red - level.pop.num_playing_blue);
+	if (delta < 2)
+		return level.pop.num_playing_red - level.pop.num_playing_blue;
+	Team stack_team = level.pop.num_playing_red > level.pop.num_playing_blue ? Team::Red : Team::Blue;
+	size_t	count = 0;
+	int		index[MAX_CLIENTS_KEX / 2];
+	memset(index, 0, sizeof(index));
+	// assemble list of client nums of everyone on stacked team
+	for (auto ec : active_clients()) {
+		if (ec->client->sess.team != stack_team)
+			continue;
+		index[count] = ec - g_entities;
+		count++;
+	}
+	// sort client num list by join time
+	qsort(index, count, sizeof(index[0]), ClientListSortByJoinTime);
+	//run through sort list, switching from stack_team until teams are even
+	if (count) {
+		size_t	i;
+		int switched = 0;
+		gclient_t* cl = nullptr;
+		for (i = 0; i < count && delta > 1; i++) {
+			cl = &game.clients[index[i]];
+			if (!cl)
+				continue;
+			if (!cl->pers.connected)
+				continue;
+			if (cl->sess.team != stack_team)
+				continue;
+			cl->sess.team = stack_team == Team::Red ? Team::Blue : Team::Red;
+			//TODO: queue this change in round-based games
+			ClientRespawn(&g_entities[cl - game.clients + 1]);
+			gi.Client_Print(&g_entities[cl - game.clients + 1], PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+			delta--;
+			switched++;
+		}
+		if (switched) {
+			gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
+			return switched;
+		}
+	}
+	return 0;
+}
 
-	std::string id(socialID);
-
-	ent->client->sess.banned = game.bannedIDs.contains(id);
-	ent->client->sess.admin = game.adminIDs.contains(id);
+/*
+================
+PickTeam
+================
+*/
+Team PickTeam(int ignore_client_num) {
+	if (!Teams())
+		return Team::Free;
+	if (level.pop.num_playing_blue > level.pop.num_playing_red)
+		return Team::Red;
+	if (level.pop.num_playing_red > level.pop.num_playing_blue)
+		return Team::Blue;
+	// equal team count, so join the team with the lowest score
+	if (level.teamScores[static_cast<int>(Team::Blue)] > level.teamScores[static_cast<int>(Team::Red)])
+		return Team::Red;
+	if (level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)])
+		return Team::Blue;
+	// equal team scores, so join team with lowest total individual scores
+	// skip in tdm as it's redundant
+	if (Game::IsNot(GameType::TeamDeathmatch)) {
+		int iscore_red = 0, iscore_blue = 0;
+		for (size_t i = 0; i < game.maxClients; i++) {
+			if (i == ignore_client_num)
+				continue;
+			if (!game.clients[i].pers.connected)
+				continue;
+			if (game.clients[i].sess.team == Team::Red) {
+				iscore_red += game.clients[i].resp.score;
+				continue;
+			}
+			if (game.clients[i].sess.team == Team::Blue) {
+				iscore_blue += game.clients[i].resp.score;
+				continue;
+			}
+		}
+		if (iscore_blue > iscore_red)
+			return Team::Red;
+		if (iscore_red > iscore_blue)
+			return Team::Blue;
+	}
+	// otherwise just randomly select a team
+	return brandom() ? Team::Red : Team::Blue;
 }

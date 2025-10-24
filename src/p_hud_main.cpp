@@ -1,7 +1,25 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-#include "g_local.h"
-#include "g_statusbar.h"
+
+// p_hud_main.cpp (Player HUD Main)
+// This file is responsible for generating the data that the client-side
+// (cgame) module uses to render the Heads-Up Display (HUD). It populates the
+// `player_state_t::stats` array with values that correspond to icons, numbers,
+// and strings to be drawn on the screen.
+//
+// Key Responsibilities:
+// - `SetStats`: The primary function that populates the stats array for a
+//   playing client, including health, armor, ammo, and powerup timers.
+// - Intermission and Spectator HUDs: Handles the logic for switching to the
+//   intermission scoreboard (`MoveClientToIntermission`) and for displaying
+//   spectator-specific information (`SetSpectatorStats`).
+// - Dynamic HUD Elements: Manages the display of dynamic information such as
+//   pickup messages, selected item names, and chase camera targets.
+// - Crosshair ID: Updates the stats that show the name of the player being
+//   aimed at.
+
+#include "g_local.hpp"
+#include "g_statusbar.hpp"
 
 /*
 ======================================================================
@@ -29,8 +47,8 @@ void MoveClientToIntermission(gentity_t *ent) {
 	//	ent->client->sess.netName, level.intermission.origin, level.intermission.angles);
 	ent->client->ps.viewAngles = ent->s.angles;
 	ent->client->vAngle = ent->s.angles;
-	ent->client->ps.pmove.delta_angles[PITCH] = ent->s.angles[PITCH];
-	ent->client->ps.pmove.pm_type = PM_FREEZE;
+	ent->client->ps.pmove.deltaAngles[PITCH] = ent->s.angles[PITCH];
+	ent->client->ps.pmove.pmType = PM_FREEZE;
 	ent->client->ps.gunIndex = 0;
 	ent->client->ps.gunSkin = 0;
 	ent->client->ps.damageBlend[3] = 0;
@@ -53,19 +71,19 @@ void MoveClientToIntermission(gentity_t *ent) {
 	ent->client->showInventory = false;
 
 	// Clear slow time flag
-	globals.server_flags &= ~SERVER_FLAG_SLOW_TIME;
+	globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
 
 	// Intermission model state
 	ent->viewHeight = 0;
-	ent->s.modelindex = 0;
-	ent->s.modelindex2 = 0;
-	ent->s.modelindex3 = 0;
+	ent->s.modelIndex = 0;
+	ent->s.modelIndex2 = 0;
+	ent->s.modelIndex3 = 0;
 	ent->s.effects = EF_NONE;
 	ent->s.sound = 0;
 	ent->solid = SOLID_NOT;
-	ent->moveType = MOVETYPE_FREECAM;
+	ent->moveType = MoveType::FreeCam;
 
-	gi.linkentity(ent);
+	gi.linkEntity(ent);
 
 	if (deathmatch->integer) {
 		if (!g_autoScreenshotTool->integer) {
@@ -97,14 +115,14 @@ SortLevelEntries
 ===============
 */
 static void SortLevelEntries() {
-	std::sort(game.level_entries.begin(), game.level_entries.end(),
-		[](const level_entry_t &a, const level_entry_t &b) {
+	std::sort(game.levelEntries.begin(), game.levelEntries.end(),
+		[](const LevelEntry &a, const LevelEntry &b) {
 			int32_t a_order = a.visit_order
 				? a.visit_order
-				: (*a.pretty_name ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+				: (!a.longMapName.empty() ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
 			int32_t b_order = b.visit_order
 				? b.visit_order
-				: (*b.pretty_name ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+				: (!b.longMapName.empty() ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
 			return a_order < b_order;
 		});
 }
@@ -117,15 +135,15 @@ Appends a single End-of-Unit stats row to the layout.
 If isTotalsRow is true, it renders the total row.
 ===============
 */
-static void BuildEOUTableRow(std::stringstream &layout, int y, const level_entry_t &entry, bool isTotalsRow = false) {
+static void BuildEOUTableRow(std::stringstream &layout, int y, const LevelEntry &entry, bool isTotalsRow = false) {
 	layout << G_Fmt("yv {} ", y).data();
 
-	if (!isTotalsRow && !*entry.pretty_name) {
+	if (!isTotalsRow && entry.longMapName.empty()) {
 		layout << "table_row 1 ??? ";
 		return;
 	}
 
-	const char *name = isTotalsRow ? "Totals" : entry.pretty_name;
+	const char *name = isTotalsRow ? "Totals" : entry.longMapName.data();
 
 	layout << G_Fmt("table_row 4 \"{}\" ", name).data()
 		<< G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
@@ -144,7 +162,7 @@ static void BuildEOUTableRow(std::stringstream &layout, int y, const level_entry
 AddEOUTotalsRow
 ===============
 */
-static void AddEOUTotalsRow(std::stringstream &layout, int y, const level_entry_t &totals) {
+static void AddEOUTotalsRow(std::stringstream &layout, int y, const LevelEntry &totals) {
 	y += 8;
 	layout << "table_row 0 ";  // Spacer row
 	BuildEOUTableRow(layout, y, totals, true);
@@ -188,11 +206,11 @@ void EndOfUnitMessage() {
 	layout << "start_table 4 $m_eou_level $m_eou_kills $m_eou_secrets $m_eou_time ";
 
 	int y = 16;
-	level_entry_t totals{};
+	LevelEntry totals{};
 	int32_t numRows = 0;
 
-	for (auto &entry : game.level_entries) {
-		if (!*entry.map_name)
+	for (auto &entry : game.levelEntries) {
+		if (entry.mapName.empty())
 			break;
 
 		BuildEOUTableRow(layout, y, entry);
@@ -237,7 +255,7 @@ void ReportMatchDetails(bool is_end) {
 	static std::array<uint32_t, MAX_CLIENTS> player_ranks;
 
 	player_ranks = {};
-	bool teams = Teams() && notGT(GT_RR);
+	bool teams = Teams() && Game::IsNot(GameType::RedRover);
 
 	// teamplay is simple
 	if (teams) {
@@ -302,7 +320,7 @@ void ReportMatchDetails(bool is_end) {
 				gi.WriteByte(player_ranks[index]);
 
 			if (teams)
-				gi.WriteByte(player->client->sess.team == TEAM_RED ? 0 : 1);
+				gi.WriteByte(player->client->sess.team == Team::Red ? 0 : 1);
 		}
 	}
 
@@ -312,12 +330,10 @@ void ReportMatchDetails(bool is_end) {
 /*
 ===============
 DrawHelpComputer
-
-Displays the help computer screen with objectives and stats.
 ===============
 */
-static void DrawHelpComputer(gentity_t *ent) {
-	const char *skillName = nullptr;
+void DrawHelpComputer(gentity_t* ent) {
+	const char* skillName = "$m_medium";
 
 	switch (skill->integer) {
 	case 0: skillName = "$m_easy"; break;
@@ -327,83 +343,47 @@ static void DrawHelpComputer(gentity_t *ent) {
 	default: skillName = "nightmare+"; break;
 	}
 
-	std::string layout;
-
-	// Background and level name
-	layout += G_Fmt("xv 32 yv 8 picn help "
-		"xv 0 yv 25 cstring2 \"{}\" ", level.longName).data();
+	std::string helpString;
+	helpString.reserve(1024);
+	helpString += fmt::format(
+		"xv 32 yv 20 picn help "		// background
+		"xv 0 yv 37 cstring2 \"{}\" ",	// level name
+		level.longName.data());
 
 	if (level.isN64) {
-		// N64 layout
-		layout += G_Fmt("xv 0 yv 54 loc_cstring 1 \"{{}}\" \"{}\" ", game.helpmessage1).data();
-	} else {
-		int y = 54;
+		helpString += fmt::format("xv 0 yv 66 loc_cstring 1 \"{{}}\" \"{}\" ", game.help[0].message.data());
+	}
+	else {
+		int y = 66;
 
-		if (*game.helpmessage1) {
-			layout += G_Fmt("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" ", y).data();
-			y += 11;
-			layout += G_Fmt("xv 0 yv {} loc_cstring 0 \"{}\" ", y, game.helpmessage1).data();
-			y += 47;
+		if (!game.help[0].message.empty()) {
+			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
+				"xv 0 yv {} loc_cstring 0 \"{}\" ",
+				y, y + 11, game.help[0].message.data());
+			y += 58;
 		}
 
-		if (*game.helpmessage2) {
-			layout += G_Fmt("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" ", y).data();
-			y += 11;
-			layout += G_Fmt("xv 0 yv {} loc_cstring 0 \"{}\" ", y, game.helpmessage2).data();
+		if (!game.help[1].message.empty()) {
+			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
+				"xv 0 yv {} loc_cstring 0 \"{}\" ",
+				y, y + 11, game.help[1].message.data());
 		}
 	}
 
-	// Bottom stats: skill and performance
-	layout += G_Fmt("xv 55 yv 164 loc_string2 0 \"{}\" "
-		"xv 265 yv 164 loc_rstring2 1 \"{{}}: {}/{}\" \"$g_pc_goals\" "
-		"xv 55 yv 172 loc_string2 1 \"{{}}: {}/{}\" \"$g_pc_kills\" "
-		"xv 265 yv 172 loc_rstring2 1 \"{{}}: {}/{}\" \"$g_pc_secrets\" ",
+	helpString += fmt::format(
+		"xv 55 yv 176 loc_string2 0 \"{}\" "
+		"xv 265 yv 176 loc_rstring2 1 \"{{}}: {}/{}\" \"$g_pc_goals\" "
+		"xv 55 yv 184 loc_string2 1 \"{{}}: {}/{}\" \"$g_pc_kills\" "
+		"xv 265 yv 184 loc_rstring2 1 \"{{}}: {}/{}\" \"$g_pc_secrets\" ",
 		skillName,
 		level.campaign.foundGoals, level.campaign.totalGoals,
 		level.campaign.killedMonsters, level.campaign.totalMonsters,
-		level.campaign.foundSecrets, level.campaign.totalSecrets).data();
+		level.campaign.foundSecrets, level.campaign.totalSecrets
+	);
 
-	// Send to client
 	gi.WriteByte(svc_layout);
-	gi.WriteString(layout.c_str());
+	gi.WriteString(helpString.c_str());
 	gi.unicast(ent, true);
-}
-
-/*
-===============
-Cmd_Help_f
-
-Toggles the help screen (objectives or stats).
-In deathmatch, this shows the scoreboard instead.
-===============
-*/
-void Cmd_Help_f(gentity_t *ent) {
-	// In deathmatch, "help" key shows the scoreboard
-	if (deathmatch->integer) {
-		Cmd_Score_f(ent);
-		return;
-	}
-
-	if (level.intermissionTime)
-		return;
-
-	ent->client->showInventory = false;
-	ent->client->showScores = false;
-
-	// Toggle off if help hasn't changed
-	if (ent->client->showHelp &&
-		ent->client->pers.game_help1changed == game.help1changed &&
-		ent->client->pers.game_help2changed == game.help2changed) {
-		ent->client->showHelp = false;
-		globals.server_flags &= ~SERVER_FLAG_SLOW_TIME;
-		return;
-	}
-
-	ent->client->showHelp = true;
-	ent->client->pers.helpchanged = 0;
-	globals.server_flags |= SERVER_FLAG_SLOW_TIME;
-
-	DrawHelpComputer(ent);
 }
 
 //=======================================================================
@@ -425,15 +405,15 @@ void SetCoopStats(gentity_t *ent) {
 	}
 
 	// Monster count (if horde)
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
-		if (GT(GT_HORDE)) {
+	if (level.matchState == MatchState::In_Progress) {
+		if (Game::Is(GameType::Horde)) {
 			ent->client->ps.stats[STAT_MONSTER_COUNT] = level.campaign.totalMonsters - level.campaign.killedMonsters;
 		} else {
 			ent->client->ps.stats[STAT_MONSTER_COUNT] = 0;
 		}
 
 		// Round number (if rounds mode)
-		if (GTF(GTF_ROUNDS)) {
+		if (Game::Has(GameFlags::Rounds)) {
 			ent->client->ps.stats[STAT_ROUND_NUMBER] = level.roundNumber;
 		} else {
 			ent->client->ps.stats[STAT_ROUND_NUMBER] = 0;
@@ -441,9 +421,9 @@ void SetCoopStats(gentity_t *ent) {
 	}
 
 	// Respawn status string index
-	if (ent->client->coop_respawn_state) {
+	if (static_cast<int>(ent->client->coopRespawnState)) {
 		ent->client->ps.stats[STAT_COOP_RESPAWN] =
-			CONFIG_COOP_RESPAWN_STRING + (ent->client->coop_respawn_state - COOP_RESPAWN_IN_COMBAT);
+			CONFIG_COOP_RESPAWN_STRING + (static_cast<int>(ent->client->coopRespawnState) - static_cast<int>(CoopRespawn::InCombat));
 	} else {
 		ent->client->ps.stats[STAT_COOP_RESPAWN] = 0;
 	}
@@ -459,20 +439,23 @@ Used to drive time-based or count-based powerups like quad, invis, silencer, etc
 */
 struct powerup_info_t {
 	item_id_t item;
-	std::function<gtime_t &(gclient_t &)> time_accessor;
+	std::function<GameTime &(gclient_t &)> time_accessor;
 	std::function<int32_t &(gclient_t &)> count_accessor;
 };
 
 static const powerup_info_t powerup_table[] = {
-	{ IT_POWERUP_QUAD,        [](gclient_t &c) -> gtime_t & { return c.powerupTime.quadDamage; },      nullptr },
-	{ IT_POWERUP_DOUBLE,      [](gclient_t &c) -> gtime_t & { return c.powerupTime.doubleDamage; },     nullptr },
-	{ IT_POWERUP_BATTLESUIT,  [](gclient_t &c) -> gtime_t & { return c.powerupTime.battleSuit; },       nullptr },
-	{ IT_POWERUP_HASTE,       [](gclient_t &c) -> gtime_t & { return c.powerupTime.haste; },            nullptr },
-	{ IT_POWERUP_INVISIBILITY,[](gclient_t &c) -> gtime_t & { return c.powerupTime.invisibility; },     nullptr },
-	{ IT_POWERUP_REGEN,       [](gclient_t &c) -> gtime_t & { return c.powerupTime.regeneration; },     nullptr },
-	{ IT_POWERUP_ENVIROSUIT,  [](gclient_t &c) -> gtime_t & { return c.powerupTime.enviroSuit; },       nullptr },
-	{ IT_POWERUP_REBREATHER,  [](gclient_t &c) -> gtime_t & { return c.powerupTime.rebreather; },       nullptr },
-	{ IT_IR_GOGGLES,          [](gclient_t &c) -> gtime_t & { return c.powerupTime.irGoggles; },        nullptr },
+	{ IT_POWERUP_QUAD,        [](gclient_t &c) -> GameTime & { return c.powerupTime.quadDamage; },      nullptr },
+	{ IT_POWERUP_DOUBLE,      [](gclient_t &c) -> GameTime & { return c.powerupTime.doubleDamage; },    nullptr },
+	{ IT_POWERUP_BATTLESUIT,  [](gclient_t &c) -> GameTime & { return c.powerupTime.battleSuit; },      nullptr },
+	{ IT_POWERUP_HASTE,       [](gclient_t &c) -> GameTime & { return c.powerupTime.haste; },           nullptr },
+	{ IT_POWERUP_INVISIBILITY,[](gclient_t &c) -> GameTime & { return c.powerupTime.invisibility; },    nullptr },
+	{ IT_POWERUP_REGEN,       [](gclient_t &c) -> GameTime & { return c.powerupTime.regeneration; },    nullptr },
+	{ IT_POWERUP_ENVIROSUIT,  [](gclient_t &c) -> GameTime & { return c.powerupTime.enviroSuit; },      nullptr },
+	{ IT_POWERUP_EMPATHY_SHIELD,[](gclient_t &c) -> GameTime & { return c.powerupTime.empathyShield; },	nullptr },
+	{ IT_POWERUP_ANTIGRAV_BELT,[](gclient_t &c) -> GameTime & { return c.powerupTime.antiGravBelt; },	nullptr },
+	{ IT_POWERUP_SPAWN_PROTECTION,[](gclient_t &c) -> GameTime & { return c.powerupTime.spawnProtection; },nullptr },
+	{ IT_POWERUP_REBREATHER,  [](gclient_t &c) -> GameTime & { return c.powerupTime.rebreather; },      nullptr },
+	{ IT_IR_GOGGLES,          [](gclient_t &c) -> GameTime & { return c.powerupTime.irGoggles; },		nullptr },
 	{ IT_POWERUP_SILENCER,    nullptr,                         [](gclient_t &c) -> int32_t & { return reinterpret_cast<int32_t &>(c.powerupTime.silencerShots); } }
 };
 
@@ -496,12 +479,12 @@ static void SetCrosshairIDView(gentity_t *ent) {
 	if (!match_crosshairIDs->integer)
 		return;
 
-	vec3_t forward;
+	Vector3 forward;
 	AngleVectors(ent->client->vAngle, forward, nullptr, nullptr);
 	forward *= 1024;
-	vec3_t target = ent->s.origin + forward;
+	Vector3 target = ent->s.origin + forward;
 
-	trace_t tr = gi.traceline(ent->s.origin, target, ent, CONTENTS_MIST | MASK_WATER | MASK_SOLID);
+	trace_t tr = gi.traceLine(ent->s.origin, target, ent, CONTENTS_MIST | MASK_WATER | MASK_SOLID);
 
 	if (tr.fraction < 1.0f && tr.ent && tr.ent->client && tr.ent->health > 0) {
 		if (!ClientIsPlaying(tr.ent->client) || tr.ent->client->eliminated)
@@ -513,10 +496,10 @@ static void SetCrosshairIDView(gentity_t *ent) {
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW] = (tr.ent - g_entities);
 
 		switch (tr.ent->client->sess.team) {
-		case TEAM_RED:
+		case Team::Red:
 			ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = ii_teams_red_tiny;
 			break;
-		case TEAM_BLUE:
+		case Team::Blue:
 			ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = ii_teams_blue_tiny;
 			break;
 		}
@@ -524,14 +507,14 @@ static void SetCrosshairIDView(gentity_t *ent) {
 	}
 
 	// Fallback: use FOV and visibility
-	vec3_t dir;
-	vec3_t fwd;
+	Vector3 dir;
+	Vector3 fwd;
 	AngleVectors(ent->client->vAngle, fwd, nullptr, nullptr);
 
 	gentity_t *best = nullptr;
 	float bestDot = 0.0f;
 
-	for (uint32_t i = 1; i <= game.maxclients; ++i) {
+	for (uint32_t i = 1; i <= game.maxClients; ++i) {
 		gentity_t *who = &g_entities[i];
 		if (!who->inUse || who->solid == SOLID_NOT)
 			continue;
@@ -552,10 +535,10 @@ static void SetCrosshairIDView(gentity_t *ent) {
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW] = (best - g_entities);
 
 		switch (best->client->sess.team) {
-		case TEAM_RED:
+		case Team::Red:
 			ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = ii_teams_red_tiny;
 			break;
-		case TEAM_BLUE:
+		case Team::Blue:
 			ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = ii_teams_blue_tiny;
 			break;
 		}
@@ -570,7 +553,7 @@ Sets red/blue flag status icons and scores for the HUD.
 ===============
 */
 static void CTF_SetStats(gentity_t *ent, bool blink) {
-	if (notGTF(GTF_CTF))
+	if (!Game::Has(GameFlags::CTF))
 		return;
 
 	int p1 = ii_teams_red_default;
@@ -582,7 +565,7 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 		if (redFlag->solid == SOLID_NOT) {
 			p1 = ii_ctf_red_dropped;
 
-			for (uint32_t i = 1; i <= game.maxclients; ++i) {
+			for (uint32_t i = 1; i <= game.maxClients; ++i) {
 				if (g_entities[i].inUse &&
 					g_entities[i].client->pers.inventory[IT_FLAG_RED]) {
 					p1 = ii_ctf_red_taken;
@@ -592,13 +575,13 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 
 			if (p1 == ii_ctf_red_dropped) {
 				if (!G_FindByString<&gentity_t::className>(redFlag, ITEM_CTF_FLAG_RED)) {
-					CTF_ResetTeamFlag(TEAM_RED);
-					gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned", Teams_TeamName(TEAM_RED));
+					CTF_ResetTeamFlag(Team::Red);
+					gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned", Teams_TeamName(Team::Red));
 					gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX,
-						gi.soundindex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
+						gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 				}
 			}
-		} else if (redFlag->spawnflags.has(SPAWNFLAG_ITEM_DROPPED)) {
+		} else if (redFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			p1 = ii_ctf_red_dropped;
 		}
 	}
@@ -609,7 +592,7 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 		if (blueFlag->solid == SOLID_NOT) {
 			p2 = ii_ctf_blue_dropped;
 
-			for (uint32_t i = 1; i <= game.maxclients; ++i) {
+			for (uint32_t i = 1; i <= game.maxClients; ++i) {
 				if (g_entities[i].inUse &&
 					g_entities[i].client->pers.inventory[IT_FLAG_BLUE]) {
 					p2 = ii_ctf_blue_taken;
@@ -619,13 +602,13 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 
 			if (p2 == ii_ctf_blue_dropped) {
 				if (!G_FindByString<&gentity_t::className>(blueFlag, ITEM_CTF_FLAG_BLUE)) {
-					CTF_ResetTeamFlag(TEAM_BLUE);
-					gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned", Teams_TeamName(TEAM_BLUE));
+					CTF_ResetTeamFlag(Team::Blue);
+					gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned", Teams_TeamName(Team::Blue));
 					gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX,
-						gi.soundindex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
+						gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 				}
 			}
-		} else if (blueFlag->spawnflags.has(SPAWNFLAG_ITEM_DROPPED)) {
+		} else if (blueFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			p2 = ii_ctf_blue_dropped;
 		}
 	}
@@ -635,7 +618,7 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 
 	// Blink last captured flag
 	if (level.ctf_last_flag_capture && level.time - level.ctf_last_flag_capture < 5_sec) {
-		if (level.ctf_last_capture_team == TEAM_RED) {
+		if (level.ctf_last_capture_team == Team::Red) {
 			ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = blink ? p1 : 0;
 		} else {
 			ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = blink ? p2 : 0;
@@ -643,18 +626,18 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 	}
 
 	// Team scores
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
-		ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = level.teamScores[TEAM_RED];
-		ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = level.teamScores[TEAM_BLUE];
+	if (level.matchState == MatchState::In_Progress) {
+		ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = level.teamScores[static_cast<int>(Team::Red)];
+		ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = level.teamScores[static_cast<int>(Team::Blue)];
 	}
 
 	// Flag carrier icon for player
 	ent->client->ps.stats[STAT_CTF_FLAG_PIC] = 0;
 
-	if (ent->client->sess.team == TEAM_RED &&
+	if (ent->client->sess.team == Team::Red &&
 		ent->client->pers.inventory[IT_FLAG_BLUE] && blink) {
 		ent->client->ps.stats[STAT_CTF_FLAG_PIC] = ii_teams_blue_default;
-	} else if (ent->client->sess.team == TEAM_BLUE &&
+	} else if (ent->client->sess.team == Team::Blue &&
 		ent->client->pers.inventory[IT_FLAG_RED] && blink) {
 		ent->client->ps.stats[STAT_CTF_FLAG_PIC] = ii_teams_red_default;
 	}
@@ -667,8 +650,8 @@ SetMiniScoreStats
 Populates the miniscore HUD: either 1v1 players or red/blue team stats.
 ===============
 */
-static void SetMiniScoreStats(gentity_t *ent) {
-	const bool isTeamGame = Teams() && notGT(GT_RR);
+static void SetMiniScoreStats(gentity_t* ent) {
+	const bool isTeamGame = Teams() && Game::IsNot(GameType::RedRover);
 	const bool blink = (level.time.milliseconds() % 1000) < 500;
 
 	int16_t pos1 = -1, pos2 = -1, own = -1;
@@ -676,47 +659,42 @@ static void SetMiniScoreStats(gentity_t *ent) {
 	const PlayerMedal medalType = ent->client->pers.medalType;
 
 	// Medal HUD display
-	if (medalType != PlayerMedal::MEDAL_NONE) {
-		const uint32_t count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
-
-		// Only display if this isn't the first time (i.e., show count only if >= 2)
+	if (medalType != PlayerMedal::None) {
+		const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
 		if (count >= 2 && static_cast<size_t>(medalType) < awardNames.size()) {
-			const std::string &medalName = awardNames[static_cast<size_t>(medalType)];
+			const std::string& medalName = awardNames[static_cast<size_t>(medalType)];
 			const std::string medalText = fmt::format("{} (x{})", medalName, count);
-
-			// Set HUD stat string
 			ent->client->ps.stats[STAT_MEDAL] = 0;
-		} else {
-			// Clear HUD stat if count is 1 (first earn)
+		}
+		else {
 			ent->client->ps.stats[STAT_MEDAL] = 0;
 		}
 	} else {
-		// No medal active, clear HUD
 		ent->client->ps.stats[STAT_MEDAL] = 0;
 	}
 
-	// FFA logic
 	if (!isTeamGame) {
 		int16_t ownRank = -1;
 		int16_t other = -1, other2 = -1;
 
-		if (ent->client->sess.team == TEAM_FREE || ent->client->followTarget) {
-			own = ent->client->followTarget
-				? ent->client->followTarget->s.number - 1
-				: ent->s.number - 1;
-
+		if (ent->client->sess.team == Team::Free || ent->client->follow.target) {
+			const gentity_t* target = ent->client->follow.target ? ent->client->follow.target : ent;
+			own = target->s.number - 1;
 			ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
 		}
 
-		// Find the top two opponents (excluding self)
-		for (size_t i = 0; i < MAX_CLIENTS; ++i) {
-			int num = level.sorted_clients[i];
-			if (num < 0 || num == own || !game.clients[num].pers.connected || !ClientIsPlaying(&game.clients[num]))
+		for (int i = 0; i < MAX_CLIENTS; ++i) {
+			const int num = level.sortedClients[i];
+			if (num < 0 || num == own)
+				continue;
+
+			gclient_t *cl = &game.clients[num];
+			if (!cl->pers.connected || !ClientIsPlaying(cl))
 				continue;
 
 			if (other < 0) {
 				other = num;
-				if (ownRank >= 0)
+				if (ownRank == 0)
 					break;
 				continue;
 			}
@@ -727,32 +705,34 @@ static void SetMiniScoreStats(gentity_t *ent) {
 			}
 		}
 
-		// Determine display positions
 		if (ownRank >= 0) {
 			if (ownRank == 0) {
 				pos1 = own;
 				pos2 = (other >= 0) ? other : other2;
-			} else {
+			}
+			else {
 				pos1 = (other >= 0) ? other : other2;
 				pos2 = own;
 			}
-		} else {
+		}
+		else {
 			pos1 = other;
 			pos2 = other2;
 		}
 
-		if (GTF(GTF_1V1))
+		if (Game::Has(GameFlags::OneVOne))
 			ent->client->ps.stats[STAT_DUEL_HEADER] = ii_duel_header;
 
-	} else {
+	}
+	else {
 		// Team headers
 		ent->client->ps.stats[STAT_TEAM_RED_HEADER] = ii_teams_header_red;
 		ent->client->ps.stats[STAT_TEAM_BLUE_HEADER] = ii_teams_header_blue;
 
-		// Blink header of winner during intermission
-		if (level.intermissionTime && blink) {
-			int redScore = level.teamScores[TEAM_RED];
-			int blueScore = level.teamScores[TEAM_BLUE];
+		// Blink winning team header during intermission
+		if (level.intermission.time && blink) {
+			const int redScore = level.teamScores[static_cast<int>(Team::Red)];
+			const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
 
 			if (redScore > blueScore)
 				ent->client->ps.stats[STAT_TEAM_RED_HEADER] = 0;
@@ -765,29 +745,25 @@ static void SetMiniScoreStats(gentity_t *ent) {
 		}
 	}
 
-	// Set scores and icons
-	if (GTF(GTF_CTF)) {
+	// Score + icon display
+	ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = -999;
+	ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = -999;
+
+	if (Game::Has(GameFlags::CTF)) {
 		CTF_SetStats(ent, blink);
-	} else if (isTeamGame) {
-		if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
+	}
+	else if (isTeamGame) {
+		if (level.matchState == MatchState::In_Progress) {
 			ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = ii_teams_red_default;
 			ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = ii_teams_blue_default;
-			ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = level.teamScores[TEAM_RED];
-			ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = level.teamScores[TEAM_BLUE];
+			ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = level.teamScores[static_cast<int>(Team::Red)];
+			ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = level.teamScores[static_cast<int>(Team::Blue)];
 		}
-
-		if (GTF(GTF_ROUNDS)) {
-			ent->client->ps.stats[STAT_MINISCORE_FIRST_VAL] = 0;
-			ent->client->ps.stats[STAT_MINISCORE_SECOND_VAL] = 0;
-		} else {
-			ent->client->ps.stats[STAT_MINISCORE_FIRST_VAL] = 0;
-			ent->client->ps.stats[STAT_MINISCORE_SECOND_VAL] = 0;
-		}
-	} else {
-		ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = -999;
-		ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = -999;
-
-		if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
+		ent->client->ps.stats[STAT_MINISCORE_FIRST_VAL] = 0;
+		ent->client->ps.stats[STAT_MINISCORE_SECOND_VAL] = 0;
+	}
+	else {
+		if (level.matchState == MatchState::In_Progress) {
 			if (pos1 >= 0) {
 				ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = game.clients[pos1].resp.score;
 				ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = game.clients[pos1].sess.skinIconIndex;
@@ -796,23 +772,25 @@ static void SetMiniScoreStats(gentity_t *ent) {
 				ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = game.clients[pos2].resp.score;
 				ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = game.clients[pos2].sess.skinIconIndex;
 			}
-		} else {
+		}
+		else {
 			ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = 0;
 			ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = 0;
 		}
 	}
 
-	// Highlight own score or team
+	// Highlight own team or player
 	ent->client->ps.stats[STAT_MINISCORE_FIRST_POS] = 0;
 	ent->client->ps.stats[STAT_MINISCORE_SECOND_POS] = 0;
 
-	if (level.matchState == MatchState::MATCH_IN_PROGRESS) {
+	if (level.matchState == MatchState::In_Progress) {
 		if (isTeamGame) {
-			if (ent->client->sess.team == TEAM_RED)
+			if (ent->client->sess.team == Team::Red)
 				ent->client->ps.stats[STAT_MINISCORE_FIRST_POS] = ii_highlight;
-			else if (ent->client->sess.team == TEAM_BLUE)
+			else if (ent->client->sess.team == Team::Blue)
 				ent->client->ps.stats[STAT_MINISCORE_SECOND_POS] = ii_highlight;
-		} else if (own >= 0) {
+		}
+		else if (own >= 0) {
 			if (own == pos1)
 				ent->client->ps.stats[STAT_MINISCORE_FIRST_POS] = ii_highlight;
 			else if (own == pos2)
@@ -827,14 +805,14 @@ SetHealthStats
 ===============
 */
 static void SetHealthStats(gentity_t *ent) {
-	if (ent->s.renderfx & RF_USE_DISGUISE) {
+	if (ent->s.renderFX & RF_USE_DISGUISE) {
 		ent->client->ps.stats[STAT_HEALTH_ICON] = level.campaign.disguiseIcon;
 	} else {
 		switch (ent->client->sess.team) {
-		case TEAM_RED:
+		case Team::Red:
 			ent->client->ps.stats[STAT_HEALTH_ICON] = ii_teams_red_default;
 			break;
-		case TEAM_BLUE:
+		case Team::Blue:
 			ent->client->ps.stats[STAT_HEALTH_ICON] = ii_teams_blue_default;
 			break;
 		default:
@@ -856,16 +834,16 @@ static void SetWeaponStats(gentity_t *ent) {
 
 	for (int invIndex = IT_WEAPON_GRAPPLE; invIndex <= IT_WEAPON_DISRUPTOR; ++invIndex) {
 		if (ent->client->pers.inventory[invIndex]) {
-			weaponBits |= 1 << GetItemByIndex((item_id_t)invIndex)->weapon_wheel_index;
+			weaponBits |= 1 << GetItemByIndex((item_id_t)invIndex)->weaponWheelIndex;
 		}
 	}
 
 	ent->client->ps.stats[STAT_WEAPONS_OWNED_1] = weaponBits & 0xFFFF;
 	ent->client->ps.stats[STAT_WEAPONS_OWNED_2] = (weaponBits >> 16);
 
-	const Item *weapon = ent->client->newWeapon ? ent->client->newWeapon : ent->client->pers.weapon;
-	ent->client->ps.stats[STAT_ACTIVE_WHEEL_WEAPON] = weapon ? weapon->weapon_wheel_index : -1;
-	ent->client->ps.stats[STAT_ACTIVE_WEAPON] = ent->client->pers.weapon ? ent->client->pers.weapon->weapon_wheel_index : -1;
+	const Item *weapon = ent->client->weapon.pending ? ent->client->weapon.pending : ent->client->pers.weapon;
+	ent->client->ps.stats[STAT_ACTIVE_WHEEL_WEAPON] = weapon ? weapon->weaponWheelIndex : -1;
+	ent->client->ps.stats[STAT_ACTIVE_WEAPON] = ent->client->pers.weapon ? ent->client->pers.weapon->weaponWheelIndex : -1;
 }
 
 /*
@@ -882,23 +860,23 @@ static void SetAmmoStats(gentity_t *ent) {
 	if (weapon && weapon->ammo) {
 		Item *ammoItem = GetItemByIndex(weapon->ammo);
 		if (!InfiniteAmmoOn(ammoItem)) {
-			ent->client->ps.stats[STAT_AMMO_ICON] = gi.imageindex(ammoItem->icon);
+			ent->client->ps.stats[STAT_AMMO_ICON] = gi.imageIndex(ammoItem->icon);
 			ent->client->ps.stats[STAT_AMMO] = ent->client->pers.inventory[weapon->ammo];
 		}
 	}
 
 	memset(&ent->client->ps.stats[STAT_AMMO_INFO_START], 0, sizeof(uint16_t) * NUM_AMMO_STATS);
 
-	for (unsigned int ammoIndex = AMMO_BULLETS; ammoIndex < AMMO_MAX; ++ammoIndex) {
-		Item *ammo = GetItemByAmmo((ammo_t)ammoIndex);
+	for (unsigned int ammoIndex = static_cast<int>(AmmoID::Bullets); ammoIndex < static_cast<int>(AmmoID::_Total); ++ammoIndex) {
+		Item *ammo = GetItemByAmmo((AmmoID)ammoIndex);
 		if (!ammo)
 			continue;
 
 		uint16_t val = InfiniteAmmoOn(ammo)
 			? AMMO_VALUE_INFINITE
-			: clamp(ent->client->pers.inventory[ammo->id], 0, AMMO_VALUE_INFINITE - 1);
+			: std::clamp(ent->client->pers.inventory[ammo->id], 0, AMMO_VALUE_INFINITE - 1);
 
-		SetAmmoStat((uint16_t *)&ent->client->ps.stats[STAT_AMMO_INFO_START], ammo->ammo_wheel_index, val);
+		SetAmmoStat((uint16_t *)&ent->client->ps.stats[STAT_AMMO_INFO_START], ammo->ammoWheelIndex, val);
 	}
 }
 
@@ -920,11 +898,11 @@ static void SetArmorStats(gentity_t *ent) {
 
 	if (flashPowerArmor) {
 		const char *icon = (powerArmorType == IT_POWER_SHIELD) ? "i_powershield" : "i_powerscreen";
-		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex(icon);
+		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageIndex(icon);
 		ent->client->ps.stats[STAT_ARMOR] = cells;
 	} else if (armorIndex) {
 		const Item *armor = GetItemByIndex(armorIndex);
-		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageindex(armor->icon);
+		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageIndex(armor->icon);
 		ent->client->ps.stats[STAT_ARMOR] = ent->client->pers.inventory[armorIndex];
 	} else {
 		ent->client->ps.stats[STAT_ARMOR_ICON] = 0;
@@ -971,11 +949,11 @@ static void SetPowerupStats(gentity_t *ent) {
 			break;
 
 		default:
-			val = clamp(inventory[item->id], 0, 3);
+			val = std::clamp(inventory[item->id], 0, 3);
 			break;
 		}
 
-		SetPowerupStat(reinterpret_cast<uint16_t *>(&stats[STAT_POWERUP_INFO_START]), item->powerup_wheel_index, val);
+		SetPowerupStat(reinterpret_cast<uint16_t *>(&stats[STAT_POWERUP_INFO_START]), item->powerupWheelIndex, val);
 	}
 
 	// Reset icon and timer initially
@@ -984,15 +962,15 @@ static void SetPowerupStats(gentity_t *ent) {
 
 	// If an owned sphere is active, override the HUD icon and timer
 	if (client.ownedSphere) {
-		int iconIndex = gi.imageindex("i_fixme");
-		const auto flags = client.ownedSphere->spawnflags;
+		int iconIndex = gi.imageIndex("i_fixme");
+		const auto flags = client.ownedSphere->spawnFlags;
 
 		if (flags.has(SF_SPHERE_DEFENDER)) {
-			iconIndex = gi.imageindex("p_defender");
+			iconIndex = gi.imageIndex("p_defender");
 		} else if (flags.has(SF_SPHERE_HUNTER)) {
-			iconIndex = gi.imageindex("p_hunter");
+			iconIndex = gi.imageIndex("p_hunter");
 		} else if (flags.has(SF_SPHERE_VENGEANCE)) {
-			iconIndex = gi.imageindex("p_vengeance");
+			iconIndex = gi.imageIndex("p_vengeance");
 		}
 
 		stats[STAT_POWERUP_ICON] = iconIndex;
@@ -1004,7 +982,7 @@ static void SetPowerupStats(gentity_t *ent) {
 	const powerup_info_t *best = nullptr;
 
 	for (const auto &powerup : powerup_table) {
-		const gtime_t *t = powerup.time_accessor ? &powerup.time_accessor(client) : nullptr;
+		const GameTime *t = powerup.time_accessor ? &powerup.time_accessor(client) : nullptr;
 		const int32_t *c = powerup.count_accessor ? &powerup.count_accessor(client) : nullptr;
 
 		if (t && *t <= level.time)
@@ -1035,7 +1013,7 @@ static void SetPowerupStats(gentity_t *ent) {
 		else if (best->time_accessor)
 			value = static_cast<int16_t>(std::ceil((best->time_accessor(client) - level.time).seconds()));
 
-		stats[STAT_POWERUP_ICON] = gi.imageindex(GetItemByIndex(best->item)->icon);
+		stats[STAT_POWERUP_ICON] = gi.imageIndex(GetItemByIndex(best->item)->icon);
 		stats[STAT_POWERUP_TIME] = value;
 	}
 }
@@ -1046,13 +1024,13 @@ SetSelectedItemStats
 ===============
 */
 static void SetSelectedItemStats(gentity_t *ent) {
-	const item_id_t selected = ent->client->pers.selected_item;
+	const item_id_t selected = ent->client->pers.selectedItem;
 	ent->client->ps.stats[STAT_SELECTED_ITEM] = selected;
 
 	if (selected == IT_NULL) {
 		ent->client->ps.stats[STAT_SELECTED_ICON] = 0;
 	} else {
-		ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageindex(itemList[selected].icon);
+		ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageIndex(itemList[selected].icon);
 
 		if (ent->client->pers.selected_item_time < level.time) {
 			ent->client->ps.stats[STAT_SELECTED_ITEM_NAME] = 0;
@@ -1069,7 +1047,7 @@ static void SetLayoutStats(gentity_t *ent) {
 	ent->client->ps.stats[STAT_LAYOUTS] = 0;
 
 	if (deathmatch->integer) {
-		if (ent->client->pers.health <= 0 || level.intermissionTime || ent->client->showScores)
+		if (ent->client->pers.health <= 0 || level.intermission.time || ent->client->showScores)
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_LAYOUT;
 
 		if (ent->client->showInventory && ent->client->pers.health > 0)
@@ -1085,22 +1063,22 @@ static void SetLayoutStats(gentity_t *ent) {
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HELP;
 	}
 
-	if (level.intermissionTime || ent->client->awaitingRespawn) {
+	if (level.intermission.time || ent->client->awaitingRespawn) {
 		if (ent->client->awaitingRespawn ||
 			level.intermission.endOfUnit ||
 			level.isN64 ||
-			(deathmatch->integer && (ent->client->showScores || level.intermissionTime))) {
+			(deathmatch->integer && (ent->client->showScores || level.intermission.time))) {
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_HUD;
 		}
 
-		if (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermissionTime)) {
+		if (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time)) {
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_INTERMISSION;
 		}
 	}
 
 	// Crosshair visibility
 	if (deathmatch->integer) {
-		if (ClientIsPlaying(ent->client) || !ent->client->followTarget)
+		if (ClientIsPlaying(ent->client) || !ent->client->follow.target)
 			ent->client->ps.stats[STAT_LAYOUTS] &= ~LAYOUTS_HIDE_CROSSHAIR;
 		else
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_CROSSHAIR;
@@ -1138,7 +1116,7 @@ static void SetKeyStats(gentity_t *ent) {
 
 	player_stat_t stat = STAT_KEY_A;
 	for (size_t i = 0; i < std::min(numKeys, size_t(3)); ++i, stat = static_cast<player_stat_t>(stat + 1)) {
-		ent->client->ps.stats[stat] = gi.imageindex(GetItemByIndex(keysHeld[(i + keyOffset) % numKeys])->icon);
+		ent->client->ps.stats[stat] = gi.imageIndex(GetItemByIndex(keysHeld[(i + keyOffset) % numKeys])->icon);
 	}
 }
 
@@ -1147,14 +1125,14 @@ static void SetKeyStats(gentity_t *ent) {
 SetHelpIconStats
 ===============
 */
-static void SetHelpIconStats(gentity_t *ent, bool minhud) {
+static void SetHelpIconStats(gentity_t *ent, bool minHud) {
 	if (ent->client->pers.helpchanged >= 1 &&
 		ent->client->pers.helpchanged <= 2 &&
 		(level.time.milliseconds() % 1000) < 500) {
-		ent->client->ps.stats[STAT_HELPICON] = gi.imageindex("i_help");
-	} else if ((ent->client->pers.hand == CENTER_HANDED) && ent->client->pers.weapon) {
-		if (!minhud || (minhud && ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE)) {
-			ent->client->ps.stats[STAT_HELPICON] = gi.imageindex(ent->client->pers.weapon->icon);
+		ent->client->ps.stats[STAT_HELPICON] = gi.imageIndex("i_help");
+	} else if ((ent->client->pers.hand == Handedness::Center) && ent->client->pers.weapon) {
+		if (!minHud || (minHud && ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE)) {
+			ent->client->ps.stats[STAT_HELPICON] = gi.imageIndex(ent->client->pers.weapon->icon);
 		}
 	} else {
 		ent->client->ps.stats[STAT_HELPICON] = 0;
@@ -1195,7 +1173,7 @@ static void SetHealthBarStats(gentity_t *ent) {
 			}
 
 			if (e->delay) {
-				e->timeStamp = level.time + gtime_t::from_sec(e->delay);
+				e->timeStamp = level.time + GameTime::from_sec(e->delay);
 				*hb = 0b10000000;
 			} else {
 				level.campaign.health_bar_entities[i] = nullptr;
@@ -1204,13 +1182,13 @@ static void SetHealthBarStats(gentity_t *ent) {
 			continue;
 		}
 
-		if (e->spawnflags.has(SPAWNFLAG_HEALTHBAR_PVS_ONLY) &&
+		if (e->spawnFlags.has(SPAWNFLAG_HEALTHBAR_PVS_ONLY) &&
 			!gi.inPVS(ent->s.origin, e->enemy->s.origin, true)) {
 			*hb = 0;
 			continue;
 		}
 
-		float healthFrac = (float)e->enemy->health / (float)e->enemy->max_health;
+		float healthFrac = (float)e->enemy->health / (float)e->enemy->maxHealth;
 		*hb = ((byte)(healthFrac * 0x7F)) | 0x80;
 	}
 }
@@ -1225,7 +1203,7 @@ static void SetTechStats(gentity_t *ent) {
 
 	for (size_t i = 0; i < q_countof(tech_ids); ++i) {
 		if (ent->client->pers.inventory[tech_ids[i]]) {
-			ent->client->ps.stats[STAT_TECH] = gi.imageindex(GetItemByIndex(tech_ids[i])->icon);
+			ent->client->ps.stats[STAT_TECH] = gi.imageIndex(GetItemByIndex(tech_ids[i])->icon);
 			break;
 		}
 	}
@@ -1239,9 +1217,9 @@ SetMatchTimerStats
 static void SetMatchTimerStats(gentity_t *ent) {
 	static int lastTimeEncoded = 0;
 
-	const gtime_t matchTime =
-		timelimit->value
-		? (level.levelStartTime + gtime_t::from_min(timelimit->value) + level.overtime - level.time)
+	const GameTime matchTime =
+		timeLimit->value
+		? (level.levelStartTime + GameTime::from_min(timeLimit->value) + level.overtime - level.time)
 		: (level.time - level.levelStartTime);
 
 	const int milliseconds = matchTime.milliseconds();
@@ -1256,22 +1234,22 @@ static void SetMatchTimerStats(gentity_t *ent) {
 	const char *s2 = "";
 
 	switch (level.matchState) {
-	case MatchState::MATCH_WARMUP_DELAYED:
+	case MatchState::Initial_Delay:
 		if (level.warmupNoticeTime + 4_sec > level.time)
 			s1 = G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data();
 		else if (level.warmupNoticeTime + 8_sec > level.time)
 			s1 = G_Fmt("Ruleset: {}", rs_long_name[(int)game.ruleset]).data();
 		break;
 
-	case MatchState::MATCH_NONE:
+	case MatchState::None:
 		break;
 
-	case MatchState::MATCH_WARMUP_DEFAULT:
-	case MatchState::MATCH_WARMUP_READYUP:
+	case MatchState::Warmup_Default:
+	case MatchState::Warmup_ReadyUp:
 		s1 = "WARMUP";
 		break;
 
-	case MatchState::MATCH_COUNTDOWN:
+	case MatchState::Countdown:
 		s1 = "COUNTDOWN";
 		break;
 
@@ -1281,15 +1259,15 @@ static void SetMatchTimerStats(gentity_t *ent) {
 			s1 = G_Fmt("TIMEOUT! ({})", TimeString(t2, false, false)).data();
 		} else if (milliseconds < 0 && milliseconds >= -4000) {
 			s1 = "OVERTIME!";
-		} else if (GTF(GTF_ROUNDS)) {
-			if (level.roundState == RoundState::ROUND_COUNTDOWN) {
+		} else if (Game::Has(GameFlags::Rounds)) {
+			if (level.roundState == RoundState::Countdown) {
 				s1 = "COUNTDOWN";
-			} else if (level.roundState == RoundState::ROUND_IN_PROGRESS) {
+			} else if (level.roundState == RoundState::In_Progress) {
 				int t2 = (level.roundStateTimer - level.time).milliseconds();
 				s1 = G_Fmt("{} ({})", TimeString(milliseconds, false, false), TimeString(t2, false, false)).data();
 			}
 		} else {
-			if (!level.intermissionQueued && (milliseconds < -1000 || milliseconds > 1000)) {
+			if (!level.intermission.queued && (milliseconds < -1000 || milliseconds > 1000)) {
 				s1 = TimeString(milliseconds, false, false);
 			}
 		}
@@ -1297,17 +1275,17 @@ static void SetMatchTimerStats(gentity_t *ent) {
 	}
 
 	// Additional warmup reason display
-	if ((level.matchState == MatchState::MATCH_WARMUP_DEFAULT || level.matchState == MatchState::MATCH_WARMUP_READYUP) &&
+	if ((level.matchState == MatchState::Warmup_Default || level.matchState == MatchState::Warmup_ReadyUp) &&
 		static_cast<uint8_t>(level.warmupState) &&
 		level.warmupNoticeTime + 3_sec > level.time) {
 		switch (level.warmupState) {
-		case WarmupState::WARMUP_REQ_MORE_PLAYERS:
+		case WarmupState::Too_Few_Players:
 			s2 = G_Fmt(": More players needed ({} players min.)", minplayers->integer).data();
 			break;
-		case WarmupState::WARMUP_REQ_BALANCE:
+		case WarmupState::Teams_Imbalanced:
 			s2 = ": Teams are imbalanced.";
 			break;
-		case WarmupState::WARMUP_REQ_READYUP:
+		case WarmupState::Not_Ready:
 			s2 = ": Players must ready up.";
 			break;
 		}
@@ -1315,7 +1293,7 @@ static void SetMatchTimerStats(gentity_t *ent) {
 
 	std::string finalStr = G_Fmt("{}{}", s1, s2).data();
 	ent->client->ps.stats[STAT_MATCH_STATE] = CONFIG_MATCH_STATE;
-	gi.configstring(CONFIG_MATCH_STATE, finalStr.c_str());
+	gi.configString(CONFIG_MATCH_STATE, finalStr.c_str());
 }
 
 /*
@@ -1329,21 +1307,26 @@ void SetStats(gentity_t *ent) {
 	if (!ent || !ent->client)
 		return;
 
-	const bool minhud = g_instagib->integer || g_nadefest->integer;
+	const bool minHud = g_instaGib->integer || g_nadeFest->integer;
 
 	SetHealthStats(ent);
-	if (!minhud) {
+	if (!minHud) {
 		SetWeaponStats(ent);
 		SetAmmoStats(ent);
 		SetArmorStats(ent);
 		SetPowerupStats(ent);
 		SetSelectedItemStats(ent);
+
+		if (level.time > ent->client->pickupMessageTime) {
+			ent->client->ps.stats[STAT_PICKUP_ICON] = 0;
+			ent->client->ps.stats[STAT_PICKUP_STRING] = 0;
+		}
 	}
 	SetLayoutStats(ent);
 	if (!deathmatch->integer) {
 		SetKeyStats(ent);
 	}
-	SetHelpIconStats(ent, minhud);
+	SetHelpIconStats(ent, minHud);
 	SetHealthBarStats(ent);
 	SetTechStats(ent);
 	SetMiniScoreStats(ent);
@@ -1356,14 +1339,18 @@ void SetStats(gentity_t *ent) {
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = 0;
 	}
 
-	// Match state HUD indicator
-	ent->client->ps.stats[STAT_COUNTDOWN] = level.countdownTimerCheck.seconds<int>();
+	if (deathmatch->integer) {
+		ent->client->ps.stats[STAT_COUNTDOWN] = level.countdownTimerCheck.seconds<int>();
 
-	if (ent->client->sess.pc.show_timer)
-		SetMatchTimerStats(ent);
+		if (ent->client->sess.pc.show_timer)
+			SetMatchTimerStats(ent);
+	} else {
+		ent->client->ps.stats[STAT_COUNTDOWN] = 0;
+	}
 
 	// Medal time blocking FOLLOWING tag
 	if (ent->client->pers.medalTime + 3_sec > level.time)
+		//todo
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 	else
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
@@ -1378,7 +1365,7 @@ Ensures that any spectators chasing this player get updated HUD stats.
 */
 void CheckFollowStats(gentity_t *ent) {
 	for (gentity_t *viewer : active_clients()) {
-		if (viewer->client->followTarget != ent)
+		if (viewer->client->follow.target != ent)
 			continue;
 
 		viewer->client->ps.stats = ent->client->ps.stats;
@@ -1397,21 +1384,21 @@ Includes chase mode and passive spectator support.
 void SetSpectatorStats(gentity_t *ent) {
 	gclient_t *cl = ent->client;
 
-	if (!cl->followTarget) {
+	if (!cl->follow.target) {
 		SetStats(ent);
 	}
 
 	// Reset all layouts first
 	cl->ps.stats[STAT_LAYOUTS] = 0;
 
-	if (cl->pers.health <= 0 || level.intermissionTime || cl->showScores)
+	if (cl->pers.health <= 0 || level.intermission.time || cl->showScores)
 		cl->ps.stats[STAT_LAYOUTS] |= LAYOUTS_LAYOUT;
 
 	if (cl->showInventory && cl->pers.health > 0)
 		cl->ps.stats[STAT_LAYOUTS] |= LAYOUTS_INVENTORY;
 
-	if (cl->followTarget && cl->followTarget->inUse) {
-		cl->ps.stats[STAT_FOLLOWING] = CONFIG_CHASE_PLAYER_NAME + (cl->followTarget - g_entities) - 1;
+	if (cl->follow.target && cl->follow.target->inUse) {
+		cl->ps.stats[STAT_FOLLOWING] = CONFIG_CHASE_PLAYER_NAME + (cl->follow.target - g_entities) - 1;
 		cl->ps.stats[STAT_SPECTATOR] = 0;
 	} else {
 		cl->ps.stats[STAT_FOLLOWING] = 0;

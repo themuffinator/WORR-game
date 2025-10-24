@@ -10,19 +10,19 @@ carrier
 */
 
 // self->timeStamp used for frame calculations in grenade & spawn code
-// self->monsterInfo.fire_wait used to prevent rapid refire of rocket launcher
+// self->monsterInfo.fireWait used to prevent rapid refire of rocket launcher
 
-#include "../g_local.h"
-#include "m_carrier.h"
-#include "m_flash.h"
+#include "../g_local.hpp"
+#include "m_carrier.hpp"
+#include "m_flash.hpp"
 
 // nb: specifying flyer multiple times so it has a higher chance
 constexpr const char *default_reinforcements = "monster_flyer 1;monster_flyer 1;monster_flyer 1;monster_kamikaze 1";
 constexpr int32_t default_monster_slots_base = 3;
 
-constexpr gtime_t CARRIER_ROCKET_TIME = 2_sec; // number of seconds between rocket shots
+constexpr GameTime CARRIER_ROCKET_TIME = 2_sec; // number of seconds between rocket shots
 constexpr int32_t CARRIER_ROCKET_SPEED = 750;
-constexpr gtime_t RAIL_FIRE_TIME = 3_sec;
+constexpr GameTime RAIL_FIRE_TIME = 3_sec;
 
 bool infront(gentity_t *self, gentity_t *other);
 bool inback(gentity_t *self, gentity_t *other);
@@ -31,22 +31,22 @@ void drawbbox(gentity_t *self);
 
 void ED_CallSpawn(gentity_t *ent);
 
-static cached_soundindex sound_pain1;
-static cached_soundindex sound_pain2;
-static cached_soundindex sound_pain3;
-static cached_soundindex sound_death;
-static cached_soundindex sound_sight;
-static cached_soundindex sound_rail;
-static cached_soundindex sound_spawn;
+static cached_soundIndex sound_pain1;
+static cached_soundIndex sound_pain2;
+static cached_soundIndex sound_pain3;
+static cached_soundIndex sound_death;
+static cached_soundIndex sound_sight;
+static cached_soundIndex sound_rail;
+static cached_soundIndex sound_spawn;
 
-static cached_soundindex sound_cg_down, sound_cg_loop, sound_cg_up;
+static cached_soundIndex sound_cg_down, sound_cg_loop, sound_cg_up;
 
 float orig_yaw_speed;
 
 void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &list);
 std::array<uint8_t, MAX_REINFORCEMENTS> M_PickReinforcements(gentity_t *self, int32_t &num_chosen, int32_t max_slots);
 
-extern const mmove_t flyer_move_attack2, flyer_move_attack3, flyer_move_kamikaze;
+extern const MonsterMove flyer_move_attack2, flyer_move_attack3, flyer_move_kamikaze;
 
 void carrier_run(gentity_t *self);
 void carrier_dead(gentity_t *self);
@@ -81,7 +81,7 @@ static void CarrierCoopCheck(gentity_t *self) {
 	trace_t	 tr;
 
 	// if we are, and we have recently fired, bail
-	if (self->monsterInfo.fire_wait > level.time)
+	if (self->monsterInfo.fireWait > level.time)
 		return;
 
 	targets = {};
@@ -89,7 +89,7 @@ static void CarrierCoopCheck(gentity_t *self) {
 	// cycle through players
 	for (auto ce : active_clients()) {
 		if (inback(self, ce) || below(self, ce)) {
-			tr = gi.traceline(self->s.origin, ce->s.origin, self, MASK_SOLID);
+			tr = gi.traceLine(self->s.origin, ce->s.origin, self, MASK_SOLID);
 			if (tr.fraction == 1.0f)
 				targets[num_targets++] = ce;
 		}
@@ -102,7 +102,7 @@ static void CarrierCoopCheck(gentity_t *self) {
 	target = irandom(num_targets);
 
 	// make sure to prevent rapid fire rockets
-	self->monsterInfo.fire_wait = level.time + CARRIER_ROCKET_TIME;
+	self->monsterInfo.fireWait = level.time + CARRIER_ROCKET_TIME;
 
 	// save off the real enemy
 	ent = self->enemy;
@@ -117,10 +117,10 @@ static void CarrierCoopCheck(gentity_t *self) {
 }
 
 static void CarrierGrenade(gentity_t *self) {
-	vec3_t					 start;
-	vec3_t					 forward, right, up;
-	vec3_t					 aim;
-	monster_muzzleflash_id_t flash_number;
+	Vector3					 start;
+	Vector3					 forward, right, up;
+	Vector3					 aim;
+	MonsterMuzzleFlashID flash_number;
 	float					 direction; // from lower left to upper right, or lower right to upper left
 	float					 spreadR, spreadU;
 	int						 mytime;
@@ -174,9 +174,9 @@ static void CarrierGrenade(gentity_t *self) {
 }
 
 static void CarrierPredictiveRocket(gentity_t *self) {
-	vec3_t forward, right;
-	vec3_t start;
-	vec3_t dir;
+	Vector3 forward, right;
+	Vector3 start;
+	Vector3 dir;
 
 	AngleVectors(self->s.angles, forward, right, nullptr);
 
@@ -202,10 +202,10 @@ static void CarrierPredictiveRocket(gentity_t *self) {
 }
 
 void CarrierRocket(gentity_t *self) {
-	vec3_t forward, right;
-	vec3_t start;
-	vec3_t dir;
-	vec3_t vec;
+	Vector3 forward, right;
+	Vector3 start;
+	Vector3 dir;
+	Vector3 vec;
 
 	if (self->enemy) {
 		if (self->enemy->client && frandom() < 0.5f) {
@@ -257,8 +257,8 @@ void CarrierRocket(gentity_t *self) {
 }
 
 static void carrier_firebullet_right(gentity_t *self) {
-	vec3_t					 forward, right, start;
-	monster_muzzleflash_id_t flashnum;
+	Vector3					 forward, right, start;
+	MonsterMuzzleFlashID flashnum;
 
 	// if we're in manual steering mode, it means we're leaning down .. use the lower shot
 	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING)
@@ -273,8 +273,8 @@ static void carrier_firebullet_right(gentity_t *self) {
 }
 
 static void carrier_firebullet_left(gentity_t *self) {
-	vec3_t					 forward, right, start;
-	monster_muzzleflash_id_t flashnum;
+	Vector3					 forward, right, start;
+	MonsterMuzzleFlashID flashnum;
 
 	// if we're in manual steering mode, it means we're leaning down .. use the lower shot
 	if (self->monsterInfo.aiFlags & AI_MANUAL_STEERING)
@@ -297,7 +297,7 @@ static void CarrierMachineGun(gentity_t *self) {
 }
 
 static void CarrierSpawn(gentity_t *self) {
-	vec3_t	 f, r, offset, startpoint, spawnpoint;
+	Vector3	 f, r, offset, startpoint, spawnpoint;
 	gentity_t *ent;
 
 	//	offset = { 105, 0, -30 }; // real distance needed is (sqrt (56*56*2) + sqrt(16*16*2)) or 101.8
@@ -333,18 +333,18 @@ static void CarrierSpawn(gentity_t *self) {
 
 			if (!strcmp(ent->className, "monster_kamikaze")) {
 				ent->monsterInfo.lefty = false;
-				ent->monsterInfo.attack_state = AS_STRAIGHT;
+				ent->monsterInfo.attackState = MonsterAttackState::Straight;
 				M_SetAnimation(ent, &flyer_move_kamikaze);
 				ent->monsterInfo.aiFlags |= AI_CHARGING;
 				ent->owner = self;
 			} else if (!strcmp(ent->className, "monster_flyer")) {
 				if (brandom()) {
 					ent->monsterInfo.lefty = false;
-					ent->monsterInfo.attack_state = AS_SLIDING;
+					ent->monsterInfo.attackState = MonsterAttackState::Sliding;
 					M_SetAnimation(ent, &flyer_move_attack3);
 				} else {
 					ent->monsterInfo.lefty = true;
-					ent->monsterInfo.attack_state = AS_SLIDING;
+					ent->monsterInfo.attackState = MonsterAttackState::Sliding;
 					M_SetAnimation(ent, &flyer_move_attack3);
 				}
 			}
@@ -356,7 +356,7 @@ void carrier_prep_spawn(gentity_t *self) {
 	CarrierCoopCheck(self);
 	self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
 	self->timeStamp = level.time;
-	self->yaw_speed = 10;
+	self->yawSpeed = 10;
 }
 
 void carrier_spawn_check(gentity_t *self) {
@@ -366,20 +366,20 @@ void carrier_spawn_check(gentity_t *self) {
 	if (level.time > (self->timeStamp + 2.0_sec)) // 0.5 seconds per flyer.  this gets three
 	{
 		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
-		self->yaw_speed = orig_yaw_speed;
+		self->yawSpeed = orig_yaw_speed;
 	} else
 		self->monsterInfo.nextFrame = FRAME_spawn08;
 }
 
 static void carrier_ready_spawn(gentity_t *self) {
 	float  current_yaw;
-	vec3_t offset, f, r, startpoint, spawnpoint;
+	Vector3 offset, f, r, startpoint, spawnpoint;
 
 	CarrierCoopCheck(self);
 
 	current_yaw = anglemod(self->s.angles[YAW]);
 
-	if (fabsf(current_yaw - self->ideal_yaw) > 0.1f) {
+	if (std::fabs(current_yaw - self->ideal_yaw) > 0.1f) {
 		self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
 		self->timeStamp += FRAME_TIME_S;
 		return;
@@ -408,11 +408,11 @@ static void carrier_ready_spawn(gentity_t *self) {
 void carrier_start_spawn(gentity_t *self) {
 	int	   mytime;
 	float  enemy_yaw;
-	vec3_t temp;
+	Vector3 temp;
 
 	CarrierCoopCheck(self);
 	if (!orig_yaw_speed)
-		orig_yaw_speed = self->yaw_speed;
+		orig_yaw_speed = self->yawSpeed;
 
 	if (!self->enemy)
 		return;
@@ -431,7 +431,7 @@ void carrier_start_spawn(gentity_t *self) {
 		self->ideal_yaw = anglemod(enemy_yaw + 30);
 }
 
-mframe_t carrier_frames_stand[] = {
+MonsterFrame carrier_frames_stand[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -448,7 +448,7 @@ mframe_t carrier_frames_stand[] = {
 };
 MMOVE_T(carrier_move_stand) = { FRAME_search01, FRAME_search13, carrier_frames_stand, nullptr };
 
-mframe_t carrier_frames_walk[] = {
+MonsterFrame carrier_frames_walk[] = {
 	{ ai_walk, 4 },
 	{ ai_walk, 4 },
 	{ ai_walk, 4 },
@@ -465,7 +465,7 @@ mframe_t carrier_frames_walk[] = {
 };
 MMOVE_T(carrier_move_walk) = { FRAME_search01, FRAME_search13, carrier_frames_walk, nullptr };
 
-mframe_t carrier_frames_run[] = {
+MonsterFrame carrier_frames_run[] = {
 	{ ai_run, 6, CarrierCoopCheck },
 	{ ai_run, 6, CarrierCoopCheck },
 	{ ai_run, 6, CarrierCoopCheck },
@@ -489,7 +489,7 @@ static void CarrierSpool(gentity_t *self) {
 	self->monsterInfo.weaponSound = sound_cg_loop;
 }
 
-mframe_t carrier_frames_attack_pre_mg[] = {
+MonsterFrame carrier_frames_attack_pre_mg[] = {
 	{ ai_charge, 4, CarrierSpool },
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
@@ -502,14 +502,14 @@ mframe_t carrier_frames_attack_pre_mg[] = {
 MMOVE_T(carrier_move_attack_pre_mg) = { FRAME_firea01, FRAME_firea08, carrier_frames_attack_pre_mg, nullptr };
 
 // Loop this
-mframe_t carrier_frames_attack_mg[] = {
+MonsterFrame carrier_frames_attack_mg[] = {
 	{ ai_charge, -2, CarrierMachineGun },
 	{ ai_charge, -2, CarrierMachineGun },
 	{ ai_charge, -2, carrier_reattack_mg }
 };
 MMOVE_T(carrier_move_attack_mg) = { FRAME_firea09, FRAME_firea11, carrier_frames_attack_mg, nullptr };
 
-mframe_t carrier_frames_attack_post_mg[] = {
+MonsterFrame carrier_frames_attack_post_mg[] = {
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
@@ -517,7 +517,7 @@ mframe_t carrier_frames_attack_post_mg[] = {
 };
 MMOVE_T(carrier_move_attack_post_mg) = { FRAME_firea12, FRAME_firea15, carrier_frames_attack_post_mg, carrier_run };
 
-mframe_t carrier_frames_attack_pre_gren[] = {
+MonsterFrame carrier_frames_attack_pre_gren[] = {
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
@@ -527,7 +527,7 @@ mframe_t carrier_frames_attack_pre_gren[] = {
 };
 MMOVE_T(carrier_move_attack_pre_gren) = { FRAME_fireb01, FRAME_fireb06, carrier_frames_attack_pre_gren, nullptr };
 
-mframe_t carrier_frames_attack_gren[] = {
+MonsterFrame carrier_frames_attack_gren[] = {
 	{ ai_charge, -15, CarrierGrenade },
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
@@ -535,7 +535,7 @@ mframe_t carrier_frames_attack_gren[] = {
 };
 MMOVE_T(carrier_move_attack_gren) = { FRAME_fireb07, FRAME_fireb10, carrier_frames_attack_gren, nullptr };
 
-mframe_t carrier_frames_attack_post_gren[] = {
+MonsterFrame carrier_frames_attack_post_gren[] = {
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
 	{ ai_charge, 4, CarrierCoopCheck },
@@ -545,15 +545,15 @@ mframe_t carrier_frames_attack_post_gren[] = {
 };
 MMOVE_T(carrier_move_attack_post_gren) = { FRAME_fireb11, FRAME_fireb16, carrier_frames_attack_post_gren, carrier_run };
 
-mframe_t carrier_frames_attack_rocket[] = {
+MonsterFrame carrier_frames_attack_rocket[] = {
 	{ ai_charge, 15, CarrierRocket }
 };
 MMOVE_T(carrier_move_attack_rocket) = { FRAME_fireb01, FRAME_fireb01, carrier_frames_attack_rocket, carrier_run };
 
 static void CarrierRail(gentity_t *self) {
-	vec3_t start;
-	vec3_t dir;
-	vec3_t forward, right;
+	Vector3 start;
+	Vector3 dir;
+	Vector3 forward, right;
 
 	CarrierCoopCheck(self);
 	AngleVectors(self->s.angles, forward, right, nullptr);
@@ -564,7 +564,7 @@ static void CarrierRail(gentity_t *self) {
 	dir.normalize();
 
 	monster_fire_railgun(self, start, dir, 50, 100, MZ2_CARRIER_RAILGUN);
-	self->monsterInfo.attack_finished = level.time + RAIL_FIRE_TIME;
+	self->monsterInfo.attackFinished = level.time + RAIL_FIRE_TIME;
 }
 
 static void CarrierSaveLoc(gentity_t *self) {
@@ -573,7 +573,7 @@ static void CarrierSaveLoc(gentity_t *self) {
 	self->pos1[2] += self->enemy->viewHeight;
 };
 
-mframe_t carrier_frames_attack_rail[] = {
+MonsterFrame carrier_frames_attack_rail[] = {
 	{ ai_charge, 2, CarrierCoopCheck },
 	{ ai_charge, 2, CarrierSaveLoc },
 	{ ai_charge, 2, CarrierCoopCheck },
@@ -586,7 +586,7 @@ mframe_t carrier_frames_attack_rail[] = {
 };
 MMOVE_T(carrier_move_attack_rail) = { FRAME_search01, FRAME_search09, carrier_frames_attack_rail, carrier_run };
 
-mframe_t carrier_frames_spawn[] = {
+MonsterFrame carrier_frames_spawn[] = {
 	{ ai_charge, -2 },
 	{ ai_charge, -2 },
 	{ ai_charge, -2 },
@@ -608,7 +608,7 @@ mframe_t carrier_frames_spawn[] = {
 };
 MMOVE_T(carrier_move_spawn) = { FRAME_spawn01, FRAME_spawn18, carrier_frames_spawn, carrier_run };
 
-mframe_t carrier_frames_pain_heavy[] = {
+MonsterFrame carrier_frames_pain_heavy[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -622,7 +622,7 @@ mframe_t carrier_frames_pain_heavy[] = {
 };
 MMOVE_T(carrier_move_pain_heavy) = { FRAME_death01, FRAME_death10, carrier_frames_pain_heavy, carrier_run };
 
-mframe_t carrier_frames_pain_light[] = {
+MonsterFrame carrier_frames_pain_light[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -630,7 +630,7 @@ mframe_t carrier_frames_pain_light[] = {
 };
 MMOVE_T(carrier_move_pain_light) = { FRAME_spawn01, FRAME_spawn04, carrier_frames_pain_light, carrier_run };
 
-mframe_t carrier_frames_death[] = {
+MonsterFrame carrier_frames_death[] = {
 	{ ai_move, 0, BossExplode },
 	{ ai_move },
 	{ ai_move },
@@ -672,7 +672,7 @@ void CarrierMachineGunHold(gentity_t *self) {
 }
 
 MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
-	vec3_t vec;
+	Vector3 vec;
 	float  range, luck;
 	bool   enemy_inback, enemy_infront, enemy_below;
 
@@ -688,7 +688,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 	if (self->bad_area) {
 		if ((enemy_inback) || (enemy_below))
 			M_SetAnimation(self, &carrier_move_attack_rocket);
-		else if ((frandom() < 0.1f) || (level.time < self->monsterInfo.attack_finished))
+		else if ((frandom() < 0.1f) || (level.time < self->monsterInfo.attackFinished))
 			M_SetAnimation(self, &carrier_move_attack_pre_mg);
 		else {
 			gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
@@ -697,14 +697,14 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 		return;
 	}
 
-	if (self->monsterInfo.attack_state == AS_BLIND) {
+	if (self->monsterInfo.attackState == MonsterAttackState::Blind) {
 		M_SetAnimation(self, &carrier_move_spawn);
 		return;
 	}
 
 	if (!enemy_inback && !enemy_infront && !enemy_below) // to side and not under
 	{
-		if ((frandom() < 0.1f) || (level.time < self->monsterInfo.attack_finished))
+		if ((frandom() < 0.1f) || (level.time < self->monsterInfo.attackFinished))
 			M_SetAnimation(self, &carrier_move_attack_pre_mg);
 		else {
 			gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
@@ -717,7 +717,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 		vec = self->enemy->s.origin - self->s.origin;
 		range = vec.length();
 		if (range <= 125) {
-			if ((frandom() < 0.8f) || (level.time < self->monsterInfo.attack_finished))
+			if ((frandom() < 0.8f) || (level.time < self->monsterInfo.attackFinished))
 				M_SetAnimation(self, &carrier_move_attack_pre_mg);
 			else {
 				gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
@@ -730,7 +730,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 					M_SetAnimation(self, &carrier_move_attack_pre_mg);
 				else if (luck <= 0.40f)
 					M_SetAnimation(self, &carrier_move_attack_pre_gren);
-				else if ((luck <= 0.7f) && !(level.time < self->monsterInfo.attack_finished)) {
+				else if ((luck <= 0.7f) && !(level.time < self->monsterInfo.attackFinished)) {
 					gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
 					M_SetAnimation(self, &carrier_move_attack_rail);
 				} else
@@ -740,7 +740,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 					M_SetAnimation(self, &carrier_move_attack_pre_mg);
 				else if (luck <= 0.65f)
 					M_SetAnimation(self, &carrier_move_attack_pre_gren);
-				else if (level.time >= self->monsterInfo.attack_finished) {
+				else if (level.time >= self->monsterInfo.attackFinished) {
 					gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
 					M_SetAnimation(self, &carrier_move_attack_rail);
 				} else
@@ -752,7 +752,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 			if (M_SlotsLeft(self) > 2) {
 				if (luck < 0.3f)
 					M_SetAnimation(self, &carrier_move_attack_pre_mg);
-				else if ((luck < 0.65f) && !(level.time < self->monsterInfo.attack_finished)) {
+				else if ((luck < 0.65f) && !(level.time < self->monsterInfo.attackFinished)) {
 					gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
 					self->pos1 = self->enemy->s.origin; // save for aiming the shot
 					self->pos1[2] += self->enemy->viewHeight;
@@ -760,7 +760,7 @@ MONSTERINFO_ATTACK(carrier_attack) (gentity_t *self) -> void {
 				} else
 					M_SetAnimation(self, &carrier_move_spawn);
 			} else {
-				if ((luck < 0.45f) || (level.time < self->monsterInfo.attack_finished))
+				if ((luck < 0.45f) || (level.time < self->monsterInfo.attackFinished))
 					M_SetAnimation(self, &carrier_move_attack_pre_mg);
 				else {
 					gi.sound(self, CHAN_WEAPON, sound_rail, 1, ATTN_NORM, 0);
@@ -816,7 +816,7 @@ void carrier_reattack_gren(gentity_t *self) {
 	M_SetAnimation(self, &carrier_move_attack_post_gren);
 }
 
-static PAIN(carrier_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const mod_t &mod) -> void {
+static PAIN(carrier_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	bool changed = false;
 
 	if (level.time < self->pain_debounce_time)
@@ -838,7 +838,7 @@ static PAIN(carrier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 
 	if (damage >= 10) {
 		if (damage < 30) {
-			if (mod.id == MOD_CHAINFIST || frandom() < 0.5f) {
+			if (mod.id == ModID::Chainfist || frandom() < 0.5f) {
 				changed = true;
 				M_SetAnimation(self, &carrier_move_pain_light);
 			}
@@ -852,15 +852,15 @@ static PAIN(carrier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 	if (changed) {
 		self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
 		self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
-		self->yaw_speed = orig_yaw_speed;
+		self->yawSpeed = orig_yaw_speed;
 	}
 }
 
 MONSTERINFO_SETSKIN(carrier_setskin) (gentity_t *self) -> void {
-	if (self->health < (self->max_health / 2))
-		self->s.skinnum = 1;
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum = 1;
 	else
-		self->s.skinnum = 0;
+		self->s.skinNum = 0;
 }
 
 void carrier_dead(gentity_t *self) {
@@ -870,7 +870,7 @@ void carrier_dead(gentity_t *self) {
 	gi.multicast(self->s.origin, MULTICAST_PHS, false);
 
 	self->s.sound = 0;
-	self->s.skinnum /= 2;
+	self->s.skinNum /= 2;
 
 	self->gravityVector.z = -1.0f;
 
@@ -890,7 +890,7 @@ void carrier_dead(gentity_t *self) {
 		});
 }
 
-static DIE(carrier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(carrier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, const MeansOfDeath &mod) -> void {
 	gi.sound(self, CHAN_VOICE, sound_death, 1, ATTN_NONE, 0);
 	self->deadFlag = true;
 	self->takeDamage = false;
@@ -909,13 +909,13 @@ MONSTERINFO_CHECKATTACK(Carrier_CheckAttack) (gentity_t *self) -> bool {
 	// PMM - shoot out the back if appropriate
 	if ((enemy_inback) || (!enemy_infront && enemy_below)) {
 		// this is using wait because the attack is supposed to be independent
-		if (level.time >= self->monsterInfo.fire_wait) {
-			self->monsterInfo.fire_wait = level.time + CARRIER_ROCKET_TIME;
+		if (level.time >= self->monsterInfo.fireWait) {
+			self->monsterInfo.fireWait = level.time + CARRIER_ROCKET_TIME;
 			self->monsterInfo.attack(self);
 			if (frandom() < 0.6f)
-				self->monsterInfo.attack_state = AS_SLIDING;
+				self->monsterInfo.attackState = MonsterAttackState::Sliding;
 			else
-				self->monsterInfo.attack_state = AS_STRAIGHT;
+				self->monsterInfo.attackState = MonsterAttackState::Straight;
 			return true;
 		}
 	}
@@ -924,31 +924,31 @@ MONSTERINFO_CHECKATTACK(Carrier_CheckAttack) (gentity_t *self) -> bool {
 }
 
 static void CarrierPrecache() {
-	gi.soundindex("flyer/flysght1.wav");
-	gi.soundindex("flyer/flysrch1.wav");
-	gi.soundindex("flyer/flypain1.wav");
-	gi.soundindex("flyer/flypain2.wav");
-	gi.soundindex("flyer/flyatck2.wav");
-	gi.soundindex("flyer/flyatck1.wav");
-	gi.soundindex("flyer/flydeth1.wav");
-	gi.soundindex("flyer/flyatck3.wav");
-	gi.soundindex("flyer/flyidle1.wav");
-	gi.soundindex("weapons/rockfly.wav");
-	gi.soundindex("infantry/infatck1.wav");
-	gi.soundindex("gunner/gunatck3.wav");
-	gi.soundindex("weapons/grenlb1b.wav");
-	gi.soundindex("tank/rocket.wav");
+	gi.soundIndex("flyer/flysght1.wav");
+	gi.soundIndex("flyer/flysrch1.wav");
+	gi.soundIndex("flyer/flypain1.wav");
+	gi.soundIndex("flyer/flypain2.wav");
+	gi.soundIndex("flyer/flyatck2.wav");
+	gi.soundIndex("flyer/flyatck1.wav");
+	gi.soundIndex("flyer/flydeth1.wav");
+	gi.soundIndex("flyer/flyatck3.wav");
+	gi.soundIndex("flyer/flyidle1.wav");
+	gi.soundIndex("weapons/rockfly.wav");
+	gi.soundIndex("infantry/infatck1.wav");
+	gi.soundIndex("gunner/gunatck3.wav");
+	gi.soundIndex("weapons/grenlb1b.wav");
+	gi.soundIndex("tank/rocket.wav");
 
-	gi.modelindex("models/monsters/flyer/tris.md2");
-	gi.modelindex("models/objects/rocket/tris.md2");
-	gi.modelindex("models/objects/debris2/tris.md2");
-	gi.modelindex("models/objects/grenade/tris.md2");
-	gi.modelindex("models/items/spawngro3/tris.md2");
-	gi.modelindex("models/objects/gibs/sm_metal/tris.md2");
-	gi.modelindex("models/objects/gibs/gear/tris.md2");
+	gi.modelIndex("models/monsters/flyer/tris.md2");
+	gi.modelIndex("models/objects/rocket/tris.md2");
+	gi.modelIndex("models/objects/debris2/tris.md2");
+	gi.modelIndex("models/objects/grenade/tris.md2");
+	gi.modelIndex("models/items/spawngro3/tris.md2");
+	gi.modelIndex("models/objects/gibs/sm_metal/tris.md2");
+	gi.modelIndex("models/objects/gibs/gear/tris.md2");
 }
 
-/*QUAKED monster_carrier (1 .5 0) (-56 -56 -44) (56 56 44) AMBUSH TRIGGER_SPAWN SIGHT x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
+/*QUAKED monster_carrier (1 .5 0) (-56 -56 -44) (56 56 44) AMBUSH TRIGGER_SPAWN SIGHT x CORPSE x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
 void SP_monster_carrier(gentity_t *self) {
 	if (!M_AllowSpawn(self)) {
@@ -968,22 +968,22 @@ void SP_monster_carrier(gentity_t *self) {
 	sound_cg_loop.assign("weapons/chngnl1a.wav");
 	sound_cg_up.assign("weapons/chngnu1a.wav");
 
-	self->monsterInfo.engine_sound = gi.soundindex("bosshovr/bhvengn1.wav");
+	self->monsterInfo.engineSound = gi.soundIndex("bosshovr/bhvengn1.wav");
 
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
-	self->s.modelindex = gi.modelindex("models/monsters/carrier/tris.md2");
+	self->s.modelIndex = gi.modelIndex("models/monsters/carrier/tris.md2");
 
-	gi.modelindex("models/monsters/carrier/gibs/base.md2");
-	gi.modelindex("models/monsters/carrier/gibs/chest.md2");
-	gi.modelindex("models/monsters/carrier/gibs/gl.md2");
-	gi.modelindex("models/monsters/carrier/gibs/head.md2");
-	gi.modelindex("models/monsters/carrier/gibs/lcg.md2");
-	gi.modelindex("models/monsters/carrier/gibs/lwing.md2");
-	gi.modelindex("models/monsters/carrier/gibs/rcg.md2");
-	gi.modelindex("models/monsters/carrier/gibs/rwing.md2");
-	gi.modelindex("models/monsters/carrier/gibs/spawner.md2");
-	gi.modelindex("models/monsters/carrier/gibs/thigh.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/base.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/chest.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/gl.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/head.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/lcg.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/lwing.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/rcg.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/rwing.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/spawner.md2");
+	gi.modelIndex("models/monsters/carrier/gibs/thigh.md2");
 
 	self->mins = { -56, -56, -44 };
 	self->maxs = { 56, 56, 44 };
@@ -997,8 +997,8 @@ void SP_monster_carrier(gentity_t *self) {
 	self->gibHealth = -200;
 	self->mass = 1000;
 
-	self->yaw_speed = 15;
-	orig_yaw_speed = self->yaw_speed;
+	self->yawSpeed = 15;
+	orig_yaw_speed = self->yawSpeed;
 
 	self->flags |= FL_IMMUNE_LASER;
 	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
@@ -1013,8 +1013,8 @@ void SP_monster_carrier(gentity_t *self) {
 	self->monsterInfo.attack = carrier_attack;
 	self->monsterInfo.sight = carrier_sight;
 	self->monsterInfo.checkAttack = Carrier_CheckAttack;
-	self->monsterInfo.setskin = carrier_setskin;
-	gi.linkentity(self);
+	self->monsterInfo.setSkin = carrier_setskin;
+	gi.linkEntity(self);
 
 	M_SetAnimation(self, &carrier_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;
@@ -1023,7 +1023,7 @@ void SP_monster_carrier(gentity_t *self) {
 
 	flymonster_start(self);
 
-	self->monsterInfo.attack_finished = 0_ms;
+	self->monsterInfo.attackFinished = 0_ms;
 
 	const char *reinforcements = default_reinforcements;
 

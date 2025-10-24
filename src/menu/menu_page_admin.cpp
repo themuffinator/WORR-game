@@ -1,7 +1,22 @@
-#include "../g_local.h"
+// menu_page_admin.cpp (Menu Page - Admin)
+// This file implements the administrator-specific menu pages, allowing server
+// admins to manage match settings in real-time. It uses a shared context
+// struct (`AdminSettings`) to temporarily store changes before they are applied.
+//
+// Key Responsibilities:
+// - Admin Settings UI: `OpenAdminSettingsMenu` constructs the menu that allows
+//   admins to toggle settings like timelimit, weapons stay, and match lock.
+// - State Management: Uses a local struct (`AdminSettings`) to manage the
+//   state of the menu options, which are then applied to the server's cvars
+//   when the admin confirms the changes.
+// - Dynamic Updates: The `onUpdate` callback ensures that the text of the menu
+//   items (e.g., "weapons stay: Yes") reflects the current state of the settings
+//   as the admin makes changes.
+
+#include "../g_local.hpp"
 
 struct AdminSettings {
-	int timelimit = 15;
+	int timeLimit = 15;
 	bool weaponsstay = false;
 	bool instantItems = false;
 	bool pu_drop = false;
@@ -21,9 +36,9 @@ void OpenAdminSettingsMenu(gentity_t *ent) {
 		.spacer();
 
 	{
-		auto [text, align, cb] = MakeCycle([settings]() { return settings->timelimit; }, [settings]() {
-			settings->timelimit = (settings->timelimit + 5) % 60;
-			if (settings->timelimit < 5) settings->timelimit = 5;
+		auto [text, align, cb] = MakeCycle([settings]() { return settings->timeLimit; }, [settings]() {
+			settings->timeLimit = (settings->timeLimit + 5) % 60;
+			if (settings->timeLimit < 5) settings->timeLimit = 5;
 			});
 		builder.add(text, align, cb);
 	}
@@ -68,7 +83,7 @@ void OpenAdminSettingsMenu(gentity_t *ent) {
 				.update([settings](gentity_t *ent, const Menu &m) {
 					auto &menu = const_cast<Menu &>(m);
 					int i = 2;
-					menu.entries[i++].text = fmt::format("time limit: {:2} mins", settings->timelimit);
+					menu.entries[i++].text = fmt::format("time limit: {:2} mins", settings->timeLimit);
 					menu.entries[i++].text = fmt::format("weapons stay: {}", settings->weaponsstay ? "Yes" : "No");
 					menu.entries[i++].text = fmt::format("instant items: {}", settings->instantItems ? "Yes" : "No");
 					menu.entries[i++].text = fmt::format("powerup drops: {}", settings->pu_drop ? "Yes" : "No");

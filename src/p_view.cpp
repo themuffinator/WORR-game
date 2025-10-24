@@ -1,19 +1,38 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#include "g_local.h"
-#include "monsters/m_player.h"
-#include "bots/bot_includes.h"
+// p_view.cpp (Player View)
+// This file is responsible for calculating and applying all client-side view
+// modifications that are not part of the core player movement. This includes
+// effects like weapon kickback, view bobbing, damage feedback, and falling
+// effects. It also contains the server-side logic for lag compensation.
+//
+// Key Responsibilities:
+// - `ClientEndServerFrame`: The main entry point called each frame to update
+//   the player's view state (`player_state_t`).
+// - View Bobbing: `P_CalcBob` calculates the up-and-down and side-to-side
+//   motion of the view as the player moves.
+// - Damage Feedback: Calculates view kicks (`P_DamageFeedback`) and screen
+//   blends when the player takes damage.
+// - Weapon Kick: `P_AddWeaponKick` applies the recoil effect to the player's
+//   view when they fire a weapon.
+// - Lag Compensation: Implements the `LagCompensate` system, which temporarily
+//   moves other players back in time to their positions as seen by the attacker,
+//   ensuring accurate hit detection in a networked environment.
 
-static gentity_t *currentPlayer;
-static gclient_t *currentClient;
+#include "g_local.hpp"
+#include "monsters/m_player.hpp"
+#include "bots/bot_includes.hpp"
 
-static vec3_t forward, right, up;
-float		  xySpeed;
+static gentity_t* currentPlayer{};
+static gclient_t* currentClient{};
 
-float bobMove;
-int	  bobCycle, bobCycleRun;	  // odd cycles are right foot going forward
-float bobFracSin; // sinf(bobfrac*M_PI)
+static Vector3 forward, right, up;
+float		  xySpeed = 0.0f;
+
+float bobMove = 0.0f;
+int	  bobCycle = 0, bobCycleRun = 0;	  // odd cycles are right foot going forward
+float bobFracSin = 0.0f; // std::sinf(bobfrac*M_PI)
 
 /*
 ===============
@@ -25,8 +44,8 @@ static inline bool SkipViewModifiers() {
 		return true;
 
 	// don't do bobbing, etc on grapple
-	if (currentClient->grappleEnt &&
-			currentClient->grappleState > GRAPPLE_STATE_FLY) {
+	if (currentClient->grapple.entity &&
+			currentClient->grapple.state > GrappleState::Fly) {
 		return true;
 	}
 
@@ -42,208 +61,177 @@ static inline bool SkipViewModifiers() {
 P_CalcRoll
 ===============
 */
-static float P_CalcRoll(const vec3_t &angles, const vec3_t &velocity) {
-	if (SkipViewModifiers()) {
+static float P_CalcRoll(const Vector3& angles, const Vector3& velocity) {
+	if (SkipViewModifiers())
 		return 0.0f;
-	}
 
-	float sign;
-	float side;
-	float value;
+	// Project velocity onto the right vector
+	float side = velocity.dot(right);
+	const float sign = (side < 0.0f) ? -1.0f : 1.0f;
+	side = std::fabs(side);
 
-	side = velocity.dot(right);
-	sign = side < 0 ? -1.f : 1.f;
-	side = fabsf(side);
+	const float maxRoll = g_rollAngle->value;
+	const float rollSpeed = g_rollSpeed->value;
 
-	value = g_rollangle->value;
+	// Scale roll by speed up to maximum
+	float roll = (side < rollSpeed)
+		? (side * maxRoll / rollSpeed)
+		: maxRoll;
 
-	if (side < g_rollspeed->value)
-		side = side * value / g_rollspeed->value;
-	else
-		side = value;
-
-	return side * sign;
+	return roll * sign;
 }
 
 /*
 ===============
 P_DamageFeedback
 
-Handles color blends and view kicks
+Handles color blends, view kicks, and damage indicators.
 ===============
 */
-static void P_DamageFeedback(gentity_t *player) {
-	gclient_t *client;
-	float			 side;
-	float			 realcount, count, kick;
-	vec3_t			 v;
-	int				 l;
-	constexpr vec3_t armor_color = { 1.0, 1.0, 1.0 };
-	constexpr vec3_t power_color = { 0.0, 1.0, 0.0 };
-	constexpr vec3_t bcolor = { 1.0, 0.0, 0.0 };
+static void P_DamageFeedback(gentity_t* player) {
+	if (!player || !player->client)
+		return;
 
-	client = player->client;
+	gclient_t* client = player->client;
 
-	// flash the backgrounds behind the status numbers
-	int16_t want_flashes = 0;
-
+	// -----------------------------------------------------
+	// Flash the backgrounds behind status numbers
+	// -----------------------------------------------------
+	int16_t flashes = 0;
 	if (client->damage.blood)
-		want_flashes |= 1;
+		flashes |= 1;
 	if (client->damage.armor && !(player->flags & FL_GODMODE))
-		want_flashes |= 2;
+		flashes |= 2;
 
-	if (want_flashes) {
-		client->flashTime = level.time + 100_ms;
-		client->ps.stats[STAT_FLASHES] = want_flashes;
-	} else if (client->flashTime < level.time)
+	if (flashes) {
+		client->feedback.flashTime = level.time + 100_ms;
+		client->ps.stats[STAT_FLASHES] = flashes;
+	}
+	else if (client->feedback.flashTime < level.time) {
 		client->ps.stats[STAT_FLASHES] = 0;
+	}
 
-	// total points of damage shot at the player this frame
-	count = (float)(client->damage.blood + client->damage.armor + client->damage.powerArmor);
-	if (count == 0)
-		return; // didn't take any damage
+	// -----------------------------------------------------
+	// Total damage this frame
+	// -----------------------------------------------------
+	float count = static_cast<float>(client->damage.blood + client->damage.armor + client->damage.powerArmor);
+	if (count <= 0.0f)
+		return; // no damage
 
-	// start a pain animation if still in the player model
-	if (client->anim.priority < ANIM_PAIN && player->s.modelindex == MODELINDEX_PLAYER) {
-		static int i;
+	// -----------------------------------------------------
+	// Trigger pain animation
+	// -----------------------------------------------------
+	if (client->anim.priority < ANIM_PAIN && player->s.modelIndex == MODELINDEX_PLAYER) {
+		static int painCycle;
 
 		client->anim.priority = ANIM_PAIN;
-		if (client->ps.pmove.pm_flags & PMF_DUCKED) {
+
+		if (client->ps.pmove.pmFlags & PMF_DUCKED) {
 			player->s.frame = FRAME_crpain1 - 1;
 			client->anim.end = FRAME_crpain4;
-		} else {
-			i = (i + 1) % 3;
-			switch (i) {
-			case 0:
-				player->s.frame = FRAME_pain101 - 1;
-				client->anim.end = FRAME_pain104;
-				break;
-			case 1:
-				player->s.frame = FRAME_pain201 - 1;
-				client->anim.end = FRAME_pain204;
-				break;
-			case 2:
-				player->s.frame = FRAME_pain301 - 1;
-				client->anim.end = FRAME_pain304;
-				break;
+		}
+		else {
+			painCycle = (painCycle + 1) % 3;
+			switch (painCycle) {
+			case 0: player->s.frame = FRAME_pain101 - 1; client->anim.end = FRAME_pain104; break;
+			case 1: player->s.frame = FRAME_pain201 - 1; client->anim.end = FRAME_pain204; break;
+			case 2: player->s.frame = FRAME_pain301 - 1; client->anim.end = FRAME_pain304; break;
 			}
 		}
 
 		client->anim.time = 0_ms;
 	}
 
-	realcount = count;
-
-	// if we took health damage, do a minimum clamp
+	// -----------------------------------------------------
+	// Clamp visible effect
+	// -----------------------------------------------------
+	const float realCount = count;
 	if (client->damage.blood) {
-		if (count < 10)
-			count = 10; // always make a visible effect
-	} else {
-		if (count > 2)
-			count = 2; // don't go too deep
+		if (count < 10.0f) count = 10.0f;
+	}
+	else {
+		if (count > 2.0f) count = 2.0f;
 	}
 
-	// play an appropriate pain sound
+	// -----------------------------------------------------
+	// Pain sounds
+	// -----------------------------------------------------
 	if ((level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE)) {
 		player->pain_debounce_time = level.time + 700_ms;
 
-		constexpr const char *pain_sounds[] = {
-			"*pain25_1.wav",
-			"*pain25_2.wav",
-			"*pain50_1.wav",
-			"*pain50_2.wav",
-			"*pain75_1.wav",
-			"*pain75_2.wav",
-			"*pain100_1.wav",
-			"*pain100_2.wav",
+		constexpr const char* painSounds[] = {
+			"*pain25_1.wav", "*pain25_2.wav",
+			"*pain50_1.wav", "*pain50_2.wav",
+			"*pain75_1.wav", "*pain75_2.wav",
+			"*pain100_1.wav", "*pain100_2.wav"
 		};
 
-		if (player->health < 25)
-			l = 0;
-		else if (player->health < 50)
-			l = 2;
-		else if (player->health < 75)
-			l = 4;
-		else
-			l = 6;
+		int index = (player->health < 25) ? 0 :
+			(player->health < 50) ? 2 :
+			(player->health < 75) ? 4 : 6;
 
-		if (brandom())
-			l |= 1;
+		if (brandom()) index |= 1;
 
-		gi.sound(player, CHAN_VOICE, gi.soundindex(pain_sounds[l]), 1, ATTN_NORM, 0);
-		// Paril: pain noises alert monsters
-		PlayerNoise(player, player->s.origin, PNOISE_SELF);
+		gi.sound(player, CHAN_VOICE, gi.soundIndex(painSounds[index]), 1.0f, ATTN_NORM, 0);
+		G_PlayerNoise(player, player->s.origin, PlayerNoise::Self); // alert monsters
 	}
 
-	// the total alpha of the blend is always proportional to count
-	if (client->damageAlpha < 0)
-		client->damageAlpha = 0;
+	// -----------------------------------------------------
+	// Damage blend (color flash)
+	// -----------------------------------------------------
+	client->feedback.damageAlpha = std::max(0.0f, client->feedback.damageAlpha);
 
-	// [Paril-KEX] tweak the values to rely less on this
-	// and more on damage indicators
-	if (client->damage.blood || (client->damageAlpha + count * 0.06f) < 0.15f) {
-		client->damageAlpha += count * 0.06f;
-
-		if (client->damageAlpha < 0.06f)
-			client->damageAlpha = 0.06f;
-		if (client->damageAlpha > 0.4f)
-			client->damageAlpha = 0.4f; // don't go too saturated
+	if (client->damage.blood || (client->feedback.damageAlpha + count * 0.06f) < 0.15f) {
+		client->feedback.damageAlpha += count * 0.06f;
+		client->feedback.damageAlpha = std::clamp(client->feedback.damageAlpha, 0.06f, 0.4f);
 	}
 
-	// mix in colors
-	v = {};
+	constexpr Vector3 armorColor = { 1.0f, 1.0f, 1.0f };
+	constexpr Vector3 powerColor = { 0.0f, 1.0f, 0.0f };
+	constexpr Vector3 bloodColor = { 1.0f, 0.0f, 0.0f };
 
+	Vector3 blend{};
 	if (client->damage.powerArmor)
-		v += power_color * (client->damage.powerArmor / realcount);
+		blend += powerColor * (client->damage.powerArmor / realCount);
 	if (client->damage.blood)
-		v += bcolor * max(15.0f, (client->damage.blood / realcount));
+		blend += bloodColor * std::max(15.0f, (client->damage.blood / realCount));
 	if (client->damage.armor)
-		v += armor_color * (client->damage.armor / realcount);
-	client->damageBlend = v.normalized();
+		blend += armorColor * (client->damage.armor / realCount);
 
-	//
-	// calculate view angle kicks
-	//
-	kick = (float)abs(client->damage.knockback);
-	if (kick && player->health > 0) // kick of 0 means no view adjust at all
-	{
-		kick = kick * 100 / player->health;
+	client->feedback.damageBlend = blend.normalized();
 
-		if (kick < count * 0.5f)
-			kick = count * 0.5f;
-		if (kick > 50)
-			kick = 50;
+	// -----------------------------------------------------
+	// View angle kicks
+	// -----------------------------------------------------
+	float kick = static_cast<float>(std::abs(client->damage.knockback));
+	if (kick > 0.0f && player->health > 0) {
+		kick = kick * 100.0f / player->health;
+		kick = std::clamp(kick, count * 0.5f, 50.0f);
 
-		v = client->damage.origin - player->s.origin;
-		v.normalize();
-
-		side = v.dot(right);
-		client->vDamageRoll = kick * side * 0.3f;
-
-		side = -v.dot(forward);
-		client->vDamagePitch = kick * side * 0.3f;
-
-		client->vDamageTime = level.time + DAMAGE_TIME();
+		Vector3 dir = (client->damage.origin - player->s.origin).normalized();
+		client->feedback.vDamageRoll = kick * dir.dot(right) * 0.3f;
+		client->feedback.vDamagePitch = kick * -dir.dot(forward) * 0.3f;
+		client->feedback.vDamageTime = level.time + DAMAGE_TIME();
 	}
 
-	// [Paril-KEX] send view indicators
-	if (client->numDamageIndicators) {
+	// -----------------------------------------------------
+	// Damage indicators (Paril-KEX)
+	// -----------------------------------------------------
+	if (client->numDamageIndicators > 0) {
 		gi.WriteByte(svc_damage);
 		gi.WriteByte(client->numDamageIndicators);
 
 		for (size_t i = 0; i < client->numDamageIndicators; i++) {
-			auto &indicator = client->damageIndicators[i];
+			auto& indicator = client->damageIndicators[i];
 
 			// encode total damage into 5 bits
-			uint8_t encoded = std::clamp((indicator.health + indicator.power + indicator.armor) / 3, 1, 0x1F);
+			uint8_t encoded = std::clamp(
+				(indicator.health + indicator.power + indicator.armor) / 3, 1, 0x1F);
 
-			// encode types in the latter 3 bits
-			if (indicator.health)
-				encoded |= 0x20;
-			if (indicator.armor)
-				encoded |= 0x40;
-			if (indicator.power)
-				encoded |= 0x80;
+			// encode types
+			if (indicator.health) encoded |= 0x20;
+			if (indicator.armor)  encoded |= 0x40;
+			if (indicator.power)  encoded |= 0x80;
 
 			gi.WriteByte(encoded);
 			gi.WriteDir((player->s.origin - indicator.from).normalized());
@@ -252,14 +240,102 @@ static void P_DamageFeedback(gentity_t *player) {
 		gi.unicast(player, false);
 	}
 
-	//
-	// clear totals
-	//
-	client->damage.blood = 0;
-	client->damage.armor = 0;
-	client->damage.powerArmor = 0;
-	client->damage.knockback = 0;
+	// -----------------------------------------------------
+	// Reset damage totals
+	// -----------------------------------------------------
+	client->damage = {};
 	client->numDamageIndicators = 0;
+}
+
+/*
+===============
+OffsetThirdPersonDeathView
+
+Applies a third-person camera offset behind the dead player,
+similar to Quake III Arena, using Vector3 and direct trace calls.
+===============
+*/
+static void OffsetThirdPersonDeathView(gentity_t *ent) {
+	constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
+	constexpr Vector3 maxs = { 4.0f,  4.0f,  4.0f };
+	const float focusDist = 512.0f;
+	const float camRange = 80.0f;
+	const float camAngleDeg = 0.0f;
+
+	const float camAngleRad = camAngleDeg * M_PI / 180.0f;
+	const float forwardScale = cosf(camAngleRad);
+	const float sideScale = std::sinf(camAngleRad);
+
+	// Eye origin
+	Vector3 viewOrigin = ent->s.origin;
+	viewOrigin.z += ent->viewHeight;
+
+	// View angles for death camera
+	Vector3 viewAngles = ent->client->ps.viewAngles;
+	viewAngles.y = ent->client->killerYaw;
+	if (viewAngles.x > 45.0f)
+		viewAngles.x = 45.0f;
+
+	// Convert to directional vectors
+	const float pitch = DEG2RAD(viewAngles.x);
+	const float yaw = DEG2RAD(viewAngles.y);
+
+	Vector3 forward = {
+		cosf(pitch) * cosf(yaw),
+		cosf(pitch) * std::sinf(yaw),
+		-std::sinf(pitch)
+	};
+
+	const Vector3 up = { 0.0f, 0.0f, 1.0f };
+	Vector3 right = forward.cross(up);
+
+	// Focus point in front of player
+	Vector3 focusPoint = viewOrigin + forward * focusDist;
+
+	// Initial camera position behind and offset from player
+	Vector3 cameraPos = viewOrigin - forward * (camRange * forwardScale) - right * (camRange * sideScale);
+#if 0
+	// Trace to avoid clipping into geometry
+	trace_t tr = gi.trace(viewOrigin, mins, maxs, cameraPos, ent, MASK_SOLID);
+	if (tr.fraction != 1.0f) {
+		cameraPos = tr.endPos;
+		cameraPos.z += (1.0f - tr.fraction) * 32.0f;
+
+		tr = gi.trace(viewOrigin, mins, maxs, cameraPos, ent, MASK_SOLID);
+		cameraPos = tr.endPos;
+	}
+#endif
+	cameraPos = viewOrigin - forward * 512.0f; // force it back further
+	cameraPos.z += 64.0f;
+
+	// Apply view offset from player origin
+	ent->client->ps.viewOffset = cameraPos - ent->s.origin;
+
+	// Aim the view angles toward the focus point
+	Vector3 toFocus = focusPoint - cameraPos;
+	float flatDist = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
+
+	ent->client->ps.viewAngles.x = -atan2f(toFocus.z, flatDist) * 180.0f / M_PI;
+	ent->client->ps.viewAngles.y = ent->client->killerYaw;
+	ent->client->ps.viewAngles.z = 0.0f;
+
+	ent->svFlags &= ~SVF_NOCLIENT;
+	ent->svFlags &= ~SVF_INSTANCED;
+
+	gi.Com_Print("ThirdPersonDeathView:\n");
+	gi.Com_PrintFmt("  camPos: {} {} {}\n", cameraPos.x, cameraPos.y, cameraPos.z);
+	gi.Com_PrintFmt("  ent->origin: {} {} {}\n", ent->s.origin.x, ent->s.origin.y, ent->s.origin.z);
+	gi.Com_PrintFmt("  viewOffset: {} {} {}\n", ent->client->ps.viewOffset.x, ent->client->ps.viewOffset.y, ent->client->ps.viewOffset.z);
+	gi.Com_PrintFmt("  viewAngles: pitch={} yaw={}\n", ent->client->ps.viewAngles.x, ent->client->ps.viewAngles.y);
+
+	if (ent->s.modelIndex == 0) {
+		gi.Com_Print("WARNING: Player modelIndex == 0 (not rendered)\n");
+	}
+	if (ent->svFlags & SVF_NOCLIENT) {
+		gi.Com_Print("WARNING: Player SVF_NOCLIENT is set\n");
+	}
+
+
 }
 
 /*
@@ -282,12 +358,12 @@ static void G_CalcViewOffset(gentity_t *ent) {
 	float  bob;
 	float  ratio;
 	float  delta;
-	vec3_t v;
+	Vector3 v;
 
 	//===================================
 
 	// base angles
-	vec3_t &angles = ent->client->ps.kick_angles;
+	Vector3 &angles = ent->client->ps.kickAngles;
 
 	// if dead, fix the angle and don't add any kick
 	if (ent->deadFlag && ClientIsPlaying(ent->client)) {
@@ -300,16 +376,19 @@ static void G_CalcViewOffset(gentity_t *ent) {
 			ent->client->ps.viewAngles[ROLL] = 40;
 			ent->client->ps.viewAngles[PITCH] = -15;
 		}
-		ent->client->ps.viewAngles[YAW] = ent->client->killer_yaw;
+		ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
+//#if 0
+		OffsetThirdPersonDeathView(ent);
+//#endif
 	} else if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
 		// add angles based on weapon kick
 		angles = P_CurrentKickAngles(ent);
 
 		// add angles based on damage kick
-		if (ent->client->vDamageTime > level.time) {
+		if (ent->client->feedback.vDamageTime > level.time) {
 			// [Paril-KEX] 100ms of slack is added to account for
 			// visual difference in higher tickrates
-			gtime_t diff = ent->client->vDamageTime - level.time;
+			GameTime diff = ent->client->feedback.vDamageTime - level.time;
 
 			// slack time remaining
 			if (DAMAGE_TIME_SLACK()) {
@@ -320,15 +399,15 @@ static void G_CalcViewOffset(gentity_t *ent) {
 			} else
 				ratio = diff.seconds() / (DAMAGE_TIME() - DAMAGE_TIME_SLACK()).seconds();
 
-			angles[PITCH] += ratio * ent->client->vDamagePitch;
-			angles[ROLL] += ratio * ent->client->vDamageRoll;
+			angles[PITCH] += ratio * ent->client->feedback.vDamagePitch;
+			angles[ROLL] += ratio * ent->client->feedback.vDamageRoll;
 		}
 
 		// add pitch based on fall kick
-		if (ent->client->fallTime > level.time) {
+		if (ent->client->feedback.fallTime > level.time) {
 			// [Paril-KEX] 100ms of slack is added to account for
 			// visual difference in higher tickrates
-			gtime_t diff = ent->client->fallTime - level.time;
+			GameTime diff = ent->client->feedback.fallTime - level.time;
 
 			// slack time remaining
 			if (DAMAGE_TIME_SLACK()) {
@@ -338,7 +417,7 @@ static void G_CalcViewOffset(gentity_t *ent) {
 					ratio = diff.seconds() / (FALL_TIME() - DAMAGE_TIME_SLACK()).seconds();
 			} else
 				ratio = diff.seconds() / (FALL_TIME() - DAMAGE_TIME_SLACK()).seconds();
-			angles[PITCH] += ratio * ent->client->fallValue;
+			angles[PITCH] += ratio * ent->client->feedback.fallValue;
 		}
 
 		// add angles based on velocity
@@ -351,12 +430,12 @@ static void G_CalcViewOffset(gentity_t *ent) {
 
 			// add angles based on bob
 			delta = bobFracSin * bob_pitch->value * xySpeed;
-			if ((ent->client->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
+			if ((ent->client->ps.pmove.pmFlags & PMF_DUCKED) && ent->groundEntity)
 				delta *= 6; // crouching
 			delta = min(delta, 1.2f);
 			angles[PITCH] += delta;
 			delta = bobFracSin * bob_roll->value * xySpeed;
-			if ((ent->client->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
+			if ((ent->client->ps.pmove.pmFlags & PMF_DUCKED) && ent->groundEntity)
 				delta *= 6; // crouching
 			delta = min(delta, 1.2f);
 			if (bobCycle & 1)
@@ -365,8 +444,8 @@ static void G_CalcViewOffset(gentity_t *ent) {
 		}
 
 		// add earthquake angles
-		if (ent->client->quakeTime > level.time) {
-			float factor = min(1.0f, (ent->client->quakeTime.seconds() / level.time.seconds()) * 0.25f);
+		if (ent->client->feedback.quakeTime > level.time) {
+			float factor = min(1.0f, (ent->client->feedback.quakeTime.seconds() / level.time.seconds()) * 0.25f);
 
 			angles.x += crandom_open() * factor;
 			angles.z += crandom_open() * factor;
@@ -374,9 +453,9 @@ static void G_CalcViewOffset(gentity_t *ent) {
 		}
 	}
 
-	// [Paril-KEX] clamp angles
+	// [Paril-KEX] std::clamp angles
 	for (int i = 0; i < 3; i++)
-		angles[i] = clamp(angles[i], -31.f, 31.f);
+		angles[i] = std::clamp(angles[i], -31.f, 31.f);
 
 	//===================================
 
@@ -387,10 +466,10 @@ static void G_CalcViewOffset(gentity_t *ent) {
 	// add fall height
 
 	if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
-		if (ent->client->fallTime > level.time) {
+		if (ent->client->feedback.fallTime > level.time) {
 			// [Paril-KEX] 100ms of slack is added to account for
 			// visual difference in higher tickrates
-			gtime_t diff = ent->client->fallTime - level.time;
+			GameTime diff = ent->client->feedback.fallTime - level.time;
 
 			// slack time remaining
 			if (DAMAGE_TIME_SLACK()) {
@@ -400,7 +479,7 @@ static void G_CalcViewOffset(gentity_t *ent) {
 					ratio = diff.seconds() / (FALL_TIME() - DAMAGE_TIME_SLACK()).seconds();
 			} else
 				ratio = diff.seconds() / (FALL_TIME() - DAMAGE_TIME_SLACK()).seconds();
-			v[2] -= ratio * ent->client->fallValue * 0.4f;
+			v[2] -= ratio * ent->client->feedback.fallValue * 0.4f;
 		}
 
 		// add bob height
@@ -432,7 +511,7 @@ static void G_CalcViewOffset(gentity_t *ent) {
 	else if (v[2] > 30)
 		v[2] = 30;
 
-	ent->client->ps.viewoffset = v;
+	ent->client->ps.viewOffset = v;
 }
 
 /*
@@ -444,19 +523,19 @@ static void G_CalcGunOffset(gentity_t *ent) {
 	int	  i;
 
 	if (ent->client->pers.weapon &&
-		!((ent->client->pers.weapon->id == IT_WEAPON_PLASMABEAM || ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE) && ent->client->weaponState == WEAPON_FIRING)
+		!((ent->client->pers.weapon->id == IT_WEAPON_PLASMABEAM || ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE) && ent->client->weaponState == WeaponState::Firing)
 		&& !SkipViewModifiers()) {
 		// gun angles from bobbing
-		ent->client->ps.gunangles[ROLL] = xySpeed * bobFracSin * 0.005f;
-		ent->client->ps.gunangles[YAW] = xySpeed * bobFracSin * 0.01f;
+		ent->client->ps.gunAngles[ROLL] = xySpeed * bobFracSin * 0.005f;
+		ent->client->ps.gunAngles[YAW] = xySpeed * bobFracSin * 0.01f;
 		if (bobCycle & 1) {
-			ent->client->ps.gunangles[ROLL] = -ent->client->ps.gunangles[ROLL];
-			ent->client->ps.gunangles[YAW] = -ent->client->ps.gunangles[YAW];
+			ent->client->ps.gunAngles[ROLL] = -ent->client->ps.gunAngles[ROLL];
+			ent->client->ps.gunAngles[YAW] = -ent->client->ps.gunAngles[YAW];
 		}
 
-		ent->client->ps.gunangles[PITCH] = xySpeed * bobFracSin * 0.005f;
+		ent->client->ps.gunAngles[PITCH] = xySpeed * bobFracSin * 0.005f;
 
-		vec3_t viewangles_delta = ent->client->oldViewAngles - ent->client->ps.viewAngles;
+		Vector3 viewangles_delta = ent->client->oldViewAngles - ent->client->ps.viewAngles;
 
 		for (i = 0; i < 3; i++)
 			ent->client->slow_view_angles[i] += viewangles_delta[i];
@@ -479,33 +558,33 @@ static void G_CalcGunOffset(gentity_t *ent) {
 
 			// [Sam-KEX] Apply only half-delta. Makes the weapons look less detatched from the player.
 			if (i == ROLL)
-				ent->client->ps.gunangles[i] += (0.1f * d) * 0.5f;
+				ent->client->ps.gunAngles[i] += (0.1f * d) * 0.5f;
 			else
-				ent->client->ps.gunangles[i] += (0.2f * d) * 0.5f;
+				ent->client->ps.gunAngles[i] += (0.2f * d) * 0.5f;
 
 			float reduction_factor = viewangles_delta[i] ? 0.05f : 0.15f;
 
 			if (d > 0)
-				d = max(0.f, d - gi.frame_time_ms * reduction_factor);
+				d = max(0.f, d - gi.frameTimeMs * reduction_factor);
 			else if (d < 0)
-				d = min(0.f, d + gi.frame_time_ms * reduction_factor);
+				d = min(0.f, d + gi.frameTimeMs * reduction_factor);
 		}
 
 		// [Paril-KEX] cl_rollhack
-		ent->client->ps.gunangles[ROLL] = -ent->client->ps.gunangles[ROLL];
+		ent->client->ps.gunAngles[ROLL] = -ent->client->ps.gunAngles[ROLL];
 	} else {
 		for (i = 0; i < 3; i++)
-			ent->client->ps.gunangles[i] = 0;
+			ent->client->ps.gunAngles[i] = 0;
 	}
 
 	// gun height
-	ent->client->ps.gunoffset = {};
+	ent->client->ps.gunOffset = {};
 
 	// gun_x / gun_y / gun_z are development tools
 	for (i = 0; i < 3; i++) {
-		ent->client->ps.gunoffset[i] += forward[i] * (gun_y->value);
-		ent->client->ps.gunoffset[i] += right[i] * gun_x->value;
-		ent->client->ps.gunoffset[i] += up[i] * (-gun_z->value);
+		ent->client->ps.gunOffset[i] += forward[i] * (gun_y->value);
+		ent->client->ps.gunOffset[i] += right[i] * gun_x->value;
+		ent->client->ps.gunOffset[i] += up[i] * (-gun_z->value);
 	}
 }
 
@@ -515,7 +594,7 @@ G_CalcBlend
 =============
 */
 
-[[nodiscard]] static float G_PowerUpFadeAlpha(gtime_t left, float max_alpha = 0.08f) {
+[[nodiscard]] static float G_PowerUpFadeAlpha(GameTime left, float max_alpha = 0.08f) {
 	if (left.milliseconds() > 3000)
 		return max_alpha;
 
@@ -524,14 +603,14 @@ G_CalcBlend
 }
 
 static void G_CalcBlend(gentity_t *ent) {
-	gtime_t remaining;
+	GameTime remaining;
 	ent->client->ps.damageBlend = ent->client->ps.screenBlend = {};
 
-	auto BlendIfExpiring = [&](gtime_t end_time, float r, float g, float b, float max_alpha, const char *sound = nullptr) {
+	auto BlendIfExpiring = [&](GameTime end_time, float r, float g, float b, float max_alpha, const char *sound = nullptr) {
 		if (end_time > level.time) {
 			remaining = end_time - level.time;
 			if (remaining.milliseconds() == 3000 && sound)
-				gi.sound(ent, CHAN_ITEM, gi.soundindex(sound), 1, ATTN_NORM, 0);
+				gi.sound(ent, CHAN_ITEM, gi.soundIndex(sound), 1, ATTN_NORM, 0);
 			if (G_PowerUpExpiringRelative(remaining))
 				G_AddBlend(r, g, b, G_PowerUpFadeAlpha(remaining, max_alpha), ent->client->ps.screenBlend);
 		}
@@ -543,14 +622,16 @@ static void G_CalcBlend(gentity_t *ent) {
 	}
 	BlendIfExpiring(ent->client->powerupTime.quadDamage, 0, 0, 1, 0.08f, "items/damage2.wav");
 	BlendIfExpiring(ent->client->powerupTime.haste, 1, 0.2f, 0.5f, 0.08f, "items/quadfire2.wav");
-	BlendIfExpiring(ent->client->powerupTime.doubleDamage, 0.9f, 0.1f, 0.1f, 0.08f, "misc/ddamage2.wav");
+	BlendIfExpiring(ent->client->powerupTime.doubleDamage, 0, 0, 1, 0.08f, "misc/ddamage2.wav");
+	BlendIfExpiring(ent->client->powerupTime.empathyShield, 0.9f, 0.1f, 0.1f, 0.08f, "items/suit2.wav");
+	BlendIfExpiring(ent->client->powerupTime.antiGravBelt, 0.1f, 0.1f, 0.1f, 0.04f, "items/suit2.wav");
 	BlendIfExpiring(ent->client->powerupTime.battleSuit, 0.9f, 0.7f, 0, 0.08f, "items/protect2.wav");
 	BlendIfExpiring(ent->client->powerupTime.invisibility, 0.8f, 0.8f, 0.8f, 0.08f, "items/protect2.wav");
 	BlendIfExpiring(ent->client->powerupTime.enviroSuit, 0, 1, 0, 0.08f, "items/airout.wav");
 	BlendIfExpiring(ent->client->powerupTime.rebreather, 0.4f, 1, 0.4f, 0.04f, "items/airout.wav");
 
 	// Freeze effect
-	if (GT(GT_FREEZE) && ent->client->eliminated && !ent->client->followTarget && !ent->client->resp.thawer) {
+	if (Game::Is(GameType::FreezeTag) && ent->client->eliminated && !ent->client->follow.target && !ent->client->resp.thawer) {
 		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
 	}
 
@@ -574,20 +655,20 @@ static void G_CalcBlend(gentity_t *ent) {
 	}
 
 	// Damage blend
-	if (ent->client->damageAlpha > 0)
-		G_AddBlend(ent->client->damageBlend[0], ent->client->damageBlend[1], ent->client->damageBlend[2], ent->client->damageAlpha, ent->client->ps.damageBlend);
+	if (ent->client->feedback.damageAlpha > 0)
+		G_AddBlend(ent->client->feedback.damageBlend[0], ent->client->feedback.damageBlend[1], ent->client->feedback.damageBlend[2], ent->client->feedback.damageAlpha, ent->client->ps.damageBlend);
 
 	// Drowning
 	if (ent->airFinished < level.time + 9_sec) {
-		constexpr vec3_t drown_color = { 0.1f, 0.1f, 0.2f };
+		constexpr Vector3 drown_color = { 0.1f, 0.1f, 0.2f };
 		constexpr float max_drown_alpha = 0.75f;
 		float alpha = (ent->airFinished < level.time) ? 1 : (1.f - ((ent->airFinished - level.time).seconds() / 9.0f));
 		G_AddBlend(drown_color[0], drown_color[1], drown_color[2], std::min(alpha, max_drown_alpha), ent->client->ps.damageBlend);
 	}
 
 	// Decay blend values
-	ent->client->damageAlpha = std::max(0.0f, ent->client->damageAlpha - gi.frame_time_s * 0.6f);
-	ent->client->bonusAlpha = std::max(0.0f, ent->client->bonusAlpha - gi.frame_time_s);
+	ent->client->feedback.damageAlpha = std::max(0.0f, ent->client->feedback.damageAlpha - gi.frameTimeSec * 0.6f);
+	ent->client->feedback.bonusAlpha = std::max(0.0f, ent->client->feedback.bonusAlpha - gi.frameTimeSec);
 }
 /*
 =============
@@ -599,14 +680,14 @@ static void P_WorldEffects() {
 		return;
 
 	// Freecam or following
-	if (currentPlayer->moveType == MOVETYPE_FREECAM || currentPlayer->client->followTarget) {
+	if (currentPlayer->moveType == MoveType::FreeCam || currentPlayer->client->follow.target) {
 		currentPlayer->airFinished = level.time + 12_sec;
 		return;
 	}
 
 	constexpr int32_t max_drown_dmg = 15;
 
-	const auto waterLevel = currentPlayer->waterlevel;
+	const auto waterLevel = currentPlayer->waterLevel;
 	const auto oldWaterLevel = currentClient->oldWaterLevel;
 	currentClient->oldWaterLevel = waterLevel;
 
@@ -617,19 +698,19 @@ static void P_WorldEffects() {
 	const bool anyProtection = breather || enviroSuit || battleSuit || spawnProtection;
 
 	auto PlaySound = [](gentity_t *ent, soundchan_t chan, const char *sfx) {
-		gi.sound(ent, chan, gi.soundindex(sfx), 1, ATTN_NORM, 0);
+		gi.sound(ent, chan, gi.soundIndex(sfx), 1, ATTN_NORM, 0);
 		};
 	auto PlayerSfxNoise = []() {
-		PlayerNoise(currentPlayer, currentPlayer->s.origin, PNOISE_SELF);
+		G_PlayerNoise(currentPlayer, currentPlayer->s.origin, PlayerNoise::Self);
 		};
 
 	// Water enter
 	if (!oldWaterLevel && waterLevel) {
 		PlayerSfxNoise();
-		const int watertype = currentPlayer->watertype;
-		if (watertype & CONTENTS_LAVA)
+		const int waterType = currentPlayer->waterType;
+		if (waterType & CONTENTS_LAVA)
 			PlaySound(currentPlayer, CHAN_BODY, "player/lava_in.wav");
-		else if (watertype & (CONTENTS_SLIME | CONTENTS_WATER))
+		else if (waterType & (CONTENTS_SLIME | CONTENTS_WATER))
 			PlaySound(currentPlayer, CHAN_BODY, "player/watr_in.wav");
 
 		currentPlayer->flags |= FL_INWATER;
@@ -683,7 +764,7 @@ static void P_WorldEffects() {
 				currentPlayer->pain_debounce_time = level.time;
 
 				Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin,
-					vec3_origin, currentPlayer->dmg, 0, DAMAGE_NO_ARMOR, MOD_WATER);
+					vec3_origin, currentPlayer->dmg, 0, DamageFlags::NoArmor, ModID::Drowning);
 			}
 		} else if (currentPlayer->airFinished <= level.time + 3_sec &&
 			currentClient->nextDrownTime < level.time) {
@@ -697,13 +778,13 @@ static void P_WorldEffects() {
 	}
 
 	// Lava or slime damage
-	if (waterLevel && (currentPlayer->watertype & (CONTENTS_LAVA | CONTENTS_SLIME)) &&
+	if (waterLevel && (currentPlayer->waterType & (CONTENTS_LAVA | CONTENTS_SLIME)) &&
 		currentPlayer->slime_debounce_time <= level.time) {
 
 		const bool immune = enviroSuit || battleSuit || spawnProtection;
-		const int watertype = currentPlayer->watertype;
+		const int waterType = currentPlayer->waterType;
 
-		if (watertype & CONTENTS_LAVA) {
+		if (waterType & CONTENTS_LAVA) {
 			if (currentPlayer->health > 0 && currentPlayer->pain_debounce_time <= level.time) {
 				PlaySound(currentPlayer, CHAN_VOICE, brandom() ? "player/burn1.wav" : "player/burn2.wav");
 				if (immune)
@@ -711,13 +792,13 @@ static void P_WorldEffects() {
 				currentPlayer->pain_debounce_time = level.time + 1_sec;
 			}
 			const int dmg = (spawnProtection ? 0 : (enviroSuit || battleSuit ? 1 : 3)) * waterLevel;
-			Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin, vec3_origin, dmg, 0, DAMAGE_NONE, MOD_LAVA);
+			Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin, vec3_origin, dmg, 0, DamageFlags::Normal, ModID::Lava);
 		}
 
-		if (watertype & CONTENTS_SLIME) {
+		if (waterType & CONTENTS_SLIME) {
 			if (!(enviroSuit || battleSuit)) {
 				Damage(currentPlayer, world, world, vec3_origin, currentPlayer->s.origin,
-					vec3_origin, 1 * waterLevel, 0, DAMAGE_NONE, MOD_SLIME);
+					vec3_origin, 1 * waterLevel, 0, DamageFlags::Normal, ModID::Slime);
 			} else if (currentPlayer->health > 0 && currentPlayer->pain_debounce_time <= level.time) {
 				PlaySound(currentPlayer, CHAN_AUX, "items/protect3.wav");
 				currentPlayer->pain_debounce_time = level.time + 1_sec;
@@ -736,18 +817,18 @@ static void ClientSetEffects(gentity_t *ent) {
 	int pa_type;
 
 	ent->s.effects = EF_NONE;
-	ent->s.renderfx &= RF_STAIR_STEP;
-	ent->s.renderfx |= RF_IR_VISIBLE;
+	ent->s.renderFX &= RF_STAIR_STEP;
+	ent->s.renderFX |= RF_IR_VISIBLE;
 	ent->s.alpha = 1.0;
 
-	if (ent->health <= 0 || ent->client->eliminated || level.intermissionTime)
+	if (ent->health <= 0 || ent->client->eliminated || level.intermission.time)
 		return;
 
 	if (ent->flags & FL_FLASHLIGHT)
 		ent->s.effects |= EF_FLASHLIGHT;
 
 	if (ent->flags & FL_DISGUISED)
-		ent->s.renderfx |= RF_USE_DISGUISE;
+		ent->s.renderFX |= RF_USE_DISGUISE;
 
 	if (ent->powerarmor_time > level.time) {
 		pa_type = PowerArmorType(ent);
@@ -755,25 +836,25 @@ static void ClientSetEffects(gentity_t *ent) {
 			ent->s.effects |= EF_POWERSCREEN;
 		} else if (pa_type == IT_POWER_SHIELD) {
 			ent->s.effects |= EF_COLOR_SHELL;
-			ent->s.renderfx |= RF_SHELL_GREEN;
+			ent->s.renderFX |= RF_SHELL_GREEN;
 		}
 	}
 
 	if (ent->client->pu_regen_time_blip > level.time) {
 		ent->s.effects |= EF_COLOR_SHELL;
-		ent->s.renderfx |= RF_SHELL_RED;
+		ent->s.renderFX |= RF_SHELL_RED;
 	}
 
 	if (ent->client->pu_time_spawn_protection_blip > level.time) {
 		ent->s.effects |= EF_COLOR_SHELL;
-		ent->s.renderfx |= RF_SHELL_RED;
+		ent->s.renderFX |= RF_SHELL_RED;
 	}
 
 	CTF_ClientEffects(ent);
 
-	if (GT(GT_BALL) && ent->client->pers.inventory[IT_BALL] > 0) {
+	if (Game::Is(GameType::ProBall) && ent->client->pers.inventory[IT_BALL] > 0) {
 		ent->s.effects |= EF_COLOR_SHELL;
-		ent->s.renderfx |= RF_SHELL_RED | RF_SHELL_GREEN;
+		ent->s.renderFX |= RF_SHELL_RED | RF_SHELL_GREEN;
 	}
 
 	if (ent->client->powerupTime.quadDamage > level.time)
@@ -787,8 +868,11 @@ static void ClientSetEffects(gentity_t *ent) {
 			ent->s.effects |= EF_DUALFIRE;
 	if (ent->client->powerupTime.doubleDamage > level.time)
 		if (G_PowerUpExpiring(ent->client->powerupTime.doubleDamage))
-			ent->s.effects |= EF_DOUBLE;
-	if ((ent->client->ownedSphere) && (ent->client->ownedSphere->spawnflags == SF_SPHERE_DEFENDER))
+			ent->s.effects |= EF_QUAD;
+	if (ent->client->powerupTime.empathyShield > level.time)
+		if (G_PowerUpExpiring(ent->client->powerupTime.empathyShield))
+			ent->s.effects |= EF_EMPATHY;
+	if ((ent->client->ownedSphere) && (ent->client->ownedSphere->spawnFlags == SF_SPHERE_DEFENDER))
 		ent->s.effects |= EF_HALF_DAMAGE;
 	if (ent->client->trackerPainTime > level.time)
 		ent->s.effects |= EF_TRACKERTRAIL;
@@ -817,7 +901,7 @@ static void ClientSetEvent(gentity_t *ent) {
 	if (RS(RS_Q1))
 		return;
 
-	if (ent->client->ps.pmove.pm_flags & PMF_ON_LADDER) {
+	if (ent->client->ps.pmove.pmFlags & PMF_ON_LADDER) {
 		if (g_ladderSteps->integer > 1 || (g_ladderSteps->integer == 1 && !deathmatch->integer)) {
 			if (currentClient->last_ladder_sound < level.time &&
 				(currentClient->last_ladder_pos - ent->s.origin).length() > 48.f) {
@@ -827,7 +911,7 @@ static void ClientSetEvent(gentity_t *ent) {
 			}
 		}
 	} else if (ent->groundEntity && xySpeed > 225) {
-		if ((int)(currentClient->bobTime + bobMove) != bobCycleRun)
+		if ((int)(currentClient->feedback.bobTime + bobMove) != bobCycleRun)
 			ent->s.event = EV_FOOTSTEP;
 	}
 }
@@ -844,17 +928,17 @@ static void ClientSetSound(gentity_t *ent) {
 	// help beep (no more than three times)
 	if (ent->client->pers.helpchanged && ent->client->pers.helpchanged <= 3 && ent->client->pers.help_time < level.time) {
 		if (ent->client->pers.helpchanged == 1) // [KEX] haleyjd: once only
-			gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/pc_up.wav"), 1, ATTN_STATIC, 0);
+			gi.sound(ent, CHAN_AUTO, gi.soundIndex("misc/pc_up.wav"), 1, ATTN_STATIC, 0);
 		ent->client->pers.helpchanged++;
 		ent->client->pers.help_time = level.time + 5_sec;
 	}
 
 	// reset defaults
 	ent->s.sound = 0;
-	ent->s.loop_attenuation = 0;
-	ent->s.loop_volume = 0;
+	ent->s.loopAttenuation = 0;
+	ent->s.loopVolume = 0;
 
-	if (ent->waterlevel && (ent->watertype & (CONTENTS_LAVA | CONTENTS_SLIME))) {
+	if (ent->waterLevel && (ent->waterType & (CONTENTS_LAVA | CONTENTS_SLIME))) {
 		ent->s.sound = snd_fry;
 		return;
 	}
@@ -867,30 +951,30 @@ static void ClientSetSound(gentity_t *ent) {
 	else if (ent->client->pers.weapon) {
 		switch (ent->client->pers.weapon->id) {
 		case IT_WEAPON_RAILGUN:
-			ent->s.sound = gi.soundindex("weapons/rg_hum.wav");
+			ent->s.sound = gi.soundIndex("weapons/rg_hum.wav");
 			break;
 		case IT_WEAPON_BFG:
 		case IT_WEAPON_PLASMABEAM:
-			ent->s.sound = gi.soundindex("weapons/bfg_hum.wav");
+			ent->s.sound = gi.soundIndex("weapons/bfg_hum.wav");
 			break;
 		case IT_WEAPON_PHALANX:
-			ent->s.sound = gi.soundindex("weapons/phaloop.wav");
+			ent->s.sound = gi.soundIndex("weapons/phaloop.wav");
 			break;
 		}
 	}
 
 	// [Paril-KEX] if no other sound is playing, play appropriate grapple sounds
-	if (!ent->s.sound && ent->client->grappleEnt) {
-		if (ent->client->grappleState == GRAPPLE_STATE_PULL)
-			ent->s.sound = gi.soundindex("weapons/grapple/grpull.wav");
-		else if (ent->client->grappleState == GRAPPLE_STATE_FLY)
-			ent->s.sound = gi.soundindex("weapons/grapple/grfly.wav");
-		else if (ent->client->grappleState == GRAPPLE_STATE_HANG)
-			ent->s.sound = gi.soundindex("weapons/grapple/grhang.wav");
+	if (!ent->s.sound && ent->client->grapple.entity) {
+		if (ent->client->grapple.state == GrappleState::Pull)
+			ent->s.sound = gi.soundIndex("weapons/grapple/grpull.wav");
+		else if (ent->client->grapple.state == GrappleState::Fly)
+			ent->s.sound = gi.soundIndex("weapons/grapple/grfly.wav");
+		else if (ent->client->grapple.state == GrappleState::Hang)
+			ent->s.sound = gi.soundIndex("weapons/grapple/grhang.wav");
 	}
 
 	// weapon sounds play at a higher attn
-	ent->s.loop_attenuation = ATTN_NORM;
+	ent->s.loopAttenuation = ATTN_NORM;
 }
 
 /*
@@ -902,12 +986,12 @@ void PlayerSetFrame(gentity_t *ent) {
 	gclient_t *client;
 	bool	   duck, run;
 
-	if (ent->s.modelindex != MODELINDEX_PLAYER)
+	if (ent->s.modelIndex != MODELINDEX_PLAYER)
 		return; // not in the player model
 
 	client = ent->client;
 
-	duck = client->ps.pmove.pm_flags & PMF_DUCKED ? true : false;
+	duck = client->ps.pmove.pmFlags & PMF_DUCKED ? true : false;
 	run = xySpeed ? true : false;
 
 	// check for stand/duck and stop/go transitions
@@ -964,7 +1048,7 @@ newAnim:
 	if (!ent->groundEntity) {
 		// if on grapple, don't go into jump frame, go into standing
 		// frame
-		if (client->grappleEnt) {
+		if (client->grapple.entity) {
 			if (duck) {
 				ent->s.frame = FRAME_crstnd01;
 				client->anim.end = FRAME_crstnd19;
@@ -1012,7 +1096,7 @@ P_RunMegaHealth
 static void P_RunMegaHealth(gentity_t *ent) {
 	if (!ent->client->pers.megaTime)
 		return;
-	else if (ent->health <= ent->max_health) {
+	else if (ent->health <= ent->maxHealth) {
 		ent->client->pers.megaTime = 0_ms;
 		return;
 	}
@@ -1022,7 +1106,7 @@ static void P_RunMegaHealth(gentity_t *ent) {
 	if (ent->client->pers.megaTime <= 0_ms) {
 		ent->health--;
 
-		if (ent->health > ent->max_health)
+		if (ent->health > ent->maxHealth)
 			ent->client->pers.megaTime = 1000_ms;
 		else
 			ent->client->pers.megaTime = 0_ms;
@@ -1036,8 +1120,8 @@ LagCompensate
 [Paril-KEX] push all players' origins back to match their lag compensation
 =================
 */
-void LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &dir) {
-	uint32_t current_frame = gi.ServerFrame();
+void LagCompensate(gentity_t *from_player, const Vector3 &start, const Vector3 &dir) {
+	uint32_t currentFrame = gi.ServerFrame();
 
 	// if you need this to fight monsters, you need help
 	if (!deathmatch->integer)
@@ -1045,11 +1129,11 @@ void LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &di
 	else if (!g_lagCompensation->integer)
 		return;
 	// don't need this
-	else if (from_player->client->cmd.server_frame >= current_frame ||
+	else if (from_player->client->cmd.serverFrame >= currentFrame ||
 		(from_player->svFlags & SVF_BOT))
 		return;
 
-	int32_t frame_delta = (current_frame - from_player->client->cmd.server_frame) + 1;
+	int32_t frameDelta = (currentFrame - from_player->client->cmd.serverFrame) + 1;
 
 	for (auto player : active_clients()) {
 		// we aren't gonna hit ourselves
@@ -1057,39 +1141,39 @@ void LagCompensate(gentity_t *from_player, const vec3_t &start, const vec3_t &di
 			continue;
 
 		// not enough data, spare them
-		if (player->client->num_lag_origins < frame_delta)
+		if (player->client->lag.numOrigins < frameDelta)
 			continue;
 
 		// if they're way outside of cone of vision, they won't be captured in this
 		if ((player->s.origin - start).normalized().dot(dir) < 0.75f)
 			continue;
 
-		int32_t lag_id = (player->client->next_lag_origin - 1) - (frame_delta - 1);
+		int32_t lagID = (player->client->lag.nextOrigin - 1) - (frameDelta - 1);
 
-		if (lag_id < 0)
-			lag_id = game.max_lag_origins + lag_id;
+		if (lagID < 0)
+			lagID = game.maxLagOrigins + lagID;
 
-		if (lag_id < 0 || lag_id >= player->client->num_lag_origins) {
+		if (lagID < 0 || lagID >= player->client->lag.numOrigins) {
 			gi.Com_PrintFmt("{}: lag compensation error.\n", __FUNCTION__);
 			UnLagCompensate();
 			return;
 		}
 
-		const vec3_t &lag_origin = (game.lag_origins + ((player->s.number - 1) * game.max_lag_origins))[lag_id];
+		const Vector3 &lagOrigin = (game.lagOrigins + ((player->s.number - 1) * game.maxLagOrigins))[lagID];
 
 		// no way they'd be hit if they aren't in the PVS
-		if (!gi.inPVS(lag_origin, start, false))
+		if (!gi.inPVS(lagOrigin, start, false))
 			continue;
 
 		// only back up once
-		if (!player->client->is_lag_compensated) {
-			player->client->is_lag_compensated = true;
-			player->client->lag_restore_origin = player->s.origin;
+		if (!player->client->lag.isCompensated) {
+			player->client->lag.isCompensated = true;
+			player->client->lag.restoreOrigin = player->s.origin;
 		}
 
-		player->s.origin = lag_origin;
+		player->s.origin = lagOrigin;
 
-		gi.linkentity(player);
+		gi.linkEntity(player);
 	}
 }
 
@@ -1102,10 +1186,10 @@ UnLagCompensate
 */
 void UnLagCompensate() {
 	for (auto player : active_clients()) {
-		if (player->client->is_lag_compensated) {
-			player->client->is_lag_compensated = false;
-			player->s.origin = player->client->lag_restore_origin;
-			gi.linkentity(player);
+		if (player->client->lag.isCompensated) {
+			player->client->lag.isCompensated = false;
+			player->s.origin = player->client->lag.restoreOrigin;
+			gi.linkEntity(player);
 		}
 	}
 }
@@ -1118,11 +1202,11 @@ G_SaveLagCompensation
 =================
 */
 static inline void G_SaveLagCompensation(gentity_t *ent) {
-	(game.lag_origins + ((ent->s.number - 1) * game.max_lag_origins))[ent->client->next_lag_origin] = ent->s.origin;
-	ent->client->next_lag_origin = (ent->client->next_lag_origin + 1) % game.max_lag_origins;
+	(game.lagOrigins + ((ent->s.number - 1) * game.maxLagOrigins))[ent->client->lag.nextOrigin] = ent->s.origin;
+	ent->client->lag.nextOrigin = (ent->client->lag.nextOrigin + 1) % game.maxLagOrigins;
 
-	if (ent->client->num_lag_origins < game.max_lag_origins)
-		ent->client->num_lag_origins++;
+	if (ent->client->lag.numOrigins < game.maxLagOrigins)
+		ent->client->lag.numOrigins++;
 }
 
 /*
@@ -1148,26 +1232,26 @@ static void Frenzy_ApplyAmmoRegen(gentity_t *ent) {
 		const int weaponBit;  // If zero, always applies
 		const int ammoIndex;
 		const int amount;
-		const int maxIndex;   // same index as ammo unless special
+		const AmmoID maxIndex;   // same index as ammo unless special
 	};
 
 	static constexpr RegenEntry regenTable[] = {
-		{ IT_WEAPON_SHOTGUN | IT_WEAPON_SSHOTGUN, IT_AMMO_SHELLS,     4,  AMMO_SHELLS     },
-		{ IT_WEAPON_MACHINEGUN | IT_WEAPON_CHAINGUN, IT_AMMO_BULLETS, 10, AMMO_BULLETS    },
-		{ 0,                        IT_AMMO_GRENADES,   2,  AMMO_GRENADES  },
-		{ IT_WEAPON_RLAUNCHER,      IT_AMMO_ROCKETS,    2,  AMMO_ROCKETS  },
-		{ IT_WEAPON_HYPERBLASTER | IT_WEAPON_BFG | IT_WEAPON_IONRIPPER | IT_WEAPON_PLASMABEAM, IT_AMMO_CELLS, 8, AMMO_CELLS },
-		{ IT_WEAPON_RAILGUN,        IT_AMMO_SLUGS,      1,  AMMO_SLUGS    },
-		{ IT_WEAPON_PHALANX,        IT_AMMO_MAGSLUG,    2,  AMMO_MAGSLUG  },
-		{ IT_WEAPON_ETF_RIFLE,      IT_AMMO_FLECHETTES,10,  AMMO_FLECHETTES },
-		{ IT_WEAPON_PROXLAUNCHER,   IT_AMMO_PROX,       1,  AMMO_PROX     },
-		{ IT_WEAPON_DISRUPTOR,      IT_AMMO_ROUNDS,     1,  AMMO_DISRUPTOR },
+		{ IT_WEAPON_SHOTGUN | IT_WEAPON_SSHOTGUN, IT_AMMO_SHELLS,     4,	AmmoID::Shells     },
+		{ IT_WEAPON_MACHINEGUN | IT_WEAPON_CHAINGUN, IT_AMMO_BULLETS, 10,	AmmoID::Bullets    },
+		{ 0,                        IT_AMMO_GRENADES,   2,					AmmoID::Grenades  },
+		{ IT_WEAPON_RLAUNCHER,      IT_AMMO_ROCKETS,    2,					AmmoID::Rockets  },
+		{ IT_WEAPON_HYPERBLASTER | IT_WEAPON_BFG | IT_WEAPON_IONRIPPER | IT_WEAPON_PLASMABEAM, IT_AMMO_CELLS, 8, AmmoID::Cells },
+		{ IT_WEAPON_RAILGUN,        IT_AMMO_SLUGS,      1,					AmmoID::Slugs    },
+		{ IT_WEAPON_PHALANX,        IT_AMMO_MAGSLUG,    2,					AmmoID::MagSlugs  },
+		{ IT_WEAPON_ETF_RIFLE,      IT_AMMO_FLECHETTES,10,					AmmoID::Flechettes },
+		{ IT_WEAPON_PROXLAUNCHER,   IT_AMMO_PROX,       1,					AmmoID::ProxMines     },
+		{ IT_WEAPON_DISRUPTOR,      IT_AMMO_ROUNDS,     1,					AmmoID::Rounds },
 	};
 
 	for (const auto &entry : regenTable) {
 		if (entry.weaponBit == 0 || (client->pers.inventory[entry.weaponBit] != 0)) {
 			int &ammo = client->pers.inventory[entry.ammoIndex];
-			const int max = client->pers.ammoMax[entry.maxIndex];
+			const int max = client->pers.ammoMax[static_cast<int>(entry.maxIndex)];
 
 			ammo += entry.amount;
 			if (ammo > max)
@@ -1195,7 +1279,7 @@ static void PlayQueuedAwardSound(gentity_t *ent) {
 		return;
 
 	// Play sound
-	gi.local_sound(
+	gi.localSound(
 		ent,
 		static_cast<soundchan_t>(CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX),
 		queue.soundIndex[index],
@@ -1226,13 +1310,13 @@ and right after spawning
 =================
 */
 static int scorelimit = -1;
-void ClientEndServerFrame(gentity_t *ent) {
+void ClientEndServerFrame(gentity_t* ent) {
 	// no player exists yet (load game)
 	if (!ent->client->pers.spawned && !level.mapSelector.voteStartTime)
 		return;
 
-	float bobTime, bobtime_run;
-	gentity_t *e = ent;	// g_eyecam->integer &&ent->client->followTarget ? ent->client->followTarget : ent;
+	float bobTime = 0, bobTimeRun = 0;
+	gentity_t* e = ent; // eyecam or follow targeting can redirect here if needed
 
 	currentPlayer = e;
 	currentClient = e->client;
@@ -1247,13 +1331,13 @@ void ClientEndServerFrame(gentity_t *ent) {
 	// don't expire if only 1 player in the match
 	if (g_vampiric_damage->integer && ClientIsPlaying(ent->client) && !CombatIsDisabled() && (ent->health > g_vampiric_exp_min->integer)) {
 		if (level.pop.num_playing_clients > 1 && level.time > ent->client->vampiricExpireTime) {
-			int quantity = floor((ent->health - 1) / ent->max_health) + 1;
+			int quantity = floor((ent->health - 1) / ent->maxHealth) + 1;
 			ent->health -= quantity;
 			ent->client->vampiricExpireTime = level.time + 1_sec;
 			if (ent->health <= 0) {
-				G_AdjustPlayerScore(ent->client, -1, GT(GT_TDM), -1);
+				G_AdjustPlayerScore(ent->client, -1, Game::Is(GameType::TeamDeathmatch), -1);
 
-				player_die(ent, ent, ent, 1, vec3_origin, { MOD_EXPIRE, true });
+				player_die(ent, ent, ent, 1, vec3_origin, { ModID::Expiration, true });
 				if (!ent->client->eliminated)
 					return;
 			}
@@ -1271,36 +1355,19 @@ void ClientEndServerFrame(gentity_t *ent) {
 	currentClient->ps.pmove.origin = ent->s.origin;
 	currentClient->ps.pmove.velocity = ent->velocity;
 
-	if (deathmatch->integer && !level.exitTime) {
-		auto &ms = level.mapSelector;
-#if 0
-		// If we're in intermission and voting hasn't started, just show scores
-		if (level.intermissionTime && ms.voteStartTime == 0_sec) {
-			if (ent->client->menu) {
-				CloseActiveMenu(ent);
-			}
+	if (deathmatch->integer) {
+		auto& ms = level.mapSelector;
 
-			if (!ent->client->showScores) {
-				ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
-				ent->client->showScores = true;
-				MultiplayerScoreboard(ent);
-			}
-			return;
-		}
-#endif
-		// Voting is active
-		if (ms.voteStartTime != 0_sec) {
-			if (ent->client->menu) {
-				if (level.time >= ent->client->menuTime) {
-					MenuSystem::Update(ent);
-					ent->client->menuTime = level.time + 200_ms;
-					ent->client->menuDirty = true;
-					ent->client->showScores = false;
-				}
-			} else {
+		// Vote UI handling: ensure the selector is opened when a vote is active.
+		const bool voteActive = (ms.voteStartTime != 0_sec);
+		if (voteActive) {
+			// If no menu is currently open, open the map selector.
+			if (!ent->client->menu.current) {
 				OpenMapSelectorMenu(ent);
+				// Prime immediate first update
+				ent->client->menu.updateTime = level.time;
 			}
-			return;
+			// Do NOT return here; fall through to the unified updater below so it refreshes every cadence tick.
 		}
 	}
 
@@ -1308,38 +1375,36 @@ void ClientEndServerFrame(gentity_t *ent) {
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
 	//
-	//if (!level.mapSelector.voteStartTime && ((level.intermissionTime && !level.mapSelector.voteStartTime) || ent->client->awaitingRespawn)) {
-	if (level.intermissionTime || ent->client->awaitingRespawn) {
-		if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermissionTime))) {
+	if (level.intermission.time || ent->client->awaitingRespawn) {
+		if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time))) {
 			currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
-			//currentClient->ps.fov = 90;
 			currentClient->ps.gunIndex = 0;
 		}
 		SetStats(ent);
 		SetCoopStats(ent);
 
 		// if the scoreboard is up, update it if a client leaves
-		if (deathmatch->integer && ent->client->showScores && ent->client->menuTime) {
-			DeathmatchScoreboardMessage(e, e->enemy);
+		if (deathmatch->integer && ent->client->showScores && ent->client->menu.updateTime) {
+			DeathmatchScoreboardMessage(ent, ent->enemy);
 			gi.unicast(ent, false);
-			ent->client->menuTime = 0_ms;
+			ent->client->menu.updateTime = 0_ms;
 		}
 
-/*freeze*/
-		if (GT(GT_FREEZE) && !level.intermissionTime && ent->client->eliminated && !ent->client->resp.thawer) {	// || level.framenum & 8) {
+		/*freeze*/
+		if (Game::Is(GameType::FreezeTag) && !level.intermission.time && ent->client->eliminated && !ent->client->resp.thawer) {	// || level.framenum & 8) {
 			ent->s.effects |= EF_COLOR_SHELL;
-			ent->s.renderfx |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
+			ent->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 		}
-/*freeze*/
+		/*freeze*/
 
 		return;
 	}
 
 	if (deathmatch->integer) {
 		int limit = GT_ScoreLimit();
-		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configstring(CONFIG_STORY_SCORELIMIT), nullptr, 10)) {
+		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configString(CONFIG_STORY_SCORELIMIT), nullptr, 10)) {
 			ent->client->ps.stats[STAT_SCORELIMIT] = CONFIG_STORY_SCORELIMIT;
-			gi.configstring(CONFIG_STORY_SCORELIMIT, limit ? G_Fmt("{}", limit).data() : "");
+			gi.configString(CONFIG_STORY_SCORELIMIT, limit ? G_Fmt("{}", limit).data() : "");
 		}
 	}
 
@@ -1379,26 +1444,27 @@ void ClientEndServerFrame(gentity_t *ent) {
 
 	if (xySpeed < 5) {
 		bobMove = 0;
-		currentClient->bobTime = 0; // start at beginning of cycle again
-	} else if (ent->groundEntity) { // so bobbing only cycles when on ground
+		currentClient->feedback.bobTime = 0; // start at beginning of cycle again
+	}
+	else if (ent->groundEntity) { // so bobbing only cycles when on ground
 		if (xySpeed > 210)
-			bobMove = gi.frame_time_ms / 400.f;
+			bobMove = gi.frameTimeMs / 400.f;
 		else if (xySpeed > 100)
-			bobMove = gi.frame_time_ms / 800.f;
+			bobMove = gi.frameTimeMs / 800.f;
 		else
-			bobMove = gi.frame_time_ms / 1600.f;
+			bobMove = gi.frameTimeMs / 1600.f;
 	}
 
-	bobTime = (currentClient->bobTime += bobMove);
-	bobtime_run = bobTime;
+	bobTime = (currentClient->feedback.bobTime += bobMove);
+	bobTimeRun = bobTime;
 
-	if ((currentClient->ps.pmove.pm_flags & PMF_DUCKED) && ent->groundEntity)
+	if ((currentClient->ps.pmove.pmFlags & PMF_DUCKED) && ent->groundEntity)
 		bobTime *= 4;
 
 	bobCycle = (int)bobTime;
-	bobCycleRun = (int)bobtime_run;
-	bobFracSin = fabsf(sinf(bobTime * PIf));
-
+	bobCycleRun = (int)bobTimeRun;
+	bobFracSin = std::fabs(std::sinf(bobTime * PIf));
+	
 	// apply all the damage taken this frame
 	P_DamageFeedback(e);
 
@@ -1409,7 +1475,7 @@ void ClientEndServerFrame(gentity_t *ent) {
 	G_CalcGunOffset(e);
 
 	// determine the full screen color blend
-	// must be after viewoffset, so eye contents can be
+	// must be after viewOffset, so eye contents can be
 	// accurately determined
 	G_CalcBlend(e);
 
@@ -1417,15 +1483,17 @@ void ClientEndServerFrame(gentity_t *ent) {
 	if (!ClientIsPlaying(ent->client) || ent->client->eliminated) {
 		SetSpectatorStats(ent);
 
-		if (ent->client->followTarget) {
-			ent->client->ps.screenBlend = ent->client->followTarget->client->ps.screenBlend;
-			ent->client->ps.damageBlend = ent->client->followTarget->client->ps.damageBlend;
+		if (ent->client->follow.target) {
+			ent->client->ps.screenBlend = ent->client->follow.target->client->ps.screenBlend;
+			ent->client->ps.damageBlend = ent->client->follow.target->client->ps.damageBlend;
 
-			ent->s.effects = ent->client->followTarget->s.effects;
-			ent->s.renderfx = ent->client->followTarget->s.renderfx;
+			ent->s.effects = ent->client->follow.target->s.effects;
+			ent->s.renderFX = ent->client->follow.target->s.renderFX;
 		}
-	} else
+	}
+	else {
 		SetStats(ent);
+	}
 
 	CheckFollowStats(ent);
 
@@ -1438,52 +1506,46 @@ void ClientEndServerFrame(gentity_t *ent) {
 	ClientSetSound(e);
 
 	PlayerSetFrame(ent);
-	
+
 	ent->client->oldVelocity = ent->velocity;
 	ent->client->oldViewAngles = ent->client->ps.viewAngles;
 	ent->client->oldGroundEntity = ent->groundEntity;
-#if 0
-	if (ent->client->menu.get() && ent->client->menuDirty) {
-		if (level.time >= ent->client->menuTime) {
-			MenuSystem::Update(ent);
-			ent->client->menuTime = level.time + 100_ms;
-			ent->client->menuDirty = true;
-		}
-	} else if (ent->client->showScores && ent->client->menuTime <= level.time) {
-		if (ent->client->menu) {
-			CloseActiveMenu(ent);
-		}
-		DeathmatchScoreboardMessage(ent, ent->enemy);
-		gi.unicast(ent, false);
-		ent->client->menuTime = level.time + 3_sec;
-	}
-#endif
-	if (ent->client->menuDirty && ent->client->menuTime <= level.time) {
-		if (ent->client->menu) {
+
+	/*
+	================
+	Unified UI update
+	- Menus update at a steady, fast cadence.
+	- Scoreboard updates only when no menu is visible, on a slower cadence.
+	================
+	*/
+
+	// MENUS
+	if (ent->client->menu.current) {
+		// Ensure showScores remains true while a menu is visible (layouts render via scoreboard channel)
+		ent->client->showScores = true;
+
+		// Update at frame cadence
+		if (ent->client->menu.updateTime <= level.time) {
 			MenuSystem::Update(ent);
 			gi.unicast(ent, true);
+			ent->client->menu.updateTime = level.time + FRAME_TIME_MS;
+			// Do not toggle doUpdate here; MenuSystem and DirtyAll control it.
 		}
-		ent->client->menuTime = level.time;
-		ent->client->menuDirty = false;
 	}
-
-	// if the scoreboard is up, update it
-	if (ent->client->showScores && ent->client->menuTime <= level.time) {
-		if (ent->client->menu) {
-			MenuSystem::Update(ent);
-			ent->client->menuDirty = false;
-		} else {
-			DeathmatchScoreboardMessage(e, e->enemy);
+	// SCOREBOARD (only if no active menu)
+	else if (ent->client->showScores) {
+		if (ent->client->menu.updateTime <= level.time) {
+			DeathmatchScoreboardMessage(ent, ent->enemy);
+			gi.unicast(ent, false);
+			ent->client->menu.updateTime = level.time + 3_sec;
 		}
-		gi.unicast(ent, false);
-		ent->client->menuTime = level.time + 3_sec;
 	}
 
 	if ((ent->svFlags & SVF_BOT) != 0) {
 		Bot_EndFrame(ent);
 	}
 
-	P_AssignClientSkinnum(ent);
+	P_AssignClientSkinNum(ent);
 
 	if (deathmatch->integer)
 		G_SaveLagCompensation(ent);
@@ -1502,7 +1564,7 @@ void ClientEndServerFrame(gentity_t *ent) {
 
 			trace_t clip = gi.clip(player, ent->s.origin, ent->mins, ent->maxs, ent->s.origin, CONTENTS_MONSTER | CONTENTS_PLAYER);
 
-			if (clip.startsolid || clip.allsolid) {
+			if (clip.startSolid || clip.allSolid) {
 				clipped_player = true;
 				break;
 			}

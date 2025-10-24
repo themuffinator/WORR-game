@@ -1,17 +1,13 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-#include "g_local.h"
-#include "bots/bot_includes.h"
+#include "g_local.hpp"
+#include "bots/bot_includes.hpp"
 
 //
 // monster weapons
 //
-void monster_muzzleflash(gentity_t *self, const vec3_t &start, monster_muzzleflash_id_t id) {
-	if (id <= 255)
-		gi.WriteByte(svc_muzzleflash2);
-	else
-		gi.WriteByte(svc_muzzleflash3);
-
+void monster_muzzleflash(gentity_t *self, const Vector3 &start, MonsterMuzzleFlashID id) {
+	gi.WriteByte(id <= 255 ? svc_muzzleflash2 : svc_muzzleflash3);
 	gi.WriteEntity(self);
 
 	if (id <= 255)
@@ -22,110 +18,116 @@ void monster_muzzleflash(gentity_t *self, const vec3_t &start, monster_muzzlefla
 	gi.multicast(start, MULTICAST_PHS, false);
 }
 
-void monster_fire_bullet(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int kick, int hSpread,
-	int vSpread, monster_muzzleflash_id_t flashtype) {
-	fire_bullet(self, start, dir, damage, kick, hSpread, vSpread, MOD_MACHINEGUN);
-	monster_muzzleflash(self, start, flashtype);
+void monster_fire_bullet(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int kick, int hSpread,
+	int vSpread, MonsterMuzzleFlashID flashType) {
+	fire_bullet(self, start, dir, damage, kick, hSpread, vSpread, ModID::Machinegun);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_shotgun(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick, int hSpread,
-	int vSpread, int count, monster_muzzleflash_id_t flashtype) {
-	fire_shotgun(self, start, aimDir, damage, kick, hSpread, vSpread, count, MOD_SHOTGUN);
-	monster_muzzleflash(self, start, flashtype);
+void monster_fire_shotgun(gentity_t *self, const Vector3 &start, const Vector3 &aimDir, int damage, int kick, int hSpread,
+	int vSpread, int count, MonsterMuzzleFlashID flashType) {
+	fire_shotgun(self, start, aimDir, damage, kick, hSpread, vSpread, count, ModID::Shotgun);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_blaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, Effect effect) {
-	fire_blaster(self, start, dir, damage, speed, effect, MOD_BLASTER);
-	monster_muzzleflash(self, start, flashtype);
+void monster_fire_blaster(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed,
+	MonsterMuzzleFlashID flashType, Effect effect) {
+	fire_blaster(self, start, dir, damage, speed, effect, ModID::Blaster, false);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_flechette(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype) {
+void monster_fire_flechette(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed,
+	MonsterMuzzleFlashID flashType) {
 	fire_flechette(self, start, dir, damage, speed, damage / 2);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_grenade(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype, float rightAdjust, float upAdjust) {
+void monster_fire_grenade(gentity_t *self, const Vector3 &start, const Vector3 &aimDir, int damage, int speed,
+	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
 	fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_rocket(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed,
-	monster_muzzleflash_id_t flashtype) {
-	fire_rocket(self, start, dir, damage, speed, (float)damage + 20, damage);
-	monster_muzzleflash(self, start, flashtype);
+void monster_fire_rocket(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed,
+	MonsterMuzzleFlashID flashType) {
+	fire_rocket(self, start, dir, damage, speed, damage + 20, damage);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_railgun(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int kick,
-	monster_muzzleflash_id_t flashtype) {
-	if (gi.pointcontents(start) & MASK_SOLID)
+void monster_fire_homing_pod(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed,
+		MonsterMuzzleFlashID flashType) {
+	fire_homing_pod(self, start, dir, damage, speed, flashType);
+	monster_muzzleflash(self, start, flashType);
+}
+
+void monster_fire_railgun(gentity_t *self, const Vector3 &start, const Vector3 &aimDir, int damage, int kick,
+	MonsterMuzzleFlashID flashType) {
+	if (gi.pointContents(start) & MASK_SOLID)
 		return;
 
 	fire_rail(self, start, aimDir, damage, kick);
 
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_bfg(gentity_t *self, const vec3_t &start, const vec3_t &aimDir, int damage, int speed, int kick,
-	float splashRadius, monster_muzzleflash_id_t flashtype) {
+void monster_fire_bfg(gentity_t *self, const Vector3 &start, const Vector3 &aimDir, int damage, int speed, int kick,
+	float splashRadius, MonsterMuzzleFlashID flashType) {
 	fire_bfg(self, start, aimDir, damage, speed, splashRadius);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
 // [Paril-KEX]
-vec3_t M_ProjectFlashSource(gentity_t *self, const vec3_t &offset, const vec3_t &forward, const vec3_t &right) {
+Vector3 M_ProjectFlashSource(gentity_t *self, const Vector3 &offset, const Vector3 &forward, const Vector3 &right) {
 	return G_ProjectSource(self->s.origin, self->s.scale ? (offset * self->s.scale) : offset, forward, right);
 }
 
 // [Paril-KEX] check if shots fired from the given offset
 // might be blocked by something
-bool M_CheckClearShot(gentity_t *self, const vec3_t &offset, vec3_t &start) {
+bool M_CheckClearShot(gentity_t *self, const Vector3 &offset, Vector3 &start) {
 	// no enemy, just do whatever
 	if (!self->enemy)
 		return false;
 
-	vec3_t f, r;
+	Vector3 f, r;
 
-	vec3_t real_angles = { self->s.angles[PITCH], self->ideal_yaw, 0.f };
+	Vector3 real_angles = { self->s.angles[PITCH], self->ideal_yaw, 0.f };
 
 	AngleVectors(real_angles, f, r, nullptr);
 	start = M_ProjectFlashSource(self, offset, f, r);
 
-	vec3_t target;
+	Vector3 target;
 
-	bool is_blind = self->monsterInfo.attack_state == AS_BLIND || (self->monsterInfo.aiFlags & (AI_MANUAL_STEERING | AI_LOST_SIGHT));
+	bool is_blind = self->monsterInfo.attackState == MonsterAttackState::Blind || (self->monsterInfo.aiFlags & (AI_MANUAL_STEERING | AI_LOST_SIGHT));
 
 	if (is_blind)
 		target = self->monsterInfo.blind_fire_target;
 	else
-		target = self->enemy->s.origin + vec3_t{ 0, 0, (float)self->enemy->viewHeight };
+		target = self->enemy->s.origin + Vector3{ 0, 0, (float)self->enemy->viewHeight };
 
-	trace_t tr = gi.traceline(start, target, self, MASK_PROJECTILE & ~CONTENTS_DEADMONSTER);
+	trace_t tr = gi.traceLine(start, target, self, MASK_PROJECTILE & ~CONTENTS_DEADMONSTER);
 
-	if (tr.ent == self->enemy || tr.ent->client || (tr.fraction > 0.8f && !tr.startsolid))
+	if (tr.ent == self->enemy || tr.ent->client || (tr.fraction > 0.8f && !tr.startSolid))
 		return true;
 
 	if (!is_blind) {
 		target = self->enemy->s.origin;
 
-		trace_t tr = gi.traceline(start, target, self, MASK_PROJECTILE & ~CONTENTS_DEADMONSTER);
+		trace_t tr = gi.traceLine(start, target, self, MASK_PROJECTILE & ~CONTENTS_DEADMONSTER);
 
-		if (tr.ent == self->enemy || tr.ent->client || (tr.fraction > 0.8f && !tr.startsolid))
+		if (tr.ent == self->enemy || tr.ent->client || (tr.fraction > 0.8f && !tr.startSolid))
 			return true;
 	}
 
 	return false;
 }
 
-bool M_CheckClearShot(gentity_t *self, const vec3_t &offset) {
-	vec3_t start;
+bool M_CheckClearShot(gentity_t *self, const Vector3 &offset) {
+	Vector3 start;
 	return M_CheckClearShot(self, offset, start);
 }
 
 void M_CheckGround(gentity_t *ent, contents_t mask) {
-	vec3_t	point{};
+	Vector3	point{};
 	trace_t trace;
 
 	if (ent->flags & (FL_SWIM | FL_FLY))
@@ -137,41 +139,41 @@ void M_CheckGround(gentity_t *ent, contents_t mask) {
 	}
 
 	// if the hull point one-quarter unit down is solid the entity is on ground
-	point[0] = ent->s.origin[0];
-	point[1] = ent->s.origin[1];
-	point[2] = ent->s.origin[2] + (0.25f * ent->gravityVector[2]);
+	point[0] = ent->s.origin[X];
+	point[1] = ent->s.origin[Y];
+	point[2] = ent->s.origin[Z] + (0.25f * ent->gravityVector[2]);
 
 	trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, point, ent, mask);
 
 	// check steepness
 	if (ent->gravityVector[2] < 0) // normal gravity
 	{
-		if (trace.plane.normal[2] < 0.7f && !trace.startsolid) {
+		if (trace.plane.normal[2] < 0.7f && !trace.startSolid) {
 			ent->groundEntity = nullptr;
 			return;
 		}
 	} else // inverted gravity
 	{
-		if (trace.plane.normal[2] > -0.7f && !trace.startsolid) {
+		if (trace.plane.normal[2] > -0.7f && !trace.startSolid) {
 			ent->groundEntity = nullptr;
 			return;
 		}
 	}
 
-	if (!trace.startsolid && !trace.allsolid) {
-		ent->s.origin = trace.endpos;
+	if (!trace.startSolid && !trace.allSolid) {
+		ent->s.origin = trace.endPos;
 		ent->groundEntity = trace.ent;
 		ent->groundEntity_linkCount = trace.ent->linkCount;
 		ent->velocity[2] = 0;
 	}
 }
 
-void M_CatagorizePosition(gentity_t *self, const vec3_t &in_point, water_level_t &waterlevel, contents_t &watertype) {
-	vec3_t	   point{};
+void M_CatagorizePosition(gentity_t *self, const Vector3 &in_point, water_level_t &waterLevel, contents_t &waterType) {
+	Vector3	   point{};
 	contents_t cont;
 
 	//
-	// get waterlevel
+	// get waterLevel
 	//
 	point[0] = in_point[0];
 	point[1] = in_point[1];
@@ -179,33 +181,33 @@ void M_CatagorizePosition(gentity_t *self, const vec3_t &in_point, water_level_t
 		point[2] = in_point[2] + self->maxs[2] - 1;
 	else
 		point[2] = in_point[2] + self->mins[2] + 1;
-	cont = gi.pointcontents(point);
+	cont = gi.pointContents(point);
 
 	if (!(cont & MASK_WATER)) {
-		waterlevel = WATER_NONE;
-		watertype = CONTENTS_NONE;
+		waterLevel = WATER_NONE;
+		waterType = CONTENTS_NONE;
 		return;
 	}
 
-	watertype = cont;
-	waterlevel = WATER_FEET;
+	waterType = cont;
+	waterLevel = WATER_FEET;
 	point[2] += 26;
-	cont = gi.pointcontents(point);
+	cont = gi.pointContents(point);
 	if (!(cont & MASK_WATER))
 		return;
 
-	waterlevel = WATER_WAIST;
+	waterLevel = WATER_WAIST;
 	point[2] += 22;
-	cont = gi.pointcontents(point);
+	cont = gi.pointContents(point);
 	if (cont & MASK_WATER)
-		waterlevel = WATER_UNDER;
+		waterLevel = WATER_UNDER;
 }
 
-bool M_ShouldReactToPain(gentity_t *self, const mod_t &mod) {
+bool M_ShouldReactToPain(gentity_t *self, const MeansOfDeath &mod) {
 	if (self->monsterInfo.aiFlags & (AI_DUCKED | AI_COMBAT_POINT))
 		return false;
 
-	return mod.id == MOD_CHAINFIST || skill->integer < 3;
+	return mod.id == ModID::Chainfist || skill->integer < 3;
 }
 
 void M_WorldEffects(gentity_t *ent) {
@@ -213,90 +215,90 @@ void M_WorldEffects(gentity_t *ent) {
 
 	if (ent->health > 0) {
 		if (!(ent->flags & FL_SWIM)) {
-			if (ent->waterlevel < WATER_UNDER) {
+			if (ent->waterLevel < WATER_UNDER) {
 				ent->airFinished = level.time + 12_sec;
 			} else if (ent->airFinished < level.time) { // drown!
 				if (ent->pain_debounce_time < level.time) {
 					dmg = 2 + (int)(2 * floorf((level.time - ent->airFinished).seconds()));
 					if (dmg > 15)
 						dmg = 15;
-					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DAMAGE_NO_ARMOR,
-						MOD_WATER);
+					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DamageFlags::NoArmor,
+						ModID::Drowning);
 					ent->pain_debounce_time = level.time + 1_sec;
 				}
 			}
 		} else {
-			if (ent->waterlevel > WATER_NONE) {
+			if (ent->waterLevel > WATER_NONE) {
 				ent->airFinished = level.time + 9_sec;
 			} else if (ent->airFinished < level.time) { // suffocate!
 				if (ent->pain_debounce_time < level.time) {
 					dmg = 2 + (int)(2 * floorf((level.time - ent->airFinished).seconds()));
 					if (dmg > 15)
 						dmg = 15;
-					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DAMAGE_NO_ARMOR,
-						MOD_WATER);
+					Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, dmg, 0, DamageFlags::NoArmor,
+						ModID::Drowning);
 					ent->pain_debounce_time = level.time + 1_sec;
 				}
 			}
 		}
 	}
 
-	if (ent->waterlevel == WATER_NONE) {
+	if (ent->waterLevel == WATER_NONE) {
 		if (ent->flags & FL_INWATER) {
-			gi.sound(ent, CHAN_BODY, gi.soundindex("player/watr_out.wav"), 1, ATTN_NORM, 0);
+			gi.sound(ent, CHAN_BODY, gi.soundIndex("player/watr_out.wav"), 1, ATTN_NORM, 0);
 			ent->flags &= ~FL_INWATER;
 		}
 	} else {
-		if ((ent->watertype & CONTENTS_LAVA) && !(ent->flags & FL_IMMUNE_LAVA)) {
+		if ((ent->waterType & CONTENTS_LAVA) && !(ent->flags & FL_IMMUNE_LAVA)) {
 			if (ent->damage_debounce_time < level.time) {
 				ent->damage_debounce_time = level.time + 100_ms;
-				Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, 10 * ent->waterlevel, 0, DAMAGE_NONE,
-					MOD_LAVA);
+				Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, 10 * ent->waterLevel, 0, DamageFlags::Normal,
+					ModID::Lava);
 			}
 		}
-		if ((ent->watertype & CONTENTS_SLIME) && !(ent->flags & FL_IMMUNE_SLIME)) {
+		if ((ent->waterType & CONTENTS_SLIME) && !(ent->flags & FL_IMMUNE_SLIME)) {
 			if (ent->damage_debounce_time < level.time) {
 				ent->damage_debounce_time = level.time + 100_ms;
-				Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, 4 * ent->waterlevel, 0, DAMAGE_NONE,
-					MOD_SLIME);
+				Damage(ent, world, world, vec3_origin, ent->s.origin, vec3_origin, 4 * ent->waterLevel, 0, DamageFlags::Normal,
+					ModID::Slime);
 			}
 		}
 
 		if (!(ent->flags & FL_INWATER)) {
-			if (ent->watertype & CONTENTS_LAVA) {
+			if (ent->waterType & CONTENTS_LAVA) {
 				if ((ent->svFlags & SVF_MONSTER) && ent->health > 0) {
 					if (frandom() <= 0.5f)
-						gi.sound(ent, CHAN_BODY, gi.soundindex("player/lava1.wav"), 1, ATTN_NORM, 0);
+						gi.sound(ent, CHAN_BODY, gi.soundIndex("player/lava1.wav"), 1, ATTN_NORM, 0);
 					else
-						gi.sound(ent, CHAN_BODY, gi.soundindex("player/lava2.wav"), 1, ATTN_NORM, 0);
+						gi.sound(ent, CHAN_BODY, gi.soundIndex("player/lava2.wav"), 1, ATTN_NORM, 0);
 				} else
-					gi.sound(ent, CHAN_BODY, gi.soundindex("player/watr_in.wav"), 1, ATTN_NORM, 0);
+					gi.sound(ent, CHAN_BODY, gi.soundIndex("player/watr_in.wav"), 1, ATTN_NORM, 0);
 
 				gi.WriteByte(svc_temp_entity);
 				gi.WriteByte(TE_SPLASH);
 				gi.WriteByte(32);
 				gi.WritePosition(ent->s.origin);
-				gi.WriteDir(ent->movedir);
+				gi.WriteDir(ent->moveDir);
 				gi.WriteByte(5);
 				gi.multicast(ent->s.origin, MULTICAST_PVS, false);
-			} else if (ent->watertype & CONTENTS_SLIME) {
-				gi.sound(ent, CHAN_BODY, gi.soundindex("player/watr_in.wav"), 1, ATTN_NORM, 0);
+			} else if (ent->waterType & CONTENTS_SLIME) {
+				gi.sound(ent, CHAN_BODY, gi.soundIndex("player/watr_in.wav"), 1, ATTN_NORM, 0);
 
 				gi.WriteByte(svc_temp_entity);
 				gi.WriteByte(TE_SPLASH);
 				gi.WriteByte(32);
 				gi.WritePosition(ent->s.origin);
-				gi.WriteDir(ent->movedir);
+				gi.WriteDir(ent->moveDir);
 				gi.WriteByte(4);
 				gi.multicast(ent->s.origin, MULTICAST_PVS, false);
-			} else if (ent->watertype & CONTENTS_WATER) {
-				gi.sound(ent, CHAN_BODY, gi.soundindex("player/watr_in.wav"), 1, ATTN_NORM, 0);
+			} else if (ent->waterType & CONTENTS_WATER) {
+				gi.sound(ent, CHAN_BODY, gi.soundIndex("player/watr_in.wav"), 1, ATTN_NORM, 0);
 
 				gi.WriteByte(svc_temp_entity);
 				gi.WriteByte(TE_SPLASH);
 				gi.WriteByte(32);
 				gi.WritePosition(ent->s.origin);
-				gi.WriteDir(ent->movedir);
+				gi.WriteDir(ent->moveDir);
 				gi.WriteByte(2);
 				gi.multicast(ent->s.origin, MULTICAST_PVS, false);
 			}
@@ -307,15 +309,15 @@ void M_WorldEffects(gentity_t *ent) {
 	}
 }
 
-bool M_droptofloor_generic(vec3_t &origin, const vec3_t &mins, const vec3_t &maxs, bool ceiling, gentity_t *ignore, contents_t mask, bool allow_partial) {
-	vec3_t	end;
+bool M_droptofloor_generic(Vector3 &origin, const Vector3 &mins, const Vector3 &maxs, bool ceiling, gentity_t *ignore, contents_t mask, bool allow_partial) {
+	Vector3	end;
 	trace_t trace;
 
-	if (gi.trace(origin, mins, maxs, origin, ignore, mask).startsolid) {
+	if (gi.trace(origin, mins, maxs, origin, ignore, mask).startSolid) {
 		if (!ceiling)
-			origin[2] += 1;
+			origin[Z] += 1;
 		else
-			origin[2] -= 1;
+			origin[Z] -= 1;
 	}
 
 	if (!ceiling) {
@@ -328,10 +330,10 @@ bool M_droptofloor_generic(vec3_t &origin, const vec3_t &mins, const vec3_t &max
 
 	trace = gi.trace(origin, mins, maxs, end, ignore, mask);
 
-	if (trace.fraction == 1 || trace.allsolid || (!allow_partial && trace.startsolid))
+	if (trace.fraction == 1 || trace.allSolid || (!allow_partial && trace.startSolid))
 		return false;
 
-	origin = trace.endpos;
+	origin = trace.endPos;
 
 	return true;
 }
@@ -339,44 +341,44 @@ bool M_droptofloor_generic(vec3_t &origin, const vec3_t &mins, const vec3_t &max
 bool M_droptofloor(gentity_t *ent) {
 	contents_t mask = G_GetClipMask(ent);
 
-	if (!ent->spawnflags.has(SPAWNFLAG_MONSTER_NO_DROP)) {
+	if (!ent->spawnFlags.has(SPAWNFLAG_MONSTER_NO_DROP)) {
 		if (!M_droptofloor_generic(ent->s.origin, ent->mins, ent->maxs, ent->gravityVector[2] > 0, ent, mask, true))
 			return false;
 	} else {
-		if (gi.trace(ent->s.origin, ent->mins, ent->maxs, ent->s.origin, ent, mask).startsolid)
+		if (gi.trace(ent->s.origin, ent->mins, ent->maxs, ent->s.origin, ent, mask).startSolid)
 			return false;
 	}
 
-	gi.linkentity(ent);
+	gi.linkEntity(ent);
 	M_CheckGround(ent, mask);
-	M_CatagorizePosition(ent, ent->s.origin, ent->waterlevel, ent->watertype);
+	M_CatagorizePosition(ent, ent->s.origin, ent->waterLevel, ent->waterType);
 
 	return true;
 }
 
 void M_SetEffects(gentity_t *ent) {
-	ent->s.effects &= ~(EF_COLOR_SHELL | EF_POWERSCREEN | EF_DOUBLE | EF_QUAD | EF_PENT | EF_FLIES);
-	ent->s.renderfx &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE);
+	ent->s.effects &= ~(EF_COLOR_SHELL | EF_POWERSCREEN | EF_EMPATHY | EF_QUAD | EF_PENT | EF_FLIES);
+	ent->s.renderFX &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE | RF_SHELL_DOUBLE);
 
 	ent->s.sound = 0;
-	ent->s.loop_attenuation = 0;
+	ent->s.loopAttenuation = 0;
 
 	// we're gibbed
-	if (ent->s.renderfx & RF_LOW_PRIORITY)
+	if (ent->s.renderFX & RF_LOW_PRIORITY)
 		return;
 
 	if (ent->monsterInfo.weaponSound && ent->health > 0) {
 		ent->s.sound = ent->monsterInfo.weaponSound;
-		ent->s.loop_attenuation = ATTN_NORM;
-	} else if (ent->monsterInfo.engine_sound)
-		ent->s.sound = ent->monsterInfo.engine_sound;
+		ent->s.loopAttenuation = ATTN_NORM;
+	} else if (ent->monsterInfo.engineSound)
+		ent->s.sound = ent->monsterInfo.engineSound;
 
 	if (ent->monsterInfo.aiFlags & AI_RESURRECTING) {
 		ent->s.effects |= EF_COLOR_SHELL;
-		ent->s.renderfx |= RF_SHELL_RED;
+		ent->s.renderFX |= RF_SHELL_RED;
 	}
 
-	ent->s.renderfx |= RF_DOT_SHADOW;
+	ent->s.renderFX |= RF_DOT_SHADOW;
 
 	// no power armor/powerup effects if we died
 	if (ent->health <= 0)
@@ -387,7 +389,7 @@ void M_SetEffects(gentity_t *ent) {
 			ent->s.effects |= EF_POWERSCREEN;
 		} else if (ent->monsterInfo.powerArmorType == IT_POWER_SHIELD) {
 			ent->s.effects |= EF_COLOR_SHELL;
-			ent->s.renderfx |= RF_SHELL_GREEN;
+			ent->s.renderFX |= RF_SHELL_GREEN;
 		}
 	}
 
@@ -399,7 +401,7 @@ void M_SetEffects(gentity_t *ent) {
 
 	if (ent->monsterInfo.double_time > level.time) {
 		if (G_PowerUpExpiring(ent->monsterInfo.double_time))
-			ent->s.effects |= EF_DOUBLE;
+			ent->s.effects |= EF_EMPATHY;
 	}
 
 	if (ent->monsterInfo.invincibility_time > level.time) {
@@ -409,7 +411,7 @@ void M_SetEffects(gentity_t *ent) {
 }
 
 bool M_AllowSpawn(gentity_t *self) {
-	if (deathmatch->integer && !(ai_allow_dm_spawn->integer || GT(GT_HORDE))) {
+	if (deathmatch->integer && !(ai_allow_dm_spawn->integer || Game::Is(GameType::Horde))) {
 		return false;
 	}
 	return true;
@@ -439,10 +441,10 @@ void M_SetAnimation(gentity_t *self, const save_mmove_t &move, bool instant) {
 }
 
 static void M_MoveFrame(gentity_t *self) {
-	const mmove_t *move = self->monsterInfo.active_move.pointer();
+	const MonsterMove *move = self->monsterInfo.active_move.pointer();
 
 	// [Paril-KEX] high tick rate adjustments;
-	// monsters still only step frames and run thinkfunc's at
+	// monsters still only step frames and run thinkFunc's at
 	// 10hz, but will run aifuncs at full speed with
 	// distance spread over 10hz
 
@@ -519,25 +521,25 @@ static void M_MoveFrame(gentity_t *self) {
 			self->monsterInfo.nextFrame = 0;
 	}
 
-	// NB: frame thinkfunc can be called on the same frame
+	// NB: frame thinkFunc can be called on the same frame
 	// as the animation changing
 
 	int32_t index = self->s.frame - move->firstFrame;
 	if (move->frame[index].aiFunc) {
 		if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME)) {
 			float dist = move->frame[index].dist * self->monsterInfo.scale;
-			dist /= static_cast<float>(gi.tick_rate) / 10.0f;
+			dist /= static_cast<float>(gi.tickRate) / 10.0f;
 			move->frame[index].aiFunc(self, dist);
 		} else
 			move->frame[index].aiFunc(self, 0);
 	}
 
-	if (run_frame && move->frame[index].thinkfunc)
-		move->frame[index].thinkfunc(self);
+	if (run_frame && move->frame[index].thinkFunc)
+		move->frame[index].thinkFunc(self);
 
 	if (move->frame[index].lerp_frame != -1) {
-		self->s.renderfx |= RF_OLD_FRAME_LERP;
-		self->s.old_frame = move->frame[index].lerp_frame;
+		self->s.renderFX |= RF_OLD_FRAME_LERP;
+		self->s.oldFrame = move->frame[index].lerp_frame;
 	}
 }
 
@@ -606,7 +608,7 @@ void M_ProcessPain(gentity_t *e) {
 				}
 			}
 
-			if (!(e->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !(e->spawnflags & SPAWNFLAG_MONSTER_DEAD))
+			if (!(e->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && e->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
 				G_MonsterKilled(e);
 
 			e->touch = nullptr;
@@ -633,7 +635,7 @@ void M_ProcessPain(gentity_t *e) {
 		if (e->inUse && e->health > e->gibHealth && e->s.frame == e->monsterInfo.active_move->lastFrame) {
 			e->s.frame -= irandom(1, 3);
 
-			if (e->groundEntity && e->moveType == MOVETYPE_TOSS && !(e->flags & FL_STATIONARY))
+			if (e->groundEntity && e->moveType == MoveType::Toss && !(e->flags & FL_STATIONARY))
 				e->s.angles[YAW] += brandom() ? 4.5f : -4.5f;
 		}
 	} else
@@ -642,17 +644,17 @@ void M_ProcessPain(gentity_t *e) {
 	if (!e->inUse)
 		return;
 
-	if (e->monsterInfo.setskin)
-		e->monsterInfo.setskin(e);
+	if (e->monsterInfo.setSkin)
+		e->monsterInfo.setSkin(e);
 
 	e->monsterInfo.damage.blood = 0;
 	e->monsterInfo.damage.knockback = 0;
 	e->monsterInfo.damage.attacker = e->monsterInfo.damage.inflictor = nullptr;
 
 	// [Paril-KEX] fire health target
-	if (e->healthtarget) {
+	if (e->healthTarget) {
 		const char *target = e->target;
-		e->target = e->healthtarget;
+		e->target = e->healthTarget;
 		UseTargets(e, e->enemy);
 		e->target = target;
 	}
@@ -675,17 +677,17 @@ static THINK(monster_body_sink) (gentity_t *ent) -> void {
 		ent->solid = SOLID_NOT;
 
 		// the body ques are never actually freed, they are just unlinked
-		gi.unlinkentity(ent);
+		gi.unlinkEntity(ent);
 		return;
 	}
 	ent->nextThink = level.time + 50_ms;
-	ent->s.origin[2] -= 0.5;
+	ent->s.origin[Z] -= 0.5;
 }
 
 THINK(monster_dead_think) (gentity_t *self) -> void {
 
 	if (self->timeStamp >= self->nextThink) {
-		self->nextThink = level.time + gtime_t::from_sec(CORPSE_SINK_TIME);
+		self->nextThink = level.time + CORPSE_SINK_TIME;
 		self->think = monster_body_sink;
 		return;
 	}
@@ -697,7 +699,7 @@ THINK(monster_dead_think) (gentity_t *self) -> void {
 		else if (self->fly_sound_debounce_time < level.time) {
 			if (!self->s.sound) {
 				self->s.effects |= EF_FLIES;
-				self->s.sound = gi.soundindex("infantry/inflies1.wav");
+				self->s.sound = gi.soundIndex("infantry/inflies1.wav");
 				self->fly_sound_debounce_time = level.time + 60_sec;
 			} else {
 				self->s.effects &= ~EF_FLIES;
@@ -718,26 +720,26 @@ THINK(monster_dead_think) (gentity_t *self) -> void {
 void monster_dead(gentity_t *self) {
 	self->think = monster_dead_think;
 	self->nextThink = level.time + 10_hz;
-	self->timeStamp = level.time + gtime_t::from_sec(CORPSE_SINK_TIME + 1.5);
-	self->moveType = MOVETYPE_TOSS;
+	self->timeStamp = level.time + CORPSE_SINK_TIME + 1.5_sec;
+	self->moveType = MoveType::Toss;
 	self->svFlags |= SVF_DEADMONSTER;
 	self->monsterInfo.damage.blood = 0;
 	self->fly_sound_debounce_time = 0_ms;
 	self->monsterInfo.aiFlags &= ~AI_STUNK;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 /*
 =============
-infront
+projectile_infront
 
 returns 1 if the entity is in front (in sight) of self
 =============
 */
 static bool projectile_infront(gentity_t *self, gentity_t *other) {
-	vec3_t vec;
+	Vector3 vec;
 	float  dot;
-	vec3_t forward;
+	Vector3 forward;
 
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 	vec = other->s.origin - self->s.origin;
@@ -765,10 +767,10 @@ static BoxEntitiesResult_t M_CheckDodge_BoxEntitiesFilter(gentity_t *ent, void *
 	trace_t tr = gi.trace(ent->s.origin, ent->mins, ent->maxs, ent->s.origin + ent->velocity, ent, ent->clipMask);
 
 	if (tr.ent == self) {
-		vec3_t v = tr.endpos - ent->s.origin;
-		gtime_t eta = gtime_t::from_sec(v.length() / ent->velocity.length());
+		Vector3 v = tr.endPos - ent->s.origin;
+		GameTime eta = GameTime::from_sec(v.length() / ent->velocity.length());
 
-		self->monsterInfo.dodge(self, ent->owner, eta, &tr, (ent->moveType == MOVETYPE_BOUNCE || ent->moveType == MOVETYPE_TOSS));
+		self->monsterInfo.dodge(self, ent->owner, eta, &tr, (ent->moveType == MoveType::Bounce || ent->moveType == MoveType::Toss));
 
 		return BoxEntitiesResult_t::End;
 	}
@@ -782,29 +784,29 @@ static void M_CheckDodge(gentity_t *self) {
 	if (self->monsterInfo.dodge_time > level.time)
 		return;
 
-	gi.BoxEntities(self->absMin - vec3_t{ 512, 512, 512 }, self->absMax + vec3_t{ 512, 512, 512 }, nullptr, 0, AREA_SOLID, M_CheckDodge_BoxEntitiesFilter, self);
+	gi.BoxEntities(self->absMin - Vector3{ 512, 512, 512 }, self->absMax + Vector3{ 512, 512, 512 }, nullptr, 0, AREA_SOLID, M_CheckDodge_BoxEntitiesFilter, self);
 }
 
-static bool CheckPathVisibility(const vec3_t &start, const vec3_t &end) {
-	trace_t tr = gi.traceline(start, end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
+static bool CheckPathVisibility(const Vector3 &start, const Vector3 &end) {
+	trace_t tr = gi.traceLine(start, end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
 
 	bool valid = tr.fraction == 1.0f;
 
 	if (!valid) {
 		// try raising some of the points
 		bool can_raise_start = false, can_raise_end = false;
-		vec3_t raised_start = start + vec3_t{ 0.f, 0.f, 16.f };
-		vec3_t raised_end = end + vec3_t{ 0.f, 0.f, 16.f };
+		Vector3 raised_start = start + Vector3{ 0.f, 0.f, 16.f };
+		Vector3 raised_end = end + Vector3{ 0.f, 0.f, 16.f };
 
-		if (gi.traceline(start, raised_start, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP).fraction == 1.0f)
+		if (gi.traceLine(start, raised_start, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP).fraction == 1.0f)
 			can_raise_start = true;
 
-		if (gi.traceline(end, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP).fraction == 1.0f)
+		if (gi.traceLine(end, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP).fraction == 1.0f)
 			can_raise_end = true;
 
 		// try raised start -> end
 		if (can_raise_start) {
-			tr = gi.traceline(raised_start, end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
+			tr = gi.traceLine(raised_start, end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
 
 			if (tr.fraction == 1.0f)
 				return true;
@@ -812,7 +814,7 @@ static bool CheckPathVisibility(const vec3_t &start, const vec3_t &end) {
 
 		// try start -> raised end
 		if (can_raise_end) {
-			tr = gi.traceline(start, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
+			tr = gi.traceLine(start, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
 
 			if (tr.fraction == 1.0f)
 				return true;
@@ -820,7 +822,7 @@ static bool CheckPathVisibility(const vec3_t &start, const vec3_t &end) {
 
 		// try both raised
 		if (can_raise_start && can_raise_end) {
-			tr = gi.traceline(raised_start, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
+			tr = gi.traceLine(raised_start, raised_end, nullptr, MASK_SOLID | CONTENTS_PROJECTILECLIP | CONTENTS_MONSTERCLIP | CONTENTS_PLAYERCLIP);
 
 			if (tr.fraction == 1.0f)
 				return true;
@@ -836,12 +838,12 @@ THINK(monster_think) (gentity_t *self) -> void {
 	// [Paril-KEX] monster sniff testing; if we can make an unobstructed path to the player, murder ourselves.
 	if (g_debug_monster_kills->integer) {
 		if (g_entities[1].inUse) {
-			trace_t enemy_trace = gi.traceline(self->s.origin, g_entities[1].s.origin, self, MASK_SHOT);
+			trace_t enemy_trace = gi.traceLine(self->s.origin, g_entities[1].s.origin, self, MASK_SHOT);
 
 			if (enemy_trace.fraction < 1.0f && enemy_trace.ent == &g_entities[1])
-				Damage(self, &g_entities[1], &g_entities[1], { 0, 0, -1 }, self->s.origin, { 0, 0, -1 }, 9999, 9999, DAMAGE_NO_PROTECTION, MOD_BFG_BLAST);
+				Damage(self, &g_entities[1], &g_entities[1], { 0, 0, -1 }, self->s.origin, { 0, 0, -1 }, 9999, 9999, DamageFlags::NoProtection, ModID::BFG10K_Blast);
 			else {
-				static vec3_t points[64];
+				static Vector3 points[64];
 
 				if (self->disintegrator_time <= level.time) {
 					PathRequest request;
@@ -864,8 +866,8 @@ THINK(monster_think) (gentity_t *self) -> void {
 							info.returnCode != PathReturnCode::NoPathFound &&
 							info.returnCode != PathReturnCode::NoNavAvailable &&
 							info.numPathPoints < q_countof(points)) {
-							if (CheckPathVisibility(g_entities[1].s.origin + vec3_t{ 0.f, 0.f, g_entities[1].mins.z }, points[info.numPathPoints - 1]) &&
-								CheckPathVisibility(self->s.origin + vec3_t{ 0.f, 0.f, self->mins.z }, points[0])) {
+							if (CheckPathVisibility(g_entities[1].s.origin + Vector3{ 0.f, 0.f, g_entities[1].mins.z }, points[info.numPathPoints - 1]) &&
+								CheckPathVisibility(self->s.origin + Vector3{ 0.f, 0.f, self->mins.z }, points[0])) {
 								size_t i = 0;
 
 								for (; i < static_cast<size_t>(info.numPathPoints - 1); i++)
@@ -873,7 +875,7 @@ THINK(monster_think) (gentity_t *self) -> void {
 										break;
 
 								if (i == static_cast<size_t>(info.numPathPoints - 1))
-									Damage(self, &g_entities[1], &g_entities[1], { 0, 0, 1 }, self->s.origin, { 0, 0, 1 }, 9999, 9999, DAMAGE_NO_PROTECTION, MOD_BFG_BLAST);
+									Damage(self, &g_entities[1], &g_entities[1], { 0, 0, 1 }, self->s.origin, { 0, 0, 1 }, 9999, 9999, DamageFlags::NoProtection, ModID::BFG10K_Blast);
 								else
 									self->disintegrator_time = level.time + 500_ms;
 							} else
@@ -888,11 +890,11 @@ THINK(monster_think) (gentity_t *self) -> void {
 			}
 
 			if (!self->deadFlag && !(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT))
-				gi.Draw_Bounds(self->absMin, self->absMax, rgba_red, gi.frame_time_s, false);
+				gi.Draw_Bounds(self->absMin, self->absMax, rgba_red, gi.frameTimeSec, false);
 		}
 	}
 
-	self->s.renderfx &= ~(RF_STAIR_STEP | RF_OLD_FRAME_LERP);
+	self->s.renderFX &= ~(RF_STAIR_STEP | RF_OLD_FRAME_LERP);
 
 	M_ProcessPain(self);
 
@@ -900,14 +902,14 @@ THINK(monster_think) (gentity_t *self) -> void {
 	if (!self->inUse || self->think != monster_think)
 		return;
 
-	if (self->hackflags & HACKFLAG_ATTACK_PLAYER || GT(GT_HORDE)) {
+	if (self->hackFlags & HACKFLAG_ATTACK_PLAYER || Game::Is(GameType::Horde)) {
 		if (!self->enemy && g_entities[1].inUse && ClientIsPlaying(g_entities[1].client)) {
 			self->enemy = &g_entities[1];
 			FoundTarget(self);
 		}
 	}
 
-	if (self->health > 0 && self->monsterInfo.dodge && !(globals.server_flags & SERVER_FLAG_LOADING))
+	if (self->health > 0 && self->monsterInfo.dodge && !(globals.serverFlags & SERVER_FLAG_LOADING))
 		M_CheckDodge(self);
 
 	M_MoveFrame(self);
@@ -915,7 +917,7 @@ THINK(monster_think) (gentity_t *self) -> void {
 		self->monsterInfo.linkCount = self->linkCount;
 		M_CheckGround(self, G_GetClipMask(self));
 	}
-	M_CatagorizePosition(self, self->s.origin, self->waterlevel, self->watertype);
+	M_CatagorizePosition(self, self->s.origin, self->waterLevel, self->waterType);
 	M_WorldEffects(self);
 	M_SetEffects(self);
 }
@@ -949,26 +951,26 @@ USE(monster_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> vo
 void monster_start_go(gentity_t *self);
 
 static THINK(monster_triggered_spawn) (gentity_t *self) -> void {
-	self->s.origin[2] += 1;
+	self->s.origin[Z] += 1;
 
 	self->solid = SOLID_BBOX;
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->svFlags &= ~SVF_NOCLIENT;
 	self->airFinished = level.time + 12_sec;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
 	KillBox(self, false);
 
 	monster_start_go(self);
 
 	if (strcmp(self->className, "monster_fixbot") == 0) {
-		if (self->spawnflags.has(SPAWNFLAG_FIXBOT_LANDING | SPAWNFLAG_FIXBOT_TAKEOFF | SPAWNFLAG_FIXBOT_FIXIT)) {
+		if (self->spawnFlags.has(SPAWNFLAG_FIXBOT_LANDING | SPAWNFLAG_FIXBOT_TAKEOFF | SPAWNFLAG_FIXBOT_FIXIT)) {
 			self->enemy = nullptr;
 			return;
 		}
 	}
 
-	if (self->enemy && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
+	if (self->enemy && !(self->spawnFlags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
 		if (!(self->enemy->flags & FL_DISGUISED))
 			FoundTarget(self);
 		else // PMM - just in case, make sure to clear the enemy so FindTarget doesn't get confused
@@ -982,17 +984,17 @@ static USE(monster_triggered_spawn_use) (gentity_t *self, gentity_t *other, gent
 	// we have a one frame delay here so we don't telefrag the guy who activated us
 	self->think = monster_triggered_spawn;
 	self->nextThink = level.time + FRAME_TIME_S;
-	if (activator && activator->client && !(self->hackflags & HACKFLAG_END_CUTSCENE))
+	if (activator && activator->client && !(self->hackFlags & HACKFLAG_END_CUTSCENE))
 		self->enemy = activator;
 	self->use = monster_use;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_SCENIC)) {
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_SCENIC)) {
 		M_droptofloor(self);
 
 		self->nextThink = 0_ms;
 		self->think(self);
 
-		if (self->spawnflags.has(SPAWNFLAG_MONSTER_AMBUSH))
+		if (self->spawnFlags.has(SPAWNFLAG_MONSTER_AMBUSH))
 			monster_use(self, other, activator);
 
 		for (int i = 0; i < 30; i++) {
@@ -1004,14 +1006,14 @@ static USE(monster_triggered_spawn_use) (gentity_t *self, gentity_t *other, gent
 
 static THINK(monster_triggered_think) (gentity_t *self) -> void {
 	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT))
-		gi.Draw_Bounds(self->absMin, self->absMax, rgba_blue, gi.frame_time_s, false);
+		gi.Draw_Bounds(self->absMin, self->absMax, rgba_blue, gi.frameTimeSec, false);
 
 	self->nextThink = level.time + 1_ms;
 }
 
 static void monster_triggered_start(gentity_t *self) {
 	self->solid = SOLID_NOT;
-	self->moveType = MOVETYPE_NONE;
+	self->moveType = MoveType::None;
 	self->svFlags |= SVF_NOCLIENT;
 	self->nextThink = 0_ms;
 	self->use = monster_triggered_spawn_use;
@@ -1021,14 +1023,14 @@ static void monster_triggered_start(gentity_t *self) {
 		self->nextThink = level.time + 1_ms;
 	}
 
-	if (!self->targetname ||
-		(G_FindByString<&gentity_t::target>(nullptr, self->targetname) == nullptr &&
-			G_FindByString<&gentity_t::pathtarget>(nullptr, self->targetname) == nullptr &&
-			G_FindByString<&gentity_t::deathtarget>(nullptr, self->targetname) == nullptr &&
-			G_FindByString<&gentity_t::itemtarget>(nullptr, self->targetname) == nullptr &&
-			G_FindByString<&gentity_t::healthtarget>(nullptr, self->targetname) == nullptr &&
-			G_FindByString<&gentity_t::combattarget>(nullptr, self->targetname) == nullptr)) {
-		gi.Com_PrintFmt("{}: is trigger spawned, but has no targetname or no entity to spawn it\n", *self);
+	if (!self->targetName ||
+		(G_FindByString<&gentity_t::target>(nullptr, self->targetName) == nullptr &&
+			G_FindByString<&gentity_t::pathTarget>(nullptr, self->targetName) == nullptr &&
+			G_FindByString<&gentity_t::deathTarget>(nullptr, self->targetName) == nullptr &&
+			G_FindByString<&gentity_t::itemTarget>(nullptr, self->targetName) == nullptr &&
+			G_FindByString<&gentity_t::healthTarget>(nullptr, self->targetName) == nullptr &&
+			G_FindByString<&gentity_t::combatTarget>(nullptr, self->targetName) == nullptr)) {
+		gi.Com_PrintFmt("{}: is trigger spawned, but has no targetName or no entity to spawn it\n", *self);
 	}
 }
 
@@ -1047,23 +1049,23 @@ void monster_death_use(gentity_t *self) {
 	if (self->item) {
 		gentity_t *dropped = Drop_Item(self, self->item);
 
-		if (self->itemtarget) {
-			dropped->target = self->itemtarget;
-			self->itemtarget = nullptr;
+		if (self->itemTarget) {
+			dropped->target = self->itemTarget;
+			self->itemTarget = nullptr;
 		}
 
 		self->item = nullptr;
 	}
 
-	if (self->deathtarget)
-		self->target = self->deathtarget;
+	if (self->deathTarget)
+		self->target = self->deathTarget;
 
 	if (self->target)
 		UseTargets(self, self->enemy);
 
 	// [Paril-KEX] fire health target
-	if (self->healthtarget) {
-		self->target = self->healthtarget;
+	if (self->healthTarget) {
+		self->target = self->healthTarget;
 		UseTargets(self, self->enemy);
 	}
 }
@@ -1078,13 +1080,13 @@ static void G_Monster_ScaleCoopHealth(gentity_t *self) {
 	// this is just to fix monsters that change health after spawning...
 	// looking at you, soldiers
 	if (!self->monsterInfo.base_health)
-		self->monsterInfo.base_health = self->max_health;
+		self->monsterInfo.base_health = self->maxHealth;
 
 	int32_t delta = level.campaign.coopScalePlayers - self->monsterInfo.health_scaling;
 	int32_t additional_health = delta * (int32_t)(self->monsterInfo.base_health * level.campaign.coopHealthScaling);
 
 	self->health = max(1, self->health + additional_health);
-	self->max_health += additional_health;
+	self->maxHealth += additional_health;
 
 	self->monsterInfo.health_scaling = level.campaign.coopScalePlayers;
 }
@@ -1102,7 +1104,7 @@ void G_Monster_CheckCoopHealthScaling() {
 }
 
 //============================================================================
-constexpr spawnflags_t SPAWNFLAG_MONSTER_FUBAR = 4_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_MONSTER_FUBAR = 4_spawnflag;
 
 bool monster_start(gentity_t *self) {
 	if (!M_AllowSpawn(self)) {
@@ -1110,23 +1112,23 @@ bool monster_start(gentity_t *self) {
 		return false;
 	}
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_SCENIC))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_SCENIC))
 		self->monsterInfo.aiFlags |= AI_GOOD_GUY;
 
 	// [Paril-KEX] n64
-	if (self->hackflags & (HACKFLAG_END_CUTSCENE | HACKFLAG_ATTACK_PLAYER))
+	if (self->hackFlags & (HACKFLAG_END_CUTSCENE | HACKFLAG_ATTACK_PLAYER))
 		self->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_FUBAR) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
-		self->spawnflags &= ~SPAWNFLAG_MONSTER_FUBAR;
-		self->spawnflags |= SPAWNFLAG_MONSTER_AMBUSH;
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_FUBAR) && !(self->monsterInfo.aiFlags & AI_GOOD_GUY)) {
+		self->spawnFlags &= ~SPAWNFLAG_MONSTER_FUBAR;
+		self->spawnFlags |= SPAWNFLAG_MONSTER_AMBUSH;
 	}
 
 	// [Paril-KEX] simplify other checks
 	if (self->monsterInfo.aiFlags & AI_GOOD_GUY)
 		self->monsterInfo.aiFlags |= AI_DO_NOT_COUNT;
 
-	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD)) {
+	if (!(self->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && !self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE)) {
 		if (g_debug_monster_kills->integer)
 			level.campaign.monstersRegistered[level.campaign.totalMonsters] = self;
 		level.campaign.totalMonsters++;
@@ -1137,16 +1139,16 @@ bool monster_start(gentity_t *self) {
 	self->takeDamage = true;
 	self->airFinished = level.time + 12_sec;
 	self->use = monster_use;
-	self->max_health = self->health;
+	self->maxHealth = self->health;
 	self->clipMask = MASK_MONSTERSOLID;
 	self->deadFlag = false;
 	self->svFlags &= ~SVF_DEADMONSTER;
 	self->flags &= ~FL_ALIVE_KNOCKBACK_ONLY;
 	self->flags |= FL_COOP_HEALTH_SCALE;
-	self->s.old_origin = self->s.origin;
-	self->monsterInfo.initial_power_armor_type = self->monsterInfo.powerArmorType;
+	self->s.oldOrigin = self->s.origin;
+	self->monsterInfo.initialPowerArmorType = self->monsterInfo.powerArmorType;
 	self->monsterInfo.max_power_armor_power = self->monsterInfo.powerArmorPower;
-	//gi.Com_PrintFmt("MONSTER SPAWN: {}, maxhealth = {}\n", *self, self->max_health);
+	//gi.Com_PrintFmt("MONSTER SPAWN: {}, maxhealth = {}\n", *self, self->maxHealth);
 	if (!self->monsterInfo.checkAttack)
 		self->monsterInfo.checkAttack = M_CheckAttack;
 
@@ -1162,11 +1164,11 @@ bool monster_start(gentity_t *self) {
 	}
 
 	// set combat style if unset
-	if (self->monsterInfo.combat_style == COMBAT_UNKNOWN) {
+	if (self->monsterInfo.combatStyle == CombatStyle::Unknown) {
 		if (!self->monsterInfo.attack && self->monsterInfo.melee)
-			self->monsterInfo.combat_style = COMBAT_MELEE;
+			self->monsterInfo.combatStyle = CombatStyle::Melee;
 		else
-			self->monsterInfo.combat_style = COMBAT_MIXED;
+			self->monsterInfo.combatStyle = CombatStyle::Mixed;
 	}
 
 	if (st.item) {
@@ -1204,18 +1206,18 @@ bool monster_start(gentity_t *self) {
 	return true;
 }
 
-stuck_result_t G_FixStuckObject(gentity_t *self, vec3_t check) {
+StuckResult G_FixStuckObject(gentity_t *self, Vector3 check) {
 	contents_t mask = G_GetClipMask(self);
-	stuck_result_t result = G_FixStuckObject_Generic(check, self->mins, self->maxs, [self, mask](const vec3_t &start, const vec3_t &mins, const vec3_t &maxs, const vec3_t &end) {
+	StuckResult result = G_FixStuckObject_Generic(check, self->mins, self->maxs, [self, mask](const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end) {
 		return gi.trace(start, mins, maxs, end, self, mask);
 		});
 
-	if (result == stuck_result_t::NO_GOOD_POSITION)
+	if (result == StuckResult::NoGoodPosition)
 		return result;
 
 	self->s.origin = check;
 
-	if (result == stuck_result_t::FIXED)
+	if (result == StuckResult::Fixed)
 		gi.Com_PrintFmt("fixed stuck {}\n", *self);
 
 	return result;
@@ -1224,7 +1226,7 @@ stuck_result_t G_FixStuckObject(gentity_t *self, vec3_t check) {
 void monster_start_go(gentity_t *self) {
 	// Paril: moved here so this applies to swim/fly monsters too
 	if (!(self->flags & FL_STATIONARY)) {
-		const vec3_t check = self->s.origin;
+		const Vector3 check = self->s.origin;
 
 		// [Paril-KEX] different nudge method; see if any of the bbox sides are clear,
 		// if so we can see how much headroom we have in that direction and shift us.
@@ -1234,14 +1236,14 @@ void monster_start_go(gentity_t *self) {
 		bool is_stuck = false;
 
 		if ((self->monsterInfo.aiFlags & AI_GOOD_GUY) || (self->flags & (FL_FLY | FL_SWIM)))
-			is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
+			is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startSolid;
 		else
 			is_stuck = !M_droptofloor(self) || !M_walkmove(self, 0, 0);
 
 		if (is_stuck) {
-			if (G_FixStuckObject(self, check) != stuck_result_t::NO_GOOD_POSITION) {
+			if (G_FixStuckObject(self, check) != StuckResult::NoGoodPosition) {
 				if (self->monsterInfo.aiFlags & AI_GOOD_GUY)
-					is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
+					is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startSolid;
 				else if (!(self->flags & (FL_FLY | FL_SWIM)))
 					M_droptofloor(self);
 				is_stuck = false;
@@ -1258,12 +1260,12 @@ void monster_start_go(gentity_t *self) {
 			for (int32_t y = 0; !walked && y < 3; y++)
 				for (int32_t x = 0; !walked && x < 3; x++)
 					for (int32_t z = 0; !walked && z < 3; z++) {
-						self->s.origin[0] = check[0] + adjust[x];
-						self->s.origin[1] = check[1] + adjust[y];
-						self->s.origin[2] = check[2] + adjust[z];
+						self->s.origin[X] = check[0] + adjust[x];
+						self->s.origin[Y] = check[1] + adjust[y];
+						self->s.origin[Z] = check[2] + adjust[z];
 
 						if (self->monsterInfo.aiFlags & AI_GOOD_GUY) {
-							is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startsolid;
+							is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startSolid;
 
 							if (!is_stuck)
 								walked = true;
@@ -1278,14 +1280,14 @@ void monster_start_go(gentity_t *self) {
 			gi.Com_PrintFmt("WARNING: {} stuck in solid\n", *self);
 	}
 
-	vec3_t v;
+	Vector3 v;
 
 	if (self->health <= 0)
 		return;
 
-	self->s.old_origin = self->s.origin;
+	self->s.oldOrigin = self->s.origin;
 
-	// check for target to combat_point and change to combattarget
+	// check for target to combat_point and change to combatTarget
 	if (self->target) {
 		bool	 notcombat;
 		bool	 fixup;
@@ -1294,51 +1296,51 @@ void monster_start_go(gentity_t *self) {
 		target = nullptr;
 		notcombat = false;
 		fixup = false;
-		while ((target = G_FindByString<&gentity_t::targetname>(target, self->target)) != nullptr) {
+		while ((target = G_FindByString<&gentity_t::targetName>(target, self->target)) != nullptr) {
 			if (strcmp(target->className, "point_combat") == 0) {
-				self->combattarget = self->target;
+				self->combatTarget = self->target;
 				fixup = true;
 			} else {
 				notcombat = true;
 			}
 		}
-		if (notcombat && self->combattarget)
+		if (notcombat && self->combatTarget)
 			gi.Com_PrintFmt("{}: has target with mixed types\n", *self);
 		if (fixup)
 			self->target = nullptr;
 	}
 
-	// validate combattarget
-	if (self->combattarget) {
+	// validate combatTarget
+	if (self->combatTarget) {
 		gentity_t *target;
 
 		target = nullptr;
-		while ((target = G_FindByString<&gentity_t::targetname>(target, self->combattarget)) != nullptr) {
+		while ((target = G_FindByString<&gentity_t::targetName>(target, self->combatTarget)) != nullptr) {
 			if (strcmp(target->className, "point_combat") != 0) {
-				gi.Com_PrintFmt("{} has a bad combattarget {} ({})\n", *self, self->combattarget, *target);
+				gi.Com_PrintFmt("{} has a bad combatTarget {} ({})\n", *self, self->combatTarget, *target);
 			}
 		}
 	}
 
 	// allow spawning dead
-	bool spawn_dead = self->spawnflags.has(SPAWNFLAG_MONSTER_DEAD);
+	bool spawn_dead = self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE);
 
 	if (self->target) {
-		self->goalentity = self->movetarget = PickTarget(self->target);
-		if (!self->movetarget) {
+		self->goalEntity = self->moveTarget = PickTarget(self->target);
+		if (!self->moveTarget) {
 			gi.Com_PrintFmt("{}: can't find target {}\n", *self, self->target);
 			self->target = nullptr;
 			self->monsterInfo.pauseTime = HOLD_FOREVER;
 			if (!spawn_dead)
 				self->monsterInfo.stand(self);
-		} else if (strcmp(self->movetarget->className, "path_corner") == 0) {
-			v = self->goalentity->s.origin - self->s.origin;
+		} else if (strcmp(self->moveTarget->className, "path_corner") == 0) {
+			v = self->goalEntity->s.origin - self->s.origin;
 			self->ideal_yaw = self->s.angles[YAW] = vectoyaw(v);
 			if (!spawn_dead)
 				self->monsterInfo.walk(self);
 			self->target = nullptr;
 		} else {
-			self->goalentity = self->movetarget = nullptr;
+			self->goalEntity = self->moveTarget = nullptr;
 			self->monsterInfo.pauseTime = HOLD_FOREVER;
 			if (!spawn_dead)
 				self->monsterInfo.stand(self);
@@ -1353,16 +1355,16 @@ void monster_start_go(gentity_t *self) {
 		// to spawn dead, we'll mimick them dying naturally
 		self->health = 0;
 
-		vec3_t f = self->s.origin;
+		Vector3 f = self->s.origin;
 
 		if (self->die)
-			self->die(self, self, self, 0, vec3_origin, MOD_SUICIDE);
+			self->die(self, self, self, 0, vec3_origin, ModID::Suicide);
 
 		if (!self->inUse)
 			return;
 
-		if (self->monsterInfo.setskin)
-			self->monsterInfo.setskin(self);
+		if (self->monsterInfo.setSkin)
+			self->monsterInfo.setSkin(self);
 
 		self->monsterInfo.aiFlags |= AI_SPAWNED_DEAD;
 
@@ -1371,8 +1373,8 @@ void monster_start_go(gentity_t *self) {
 		for (size_t i = move->firstFrame; i < move->lastFrame; i++) {
 			self->s.frame = i;
 
-			if (move->frame[i - move->firstFrame].thinkfunc)
-				move->frame[i - move->firstFrame].thinkfunc(self);
+			if (move->frame[i - move->firstFrame].thinkFunc)
+				move->frame[i - move->firstFrame].thinkFunc(self);
 
 			if (!self->inUse)
 				return;
@@ -1384,15 +1386,17 @@ void monster_start_go(gentity_t *self) {
 		if (!self->inUse)
 			return;
 
-		if (self->monsterInfo.start_frame)
-			self->s.frame = self->monsterInfo.start_frame;
+		if (self->monsterInfo.startFrame)
+			self->s.frame = self->monsterInfo.startFrame;
 		else
 			self->s.frame = move->lastFrame;
 
 		self->s.origin = f;
-		gi.linkentity(self);
+		gi.linkEntity(self);
 
 		self->monsterInfo.aiFlags &= ~AI_SPAWNED_DEAD;
+
+		gi.Com_PrintFmt("{}: spawn dead\n", *self);
 	} else {
 		self->think = monster_think;
 		self->nextThink = level.time + FRAME_TIME_S;
@@ -1401,10 +1405,10 @@ void monster_start_go(gentity_t *self) {
 }
 
 static THINK(walkmonster_start_go) (gentity_t *self) -> void {
-	if (!self->yaw_speed)
-		self->yaw_speed = 20;
+	if (!self->yawSpeed)
+		self->yawSpeed = 20;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
 		monster_triggered_start(self);
 	else
 		monster_start_go(self);
@@ -1416,10 +1420,10 @@ void walkmonster_start(gentity_t *self) {
 }
 
 static THINK(flymonster_start_go) (gentity_t *self) -> void {
-	if (!self->yaw_speed)
-		self->yaw_speed = 30;
+	if (!self->yawSpeed)
+		self->yawSpeed = 30;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
 		monster_triggered_start(self);
 	else
 		monster_start_go(self);
@@ -1432,10 +1436,10 @@ void flymonster_start(gentity_t *self) {
 }
 
 static THINK(swimmonster_start_go) (gentity_t *self) -> void {
-	if (!self->yaw_speed)
-		self->yaw_speed = 30;
+	if (!self->yawSpeed)
+		self->yawSpeed = 30;
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
 		monster_triggered_start(self);
 	else
 		monster_start_go(self);
@@ -1448,7 +1452,7 @@ void swimmonster_start(gentity_t *self) {
 }
 
 static USE(trigger_health_relay_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
-	float percent_health = clamp((float)(other->health) / (float)(other->max_health), 0.f, 1.f);
+	float percent_health = std::clamp((float)(other->health) / (float)(other->maxHealth), 0.f, 1.f);
 
 	// not ready to trigger yet
 	if (percent_health > self->speed)
@@ -1468,8 +1472,8 @@ beyond a certain amount of health.
 It will only fire once, and free itself afterwards.
 */
 void SP_trigger_health_relay(gentity_t *self) {
-	if (!self->targetname) {
-		gi.Com_PrintFmt("{} missing targetname\n", *self);
+	if (!self->targetName) {
+		gi.Com_PrintFmt("{} missing targetName\n", *self);
 		FreeEntity(self);
 		return;
 	}
@@ -1484,19 +1488,19 @@ void SP_trigger_health_relay(gentity_t *self) {
 	self->use = trigger_health_relay_use;
 }
 
-void monster_fire_blueblaster(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
+void monster_fire_blueblaster(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed, MonsterMuzzleFlashID flashType, Effect effect) {
 	fire_blueblaster(self, start, dir, damage, speed, effect);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_ionripper(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
+void monster_fire_ionripper(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed, MonsterMuzzleFlashID flashType, Effect effect) {
 	fire_ionripper(self, start, dir, damage, speed, effect);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_heat(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, float turnFraction) {
+void monster_fire_heat(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed, MonsterMuzzleFlashID flashType, float turnFraction) {
 	fire_heat(self, start, dir, damage, speed, (float)damage, damage, turnFraction);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
 struct dabeam_pierce_t : pierce_args_t {
@@ -1510,19 +1514,19 @@ struct dabeam_pierce_t : pierce_args_t {
 
 	// we hit an entity; return false to stop the piercing.
 	// you can adjust the mask for the re-trace (for water, etc).
-	virtual bool hit(contents_t &mask, vec3_t &end) override {
+	virtual bool hit(contents_t &mask, Vector3 &end) override {
 		if (damage) {
 			// hurt it if we can
 			if (self->dmg > 0 && (tr.ent->takeDamage) && !(tr.ent->flags & FL_IMMUNE_LASER) && (tr.ent != self->owner))
-				Damage(tr.ent, self, self->owner, self->movedir, tr.endpos, vec3_origin, self->dmg, skill->integer, DAMAGE_ENERGY, MOD_PLASMABEAM);
+				Damage(tr.ent, self, self->owner, self->moveDir, tr.endPos, vec3_origin, self->dmg, skill->integer, DamageFlags::Energy, ModID::PlasmaBeam);
 
 			if (self->dmg < 0) // healer ray
 			{
 				// when player is at 100 health
 				// just undo health fix
 				// keeping fx
-				if (tr.ent->health < tr.ent->max_health)
-					tr.ent->health = min(tr.ent->max_health, tr.ent->health - self->dmg);
+				if (tr.ent->health < tr.ent->maxHealth)
+					tr.ent->health = min(tr.ent->maxHealth, tr.ent->health - self->dmg);
 			}
 		}
 
@@ -1532,10 +1536,10 @@ struct dabeam_pierce_t : pierce_args_t {
 				gi.WriteByte(svc_temp_entity);
 				gi.WriteByte(TE_LASER_SPARKS);
 				gi.WriteByte(10);
-				gi.WritePosition(tr.endpos);
+				gi.WritePosition(tr.endPos);
 				gi.WriteDir(tr.plane.normal);
-				gi.WriteByte(self->s.skinnum);
-				gi.multicast(tr.endpos, MULTICAST_PVS, false);
+				gi.WriteByte(self->s.skinNum);
+				gi.multicast(tr.endPos, MULTICAST_PVS, false);
 			}
 
 			return false;
@@ -1549,8 +1553,8 @@ struct dabeam_pierce_t : pierce_args_t {
 };
 
 void dabeam_update(gentity_t *self, bool damage) {
-	vec3_t start = self->s.origin;
-	vec3_t end = start + (self->movedir * 2048);
+	Vector3 start = self->s.origin;
+	Vector3 end = start + (self->moveDir * 2048);
 
 	dabeam_pierce_t args{
 		self,
@@ -1559,14 +1563,14 @@ void dabeam_update(gentity_t *self, bool damage) {
 
 	pierce_trace(start, end, self, args, CONTENTS_SOLID | CONTENTS_MONSTER | CONTENTS_PLAYER | CONTENTS_DEADMONSTER);
 
-	self->s.old_origin = args.tr.endpos + (args.tr.plane.normal * 1.f);
-	gi.linkentity(self);
+	self->s.oldOrigin = args.tr.endPos + (args.tr.plane.normal * 1.f);
+	gi.linkEntity(self);
 }
 
-constexpr spawnflags_t SPAWNFLAG_DABEAM_SECONDARY = 1_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_DABEAM_SECONDARY = 1_spawnflag;
 
 static THINK(beam_think) (gentity_t *self) -> void {
-	if (self->spawnflags.has(SPAWNFLAG_DABEAM_SECONDARY))
+	if (self->spawnFlags.has(SPAWNFLAG_DABEAM_SECONDARY))
 		self->owner->beam2 = nullptr;
 	else
 		self->owner->beam = nullptr;
@@ -1579,23 +1583,23 @@ void monster_fire_dabeam(gentity_t *self, int damage, bool secondary, void(*upda
 	if (!beam_ptr) {
 		beam_ptr = Spawn();
 
-		beam_ptr->moveType = MOVETYPE_NONE;
+		beam_ptr->moveType = MoveType::None;
 		beam_ptr->solid = SOLID_NOT;
-		beam_ptr->s.renderfx |= RF_BEAM;
-		beam_ptr->s.modelindex = MODELINDEX_WORLD;
+		beam_ptr->s.renderFX |= RF_BEAM;
+		beam_ptr->s.modelIndex = MODELINDEX_WORLD;
 		beam_ptr->owner = self;
 		beam_ptr->dmg = damage;
 		beam_ptr->s.frame = 2;
-		beam_ptr->spawnflags = secondary ? SPAWNFLAG_DABEAM_SECONDARY : SPAWNFLAG_NONE;
+		beam_ptr->spawnFlags = secondary ? SPAWNFLAG_DABEAM_SECONDARY : SPAWNFLAG_NONE;
 
 		if (self->monsterInfo.aiFlags & AI_MEDIC)
-			beam_ptr->s.skinnum = 0xf3f3f1f1;
+			beam_ptr->s.skinNum = 0xf3f3f1f1;
 		else
-			beam_ptr->s.skinnum = 0xf2f2f0f0;
+			beam_ptr->s.skinNum = 0xf2f2f0f0;
 
 		beam_ptr->think = beam_think;
-		beam_ptr->s.sound = gi.soundindex("misc/lasfly.wav");
-		beam_ptr->postthink = update_func;
+		beam_ptr->s.sound = gi.soundIndex("misc/lasfly.wav");
+		beam_ptr->postThink = update_func;
 	}
 
 	beam_ptr->nextThink = level.time + 200_ms;
@@ -1603,38 +1607,38 @@ void monster_fire_dabeam(gentity_t *self, int damage, bool secondary, void(*upda
 	dabeam_update(beam_ptr, true);
 }
 
-void monster_fire_blaster2(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, monster_muzzleflash_id_t flashtype, Effect effect) {
+void monster_fire_blaster2(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed, MonsterMuzzleFlashID flashType, Effect effect) {
 	fire_greenblaster(self, start, dir, damage, speed, effect, false);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_disruptor(gentity_t *self, const vec3_t &start, const vec3_t &dir, int damage, int speed, gentity_t *enemy, monster_muzzleflash_id_t flashtype) {
+void monster_fire_disruptor(gentity_t *self, const Vector3 &start, const Vector3 &dir, int damage, int speed, gentity_t *enemy, MonsterMuzzleFlashID flashType) {
 	fire_disruptor(self, start, dir, damage, speed, enemy);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
-void monster_fire_heatbeam(gentity_t *self, const vec3_t &start, const vec3_t &dir, const vec3_t &offset, int damage, int kick, monster_muzzleflash_id_t flashtype) {
+void monster_fire_heatbeam(gentity_t *self, const Vector3 &start, const Vector3 &dir, const Vector3 &offset, int damage, int kick, MonsterMuzzleFlashID flashType) {
 	fire_plasmabeam(self, start, dir, offset, damage, kick, true);
-	monster_muzzleflash(self, start, flashtype);
+	monster_muzzleflash(self, start, flashType);
 }
 
 void stationarymonster_start_go(gentity_t *self);
 
 static THINK(stationarymonster_triggered_spawn) (gentity_t *self) -> void {
 	self->solid = SOLID_BBOX;
-	self->moveType = MOVETYPE_NONE;
+	self->moveType = MoveType::None;
 	self->svFlags &= ~SVF_NOCLIENT;
 	self->airFinished = level.time + 12_sec;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
 	KillBox(self, false);
 
 	// FIXME - why doesn't this happen with real monsters?
-	self->spawnflags &= ~SPAWNFLAG_MONSTER_TRIGGER_SPAWN;
+	self->spawnFlags &= ~SPAWNFLAG_MONSTER_TRIGGER_SPAWN;
 
 	stationarymonster_start_go(self);
 
-	if (self->enemy && !(self->spawnflags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET)) {
+	if (self->enemy && !(self->spawnFlags & SPAWNFLAG_MONSTER_AMBUSH) && !(self->enemy->flags & FL_NOTARGET)) {
 		if (!(self->enemy->flags & FL_DISGUISED)) // PGM
 			FoundTarget(self);
 		else // PMM - just in case, make sure to clear the enemy so FindTarget doesn't get confused
@@ -1655,19 +1659,19 @@ static USE(stationarymonster_triggered_spawn_use) (gentity_t *self, gentity_t *o
 
 static void stationarymonster_triggered_start(gentity_t *self) {
 	self->solid = SOLID_NOT;
-	self->moveType = MOVETYPE_NONE;
+	self->moveType = MoveType::None;
 	self->svFlags |= SVF_NOCLIENT;
 	self->nextThink = 0_ms;
 	self->use = stationarymonster_triggered_spawn_use;
 }
 
 THINK(stationarymonster_start_go) (gentity_t *self) -> void {
-	if (!self->yaw_speed)
-		self->yaw_speed = 20;
+	if (!self->yawSpeed)
+		self->yawSpeed = 20;
 
 	monster_start_go(self);
 
-	if (self->spawnflags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
+	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_TRIGGER_SPAWN))
 		stationarymonster_triggered_start(self);
 }
 
@@ -1682,10 +1686,24 @@ void stationarymonster_start(gentity_t *self) {
 
 void monster_done_dodge(gentity_t *self) {
 	self->monsterInfo.aiFlags &= ~AI_DODGING;
-	if (self->monsterInfo.attack_state == AS_SLIDING)
-		self->monsterInfo.attack_state = AS_STRAIGHT;
+	if (self->monsterInfo.attackState == MonsterAttackState::Sliding)
+		self->monsterInfo.attackState = MonsterAttackState::Straight;
 }
 
 int32_t M_SlotsLeft(gentity_t *self) {
 	return self->monsterInfo.monster_slots - self->monsterInfo.monster_used;
+}
+
+/*
+============
+M_CleanupHealTarget
+
+Clean up heal targets for medic
+============
+*/
+void M_CleanupHealTarget(gentity_t* ent) {
+	ent->monsterInfo.healer = nullptr;
+	ent->takeDamage = true;
+	ent->monsterInfo.aiFlags &= ~AI_RESURRECTING;
+	M_SetEffects(ent);
 }

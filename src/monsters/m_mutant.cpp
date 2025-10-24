@@ -8,24 +8,24 @@ mutant
 ==============================================================================
 */
 
-#include "../g_local.h"
-#include "m_mutant.h"
+#include "../g_local.hpp"
+#include "m_mutant.hpp"
 
-constexpr spawnflags_t SPAWNFLAG_MUTANT_NOJUMPING = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_MUTANT_NOJUMPING = 8_spawnflag;
 
-static cached_soundindex sound_swing;
-static cached_soundindex sound_hit;
-static cached_soundindex sound_hit2;
-static cached_soundindex sound_death;
-static cached_soundindex sound_idle;
-static cached_soundindex sound_pain1;
-static cached_soundindex sound_pain2;
-static cached_soundindex sound_sight;
-static cached_soundindex sound_search;
-static cached_soundindex sound_step1;
-static cached_soundindex sound_step2;
-static cached_soundindex sound_step3;
-static cached_soundindex sound_thud;
+static cached_soundIndex sound_swing;
+static cached_soundIndex sound_hit;
+static cached_soundIndex sound_hit2;
+static cached_soundIndex sound_death;
+static cached_soundIndex sound_idle;
+static cached_soundIndex sound_pain1;
+static cached_soundIndex sound_pain2;
+static cached_soundIndex sound_sight;
+static cached_soundIndex sound_search;
+static cached_soundIndex sound_step1;
+static cached_soundIndex sound_step2;
+static cached_soundIndex sound_step3;
+static cached_soundIndex sound_thud;
 
 //
 // SOUNDS
@@ -57,7 +57,7 @@ static void mutant_swing(gentity_t *self) {
 // STAND
 //
 
-mframe_t mutant_frames_stand[] = {
+MonsterFrame mutant_frames_stand[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -130,7 +130,7 @@ static void mutant_idle_loop(gentity_t *self) {
 		self->monsterInfo.nextFrame = FRAME_stand155;
 }
 
-mframe_t mutant_frames_idle[] = {
+MonsterFrame mutant_frames_idle[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -156,7 +156,7 @@ MONSTERINFO_IDLE(mutant_idle) (gentity_t *self) -> void {
 // WALK
 //
 
-mframe_t mutant_frames_walk[] = {
+MonsterFrame mutant_frames_walk[] = {
 	{ ai_walk, 3 },
 	{ ai_walk, 1 },
 	{ ai_walk, 5 },
@@ -176,7 +176,7 @@ static void mutant_walk_loop(gentity_t *self) {
 	M_SetAnimation(self, &mutant_move_walk);
 }
 
-mframe_t mutant_frames_start_walk[] = {
+MonsterFrame mutant_frames_start_walk[] = {
 	{ ai_walk, 5 },
 	{ ai_walk, 5 },
 	{ ai_walk, -2 },
@@ -192,7 +192,7 @@ MONSTERINFO_WALK(mutant_walk) (gentity_t *self) -> void {
 // RUN
 //
 
-mframe_t mutant_frames_run[] = {
+MonsterFrame mutant_frames_run[] = {
 	{ ai_run, 40 },
 	{ ai_run, 40, mutant_step },
 	{ ai_run, 24 },
@@ -214,7 +214,7 @@ MONSTERINFO_RUN(mutant_run) (gentity_t *self) -> void {
 //
 
 static void mutant_hit_left(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, self->mins[0], 8 };
+	Vector3 aim = { MELEE_DISTANCE, self->mins[0], 8 };
 	if (fire_hit(self, aim, irandom(5, 15), 100))
 		gi.sound(self, CHAN_WEAPON, sound_hit, 1, ATTN_NORM, 0);
 	else {
@@ -224,7 +224,7 @@ static void mutant_hit_left(gentity_t *self) {
 }
 
 static void mutant_hit_right(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, self->maxs[0], 8 };
+	Vector3 aim = { MELEE_DISTANCE, self->maxs[0], 8 };
 	if (fire_hit(self, aim, irandom(5, 15), 100))
 		gi.sound(self, CHAN_WEAPON, sound_hit2, 1, ATTN_NORM, 0);
 	else {
@@ -241,7 +241,7 @@ static void mutant_check_refire(gentity_t *self) {
 		self->monsterInfo.nextFrame = FRAME_attack09;
 }
 
-mframe_t mutant_frames_attack[] = {
+MonsterFrame mutant_frames_attack[] = {
 	{ ai_charge },
 	{ ai_charge },
 	{ ai_charge, 0, mutant_hit_left },
@@ -269,15 +269,15 @@ static TOUCH(mutant_jump_touch) (gentity_t *self, gentity_t *other, const trace_
 	if (self->style == 1 && other->takeDamage) {
 		// [Paril-KEX] only if we're actually moving fast enough to hurt
 		if (self->velocity.length() > 30) {
-			vec3_t point;
-			vec3_t normal;
+			Vector3 point;
+			Vector3 normal;
 			int	   damage;
 
 			normal = self->velocity;
 			normal.normalize();
 			point = self->s.origin + (normal * self->maxs[0]);
 			damage = (int)frandom(40, 50);
-			Damage(other, self, self, self->velocity, point, normal, damage, damage, DAMAGE_NONE, MOD_UNKNOWN);
+			Damage(other, self, self, self->velocity, point, normal, damage, damage, DamageFlags::Normal, ModID::Unknown);
 			self->style = 0;
 		}
 	}
@@ -294,16 +294,16 @@ static TOUCH(mutant_jump_touch) (gentity_t *self, gentity_t *other, const trace_
 }
 
 static void mutant_jump_takeoff(gentity_t *self) {
-	vec3_t forward;
+	Vector3 forward;
 
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
-	self->s.origin[2] += 1;
+	self->s.origin[Z] += 1;
 	self->velocity = forward * 425;
 	self->velocity[2] = 160;
 	self->groundEntity = nullptr;
 	self->monsterInfo.aiFlags |= AI_DUCKED;
-	self->monsterInfo.attack_finished = level.time + 3_sec;
+	self->monsterInfo.attackFinished = level.time + 3_sec;
 	self->style = 1;
 	self->touch = mutant_jump_touch;
 }
@@ -313,7 +313,7 @@ static void mutant_check_landing(gentity_t *self) {
 
 	if (self->groundEntity) {
 		gi.sound(self, CHAN_WEAPON, sound_thud, 1, ATTN_NORM, 0);
-		self->monsterInfo.attack_finished = level.time + random_time(500_ms, 1.5_sec);
+		self->monsterInfo.attackFinished = level.time + random_time(500_ms, 1.5_sec);
 
 		if (self->monsterInfo.unDuck)
 			self->monsterInfo.unDuck(self);
@@ -324,13 +324,13 @@ static void mutant_check_landing(gentity_t *self) {
 		return;
 	}
 
-	if (level.time > self->monsterInfo.attack_finished)
+	if (level.time > self->monsterInfo.attackFinished)
 		self->monsterInfo.nextFrame = FRAME_attack02;
 	else
 		self->monsterInfo.nextFrame = FRAME_attack05;
 }
 
-mframe_t mutant_frames_jump[] = {
+MonsterFrame mutant_frames_jump[] = {
 	{ ai_charge },
 	{ ai_charge, 17 },
 	{ ai_charge, 15, mutant_jump_takeoff },
@@ -355,7 +355,7 @@ static bool mutant_check_melee(gentity_t *self) {
 }
 
 static bool mutant_check_jump(gentity_t *self) {
-	vec3_t v{};
+	Vector3 v{};
 	float  distance;
 
 	// Paril: no harm in letting them jump down if you're below them
@@ -366,8 +366,8 @@ static bool mutant_check_jump(gentity_t *self) {
 	if (self->absMin[2] + 125 < self->enemy->absMin[2])
 		return false;
 
-	v[0] = self->s.origin[0] - self->enemy->s.origin[0];
-	v[1] = self->s.origin[1] - self->enemy->s.origin[1];
+	v[0] = self->s.origin[X] - self->enemy->s.origin[X];
+	v[1] = self->s.origin[Y] - self->enemy->s.origin[Y];
 	v[2] = 0;
 	distance = v.length();
 
@@ -378,7 +378,7 @@ static bool mutant_check_jump(gentity_t *self) {
 	if (distance > 265)
 		return false;
 
-	return self->monsterInfo.attack_finished < level.time && brandom();
+	return self->monsterInfo.attackFinished < level.time && brandom();
 }
 
 MONSTERINFO_CHECKATTACK(mutant_checkattack) (gentity_t *self) -> bool {
@@ -386,12 +386,12 @@ MONSTERINFO_CHECKATTACK(mutant_checkattack) (gentity_t *self) -> bool {
 		return false;
 
 	if (mutant_check_melee(self)) {
-		self->monsterInfo.attack_state = AS_MELEE;
+		self->monsterInfo.attackState = MonsterAttackState::Melee;
 		return true;
 	}
 
-	if (!self->spawnflags.has(SPAWNFLAG_MUTANT_NOJUMPING) && mutant_check_jump(self)) {
-		self->monsterInfo.attack_state = AS_MISSILE;
+	if (!self->spawnFlags.has(SPAWNFLAG_MUTANT_NOJUMPING) && mutant_check_jump(self)) {
+		self->monsterInfo.attackState = MonsterAttackState::Missile;
 		return true;
 	}
 
@@ -402,7 +402,7 @@ MONSTERINFO_CHECKATTACK(mutant_checkattack) (gentity_t *self) -> bool {
 // PAIN
 //
 
-mframe_t mutant_frames_pain1[] = {
+MonsterFrame mutant_frames_pain1[] = {
 	{ ai_move, 4 },
 	{ ai_move, -3 },
 	{ ai_move, -8 },
@@ -411,7 +411,7 @@ mframe_t mutant_frames_pain1[] = {
 };
 MMOVE_T(mutant_move_pain1) = { FRAME_pain101, FRAME_pain105, mutant_frames_pain1, mutant_run };
 
-mframe_t mutant_frames_pain2[] = {
+MonsterFrame mutant_frames_pain2[] = {
 	{ ai_move, -24 },
 	{ ai_move, 11 },
 	{ ai_move, 5 },
@@ -421,7 +421,7 @@ mframe_t mutant_frames_pain2[] = {
 };
 MMOVE_T(mutant_move_pain2) = { FRAME_pain201, FRAME_pain206, mutant_frames_pain2, mutant_run };
 
-mframe_t mutant_frames_pain3[] = {
+MonsterFrame mutant_frames_pain3[] = {
 	{ ai_move, -22 },
 	{ ai_move, 3 },
 	{ ai_move, 3 },
@@ -436,15 +436,14 @@ mframe_t mutant_frames_pain3[] = {
 };
 MMOVE_T(mutant_move_pain3) = { FRAME_pain301, FRAME_pain311, mutant_frames_pain3, mutant_run };
 
-static PAIN(mutant_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const mod_t &mod) -> void {
-	float r;
-
+static PAIN(mutant_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	if (level.time < self->pain_debounce_time)
 		return;
 
 	self->pain_debounce_time = level.time + 3_sec;
 
-	r = frandom();
+	float r = frandom();
+
 	if (r < 0.33f)
 		gi.sound(self, CHAN_VOICE, sound_pain1, 1, ATTN_NORM, 0);
 	else if (r < 0.66f)
@@ -464,10 +463,7 @@ static PAIN(mutant_pain) (gentity_t *self, gentity_t *other, float kick, int dam
 }
 
 MONSTERINFO_SETSKIN(mutant_setskin) (gentity_t *self) -> void {
-	if (self->health < (self->max_health / 2))
-		self->s.skinnum = 1;
-	else
-		self->s.skinnum = 0;
+	self->s.skinNum = self->health < (self->maxHealth / 2) ? 1 : 0;
 }
 
 //
@@ -477,7 +473,7 @@ MONSTERINFO_SETSKIN(mutant_setskin) (gentity_t *self) -> void {
 static void mutant_shrink(gentity_t *self) {
 	self->maxs[2] = 0;
 	self->svFlags |= SVF_DEADMONSTER;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 // [Paril-KEX]
@@ -489,7 +485,7 @@ static void ai_move_slide_left(gentity_t *self, float dist) {
 	M_walkmove(self, self->s.angles[YAW] - 90, dist);
 }
 
-mframe_t mutant_frames_death1[] = {
+MonsterFrame mutant_frames_death1[] = {
 	{ ai_move_slide_right },
 	{ ai_move_slide_right },
 	{ ai_move_slide_right },
@@ -502,7 +498,7 @@ mframe_t mutant_frames_death1[] = {
 };
 MMOVE_T(mutant_move_death1) = { FRAME_death101, FRAME_death109, mutant_frames_death1, monster_dead };
 
-mframe_t mutant_frames_death2[] = {
+MonsterFrame mutant_frames_death2[] = {
 	{ ai_move_slide_left },
 	{ ai_move_slide_left },
 	{ ai_move_slide_left },
@@ -516,11 +512,11 @@ mframe_t mutant_frames_death2[] = {
 };
 MMOVE_T(mutant_move_death2) = { FRAME_death201, FRAME_death210, mutant_frames_death2, monster_dead };
 
-static DIE(mutant_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(mutant_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, const MeansOfDeath &mod) -> void {
 	if (M_CheckGib(self, mod)) {
-		gi.sound(self, CHAN_VOICE, gi.soundindex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 
-		self->s.skinnum /= 2;
+		self->s.skinNum /= 2;
 
 		ThrowGibs(self, damage, {
 			{ 2, "models/objects/gibs/bone/tris.md2" },
@@ -549,7 +545,7 @@ static DIE(mutant_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attack
 }
 
 static void mutant_jump_down(gentity_t *self) {
-	vec3_t forward, up;
+	Vector3 forward, up;
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 	self->velocity += (forward * 100);
@@ -557,7 +553,7 @@ static void mutant_jump_down(gentity_t *self) {
 }
 
 static void mutant_jump_up(gentity_t *self) {
-	vec3_t forward, up;
+	Vector3 forward, up;
 
 	AngleVectors(self->s.angles, forward, nullptr, up);
 	self->velocity += (forward * 200);
@@ -571,7 +567,7 @@ static void mutant_jump_wait_land(gentity_t *self) {
 		self->monsterInfo.nextFrame = self->s.frame + 1;
 }
 
-mframe_t mutant_frames_jump_up[] = {
+MonsterFrame mutant_frames_jump_up[] = {
 	{ ai_move, -8 },
 	{ ai_move, -8, mutant_jump_up },
 	{ ai_move, 0, mutant_jump_wait_land },
@@ -580,7 +576,7 @@ mframe_t mutant_frames_jump_up[] = {
 };
 MMOVE_T(mutant_move_jump_up) = { FRAME_jump01, FRAME_jump05, mutant_frames_jump_up, mutant_run };
 
-mframe_t mutant_frames_jump_down[] = {
+MonsterFrame mutant_frames_jump_down[] = {
 	{ ai_move },
 	{ ai_move, 0, mutant_jump_down },
 	{ ai_move, 0, mutant_jump_wait_land },
@@ -589,11 +585,11 @@ mframe_t mutant_frames_jump_down[] = {
 };
 MMOVE_T(mutant_move_jump_down) = { FRAME_jump01, FRAME_jump05, mutant_frames_jump_down, mutant_run };
 
-static void mutant_jump_updown(gentity_t *self, blocked_jump_result_t result) {
+static void mutant_jump_updown(gentity_t *self, BlockedJumpResult result) {
 	if (!self->enemy)
 		return;
 
-	if (result == blocked_jump_result_t::JUMP_JUMP_UP)
+	if (result == BlockedJumpResult::Jump_Turn_Up)
 		M_SetAnimation(self, &mutant_move_jump_up);
 	else
 		M_SetAnimation(self, &mutant_move_jump_down);
@@ -605,8 +601,8 @@ Blocked
 ===
 */
 MONSTERINFO_BLOCKED(mutant_blocked) (gentity_t *self, float dist) -> bool {
-	if (auto result = blocked_checkjump(self, dist); result != blocked_jump_result_t::NO_JUMP) {
-		if (result != blocked_jump_result_t::JUMP_TURN)
+	if (auto result = blocked_checkjump(self, dist); result != BlockedJumpResult::No_Jump) {
+		if (result != BlockedJumpResult::Jump_Turn)
 			mutant_jump_updown(self, result);
 		return true;
 	}
@@ -646,14 +642,14 @@ void SP_monster_mutant(gentity_t *self) {
 
 	self->monsterInfo.aiFlags |= AI_STINKY;
 
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
-	self->s.modelindex = gi.modelindex("models/monsters/mutant/tris.md2");
+	self->s.modelIndex = gi.modelIndex("models/monsters/mutant/tris.md2");
 
-	gi.modelindex("models/monsters/mutant/gibs/head.md2");
-	gi.modelindex("models/monsters/mutant/gibs/chest.md2");
-	gi.modelindex("models/monsters/mutant/gibs/hand.md2");
-	gi.modelindex("models/monsters/mutant/gibs/foot.md2");
+	gi.modelIndex("models/monsters/mutant/gibs/head.md2");
+	gi.modelIndex("models/monsters/mutant/gibs/chest.md2");
+	gi.modelIndex("models/monsters/mutant/gibs/hand.md2");
+	gi.modelIndex("models/monsters/mutant/gibs/foot.md2");
 
 	self->mins = { -18, -18, -24 };
 	self->maxs = { 18, 18, 30 };
@@ -676,18 +672,18 @@ void SP_monster_mutant(gentity_t *self) {
 	self->monsterInfo.idle = mutant_idle;
 	self->monsterInfo.checkAttack = mutant_checkattack;
 	self->monsterInfo.blocked = mutant_blocked;
-	self->monsterInfo.setskin = mutant_setskin;
+	self->monsterInfo.setSkin = mutant_setskin;
 
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
 	M_SetAnimation(self, &mutant_move_stand);
 
-	self->monsterInfo.combat_style = COMBAT_MELEE;
+	self->monsterInfo.combatStyle = CombatStyle::Melee;
 
 	self->monsterInfo.scale = MODEL_SCALE;
-	self->monsterInfo.can_jump = !(self->spawnflags & SPAWNFLAG_MUTANT_NOJUMPING);
-	self->monsterInfo.drop_height = 256;
-	self->monsterInfo.jump_height = 68;
+	self->monsterInfo.canJump = !(self->spawnFlags & SPAWNFLAG_MUTANT_NOJUMPING);
+	self->monsterInfo.dropHeight = 256;
+	self->monsterInfo.jumpHeight = 68;
 
 	walkmonster_start(self);
 }

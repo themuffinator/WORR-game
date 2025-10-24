@@ -1,4 +1,21 @@
-#include "../g_local.h"
+// menu_system.cpp (Menu System)
+// This file implements the core functionality for the modern, object-oriented
+// menu system. It defines the behavior of the `Menu` class and the `MenuSystem`
+// static class, which work together to manage the lifecycle of in-game menus.
+//
+// Key Responsibilities:
+// - Menu Navigation: Implements the `Menu::Next()` and `Menu::Prev()` methods
+//   for navigating between selectable menu items.
+// - Menu Action: The `Menu::Select()` method handles the execution of the
+//   callback function associated with the currently selected menu item.
+// - Menu Rendering: `Menu::Render()` constructs the layout string for the
+//   current menu state, which is then sent to the client for display. It
+//   supports scrolling for menus with more items than can be displayed at once.
+// - System Management: The `MenuSystem` class provides the main interface for
+//   opening (`Open`), closing (`Close`), and updating (`Update`) menus for a
+//   given player.
+
+#include "../g_local.hpp"
 
 /*
 ===============
@@ -20,7 +37,7 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
 	if (!ent || !ent->client)
 		return;
 
-	if (ent->client->menu)
+	if (ent->client->menu.current)
 		Close(ent);
 
 	const int total = static_cast<int>(menu->entries.size());
@@ -39,13 +56,13 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
 		}
 	}
 
-	ent->client->menu = std::move(menu);
+	ent->client->menu.current = std::move(menu);
 
 	// These two are required to render layouts!
 	ent->client->showScores = true;   // <- must be true!
 
-	ent->client->menuTime = level.time;
-	ent->client->menuDirty = true;
+	ent->client->menu.updateTime = level.time;
+	ent->client->menu.doUpdate = true;
 }
 
 /*
@@ -54,11 +71,11 @@ MenuSystem::Close
 ===============
 */
 void MenuSystem::Close(gentity_t *ent) {
-	if (!ent || !ent->client || !ent->client->menu)
+	if (!ent || !ent->client || !ent->client->menu.current)
 		return;
 
-	ent->client->menu.reset();
-	ent->client->menu = nullptr;
+	ent->client->menu.current.reset();
+	ent->client->menu.current = nullptr;
 	//ent->client->showScores = false;
 }
 
@@ -68,16 +85,16 @@ MenuSystem::Update
 ===============
 */
 void MenuSystem::Update(gentity_t *ent) {
-	if (!ent || !ent->client || !ent->client->menu) {
+	if (!ent || !ent->client || !ent->client->menu.current) {
 		//gi.Com_Print("MenuSystem::Update skipped (nullptr)\n");
 		return;
 	}
 
-	//gi.Com_PrintFmt("MenuSystem::Update: rendering for {}\n", ent->client->pers.netname);
-	ent->client->menu->Render(ent);
+	//gi.Com_PrintFmt("MenuSystem::Update: rendering for {}\n", ent->client->pers.netName);
+	ent->client->menu.current->Render(ent);
 	gi.unicast(ent, true);
-	ent->client->menuDirty = false;
-	ent->client->menuTime = level.time;
+	ent->client->menu.doUpdate = false;
+	ent->client->menu.updateTime = level.time;
 }
 
 /*
@@ -87,9 +104,9 @@ MenuSystem::DirtyAll
 */
 void MenuSystem::DirtyAll() {
 	for (gentity_t *player : active_clients()) {
-		if (player->client->menu) {
-			player->client->menuDirty = true;
-			player->client->menuTime = level.time;
+		if (player->client->menu.current) {
+			player->client->menu.doUpdate = true;
+			player->client->menu.updateTime = level.time;
 		}
 	}
 }

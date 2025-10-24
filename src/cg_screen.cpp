@@ -1,6 +1,25 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-#include "cg_local.h"
+
+// cg_screen.cpp (Client Game Screen)
+// This file is responsible for all client-side screen rendering that is not
+// part of the 3D world view. It manages the Heads-Up Display (HUD), on-screen
+// notifications, and center-printed messages.
+//
+// Key Responsibilities:
+// - `CG_DrawHUD`: The main entry point for drawing the HUD, which it does by
+//   parsing a layout string received from the server.
+// - Center Print System: Manages a queue of messages to be displayed in the
+//   center of the screen, handling both instant and "typed-out" text reveals.
+// - Notification System: Manages a list of messages (like chat or game events)
+//   that appear in the top-left corner of the screen and fade out over time.
+// - `CG_DrawInventory`: Renders the full-screen inventory/item selection menu.
+// - Handles rendering of numerical stats (health, armor, ammo) using custom
+//   graphical number images.
+// - Manages accessibility features like high-contrast text backgrounds and
+//   alternate typefaces.
+
+#include "cg_local.hpp"
 #include <sstream>  // for std::istringstream
 #include <string>   // for std::string
 #include <string_view> // for std::string_view
@@ -189,7 +208,7 @@ static void CG_DrawNotify(int32_t isplit, vrect_t hud_vrect, vrect_t hud_safe, i
 			if (!msg.is_active || !msg.message.length())
 				break;
 
-			vec2_t sz = cgi.SCR_MeasureFontString(msg.message.c_str(), scale);
+			Vector2 sz = cgi.SCR_MeasureFontString(msg.message.c_str(), scale);
 			sz.x += 10; // extra padding for black bars
 			cgi.SCR_DrawColorPic((hud_vrect.x * scale) + hud_safe.x - 5, y, sz.x, 15 * scale, "_white", rgba_black);
 			y += 10 * scale;
@@ -246,7 +265,7 @@ static int CG_DrawHUDString(const char *str, int x, int y, int centerwidth, int 
 		const size_t newline = input.find('\n');
 		std::string_view line = input.substr(0, newline);
 
-		vec2_t size{};
+		Vector2 size{};
 		int xpos = margin;
 
 		if (centerwidth > 0) {
@@ -510,7 +529,7 @@ static void CG_DrawCenterString(const player_state_t *ps, const vrect_t &hud_vre
 			std::string_view view(line);
 
 			if (ui_acc_contrast->integer && !view.empty()) {
-				vec2_t size = cgi.SCR_MeasureFontString(view.data(), scale);
+				Vector2 size = cgi.SCR_MeasureFontString(view.data(), scale);
 				size.x += 10;
 				const int barY = ui_acc_alttypeface->integer ? y - 8 : y;
 				cgi.SCR_DrawColorPic(centerX - static_cast<int>(size.x / 2), barY, size.x, lineHeight, "_white", rgba_black);
@@ -567,7 +586,7 @@ static void CG_DrawCenterString(const player_state_t *ps, const vrect_t &hud_vre
 		int blinkyX;
 
 		if (ui_acc_contrast->integer && !line.empty()) {
-			vec2_t size = cgi.SCR_MeasureFontString(line.data(), scale);
+			Vector2 size = cgi.SCR_MeasureFontString(line.data(), scale);
 			size.x += 10;
 			const int barY = ui_acc_alttypeface->integer ? y - 8 : y;
 			cgi.SCR_DrawColorPic(centerX - static_cast<int>(size.x / 2), barY, size.x, lineHeight, "_white", rgba_black);
@@ -735,7 +754,7 @@ static void CG_DrawTable(int x, int y, uint32_t width, uint32_t height, int32_t 
 		int rowY = y0;
 		for (int row = 0; row < hud_temp.num_rows; ++row, rowY += (CONCHAR_WIDTH + font_y_offset) * scale) {
 			const char *text = hud_temp.table_rows[row].table_cells[col].text;
-			const vec2_t textSize = cgi.SCR_MeasureFontString(text, scale);
+			const Vector2 textSize = cgi.SCR_MeasureFontString(text, scale);
 
 			int xOffset = 0;
 
@@ -851,7 +870,7 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if ((ps->stats[STAT_SPECTATOR] && !ps->stats[STAT_FOLLOWING]) && (stat == STAT_HEALTH_ICON || stat == STAT_AMMO_ICON || stat == STAT_ARMOR_ICON))
 					skip = true;
 
-				const char *const pic = cgi.get_configstring(CS_IMAGES + value);
+				const char *const pic = cgi.get_configString(CS_IMAGES + value);
 
 				if (pic && *pic && !skip) {
 					//muff: little hacky hack! resize the player pics on miniscores for clients rockin' muffmode
@@ -1107,10 +1126,10 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
 				if (!scr_usekfont->integer)
-					CG_DrawString(x, y, scale, cgi.get_configstring(index));
+					CG_DrawString(x, y, scale, cgi.get_configString(index));
 				else {
 					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(cgi.get_configstring(index), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
+					cgi.SCR_DrawFontString(cgi.get_configString(index), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
 					cgi.SCR_SetAltTypeface(false);
 				}
 			}
@@ -1133,10 +1152,10 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
 				if (!scr_usekfont->integer)
-					CG_DrawString(x, y, scale, cgi.get_configstring(index));
+					CG_DrawString(x, y, scale, cgi.get_configString(index));
 				else {
 					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(cgi.get_configstring(index), x, y - (font_y_offset * scale), scale, alt_color, true, text_align_t::LEFT);
+					cgi.SCR_DrawFontString(cgi.get_configString(index), x, y - (font_y_offset * scale), scale, alt_color, true, text_align_t::LEFT);
 					cgi.SCR_SetAltTypeface(false);
 				}
 			}
@@ -1249,10 +1268,10 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
 				if (!scr_usekfont->integer)
-					CG_DrawString(x, y, scale, cgi.Localize(cgi.get_configstring(index), nullptr, 0));
+					CG_DrawString(x, y, scale, cgi.Localize(cgi.get_configString(index), nullptr, 0));
 				else {
 					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(cgi.Localize(cgi.get_configstring(index), nullptr, 0), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
+					cgi.SCR_DrawFontString(cgi.Localize(cgi.get_configString(index), nullptr, 0), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
 					cgi.SCR_SetAltTypeface(false);
 				}
 			}
@@ -1273,12 +1292,12 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
-				const char *s = cgi.Localize(cgi.get_configstring(index), nullptr, 0);
+				const char *s = cgi.Localize(cgi.get_configString(index), nullptr, 0);
 				if (!scr_usekfont->integer)
 					CG_DrawString(x - (strlen(s) * CONCHAR_WIDTH * scale), y, scale, s);
 				else {
 					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					vec2_t size = cgi.SCR_MeasureFontString(s, scale);
+					Vector2 size = cgi.SCR_MeasureFontString(s, scale);
 					cgi.SCR_DrawFontString(s, x - size.x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
 					cgi.SCR_SetAltTypeface(false);
 				}
@@ -1301,7 +1320,7 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
 				cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-				CG_DrawHUDString(cgi.Localize(cgi.get_configstring(index), nullptr, 0), x, y, hx * 2 * scale, 0, scale);
+				CG_DrawHUDString(cgi.Localize(cgi.get_configString(index), nullptr, 0), x, y, hx * 2 * scale, 0, scale);
 				cgi.SCR_SetAltTypeface(false);
 			}
 			continue;
@@ -1322,7 +1341,7 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				if (index < 0 || index >= MAX_CONFIGSTRINGS)
 					cgi.Com_Error("Bad stat_string index");
 				cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-				CG_DrawHUDString(cgi.Localize(cgi.get_configstring(index), nullptr, 0), x, y, hx * 2 * scale, 0x80, scale);
+				CG_DrawHUDString(cgi.Localize(cgi.get_configString(index), nullptr, 0), x, y, hx * 2 * scale, 0x80, scale);
 				cgi.SCR_SetAltTypeface(false);
 			}
 			continue;
@@ -1463,7 +1482,7 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 
 				// promote before subtracting to avoid signed underflow
 				const uint64_t remaining_frames = static_cast<uint64_t>(raw_end_frame) - static_cast<uint64_t>(current_frame);
-				const uint64_t remaining_ms = remaining_frames * cgi.frame_time_ms;
+				const uint64_t remaining_ms = remaining_frames * cgi.frameTimeMs;
 
 				const bool green = true;
 				arg_buffers[0] = G_Fmt("{:02}:{:02}", (remaining_ms / 1000) / 60, (remaining_ms / 1000) % 60).data();
@@ -1613,7 +1632,7 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 				continue;
 
 			const byte *stat = reinterpret_cast<const byte *>(&ps->stats[STAT_HEALTH_BARS]);
-			const char *name = cgi.Localize(cgi.get_configstring(CONFIG_HEALTH_BAR_NAME), nullptr, 0);
+			const char *name = cgi.Localize(cgi.get_configString(CONFIG_HEALTH_BAR_NAME), nullptr, 0);
 			cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
 			CG_DrawHUDString(name, (hud_vrect.x + hud_vrect.width / 2 + -160) * scale, y, (320 / 2) * 2 * scale, 0, scale);
 			cgi.SCR_SetAltTypeface(false);
@@ -1643,13 +1662,13 @@ static void CG_ExecuteLayoutString(const char *s, vrect_t hud_vrect, vrect_t hud
 		}
 
 		if (!strcmp(token, "story")) {
-			const char *story_str = cgi.get_configstring(CONFIG_STORY_SCORELIMIT);
+			const char *story_str = cgi.get_configString(CONFIG_STORY_SCORELIMIT);
 
 			if (!*story_str)
 				continue;
 
 			const char *localized = cgi.Localize(story_str, nullptr, 0);
-			vec2_t size = cgi.SCR_MeasureFontString(localized, scale);
+			Vector2 size = cgi.SCR_MeasureFontString(localized, scale);
 			float centerx = ((hud_vrect.x + (hud_vrect.width * 0.5f)) * scale);
 			float centery = ((hud_vrect.y + (hud_vrect.height * 0.5f)) * scale) - (size.y * 0.5f);
 
@@ -1737,7 +1756,7 @@ static void CG_DrawInventory(const player_state_t *ps, const std::array<int16_t,
 			cgi.SCR_DrawChar(x - 8, y, scale, 15, false);
 
 		if (!scr_usekfont->integer) {
-			const char *name = cgi.Localize(cgi.get_configstring(CS_ITEMS + item), nullptr, 0);
+			const char *name = cgi.Localize(cgi.get_configString(CS_ITEMS + item), nullptr, 0);
 			const char *entry = G_Fmt("{:3} {}", inventory[item], name).data();
 			CG_DrawString(x, y, scale, entry, is_selected, false);
 		} else {
@@ -1751,7 +1770,7 @@ static void CG_DrawInventory(const player_state_t *ps, const std::array<int16_t,
 				true, text_align_t::RIGHT);
 
 			// Draw name
-			const char *nameStr = cgi.Localize(cgi.get_configstring(CS_ITEMS + item), nullptr, 0);
+			const char *nameStr = cgi.Localize(cgi.get_configString(CS_ITEMS + item), nullptr, 0);
 			cgi.SCR_DrawFontString(nameStr,
 				x + (16 * scale),
 				y - (font_y_offset * scale),
@@ -1779,7 +1798,7 @@ void CG_DrawHUD(int32_t isplit, const cg_server_data_t *data, vrect_t hud_vrect,
 
 	// draw HUD
 	if (!cl_skipHud->integer && !(ps->stats[STAT_LAYOUTS] & LAYOUTS_HIDE_HUD))
-		CG_ExecuteLayoutString(cgi.get_configstring(CS_STATUSBAR), hud_vrect, hud_safe, scale, playernum, ps);
+		CG_ExecuteLayoutString(cgi.get_configString(CS_STATUSBAR), hud_vrect, hud_safe, scale, playernum, ps);
 
 	// draw centerprint string
 	CG_CheckDrawCenterString(ps, hud_vrect, hud_safe, isplit, scale);

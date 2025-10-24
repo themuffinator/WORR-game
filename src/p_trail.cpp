@@ -1,6 +1,22 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-#include "g_local.h"
+
+// p_trail.cpp (Player Trail)
+// This file implements a system for tracking the recent path of a player.
+// It creates a trail of "breadcrumb" entities that monsters can use for
+// pursuit even after they have lost direct line of sight to the player.
+//
+// Key Responsibilities:
+// - Trail Creation: The `PlayerTrail_Add` function periodically drops a new
+//   trail entity at the player's location.
+// - Trail Management: Manages a two-way linked list of trail entities, ensuring
+//   the trail does not exceed a maximum length by reusing the oldest node.
+// - AI Pathfinding: The `PlayerTrail_Pick` function is used by the monster AI
+//   to find the most relevant point on a player's trail to move towards.
+// - Cleanup: `PlayerTrail_Destroy` cleans up all trail entities associated with
+//   a player, for example, when they disconnect.
+
+#include "g_local.hpp"
 
 /*
 ==============================================================================
@@ -64,7 +80,7 @@ static gentity_t *PlayerTrail_Spawn(gentity_t *owner) {
 // destroys all player trail entities in the map.
 // we don't want these to stay around across level loads.
 void PlayerTrail_Destroy(gentity_t *player) {
-	for (size_t i = 0; i < globals.num_entities; i++)
+	for (size_t i = 0; i < globals.numEntities; i++)
 		if (g_entities[i].className && strcmp(g_entities[i].className, "player_trail") == 0)
 			if (!player || g_entities[i].owner == player)
 				FreeEntity(&g_entities[i]);
@@ -82,12 +98,12 @@ void PlayerTrail_Add(gentity_t *player) {
 	if (player->client->trail_head && visible(player, player->client->trail_head))
 		return;
 	// don't spawn trails in intermission, if we're dead, if we're noclipping or not on ground yet
-	else if (level.intermissionTime || player->health <= 0 || player->moveType == MOVETYPE_NOCLIP || player->moveType == MOVETYPE_FREECAM ||
+	else if (level.intermission.time || player->health <= 0 || player->moveType == MoveType::NoClip || player->moveType == MoveType::FreeCam ||
 		!player->groundEntity)
 		return;
 
 	gentity_t *trail = PlayerTrail_Spawn(player);
-	trail->s.origin = player->s.old_origin;
+	trail->s.origin = player->s.oldOrigin;
 	trail->timeStamp = level.time;
 	trail->owner = player;
 }
@@ -104,7 +120,7 @@ gentity_t *PlayerTrail_Pick(gentity_t *self, bool next) {
 	gentity_t *marker;
 
 	for (marker = self->enemy->client->trail_head; marker; marker = marker->enemy) {
-		if (marker->timeStamp <= self->monsterInfo.trail_time)
+		if (marker->timeStamp <= self->monsterInfo.trailTime)
 			continue;
 
 		break;

@@ -1,4 +1,19 @@
-#include "../g_local.h"
+// menu_page_mapselector.cpp (Menu Page - Map Selector)
+// This file implements the end-of-match map voting screen. This is a critical
+// part of the multiplayer flow, allowing players to choose the next map to
+// be played from a list of randomly selected candidates.
+//
+// Key Responsibilities:
+// - Map Candidate Display: The `onUpdate` function populates the menu with the
+//   names of the three candidate maps chosen by the server.
+// - Vote Casting: The `onSelect` callbacks for each map option call the
+//   `MapSelector_CastVote` function to register the player's choice.
+// - Countdown Timer: It renders a visual progress bar to show the time
+//   remaining for the vote.
+// - Post-Vote State: After a player has voted, the menu updates to show an
+//   acknowledgment message, preventing them from voting again.
+
+#include "../g_local.hpp"
 
 void MapSelector_CastVote(gentity_t *ent, int voteIndex);
 
@@ -13,7 +28,7 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 
 	constexpr int NUM_CANDIDATES = 3;
 	constexpr int TOTAL_BAR_SEGMENTS = 28;	//24;
-	constexpr gtime_t VOTE_DURATION = 5_sec;
+	constexpr GameTime VOTE_DURATION = 5_sec;
 
 	auto &ms = level.mapSelector;
 	MenuBuilder builder;

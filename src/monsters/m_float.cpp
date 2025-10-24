@@ -8,17 +8,17 @@ floater
 ==============================================================================
 */
 
-#include "../g_local.h"
-#include "m_float.h"
-#include "m_flash.h"
+#include "../g_local.hpp"
+#include "m_float.hpp"
+#include "m_flash.hpp"
 
-static cached_soundindex sound_attack2;
-static cached_soundindex sound_attack3;
-static cached_soundindex sound_death1;
-static cached_soundindex sound_idle;
-static cached_soundindex sound_pain1;
-static cached_soundindex sound_pain2;
-static cached_soundindex sound_sight;
+static cached_soundIndex sound_attack2;
+static cached_soundIndex sound_attack3;
+static cached_soundIndex sound_death1;
+static cached_soundIndex sound_idle;
+static cached_soundIndex sound_pain1;
+static cached_soundIndex sound_pain2;
+static cached_soundIndex sound_sight;
 
 MONSTERINFO_SIGHT(floater_sight) (gentity_t *self, gentity_t *other) -> void {
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
@@ -34,10 +34,10 @@ void floater_wham(gentity_t *self);
 void floater_zap(gentity_t *self);
 
 static void floater_fire_blaster(gentity_t *self) {
-	vec3_t	  start;
-	vec3_t	  forward, right;
-	vec3_t	  end;
-	vec3_t	  dir;
+	Vector3	  start;
+	Vector3	  forward, right;
+	Vector3	  end;
+	Vector3	  dir;
 
 	if (!self->enemy || !self->enemy->inUse)
 		return;
@@ -53,7 +53,7 @@ static void floater_fire_blaster(gentity_t *self) {
 	monster_fire_blaster(self, start, dir, 1, 1000, MZ2_FLOAT_BLASTER_1, (self->s.frame % 4) ? EF_NONE : EF_HYPERBLASTER);
 }
 
-mframe_t floater_frames_stand1[] = {
+MonsterFrame floater_frames_stand1[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -109,7 +109,7 @@ mframe_t floater_frames_stand1[] = {
 };
 MMOVE_T(floater_move_stand1) = { FRAME_stand101, FRAME_stand152, floater_frames_stand1, nullptr };
 
-mframe_t floater_frames_stand2[] = {
+MonsterFrame floater_frames_stand2[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -165,7 +165,7 @@ mframe_t floater_frames_stand2[] = {
 };
 MMOVE_T(floater_move_stand2) = { FRAME_stand201, FRAME_stand252, floater_frames_stand2, nullptr };
 
-mframe_t floater_frames_pop[] = {
+MonsterFrame floater_frames_pop[] = {
 	{},
 	{},
 	{},
@@ -196,7 +196,7 @@ mframe_t floater_frames_pop[] = {
 };
 MMOVE_T(floater_move_pop) = { FRAME_actvat05, FRAME_actvat31, floater_frames_pop, floater_run };
 
-mframe_t floater_frames_disguise[] = {
+MonsterFrame floater_frames_disguise[] = {
 	{ ai_stand }
 };
 MMOVE_T(floater_move_disguise) = { FRAME_actvat01, FRAME_actvat01, floater_frames_disguise, nullptr };
@@ -210,7 +210,7 @@ MONSTERINFO_STAND(floater_stand) (gentity_t *self) -> void {
 		M_SetAnimation(self, &floater_move_stand2);
 }
 
-mframe_t floater_frames_attack1[] = {
+MonsterFrame floater_frames_attack1[] = {
 	{ ai_charge }, // Blaster attack
 	{ ai_charge },
 	{ ai_charge },
@@ -226,10 +226,10 @@ mframe_t floater_frames_attack1[] = {
 	{ ai_charge },
 	{ ai_charge } //							-- LOOP Ends
 };
-MMOVE_T(floater_move_attack1) = { FRAME_attak101, FRAME_attak114, floater_frames_attack1, floater_run };
+MMOVE_T(floater_move_attack1) = { FRAME_attack101, FRAME_attack114, floater_frames_attack1, floater_run };
 
 // circle strafe frames
-mframe_t floater_frames_attack1a[] = {
+MonsterFrame floater_frames_attack1a[] = {
 	{ ai_charge, 10 }, // Blaster attack
 	{ ai_charge, 10 },
 	{ ai_charge, 10 },
@@ -245,9 +245,9 @@ mframe_t floater_frames_attack1a[] = {
 	{ ai_charge, 10 },
 	{ ai_charge, 10 } //							-- LOOP Ends
 };
-MMOVE_T(floater_move_attack1a) = { FRAME_attak101, FRAME_attak114, floater_frames_attack1a, floater_run };
+MMOVE_T(floater_move_attack1a) = { FRAME_attack101, FRAME_attack114, floater_frames_attack1a, floater_run };
 
-mframe_t floater_frames_attack2[] = {
+MonsterFrame floater_frames_attack2[] = {
 	{ ai_charge }, // Claws
 	{ ai_charge },
 	{ ai_charge },
@@ -274,9 +274,9 @@ mframe_t floater_frames_attack2[] = {
 	{ ai_charge },
 	{ ai_charge }
 };
-MMOVE_T(floater_move_attack2) = { FRAME_attak201, FRAME_attak225, floater_frames_attack2, floater_run };
+MMOVE_T(floater_move_attack2) = { FRAME_attack201, FRAME_attack225, floater_frames_attack2, floater_run };
 
-mframe_t floater_frames_attack3[] = {
+MonsterFrame floater_frames_attack3[] = {
 	{ ai_charge },
 	{ ai_charge },
 	{ ai_charge },
@@ -312,9 +312,9 @@ mframe_t floater_frames_attack3[] = {
 	{ ai_charge },
 	{ ai_charge }
 };
-MMOVE_T(floater_move_attack3) = { FRAME_attak301, FRAME_attak334, floater_frames_attack3, floater_run };
+MMOVE_T(floater_move_attack3) = { FRAME_attack301, FRAME_attack334, floater_frames_attack3, floater_run };
 
-mframe_t floater_frames_pain1[] = {
+MonsterFrame floater_frames_pain1[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -325,7 +325,7 @@ mframe_t floater_frames_pain1[] = {
 };
 MMOVE_T(floater_move_pain1) = { FRAME_pain101, FRAME_pain107, floater_frames_pain1, floater_run };
 
-mframe_t floater_frames_pain2[] = {
+MonsterFrame floater_frames_pain2[] = {
 	{ ai_move },
 	{ ai_move },
 	{ ai_move },
@@ -337,7 +337,7 @@ mframe_t floater_frames_pain2[] = {
 };
 MMOVE_T(floater_move_pain2) = { FRAME_pain201, FRAME_pain208, floater_frames_pain2, floater_run };
 
-mframe_t floater_frames_walk[] = {
+MonsterFrame floater_frames_walk[] = {
 	{ ai_walk, 5 },
 	{ ai_walk, 5 },
 	{ ai_walk, 5 },
@@ -393,7 +393,7 @@ mframe_t floater_frames_walk[] = {
 };
 MMOVE_T(floater_move_walk) = { FRAME_stand101, FRAME_stand152, floater_frames_walk, nullptr };
 
-mframe_t floater_frames_run[] = {
+MonsterFrame floater_frames_run[] = {
 	{ ai_run, 13 },
 	{ ai_run, 13 },
 	{ ai_run, 13 },
@@ -463,7 +463,7 @@ MONSTERINFO_WALK(floater_walk) (gentity_t *self) -> void {
 }
 
 void floater_wham(gentity_t *self) {
-	constexpr vec3_t aim = { MELEE_DISTANCE, 0, 0 };
+	constexpr Vector3 aim = { MELEE_DISTANCE, 0, 0 };
 	gi.sound(self, CHAN_WEAPON, sound_attack3, 1, ATTN_NORM, 0);
 
 	if (!fire_hit(self, aim, irandom(5, 11), -50))
@@ -471,10 +471,10 @@ void floater_wham(gentity_t *self) {
 }
 
 void floater_zap(gentity_t *self) {
-	vec3_t forward, right;
-	vec3_t origin;
-	vec3_t dir;
-	vec3_t offset;
+	Vector3 forward, right;
+	Vector3 origin;
+	Vector3 dir;
+	Vector3 offset;
 
 	dir = self->enemy->s.origin - self->s.origin;
 
@@ -494,20 +494,20 @@ void floater_zap(gentity_t *self) {
 	gi.WriteByte(SPLASH_SPARKS);
 	gi.multicast(origin, MULTICAST_PVS, false);
 
-	Damage(self->enemy, self, self, dir, self->enemy->s.origin, vec3_origin, irandom(5, 11), -10, DAMAGE_ENERGY, MOD_UNKNOWN);
+	Damage(self->enemy, self, self, dir, self->enemy->s.origin, vec3_origin, irandom(5, 11), -10, DamageFlags::Energy, ModID::Unknown);
 }
 
 MONSTERINFO_ATTACK(floater_attack) (gentity_t *self) -> void {
 	float chance = 0.5f;
 
 	if (frandom() > chance) {
-		self->monsterInfo.attack_state = AS_STRAIGHT;
+		self->monsterInfo.attackState = MonsterAttackState::Straight;
 		M_SetAnimation(self, &floater_move_attack1);
 	} else // circle strafe
 	{
 		if (frandom() <= 0.5f) // switch directions
 			self->monsterInfo.lefty = !self->monsterInfo.lefty;
-		self->monsterInfo.attack_state = AS_SLIDING;
+		self->monsterInfo.attackState = MonsterAttackState::Sliding;
 		M_SetAnimation(self, &floater_move_attack1a);
 	}
 }
@@ -519,7 +519,7 @@ MONSTERINFO_MELEE(floater_melee) (gentity_t *self) -> void {
 		M_SetAnimation(self, &floater_move_attack2);
 }
 
-static PAIN(floater_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const mod_t &mod) -> void {
+static PAIN(floater_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	int n;
 
 	if (level.time < self->pain_debounce_time)
@@ -548,22 +548,22 @@ static PAIN(floater_pain) (gentity_t *self, gentity_t *other, float kick, int da
 }
 
 MONSTERINFO_SETSKIN(floater_setskin) (gentity_t *self) -> void {
-	if (self->health < (self->max_health / 2))
-		self->s.skinnum = 1;
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum = 1;
 	else
-		self->s.skinnum = 0;
+		self->s.skinNum = 0;
 }
 
 void floater_dead(gentity_t *self) {
 	self->mins = { -16, -16, -24 };
 	self->maxs = { 16, 16, -8 };
-	self->moveType = MOVETYPE_TOSS;
+	self->moveType = MoveType::Toss;
 	self->svFlags |= SVF_DEADMONSTER;
 	self->nextThink = 0_ms;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
-static DIE(floater_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(floater_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, const MeansOfDeath &mod) -> void {
 	gi.sound(self, CHAN_VOICE, sound_death1, 1, ATTN_NORM, 0);
 
 	gi.WriteByte(svc_temp_entity);
@@ -571,7 +571,7 @@ static DIE(floater_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	gi.WritePosition(self->s.origin);
 	gi.multicast(self->s.origin, MULTICAST_PHS, false);
 
-	self->s.skinnum /= 2;
+	self->s.skinNum /= 2;
 
 	ThrowGibs(self, 55, {
 		{ 2, "models/objects/gibs/sm_metal/tris.md2" },
@@ -592,7 +592,7 @@ static void float_set_fly_parameters(gentity_t *self) {
 	self->monsterInfo.fly_max_distance = 200.f;
 }
 
-constexpr spawnflags_t SPAWNFLAG_FLOATER_DISGUISE = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_FLOATER_DISGUISE = 8_spawnflag;
 
 /*QUAKED monster_floater (1 .5 0) (-16 -16 -24) (16 16 32) AMBUSH TRIGGER_SPAWN SIGHT DISGUISE x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
@@ -610,18 +610,18 @@ void SP_monster_floater(gentity_t *self) {
 	sound_pain2.assign("floater/fltpain2.wav");
 	sound_sight.assign("floater/fltsght1.wav");
 
-	gi.soundindex("floater/fltatck1.wav");
+	gi.soundIndex("floater/fltatck1.wav");
 
-	self->monsterInfo.engine_sound = gi.soundindex("floater/fltsrch1.wav");
+	self->monsterInfo.engineSound = gi.soundIndex("floater/fltsrch1.wav");
 
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
-	self->s.modelindex = gi.modelindex("models/monsters/float/tris.md2");
+	self->s.modelIndex = gi.modelIndex("models/monsters/float/tris.md2");
 
-	gi.modelindex("models/monsters/float/gibs/base.md2");
-	gi.modelindex("models/monsters/float/gibs/gun.md2");
-	gi.modelindex("models/monsters/float/gibs/jar.md2");
-	gi.modelindex("models/monsters/float/gibs/piece.md2");
+	gi.modelIndex("models/monsters/float/gibs/base.md2");
+	gi.modelIndex("models/monsters/float/gibs/gun.md2");
+	gi.modelIndex("models/monsters/float/gibs/jar.md2");
+	gi.modelIndex("models/monsters/float/gibs/piece.md2");
 
 	self->mins = { -24, -24, -24 };
 	self->maxs = { 24, 24, 48 };
@@ -640,11 +640,11 @@ void SP_monster_floater(gentity_t *self) {
 	self->monsterInfo.melee = floater_melee;
 	self->monsterInfo.sight = floater_sight;
 	self->monsterInfo.idle = floater_idle;
-	self->monsterInfo.setskin = floater_setskin;
+	self->monsterInfo.setSkin = floater_setskin;
 
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
-	if (self->spawnflags.has(SPAWNFLAG_FLOATER_DISGUISE))
+	if (self->spawnFlags.has(SPAWNFLAG_FLOATER_DISGUISE))
 		M_SetAnimation(self, &floater_move_disguise);
 	else if (frandom() <= 0.5f)
 		M_SetAnimation(self, &floater_move_stand1);

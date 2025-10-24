@@ -8,23 +8,23 @@ brain
 ==============================================================================
 */
 
-#include "../g_local.h"
-#include "m_brain.h"
+#include "../g_local.hpp"
+#include "m_brain.hpp"
 
-static cached_soundindex sound_chest_open;
-static cached_soundindex sound_tentacles_extend;
-static cached_soundindex sound_tentacles_retract;
-static cached_soundindex sound_death;
-static cached_soundindex sound_idle1;
-static cached_soundindex sound_idle2;
-static cached_soundindex sound_idle3;
-static cached_soundindex sound_pain1;
-static cached_soundindex sound_pain2;
-static cached_soundindex sound_sight;
-static cached_soundindex sound_search;
-static cached_soundindex sound_melee1;
-static cached_soundindex sound_melee2;
-static cached_soundindex sound_melee3;
+static cached_soundIndex sound_chest_open;
+static cached_soundIndex sound_tentacles_extend;
+static cached_soundIndex sound_tentacles_retract;
+static cached_soundIndex sound_death;
+static cached_soundIndex sound_idle1;
+static cached_soundIndex sound_idle2;
+static cached_soundIndex sound_idle3;
+static cached_soundIndex sound_pain1;
+static cached_soundIndex sound_pain2;
+static cached_soundIndex sound_sight;
+static cached_soundIndex sound_search;
+static cached_soundIndex sound_melee1;
+static cached_soundIndex sound_melee2;
+static cached_soundIndex sound_melee3;
 
 MONSTERINFO_SIGHT(brain_sight) (gentity_t *self, gentity_t *other) -> void {
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
@@ -37,13 +37,13 @@ MONSTERINFO_SEARCH(brain_search) (gentity_t *self) -> void {
 void brain_run(gentity_t *self);
 void brain_dead(gentity_t *self);
 
-constexpr spawnflags_t SPAWNFLAG_BRAIN_NO_LASERS = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_BRAIN_NO_LASERS = 8_spawnflag;
 
 //
 // STAND
 //
 
-mframe_t brain_frames_stand[] = {
+MonsterFrame brain_frames_stand[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -87,7 +87,7 @@ MONSTERINFO_STAND(brain_stand) (gentity_t *self) -> void {
 // IDLE
 //
 
-mframe_t brain_frames_idle[] = {
+MonsterFrame brain_frames_idle[] = {
 	{ ai_stand },
 	{ ai_stand },
 	{ ai_stand },
@@ -131,7 +131,7 @@ MONSTERINFO_IDLE(brain_idle) (gentity_t *self) -> void {
 //
 // WALK
 //
-mframe_t brain_frames_walk1[] = {
+MonsterFrame brain_frames_walk1[] = {
 	{ ai_walk, 7 },
 	{ ai_walk, 2 },
 	{ ai_walk, 3 },
@@ -150,7 +150,7 @@ MONSTERINFO_WALK(brain_walk) (gentity_t *self) -> void {
 	M_SetAnimation(self, &brain_move_walk1);
 }
 
-mframe_t brain_frames_pain3[] = {
+MonsterFrame brain_frames_pain3[] = {
 	{ ai_move, -2 },
 	{ ai_move, 2 },
 	{ ai_move, 1 },
@@ -160,7 +160,7 @@ mframe_t brain_frames_pain3[] = {
 };
 MMOVE_T(brain_move_pain3) = { FRAME_pain301, FRAME_pain306, brain_frames_pain3, brain_run };
 
-mframe_t brain_frames_pain2[] = {
+MonsterFrame brain_frames_pain2[] = {
 	{ ai_move, -2 },
 	{ ai_move },
 	{ ai_move },
@@ -172,7 +172,7 @@ mframe_t brain_frames_pain2[] = {
 };
 MMOVE_T(brain_move_pain2) = { FRAME_pain201, FRAME_pain208, brain_frames_pain2, brain_run };
 
-mframe_t brain_frames_pain1[] = {
+MonsterFrame brain_frames_pain1[] = {
 	{ ai_move, -6 },
 	{ ai_move, -2 },
 	{ ai_move, -6, monster_footstep },
@@ -197,7 +197,7 @@ mframe_t brain_frames_pain1[] = {
 };
 MMOVE_T(brain_move_pain1) = { FRAME_pain101, FRAME_pain121, brain_frames_pain1, brain_run };
 
-mframe_t brain_frames_duck[] = {
+MonsterFrame brain_frames_duck[] = {
 	{ ai_move },
 	{ ai_move, -2, [](gentity_t *self) { monster_duck_down(self); monster_footstep(self); } },
 	{ ai_move, 17, monster_duck_hold },
@@ -212,10 +212,10 @@ MMOVE_T(brain_move_duck) = { FRAME_duck01, FRAME_duck08, brain_frames_duck, brai
 static void brain_shrink(gentity_t *self) {
 	self->maxs[2] = 0;
 	self->svFlags |= SVF_DEADMONSTER;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
-mframe_t brain_frames_death2[] = {
+MonsterFrame brain_frames_death2[] = {
 	{ ai_move },
 	{ ai_move, 0, monster_footstep },
 	{ ai_move, 0, brain_shrink },
@@ -224,7 +224,7 @@ mframe_t brain_frames_death2[] = {
 };
 MMOVE_T(brain_move_death2) = { FRAME_death201, FRAME_death205, brain_frames_death2, brain_dead };
 
-mframe_t brain_frames_death1[] = {
+MonsterFrame brain_frames_death1[] = {
 	{ ai_move },
 	{ ai_move, 0, monster_footstep },
 	{ ai_move, -2 },
@@ -255,7 +255,7 @@ static void brain_swing_right(gentity_t *self) {
 }
 
 static void brain_hit_right(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, self->maxs[0], 8 };
+	Vector3 aim = { MELEE_DISTANCE, self->maxs[0], 8 };
 	if (fire_hit(self, aim, irandom(15, 20), 40))
 		gi.sound(self, CHAN_WEAPON, sound_melee3, 1, ATTN_NORM, 0);
 	else
@@ -267,14 +267,14 @@ static void brain_swing_left(gentity_t *self) {
 }
 
 static void brain_hit_left(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, self->mins[0], 8 };
+	Vector3 aim = { MELEE_DISTANCE, self->mins[0], 8 };
 	if (fire_hit(self, aim, irandom(15, 20), 40))
 		gi.sound(self, CHAN_WEAPON, sound_melee3, 1, ATTN_NORM, 0);
 	else
 		self->monsterInfo.melee_debounce_time = level.time + 3_sec;
 }
 
-mframe_t brain_frames_attack1[] = {
+MonsterFrame brain_frames_attack1[] = {
 	{ ai_charge, 8 },
 	{ ai_charge, 3 },
 	{ ai_charge, 5 },
@@ -294,7 +294,7 @@ mframe_t brain_frames_attack1[] = {
 	{ ai_charge, 2 },
 	{ ai_charge, -11, monster_footstep }
 };
-MMOVE_T(brain_move_attack1) = { FRAME_attak101, FRAME_attak118, brain_frames_attack1, brain_run };
+MMOVE_T(brain_move_attack1) = { FRAME_attack101, FRAME_attack118, brain_frames_attack1, brain_run };
 
 static void brain_chest_open(gentity_t *self) {
 	self->count = 0;
@@ -303,7 +303,7 @@ static void brain_chest_open(gentity_t *self) {
 }
 
 static void brain_tentacle_attack(gentity_t *self) {
-	vec3_t aim = { MELEE_DISTANCE, 0, 8 };
+	Vector3 aim = { MELEE_DISTANCE, 0, 8 };
 	if (fire_hit(self, aim, irandom(10, 15), -600))
 		self->count = 1;
 	else
@@ -319,7 +319,7 @@ static void brain_chest_closed(gentity_t *self) {
 	}
 }
 
-mframe_t brain_frames_attack2[] = {
+MonsterFrame brain_frames_attack2[] = {
 	{ ai_charge, 5 },
 	{ ai_charge, -4 },
 	{ ai_charge, -4 },
@@ -338,7 +338,7 @@ mframe_t brain_frames_attack2[] = {
 	{ ai_charge, -3 },
 	{ ai_charge, -6 }
 };
-MMOVE_T(brain_move_attack2) = { FRAME_attak201, FRAME_attak217, brain_frames_attack2, brain_run };
+MMOVE_T(brain_move_attack2) = { FRAME_attack201, FRAME_attack217, brain_frames_attack2, brain_run };
 
 MONSTERINFO_MELEE(brain_melee) (gentity_t *self) -> void {
 	if (frandom() <= 0.5f)
@@ -347,8 +347,8 @@ MONSTERINFO_MELEE(brain_melee) (gentity_t *self) -> void {
 		M_SetAnimation(self, &brain_move_attack2);
 }
 
-static bool brain_tounge_attack_ok(const vec3_t &start, const vec3_t &end) {
-	vec3_t dir, angles;
+static bool brain_tounge_attack_ok(const Vector3 &start, const Vector3 &end) {
+	Vector3 dir, angles;
 
 	// check for max distance
 	dir = start - end;
@@ -356,17 +356,17 @@ static bool brain_tounge_attack_ok(const vec3_t &start, const vec3_t &end) {
 		return false;
 
 	// check for min/max pitch
-	angles = vectoangles(dir);
+	angles = VectorToAngles(dir);
 	if (angles[PITCH] < -180)
 		angles[PITCH] += 360;
-	if (fabsf(angles[PITCH]) > 30)
+	if (std::fabs(angles[PITCH]) > 30)
 		return false;
 
 	return true;
 }
 
 static void brain_tounge_attack(gentity_t *self) {
-	vec3_t	offset, start, f, r, end, dir;
+	Vector3	offset, start, f, r, end, dir;
 	trace_t tr;
 	int		damage;
 
@@ -377,16 +377,16 @@ static void brain_tounge_attack(gentity_t *self) {
 
 	end = self->enemy->s.origin;
 	if (!brain_tounge_attack_ok(start, end)) {
-		end[2] = self->enemy->s.origin[2] + self->enemy->maxs[2] - 8;
+		end[2] = self->enemy->s.origin[Z] + self->enemy->maxs[2] - 8;
 		if (!brain_tounge_attack_ok(start, end)) {
-			end[2] = self->enemy->s.origin[2] + self->enemy->mins[2] + 8;
+			end[2] = self->enemy->s.origin[Z] + self->enemy->mins[2] + 8;
 			if (!brain_tounge_attack_ok(start, end))
 				return;
 		}
 	}
 	end = self->enemy->s.origin;
 
-	tr = gi.traceline(start, end, self, MASK_PROJECTILE);
+	tr = gi.traceLine(start, end, self, MASK_PROJECTILE);
 	if (tr.ent != self->enemy)
 		return;
 
@@ -401,17 +401,17 @@ static void brain_tounge_attack(gentity_t *self) {
 	gi.multicast(self->s.origin, MULTICAST_PVS, false);
 
 	dir = start - end;
-	Damage(self->enemy, self, self, dir, self->enemy->s.origin, vec3_origin, damage, 0, DAMAGE_NO_KNOCKBACK, MOD_BRAINTENTACLE);
+	Damage(self->enemy, self, self, dir, self->enemy->s.origin, vec3_origin, damage, 0, DamageFlags::NoKnockback, ModID::BrainTentacle);
 
 	// pull the enemy in
-	vec3_t forward;
-	self->s.origin[2] += 1;
+	Vector3 forward;
+	self->s.origin[Z] += 1;
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 	self->enemy->velocity = forward * -1200;
 }
 
 // Brian right eye center
-constexpr vec3_t brain_reye[] = {
+constexpr Vector3 brain_reye[] = {
 	{ 0.746700f, 0.238370f, 34.167690f },
 	{ -1.076390f, 0.238370f, 33.386372f },
 	{ -1.335500f, 5.334300f, 32.177170f },
@@ -426,7 +426,7 @@ constexpr vec3_t brain_reye[] = {
 };
 
 // Brain left eye center
-constexpr vec3_t brain_leye[] = {
+constexpr Vector3 brain_leye[] = {
 	{ -3.364710f, 0.327750f, 33.938381f },
 	{ -5.140450f, 0.493480f, 32.659851f },
 	{ -5.341980f, 5.646980f, 31.277901f },
@@ -443,7 +443,7 @@ constexpr vec3_t brain_leye[] = {
 static PRETHINK(brain_right_eye_laser_update) (gentity_t *laser) -> void {
 	gentity_t *self = laser->owner;
 
-	vec3_t start, forward, right, up, dir;
+	Vector3 start, forward, right, up, dir;
 
 	// check for max distance
 	AngleVectors(self->s.angles, forward, right, up);
@@ -456,14 +456,14 @@ static PRETHINK(brain_right_eye_laser_update) (gentity_t *laser) -> void {
 	PredictAim(self, self->enemy, start, 0, false, frandom(0.1f, 0.2f), &dir, nullptr);
 
 	laser->s.origin = start;
-	laser->movedir = dir;
-	gi.linkentity(laser);
+	laser->moveDir = dir;
+	gi.linkEntity(laser);
 }
 
 static PRETHINK(brain_left_eye_laser_update) (gentity_t *laser) -> void {
 	gentity_t *self = laser->owner;
 
-	vec3_t start, forward, right, up, dir;
+	Vector3 start, forward, right, up, dir;
 
 	// check for max distance
 	AngleVectors(self->s.angles, forward, right, up);
@@ -476,8 +476,8 @@ static PRETHINK(brain_left_eye_laser_update) (gentity_t *laser) -> void {
 	PredictAim(self, self->enemy, start, 0, false, frandom(0.1f, 0.2f), &dir, nullptr);
 
 	laser->s.origin = start;
-	laser->movedir = dir;
-	gi.linkentity(laser);
+	laser->moveDir = dir;
+	gi.linkEntity(laser);
 	dabeam_update(laser, false);
 }
 
@@ -496,7 +496,7 @@ static void brain_laserbeam_reattack(gentity_t *self) {
 				self->s.frame = FRAME_walk101;
 }
 
-mframe_t brain_frames_attack3[] = {
+MonsterFrame brain_frames_attack3[] = {
 	{ ai_charge, 5 },
 	{ ai_charge, -4 },
 	{ ai_charge, -4 },
@@ -515,9 +515,9 @@ mframe_t brain_frames_attack3[] = {
 	{ ai_charge, -3 },
 	{ ai_charge, -6 }
 };
-MMOVE_T(brain_move_attack3) = { FRAME_attak201, FRAME_attak217, brain_frames_attack3, brain_run };
+MMOVE_T(brain_move_attack3) = { FRAME_attack201, FRAME_attack217, brain_frames_attack3, brain_run };
 
-mframe_t brain_frames_attack4[] = {
+MonsterFrame brain_frames_attack4[] = {
 	{ ai_charge, 9, brain_laserbeam },
 	{ ai_charge, 2, brain_laserbeam },
 	{ ai_charge, 3, brain_laserbeam },
@@ -537,9 +537,9 @@ MONSTERINFO_ATTACK(brain_attack) (gentity_t *self) -> void {
 	if (r <= RANGE_NEAR) {
 		if (frandom() < 0.5f)
 			M_SetAnimation(self, &brain_move_attack3);
-		else if (!self->spawnflags.has(SPAWNFLAG_BRAIN_NO_LASERS))
+		else if (!self->spawnFlags.has(SPAWNFLAG_BRAIN_NO_LASERS))
 			M_SetAnimation(self, &brain_move_attack4);
-	} else if (!self->spawnflags.has(SPAWNFLAG_BRAIN_NO_LASERS))
+	} else if (!self->spawnFlags.has(SPAWNFLAG_BRAIN_NO_LASERS))
 		M_SetAnimation(self, &brain_move_attack4);
 }
 
@@ -547,7 +547,7 @@ MONSTERINFO_ATTACK(brain_attack) (gentity_t *self) -> void {
 // RUN
 //
 
-mframe_t brain_frames_run[] = {
+MonsterFrame brain_frames_run[] = {
 	{ ai_run, 9 },
 	{ ai_run, 2 },
 	{ ai_run, 3 },
@@ -570,7 +570,7 @@ MONSTERINFO_RUN(brain_run) (gentity_t *self) -> void {
 		M_SetAnimation(self, &brain_move_run);
 }
 
-static PAIN(brain_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const mod_t &mod) -> void {
+static PAIN(brain_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	float r;
 
 	if (level.time < self->pain_debounce_time)
@@ -603,10 +603,10 @@ static PAIN(brain_pain) (gentity_t *self, gentity_t *other, float kick, int dama
 }
 
 MONSTERINFO_SETSKIN(brain_setskin) (gentity_t *self) -> void {
-	if (self->health < (self->max_health / 2))
-		self->s.skinnum = 1;
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum = 1;
 	else
-		self->s.skinnum = 0;
+		self->s.skinNum = 0;
 }
 
 void brain_dead(gentity_t *self) {
@@ -615,15 +615,15 @@ void brain_dead(gentity_t *self) {
 	monster_dead(self);
 }
 
-static DIE(brain_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const vec3_t &point, const mod_t &mod) -> void {
+static DIE(brain_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, const MeansOfDeath &mod) -> void {
 	self->s.effects = EF_NONE;
 	self->monsterInfo.powerArmorType = IT_NULL;
 
 	// check for gib
 	if (M_CheckGib(self, mod)) {
-		gi.sound(self, CHAN_VOICE, gi.soundindex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 
-		self->s.skinnum /= 2;
+		self->s.skinNum /= 2;
 
 		if (self->beam) {
 			FreeEntity(self->beam);
@@ -661,13 +661,13 @@ static DIE(brain_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacke
 		M_SetAnimation(self, &brain_move_death2);
 }
 
-MONSTERINFO_DUCK(brain_duck) (gentity_t *self, gtime_t eta) -> bool {
+MONSTERINFO_DUCK(brain_duck) (gentity_t *self, GameTime eta) -> bool {
 	M_SetAnimation(self, &brain_move_duck);
 
 	return true;
 }
 
-/*QUAKED monster_brain (1 .5 0) (-16 -16 -24) (16 16 32) AMBUSH TRIGGER_SPAWN SIGHT x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
+/*QUAKED monster_brain (1 .5 0) (-16 -16 -24) (16 16 32) AMBUSH TRIGGER_SPAWN SIGHT x CORPSE x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
  */
 void SP_monster_brain(gentity_t *self) {
 	if (!M_AllowSpawn(self)) {
@@ -690,16 +690,16 @@ void SP_monster_brain(gentity_t *self) {
 	sound_melee2.assign("brain/melee2.wav");
 	sound_melee3.assign("brain/melee3.wav");
 
-	self->moveType = MOVETYPE_STEP;
+	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
-	self->s.modelindex = gi.modelindex("models/monsters/brain/tris.md2");
+	self->s.modelIndex = gi.modelIndex("models/monsters/brain/tris.md2");
 
-	gi.modelindex("models/monsters/brain/gibs/arm.md2");
-	gi.modelindex("models/monsters/brain/gibs/boot.md2");
-	gi.modelindex("models/monsters/brain/gibs/chest.md2");
-	gi.modelindex("models/monsters/brain/gibs/door.md2");
-	gi.modelindex("models/monsters/brain/gibs/head.md2");
-	gi.modelindex("models/monsters/brain/gibs/pelvis.md2");
+	gi.modelIndex("models/monsters/brain/gibs/arm.md2");
+	gi.modelIndex("models/monsters/brain/gibs/boot.md2");
+	gi.modelIndex("models/monsters/brain/gibs/chest.md2");
+	gi.modelIndex("models/monsters/brain/gibs/door.md2");
+	gi.modelIndex("models/monsters/brain/gibs/head.md2");
+	gi.modelIndex("models/monsters/brain/gibs/pelvis.md2");
 
 	self->mins = { -16, -16, -24 };
 	self->maxs = { 16, 16, 32 };
@@ -722,14 +722,14 @@ void SP_monster_brain(gentity_t *self) {
 	self->monsterInfo.sight = brain_sight;
 	self->monsterInfo.search = brain_search;
 	self->monsterInfo.idle = brain_idle;
-	self->monsterInfo.setskin = brain_setskin;
+	self->monsterInfo.setSkin = brain_setskin;
 
 	if (!st.was_key_specified("powerArmorType"))
 		self->monsterInfo.powerArmorType = IT_POWER_SCREEN;
 	if (!st.was_key_specified("powerArmorPower"))
 		self->monsterInfo.powerArmorPower = 100;
 
-	gi.linkentity(self);
+	gi.linkEntity(self);
 
 	M_SetAnimation(self, &brain_move_stand);
 	self->monsterInfo.scale = MODEL_SCALE;

@@ -1,7 +1,24 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-#include "g_local.h"
+// g_svcmds.cpp (Game Server Commands)
+// This file implements the server-side logic for commands that are executed
+// from the server console or via RCON (Remote Console). These commands
+// typically begin with the "sv" prefix.
+//
+// Key Responsibilities:
+// - `ServerCommand()`: The main entry point that the engine calls when an "sv"
+//   command is issued. It acts as a dispatcher, matching the command name
+//   to the appropriate handler function.
+// - IP Filtering: Implements commands for managing server access based on IP
+//   addresses (`addip`, `removeip`, `listip`, `writeip`). This allows server
+//   administrators to create ban lists or allow lists.
+// - Packet Filtering: Contains the logic for `G_FilterPacket`, which is called
+//   by the engine to determine if an incoming connection from a specific IP
+//   address should be allowed or denied based on the configured filter list
+//   and mode (ban vs. allow).
+
+#include "g_local.hpp"
 
 static void Svcmd_Test_f() {
 	gi.LocClient_Print(nullptr, PRINT_HIGH, "Svcmd_Test_f()\n");
@@ -31,7 +48,7 @@ writeip
 Dumps "addip <ip>" commands to listip.cfg so it can be execed at a later date.  The filter lists are not saved and
 restored by default, because I beleive it would cause too much confusion.
 
-filterban <0 or 1>
+filterBan <0 or 1>
 
 If 1 (the default), then ip addresses matching the current list will be prohibited from entering the game.  This is the
 default setting.
@@ -139,10 +156,10 @@ bool G_FilterPacket(const char *from) {
 
 	for (int i = 0; i < numipfilters; ++i) {
 		if ((in & ipfilters[i].mask) == ipfilters[i].compare)
-			return filterban->integer != 0;
+			return filterBan->integer != 0;
 	}
 
-	return filterban->integer == 0;
+	return filterBan->integer == 0;
 }
 
 /*
@@ -259,7 +276,7 @@ static void SVCmd_WriteIP_f(void) {
 		return;
 	}
 
-	fprintf(f, "set filterban %d\n", filterban->integer);
+	fprintf(f, "set filterBan %d\n", filterBan->integer);
 
 	for (i = 0; i < numipfilters; i++)
 	{

@@ -1,5 +1,24 @@
+// Copyright (c) ZeniMax Media Inc.
+// Licensed under the GNU General Public License 2.0.
 
-#include "g_local.h"
+// p_hud_scoreboard.cpp (Player HUD Scoreboard)
+// This file contains the server-side logic for generating the layout strings
+// for the multiplayer scoreboards. It sorts players, gathers their scores and
+// other relevant data, and constructs a formatted string that the client-side
+// game module can parse to render the scoreboard.
+//
+// Key Responsibilities:
+// - `MultiplayerScoreboard`: The main entry point for generating the scoreboard
+//   layout. It dispatches to different functions based on the current gametype.
+// - Player Sorting: Implements the logic to sort players based on score for
+//   Free-for-All modes and by team and score for team-based modes.
+// - Layout String Construction: Builds the complex string of HUD commands
+//   that defines the position, content, and appearance of each element on the
+//   scoreboard (player names, scores, pings, icons, etc.).
+// - Gametype-Specific Scoreboards: Contains specialized functions for rendering
+//   scoreboards for different modes like FFA, Duel, and Team Deathmatch.
+
+#include "g_local.hpp"
 
 /*
 ===============
@@ -17,15 +36,15 @@ static void SortClientsByTeamAndScore(
 	memset(totalLiving, 0, sizeof(uint8_t) * 2);
 	memset(totalScore, 0, sizeof(int) * 2);
 
-	for (uint32_t i = 0; i < game.maxclients; ++i) {
+	for (uint32_t i = 0; i < game.maxClients; ++i) {
 		gentity_t *cl_ent = g_entities + 1 + i;
 		if (!cl_ent->inUse)
 			continue;
 
 		int team = -1;
-		if (game.clients[i].sess.team == TEAM_RED)
+		if (game.clients[i].sess.team == Team::Red)
 			team = 0;
-		else if (game.clients[i].sess.team == TEAM_BLUE)
+		else if (game.clients[i].sess.team == Team::Blue)
 			team = 1;
 
 		if (team < 0)
@@ -80,13 +99,17 @@ static void AddScoreboardHeaderAndFooter(std::string &layout, gentity_t *viewer,
 	fmt::format_to(std::back_inserter(layout),
 		"xv 0 yv -40 cstring2 \"{} on '{}'\" "
 		"xv 0 yv -30 cstring2 \"Score Limit: {}\" ",
-		level.gametype_name.data(), level.longName, GT_ScoreLimit());
+		level.gametype_name.data(), level.longName.data(), GT_ScoreLimit());
+
+	if (hostname->string[0] && *hostname->string)
+		fmt::format_to(std::back_inserter(layout),
+			"xv 0 yv -50 cstring2 \"{}\" ", hostname->string);
 
 	// During intermission
-	if (level.intermissionTime) {
+	if (level.intermission.time) {
 		// Match duration
 		if (level.levelStartTime && (level.time - level.levelStartTime).seconds() > 0) {
-			int duration = (level.intermissionTime - level.levelStartTime - 1_sec).milliseconds();
+			int duration = (level.intermission.time - level.levelStartTime - 1_sec).milliseconds();
 			fmt::format_to(std::back_inserter(layout),
 				"xv 0 yv -50 cstring2 \"Total Match Time: {}\" ",
 				TimeString(duration, true, false));
@@ -107,7 +130,7 @@ static void AddScoreboardHeaderAndFooter(std::string &layout, gentity_t *viewer,
 			frameGate);
 	}
 	// During live match
-	else if (level.matchState == MatchState::MATCH_IN_PROGRESS && viewer->client && ClientIsPlaying(viewer->client)) {
+	else if (level.matchState == MatchState::In_Progress && viewer->client && ClientIsPlaying(viewer->client)) {
 		if (viewer->client->resp.score > 0 && level.pop.num_playing_clients > 1) {
 			fmt::format_to(std::back_inserter(layout),
 				"xv 0 yv -10 cstring2 \"{} place with a score of {}\" ",
@@ -134,7 +157,7 @@ static void AddSpectatorList(std::string &layout, int startY, SpectatorListMode 
 	bool wroteQueued = false;
 	bool wroteSpecs = false;
 
-	for (uint32_t i = 0; i < game.maxclients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
+	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
 		gentity_t *cl_ent = &g_entities[i + 1];
 		gclient_t *cl = &game.clients[i];
 
@@ -212,9 +235,9 @@ static void AddPlayerEntry(
 
 	// === Tag icon ===
 	if (mode == PlayerEntryMode::FFA || mode == PlayerEntryMode::Duel) {
-		if (cl_ent == viewer || GT(GT_RR)) {
-			const char *tag = (cl->sess.team == TEAM_RED) ? "/tags/ctf_red" :
-				(cl->sess.team == TEAM_BLUE) ? "/tags/ctf_blue" :
+		if (cl_ent == viewer || Game::Is(GameType::RedRover)) {
+			const char *tag = (cl->sess.team == Team::Red) ? "/tags/ctf_red" :
+				(cl->sess.team == Team::Blue) ? "/tags/ctf_blue" :
 				"/tags/default";
 			fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn {} ", x, y, tag);
 		} else if (cl_ent == killer) {
@@ -233,8 +256,8 @@ static void AddPlayerEntry(
 	// === Ready or eliminated marker ===
 	if (isReady) {
 		fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn wheel/p_compass_selected ", x + 16, y + 16);
-	} else if (GTF(GTF_ROUNDS) && mode == PlayerEntryMode::Team && !cl->eliminated && level.matchState == MatchState::MATCH_IN_PROGRESS) {
-		const char *teamIcon = (cl->sess.team == TEAM_RED) ? "sbfctf1" : "sbfctf2";
+	} else if (Game::Has(GameFlags::Rounds) && mode == PlayerEntryMode::Team && !cl->eliminated && level.matchState == MatchState::In_Progress) {
+		const char *teamIcon = (cl->sess.team == Team::Red) ? "sbfctf1" : "sbfctf2";
 		fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn {} ", x + 16, y, teamIcon);
 	}
 
@@ -260,7 +283,7 @@ AddTeamScoreOverlay
 ===============
 */
 static void AddTeamScoreOverlay(std::string &layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
-	if (GT(GT_CTF)) {
+	if (Game::Is(GameType::CaptureTheFlag)) {
 		fmt::format_to(std::back_inserter(layout),
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv 0 yv 28 string \"{}/{}\" "
@@ -273,7 +296,7 @@ static void AddTeamScoreOverlay(std::string &layout, const uint8_t total[2], con
 			"xv 200 yv 42 string \"SC\" "
 			"xv 228 yv 42 picn ping ",
 			total[0], teamsize, total[1], teamsize);
-	} else if (GTF(GTF_ROUNDS)) {
+	} else if (Game::Has(GameFlags::Rounds)) {
 		fmt::format_to(std::back_inserter(layout),
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv 0 yv 28 string \"{}/{}/{}\" "
@@ -315,14 +338,14 @@ static uint8_t AddTeamPlayerEntries(std::string &layout, int teamIndex, const ui
 
 	for (uint8_t i = 0; i < total; ++i) {
 		uint32_t clientNum = sorted[i];
-		if (clientNum < 0 || clientNum >= game.maxclients) continue;
+		if (clientNum < 0 || clientNum >= game.maxClients) continue;
 
 		gentity_t *cl_ent = &g_entities[clientNum + 1];
 		gclient_t *cl = &game.clients[clientNum];
 
 		int y = 52 + i * 8;
 		int x = (teamIndex == 0) ? -40 : 200;
-		bool isReady = (level.matchState == MatchState::MATCH_WARMUP_READYUP &&
+		bool isReady = (level.matchState == MatchState::Warmup_ReadyUp &&
 			(cl->pers.readyStatus || cl->sess.is_a_bot));
 
 		const char *flagIcon = nullptr;
@@ -349,7 +372,7 @@ static void AddSpectatorEntries(std::string &layout, uint8_t lastRed, uint8_t la
 	uint32_t n = 0, lineIndex = 0;
 	bool wroteQueued = false, wroteSpecs = false;
 
-	for (uint32_t i = 0; i < game.maxclients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
+	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
 		gentity_t *cl_ent = &g_entities[i + 1];
 		gclient_t *cl = &game.clients[i];
 
@@ -382,7 +405,7 @@ static void AddSpectatorEntries(std::string &layout, uint8_t lastRed, uint8_t la
 	if (wroteQueued)
 		j += 8;
 
-	for (uint32_t i = 0; i < game.maxclients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
+	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
 		gentity_t *cl_ent = &g_entities[i + 1];
 		gclient_t *cl = &game.clients[i];
 
@@ -478,21 +501,21 @@ DeathmatchScoreboardMessage
 ===============
 */
 void DeathmatchScoreboardMessage(gentity_t *ent, gentity_t *killer) {
-	if (Teams() && notGT(GT_RR)) {
+	if (Teams() && Game::IsNot(GameType::RedRover)) {
 		TeamsScoreboardMessage(ent, ent->enemy);
 		return;
 	}
-	if (GTF(GTF_1V1)) {
+	if (Game::Has(GameFlags::OneVOne)) {
 		DuelScoreboardMessage(ent, ent->enemy);
 		return;
 	}
-
+	
 	uint8_t total = std::min<uint8_t>(level.pop.num_playing_clients, 16);
 	std::string layout;
 
 	for (size_t i = 0; i < total; ++i) {
-		uint32_t clientNum = level.sorted_clients[i];
-		if (clientNum < 0 || clientNum >= game.maxclients)
+		uint32_t clientNum = level.sortedClients[i];
+		if (clientNum < 0 || clientNum >= game.maxClients)
 			continue;
 
 		gclient_t *cl = &game.clients[clientNum];
@@ -520,10 +543,10 @@ Note that it isn't that hard to overflow the 1400 byte message limit!
 ===============
 */
 void MultiplayerScoreboard(gentity_t *ent) {
-	gentity_t *target = ent->client->followTarget ? ent->client->followTarget : ent;
+	gentity_t *target = ent->client->follow.target ? ent->client->follow.target : ent;
 
 	DeathmatchScoreboardMessage(target, target->enemy);
 
 	gi.unicast(ent, true);
-	ent->client->menuTime = level.time + 3_sec;
+	ent->client->menu.updateTime = level.time + 3_sec;
 }

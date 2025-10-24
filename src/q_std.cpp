@@ -1,9 +1,23 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-// standard library stuff for game DLL
+// q_std.cpp (Quake Standard Library Implementation)
+// This file provides the implementation for the custom standard library
+// functions declared in `q_std.hpp`. It contains low-level utility functions
+// for string manipulation and parsing.
+//
+// Key Responsibilities:
+// - String Parsing: Implements `COM_Parse` and `COM_ParseEx`, the core
+//   functions used throughout the codebase to parse tokenized strings from
+//   entity definitions, configuration files, and commands.
+// - Safe String Copying: Provides implementations for `Q_strlcpy` and
+//   `Q_strlcat`, which are safer alternatives to the standard C library's
+//   `strcpy` and `strcat` because they prevent buffer overflows by accepting
+//   the destination buffer size.
+// - String Comparison: Implements case-insensitive string comparison functions
+//   like `Q_strcasecmp` and `Q_strncasecmp`.
 
-#include "g_local.h"
+#include "g_local.hpp"
 
 //====================================================================================
 
@@ -71,8 +85,8 @@ skipwhite:
 		while (1) {
 			c = *data++;
 			if (c == '\"' || !c) {
-				const size_t endpos = std::min<size_t>(len, buffer_size - 1); // [KEX] avoid overflow
-				buffer[endpos] = '\0';
+				const size_t endPos = std::min<size_t>(len, buffer_size - 1); // [KEX] avoid overflow
+				buffer[endPos] = '\0';
 				*data_p = data;
 				return buffer;
 			}
@@ -250,10 +264,5 @@ size_t Q_strlcat(char *dst, const char *src, size_t siz) {
 
 	return (dlen + (s - src)); /* count does not include NUL */
 }
-
-#if !defined(USE_CPP20_FORMAT) && !defined(NO_FMT_SOURCE)
-// fmt ugliness because we haven't figured out FMT_INCLUDE_ONLY
-#include "../src/format.cc"
-#endif
 #endif
 //====================================================================

@@ -1,6 +1,22 @@
-#include "../g_local.h"
+// menu_page_welcome.cpp (Menu Page - Welcome/Join)
+// This file implements the main menu that players see when they are spectators
+// or have just joined the server. It is the primary navigation hub for joining
+// the game, spectating, or accessing other informational menus.
+//
+// Key Responsibilities:
+// - Main Menu Hub: `OpenJoinMenu` is the function called to display the main
+//   menu.
+// - Dynamic Join Options: The `onUpdate` function (`AddJoinOptions`) dynamically
+//   creates the "Join" options based on the current gametype (e.g., "Join Red",
+//   "Join Blue" for TDM; "Join Match" or "Join Queue" for FFA/Duel).
+// - Player Counts: Displays the current number of players in the match or on
+//   each team.
+// - Navigation: Provides the entry points to all other major menus, such as
+//   "Host Info", "Match Info", and "Call a Vote".
 
-extern bool SetTeam(gentity_t *ent, team_t desired_team, bool inactive, bool force, bool silent);
+#include "../g_local.hpp"
+
+extern bool SetTeam(gentity_t *ent, Team desired_team, bool inactive, bool force, bool silent);
 void GetFollowTarget(gentity_t *ent);
 void FreeFollower(gentity_t *ent);
 bool Vote_Menu_Active(gentity_t *ent);
@@ -14,33 +30,33 @@ extern void OpenVoteMenu(gentity_t *ent);
 static void AddJoinOptions(MenuBuilder &builder, gentity_t *ent, int maxPlayers) {
 	uint8_t redCount = 0, blueCount = 0, freeCount = 0, queueCount = 0;
 	for (auto ec : active_clients()) {
-		if (GTF(GTF_1V1) && ec->client->sess.team == team_t::TEAM_SPECTATOR && ec->client->sess.matchQueued) {
+		if (Game::Has(GameFlags::OneVOne) && ec->client->sess.team == Team::Spectator && ec->client->sess.matchQueued) {
 			queueCount++;
 		} else {
 			switch (ec->client->sess.team) {
-			case team_t::TEAM_FREE:  freeCount++; break;
-			case team_t::TEAM_RED:   redCount++;  break;
-			case team_t::TEAM_BLUE:  blueCount++; break;
+			case Team::Free:  freeCount++; break;
+			case Team::Red:   redCount++;  break;
+			case Team::Blue:  blueCount++; break;
 			}
 		}
 	}
 
 	if (Teams()) {
 		builder.add(fmt::format("Join Red ({}/{})", redCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t *e, Menu &) {
-			SetTeam(e, team_t::TEAM_RED, false, false, false);
+			SetTeam(e, Team::Red, false, false, false);
 			});
 		builder.add(fmt::format("Join Blue ({}/{})", blueCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t *e, Menu &) {
-			SetTeam(e, team_t::TEAM_BLUE, false, false, false);
+			SetTeam(e, Team::Blue, false, false, false);
 			});
 	} else {
 		std::string joinText;
-		if (GTF(GTF_1V1) && level.pop.num_playing_clients == 2)
+		if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients == 2)
 			joinText = fmt::format("Join Queue ({}/{})", queueCount, maxPlayers - 2);
 		else
-			joinText = fmt::format("Join Match ({}/{})", freeCount, GTF(GTF_1V1) ? 2 : maxPlayers);
+			joinText = fmt::format("Join Match ({}/{})", freeCount, Game::Has(GameFlags::OneVOne) ? 2 : maxPlayers);
 
 		builder.add(joinText, MenuAlign::Left, [](gentity_t *e, Menu &) {
-			SetTeam(e, team_t::TEAM_FREE, false, false, false);
+			SetTeam(e, Team::Free, false, false, false);
 			});
 	}
 }
@@ -63,15 +79,14 @@ void OpenJoinMenu(gentity_t *ent) {
 	AddJoinOptions(builder, ent, maxPlayers);
 
 	builder.add("Spectate", MenuAlign::Left, [](gentity_t *e, Menu &) {
-		SetTeam(e, team_t::TEAM_SPECTATOR, false, false, false);
+		SetTeam(e, Team::Spectator, false, false, false);
 		});
-
-	builder.add("Chase Camera", MenuAlign::Left, [](gentity_t *e, Menu &) {
-		SetTeam(e, team_t::TEAM_SPECTATOR, false, false, false);
-		if (e->client->followTarget) FreeFollower(e);
-		else GetFollowTarget(e);
-		MenuSystem::Close(e);
-		});
+	
+	if (g_allowVoting->integer && (ClientIsPlaying(ent->client) || (!ClientIsPlaying(ent->client) && g_allowSpecVote->integer))) {
+		builder.add("Call a Vote", MenuAlign::Left, [](gentity_t* e, Menu&) {
+			OpenCallvoteMenu(e);
+			});
+	}
 
 	builder.add("Host Info", MenuAlign::Left, [](gentity_t *e, Menu &) {
 		OpenHostInfoMenu(e);

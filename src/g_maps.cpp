@@ -1,8 +1,25 @@
+// g_maps.cpp (Game Maps)
+// This file manages the map loading, rotation, and voting systems for
+// multiplayer matches. It is responsible for parsing map lists, selecting the
+// next map to be played, and handling the end-of-match map voting screen.
+//
+// Key Responsibilities:
+// - Map Database: `LoadMapPool` reads a JSON file (`mapdb.json`) to create an
+//   internal database of all available maps and their properties (e.g., name,
+//   supported gametypes, player count).
+// - Map Cycle: `LoadMapCycle` reads a text file (`mapcycle.txt`) to determine
+//   which maps from the pool are part of the regular rotation.
+// - Next Map Selection: `AutoSelectNextMap` contains the logic for automatically
+//   choosing the next map, considering factors like player count, map popularity,
+//   and avoiding recent repeats.
+// - Map Voting: Implements the `MapSelector` system, which presents players with
+//   a choice of maps at the end of a match and transitions to the winning map.
+// - "MyMap" Queue: Manages a player-driven queue where users can vote to play
+//   a specific map next.
 
-#include "g_local.h"
-#include "nlohmann/json.hpp"
+#include "g_local.hpp"
+#include <json/json.h>
 #include <fstream>
-#include <sstream>
 #include <regex>
 
 /*
@@ -115,7 +132,7 @@ void MapSelectorBegin() {
 		OpenMapSelectorMenu(ec);
 	}
 
-	gi.Broadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have 5 seconds to vote.\n");
+	gi.LocBroadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have {} seconds to vote.\n", MAP_SELECTOR_DURATION.seconds());
 	AnnouncerSound(world, "vote_now");
 }
 
@@ -158,7 +175,7 @@ void MapSelector_CastVote(gentity_t *ent, int voteIndex) {
 		ent->client->sess.netName, mapName);
 
 	// Mark menu dirty to update HUD/bar
-	ent->client->menuDirty = true;
+	ent->client->menu.doUpdate = true;
 
 	// === Early vote finalization check ===
 
@@ -343,65 +360,65 @@ bool MapSystem::IsMapInQueue(const std::string &mapName) const {
 LoadMapPool
 ==================
 */
-void LoadMapPool(gentity_t *ent) {
+void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	game.mapSystem.mapPool.clear();
 
 	std::string path = "baseq2/";
 	path += g_maps_pool_file->string;
 
-	std::ifstream file(path);
+	std::ifstream file(path, std::ifstream::binary);
 	if (!file.is_open()) {
-		if (ent && ent->client)
+		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
 		return;
 	}
 
-	nlohmann::json j;
-	try {
-		file >> j;
-	} catch (const std::exception &e) {
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	std::string errs;
+
+	if (!Json::parseFromStream(builder, file, &root, &errs)) {
 		if (entClient)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", e.what());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", errs.c_str());
 		return;
 	}
 
-	if (!j.contains("maps") || !j["maps"].is_array()) {
+	if (!root.isMember("maps") || !root["maps"].isArray()) {
 		if (entClient)
 			gi.Client_Print(ent, PRINT_HIGH, "[MapPool] JSON must contain a 'maps' array.\n");
 		return;
 	}
 
 	int loaded = 0, skipped = 0;
-
-	for (const auto &entry : j["maps"]) {
-		if (!entry.contains("bsp") || !entry["bsp"].is_string() ||
-			!entry.contains("dm") || !entry["dm"].get<bool>()) {
+	for (const auto& entry : root["maps"]) {
+		if (!entry.isMember("bsp") || !entry["bsp"].isString() ||
+			!entry.isMember("dm") || !entry["dm"].asBool()) {
 			skipped++;
 			continue;
 		}
 
 		MapEntry map;
-		map.filename = entry["bsp"].get<std::string>();
+		map.filename = entry["bsp"].asString();
 
-		if (entry.contains("title"))     map.longName = entry["title"].get<std::string>();
-		if (entry.contains("min"))       map.minPlayers = entry["min"].get<int>();
-		if (entry.contains("max"))       map.maxPlayers = entry["max"].get<int>();
-		if (entry.contains("gametype"))  map.suggestedGametype = static_cast<gametype_t>(entry["gametype"].get<int>());
-		if (entry.contains("ruleset"))   map.suggestedRuleset = static_cast<ruleset_t>(entry["ruleset"].get<int>());
-		if (entry.contains("scorelimit")) map.scoreLimit = entry["scorelimit"].get<int>();
-		if (entry.contains("timelimit"))  map.timeLimit = entry["timelimit"].get<int>();
-		if (entry.contains("popular"))    map.isPopular = entry["popular"].get<bool>();
-		if (entry.contains("custom"))     map.isCustom = entry["custom"].get<bool>();
-		if (entry.contains("custom_textures"))     map.isCustom = entry["custom_textures"].get<bool>();
-		if (entry.contains("custom_sounds"))     map.isCustom = entry["custom_sounds"].get<bool>();
+		if (entry.isMember("title"))          map.longName = entry["title"].asString();
+		if (entry.isMember("min"))            map.minPlayers = entry["min"].asInt();
+		if (entry.isMember("max"))            map.maxPlayers = entry["max"].asInt();
+		if (entry.isMember("gametype"))       map.suggestedGametype = static_cast<GameType>(entry["gametype"].asInt());
+		if (entry.isMember("ruleset"))        map.suggestedRuleset = static_cast<ruleset_t>(entry["ruleset"].asInt());
+		if (entry.isMember("scorelimit"))     map.scoreLimit = entry["scorelimit"].asInt();
+		if (entry.isMember("timeLimit"))      map.timeLimit = entry["timeLimit"].asInt();
+		if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
+		if (entry.isMember("custom"))         map.isCustom = entry["custom"].asBool();
+		if (entry.isMember("custom_textures")) map.isCustom = entry["custom_textures"].asBool();
+		if (entry.isMember("custom_sounds"))   map.isCustom = entry["custom_sounds"].asBool();
 
 		map.mapTypeFlags |= MAP_DM;
-		if (entry.contains("sp") && entry["sp"].get<bool>())   map.mapTypeFlags |= MAP_SP;
-		if (entry.contains("coop") && entry["coop"].get<bool>()) map.mapTypeFlags |= MAP_COOP;
-		if (entry.contains("tdm"))  map.preferredTDM = entry["tdm"].get<bool>();
-		if (entry.contains("ctf"))  map.preferredCTF = entry["ctf"].get<bool>();
-		if (entry.contains("duel")) map.preferredDuel = entry["duel"].get<bool>();
+		if (entry.get("sp", false).asBool())   map.mapTypeFlags |= MAP_SP;
+		if (entry.get("coop", false).asBool()) map.mapTypeFlags |= MAP_COOP;
+		if (entry.get("tdm", false).asBool())  map.preferredTDM = true;
+		if (entry.get("ctf", false).asBool())  map.preferredCTF = true;
+		if (entry.get("duel", false).asBool()) map.preferredDuel = true;
 
 		map.isCycleable = false;
 		map.lastPlayed = 0;
@@ -410,10 +427,12 @@ void LoadMapPool(gentity_t *ent) {
 		loaded++;
 	}
 
-	if (entClient)
-		gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
+	if (entClient) {
+		gi.LocClient_Print(ent, PRINT_HIGH,
+			"[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
 			loaded, (loaded == 1 ? "" : "s"), path.c_str(),
 			skipped, (skipped == 1 ? "y" : "ies"));
+	}
 }
 
 /*
@@ -477,7 +496,7 @@ std::optional<MapEntry> AutoSelectNextMap() {
 
 	// Screenshot tool override - select next in map list (looping, based on current map)
 	if (g_autoScreenshotTool && g_autoScreenshotTool->integer > 0 && !pool.empty()) {
-		const std::string current = level.mapName;
+		const std::string current = level.mapName.data();
 		auto it = std::find_if(pool.begin(), pool.end(), [&](const MapEntry &m) {
 			return !_stricmp(m.filename.c_str(), current.c_str());
 			});
@@ -587,8 +606,8 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 	const bool avoidCustom = (level.pop.num_console_clients > 0);
 	const bool avoidCustomTextures = !g_maps_allow_custom_textures->integer;
 	int64_t now = GetCurrentRealTimeMillis();
-	bool isCTF = GTF(GTF_CTF);
-	bool isDuel = GTF(GTF_1V1);
+	bool isCTF = Game::Has(GameFlags::CTF);
+	bool isDuel = Game::Has(GameFlags::OneVOne);
 	bool isTDM = Teams();
 
 	bool preferred = true;
@@ -603,7 +622,7 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 			continue;
 		if (avoidCustomTextures && map.hasCustomTextures)
 			continue;
-		if (!Q_strcasecmp(level.mapName, map.filename.c_str()))
+		if (!Q_strcasecmp(level.mapName.data(), map.filename.c_str()))
 			continue;
 
 		if (isCTF && !map.preferredCTF) preferred = false;
@@ -712,7 +731,7 @@ static std::vector<MapFilter> ParseMapFilters(const std::string &input) {
 		if (raw == "dm") {
 			filter = [](const MapEntry &m) { return m.mapTypeFlags & MAP_DM; };
 		} else if (raw == "ctf") {
-			filter = [](const MapEntry &m) { return m.suggestedGametype == GT_CTF; };
+			filter = [](const MapEntry &m) { return m.suggestedGametype == GameType::CaptureTheFlag; };
 		} else if (raw == "sp") {
 			filter = [](const MapEntry &m) { return m.mapTypeFlags & MAP_SP; };
 		} else if (raw == "coop") {
