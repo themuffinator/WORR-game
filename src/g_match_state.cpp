@@ -17,6 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "g_local.hpp"
+#include "command_registration.hpp"
 
 /*
 =================
@@ -969,7 +970,7 @@ static void CheckDMRoundState() {
 		if (level.roundStateTimer > level.time)
 			return;
 		if (Game::Is(GameType::RedRover) && level.roundState == RoundState::Ended)
-			TeamShuffle();
+			Commands::TeamSkillShuffle();
 		Round_StartNew();
 		return;
 	}

@@ -22,6 +22,7 @@
 
 #include "g_local.hpp"
 #include "bots/bot_includes.hpp"
+#include "command_registration.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -1444,7 +1445,7 @@ void ExitLevel() {
 		if (Game::Is(GameType::RedRover) &&
 			level.pop.num_playing_clients > 1 &&
 			(!level.pop.num_playing_red || !level.pop.num_playing_blue))
-			TeamShuffle();
+			Commands::TeamSkillShuffle();
 
 		// Do not proceed further in DM - map voting or shuffle controls transition
 		return;
