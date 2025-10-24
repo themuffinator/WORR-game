@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <string_view>
+#include <algorithm>
 
 namespace Commands {
 
@@ -474,3 +475,46 @@ namespace Commands {
 	}
 
 } // namespace Commands
+
+void G_RevertVote(gclient_t *client) {
+        if (!client) {
+                return;
+        }
+
+        if (!level.vote.time || !level.vote.client) {
+                client->pers.voted = 0;
+                return;
+        }
+
+        if (client->pers.voted > 0) {
+                int yesVotes = std::max(0, static_cast<int>(level.vote.countYes) - 1);
+                level.vote.countYes = static_cast<int8_t>(yesVotes);
+        } else if (client->pers.voted < 0) {
+                int noVotes = std::max(0, static_cast<int>(level.vote.countNo) - 1);
+                level.vote.countNo = static_cast<int8_t>(noVotes);
+        }
+
+        client->pers.voted = 0;
+
+        if (level.vote.client != client) {
+                return;
+        }
+
+        gi.Broadcast_Print(PRINT_HIGH, "Vote cancelled (caller disconnected).\n");
+
+        level.vote.client = nullptr;
+        level.vote.cmd = nullptr;
+        level.vote.arg.clear();
+        level.vote.time = 0_sec;
+        level.vote.executeTime = 0_sec;
+        level.vote.countYes = 0;
+        level.vote.countNo = 0;
+        level.vote_flags_enable = 0;
+        level.vote_flags_disable = 0;
+
+        for (auto ec : active_clients()) {
+                if (ec->client) {
+                        ec->client->pers.voted = 0;
+                }
+        }
+}
