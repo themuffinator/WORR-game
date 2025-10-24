@@ -16,12 +16,32 @@
 //   call the core `TryStartVote` function to actually begin the voting process.
 
 #include "../g_local.hpp"
+#include "../command_system.hpp"
 #include <string>
+#include <string_view>
 #include <array>
+#include <vector>
 #include <string_view>
 
 namespace Commands {
+        void CallVote(gentity_t* ent, const CommandArgs& args);
         bool IsVoteCommandEnabled(std::string_view name);
+}
+
+static bool TryStartVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg, bool /*unused*/)
+{
+        std::vector<std::string> args;
+        args.reserve(voteArg.empty() ? 2 : 3);
+        args.emplace_back("callvote");
+        args.emplace_back(voteName);
+        if (!voteArg.empty()) {
+                args.emplace_back(voteArg);
+        }
+
+        CommandArgs manualArgs(std::move(args));
+        const auto previousTime = level.vote.time;
+        Commands::CallVote(ent, manualArgs);
+        return level.vote.time != previousTime;
 }
 
 extern void OpenJoinMenu(gentity_t* ent);
