@@ -513,7 +513,7 @@ namespace Commands {
 			return false;
 			};
 		auto cheats_allowed = [&]() -> bool {
-			// Mirror your project’s cheat gates here.
+			// Mirror your projectÂ’s cheat gates here.
 			// Common pattern: sv_cheats or singleplayer-only.
 			return (CheatsOk(ent));
 			};
@@ -1045,6 +1045,7 @@ namespace Commands {
 		RegisterCommand("forfeit", &Forfeit, AllowDead, true);
 		RegisterCommand("help", &Help, AllowDead | AllowSpectator, true);
 		RegisterCommand("hook", &Hook, {}, true);
+		RegisterCommand("impulse", &Impulse);
 		RegisterCommand("id", &CrosshairID, AllowSpectator | AllowDead);
 		RegisterCommand("inv_drop", &InvDrop);
 		RegisterCommand("inven", &Inven, AllowDead | AllowSpectator, true);
