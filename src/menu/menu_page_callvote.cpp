@@ -13,36 +13,14 @@
 // - Parameter Handling: Manages the state for complex votes, like storing
 //   the selected map and custom map flags before initiating the vote.
 // - Integration with Vote System: The `onSelect` callbacks for each menu item
-//   call the core `TryStartVote` function to actually begin the voting process.
+//   call the core `Commands::TryLaunchVote` helper to actually begin the voting process.
 
+#include "../command_voting.hpp"
 #include "../g_local.hpp"
-#include "../command_system.hpp"
 #include <string>
 #include <string_view>
 #include <array>
 #include <vector>
-#include <string_view>
-
-namespace Commands {
-        void CallVote(gentity_t* ent, const CommandArgs& args);
-        bool IsVoteCommandEnabled(std::string_view name);
-}
-
-static bool TryStartVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg, bool /*unused*/)
-{
-        std::vector<std::string> args;
-        args.reserve(voteArg.empty() ? 2 : 3);
-        args.emplace_back("callvote");
-        args.emplace_back(voteName);
-        if (!voteArg.empty()) {
-                args.emplace_back(voteArg);
-        }
-
-        CommandArgs manualArgs(std::move(args));
-        const auto previousTime = level.vote.time;
-        Commands::CallVote(ent, manualArgs);
-        return level.vote.time != previousTime;
-}
 
 extern void OpenJoinMenu(gentity_t* ent);
 
@@ -53,7 +31,18 @@ Helpers
 */
 
 static inline bool VoteEnabled(std::string_view name) {
-        return Commands::IsVoteCommandEnabled(name);
+        if (!g_allowVoting || !g_allowVoting->integer) {
+                return false;
+        }
+        for (const auto& def : Commands::GetRegisteredVoteDefinitions()) {
+                if (def.name == name) {
+                        if (!def.visibleInMenu) {
+                                return false;
+                        }
+                        return (g_vote_flags->integer & def.flag) != 0;
+                }
+        }
+        return false;
 }
 
 /*
@@ -177,7 +166,7 @@ static void OpenCallvoteMap(gentity_t* ent) {
 
 		builder.add(displayName, MenuAlign::Left, [mapname = entry.filename](gentity_t* e, Menu&) {
 			const std::string fullArg = BuildMapVoteArg(mapname);
-			if (TryStartVote(e, "map", fullArg, true))
+                        if (Commands::TryLaunchVote(e, "map", fullArg))
 				MenuSystem::Close(e);
 			});
 	}
@@ -236,7 +225,7 @@ static void OpenCallvoteGametype(gentity_t* ent) {
 		builder.add(std::string(mode.long_name), MenuAlign::Left,
 			[shortName](gentity_t* e, Menu&) {
 				// Attempt to start the vote with the captured short name.
-				if (TryStartVote(e, "gametype", shortName, true)) {
+                            if (Commands::TryLaunchVote(e, "gametype", shortName)) {
 					// Close the menu on a successful vote call.
 					MenuSystem::Close(e);
 				}
@@ -261,7 +250,7 @@ static void OpenCallvoteRuleset(gentity_t* ent) {
 		const char* longName = rs_long_name[i];
 
 		builder.add(longName, MenuAlign::Left, [shortName](gentity_t* e, Menu&) {
-			if (TryStartVote(e, "ruleset", shortName.data(), true))
+                    if (Commands::TryLaunchVote(e, "ruleset", shortName.data()))
 				MenuSystem::Close(e);
 			});
 	}
@@ -285,7 +274,7 @@ static void OpenCallvoteTimelimit(gentity_t* ent) {
 
 	// Disable
         builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                if (TryStartVote(e, "timelimit", "0", true))
+                if (Commands::TryLaunchVote(e, "timelimit", "0"))
                         MenuSystem::Close(e);
                 });
 
@@ -293,7 +282,7 @@ static void OpenCallvoteTimelimit(gentity_t* ent) {
 	static const int kTimes[] = { 5, 10, 15, 20, 30, 45, 60, 90, 120 };
 	for (int m : kTimes) {
                 builder.add(G_Fmt("Set {} {}", m, m == 1 ? "minute" : "minutes").data(), MenuAlign::Left, [m](gentity_t* e, Menu&) {
-                        if (TryStartVote(e, "timelimit", std::to_string(m), true))
+                        if (Commands::TryLaunchVote(e, "timelimit", std::to_string(m)))
                                 MenuSystem::Close(e);
                         });
 	}
@@ -320,7 +309,7 @@ static void OpenCallvoteScorelimit(gentity_t* ent) {
 	// Disable
 	builder.add("Disable", MenuAlign::Left, [metric](gentity_t* e, Menu&) {
 		(void)metric;
-		if (TryStartVote(e, "scorelimit", "0", true))
+            if (Commands::TryLaunchVote(e, "scorelimit", "0"))
 			MenuSystem::Close(e);
 		});
 
@@ -328,7 +317,7 @@ static void OpenCallvoteScorelimit(gentity_t* ent) {
 	static const int kScores[] = { 5, 10, 15, 20, 25, 30, 50, 100 };
 	for (int s : kScores) {
 		builder.add(G_Fmt("Set {} {}", s, metric).data(), MenuAlign::Left, [s](gentity_t* e, Menu&) {
-			if (TryStartVote(e, "scorelimit", std::to_string(s), true))
+                    if (Commands::TryLaunchVote(e, "scorelimit", std::to_string(s)))
 				MenuSystem::Close(e);
 			});
 	}
@@ -350,12 +339,12 @@ static void OpenCallvoteUnlagged(gentity_t* ent) {
 	builder.add(G_Fmt("Current: {}", cur ? "ENABLED" : "DISABLED").data(), MenuAlign::Left);
 
 	builder.add("Enable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-		if (TryStartVote(e, "unlagged", "1", true))
+            if (Commands::TryLaunchVote(e, "unlagged", "1"))
 			MenuSystem::Close(e);
 		});
 
 	builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-		if (TryStartVote(e, "unlagged", "0", true))
+            if (Commands::TryLaunchVote(e, "unlagged", "0"))
 			MenuSystem::Close(e);
 		});
 
@@ -377,7 +366,7 @@ static void OpenCallvoteRandom(gentity_t* ent) {
 
 	for (int i = kMin; i <= kMax; i += 5) {
 		builder.add(G_Fmt("1-{}", i).data(), MenuAlign::Left, [i](gentity_t* e, Menu&) {
-			if (TryStartVote(e, "random", std::to_string(i), true))
+                    if (Commands::TryLaunchVote(e, "random", std::to_string(i)))
 				MenuSystem::Close(e);
 			});
 	}
@@ -402,7 +391,7 @@ static void OpenCallvoteArena(gentity_t* ent) {
 			continue;
 
 		builder.add(G_Fmt("Arena {}", arenaNum).data(), MenuAlign::Left, [arenaNum](gentity_t* e, Menu&) {
-			if (TryStartVote(e, "arena", std::to_string(arenaNum), true))
+                    if (Commands::TryLaunchVote(e, "arena", std::to_string(arenaNum)))
 				MenuSystem::Close(e);
 			});
 		++optionsAdded;
@@ -421,7 +410,7 @@ OpenSimpleCallvote
 ===============
 */
 static void OpenSimpleCallvote(const std::string& voteName, gentity_t* ent) {
-	if (TryStartVote(ent, voteName, "", true))
+        if (Commands::TryLaunchVote(ent, voteName, ""))
 		MenuSystem::Close(ent);
 }
 

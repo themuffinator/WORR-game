@@ -10,14 +10,6 @@
 #include <unordered_map>
 #include <string>
 
-// C++20 Heterogeneous Lookup Support for string_view
-struct StringViewHash {
-	using is_transparent = void;
-	[[nodiscard]] size_t operator()(const char* txt) const { return std::hash<std::string_view>{}(txt); }
-	[[nodiscard]] size_t operator()(std::string_view txt) const { return std::hash<std::string_view>{}(txt); }
-	[[nodiscard]] size_t operator()(const std::string& txt) const { return std::hash<std::string>{}(txt); }
-};
-
 // The central registry for all client commands.
 static std::unordered_map<std::string, Command, StringViewHash, std::equal_to<>> s_clientCommands;
 

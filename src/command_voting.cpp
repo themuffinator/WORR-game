@@ -5,9 +5,11 @@
 // This module contains all logic for calling votes, casting votes,
 // and processing the results for various game actions.
 
+#include "command_voting.hpp"
 #include "g_local.hpp"
 #include "command_registration.hpp"
 #include "command_voting_utils.hpp"
+#include "command_system.hpp"
 #include <string>
 #include <vector>
 #include <format>
@@ -25,13 +27,14 @@ namespace Commands {
 
 	// Use a map for efficient O(1) lookup of vote commands.
         static std::unordered_map<std::string, VoteCommand, StringViewHash, std::equal_to<>> s_voteCommands;
+        static std::vector<VoteDefinitionView> s_voteDefinitions;
 
         bool IsVoteCommandEnabled(std::string_view name) {
                 if (!g_allowVoting || !g_allowVoting->integer) {
                         return false;
                 }
 
-                auto it = s_voteCommands.find(std::string(name));
+                auto it = s_voteCommands.find(name);
                 if (it == s_voteCommands.end()) {
                         return false;
                 }
@@ -48,9 +51,14 @@ namespace Commands {
                 int32_t flag,
                 int8_t minArgs,
                 std::string_view argsUsage,
-                std::string_view helpText)
+                std::string_view helpText,
+                bool visibleInMenu = true)
         {
-                s_voteCommands[std::string(name)] = { name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+                auto [iter, inserted] = s_voteCommands.emplace(std::string(name), VoteCommand{ name, validateFn, executeFn, flag, minArgs, argsUsage, helpText });
+                if (!inserted) {
+                        iter->second = { name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+                }
+                s_voteDefinitions.push_back({ iter->first, flag, visibleInMenu });
         }
 
 
@@ -212,12 +220,13 @@ namespace Commands {
 	}
 
 
-	static void RegisterAllVoteCommands() {
-		s_voteCommands.clear();
-		RegisterVoteCommand("map", &Validate_Map, &Pass_Map, 1, 2, "<mapname> [flags]", "Changes to the specified map");
-		RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, 2, 1, "", "Moves to the next map in the rotation");
-		RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, 4, 1, "", "Restarts the current match");
-		RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, 8, 2, "<gametype>", "Changes the current gametype");
+        static void RegisterAllVoteCommands() {
+                s_voteCommands.clear();
+                s_voteDefinitions.clear();
+                RegisterVoteCommand("map", &Validate_Map, &Pass_Map, 1, 2, "<mapname> [flags]", "Changes to the specified map");
+                RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, 2, 1, "", "Moves to the next map in the rotation");
+                RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, 4, 1, "", "Restarts the current match");
+                RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, 8, 2, "<gametype>", "Changes the current gametype");
 		RegisterVoteCommand("timelimit", &Validate_Timelimit, &Pass_Timelimit, 16, 2, "<minutes>", "Alters the match time limit (0 for none)");
 		RegisterVoteCommand("scorelimit", &Validate_Scorelimit, &Pass_Scorelimit, 32, 2, "<score>", "Alters the match score limit (0 for none)");
 		RegisterVoteCommand("shuffle", &Validate_TeamBased, &Pass_ShuffleTeams, 64, 1, "", "Shuffles the teams based on skill");
@@ -260,10 +269,68 @@ namespace Commands {
 			CloseActiveMenu(ec);
 			OpenVoteMenu(ec);
 		}
-	}
+        }
 
 
-	// --- Main Command Functions ---
+        std::span<const VoteDefinitionView> GetRegisteredVoteDefinitions() {
+                return s_voteDefinitions;
+        }
+
+        bool TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
+                if (!g_allowVoting || !g_allowVoting->integer) {
+                        return false;
+                }
+                if (level.vote.time || level.vote.executeTime || level.restarted) {
+                        return false;
+                }
+                if (!g_allowVoteMidGame->integer && level.matchState >= MatchState::Countdown) {
+                        return false;
+                }
+                if (g_vote_limit->integer && ent->client->pers.vote_count >= g_vote_limit->integer) {
+                        return false;
+                }
+                if (!ClientIsPlaying(ent->client) && !g_allowSpecVote->integer) {
+                        return false;
+                }
+
+                auto it = s_voteCommands.find(voteName);
+                if (it == s_voteCommands.end()) {
+                        return false;
+                }
+
+                const VoteCommand& found_cmd = it->second;
+                if ((g_vote_flags->integer & found_cmd.flag) == 0) {
+                        return false;
+                }
+
+                std::vector<std::string> args;
+                args.reserve(voteArg.empty() ? 2 : 3);
+                args.emplace_back("callvote");
+                args.emplace_back(voteName);
+                if (!voteArg.empty()) {
+                        args.emplace_back(voteArg);
+                }
+
+                CommandArgs manualArgs(std::move(args));
+                if (manualArgs.count() < (1 + found_cmd.minArgs)) {
+                        return false;
+                }
+
+                if (!found_cmd.validate || !found_cmd.validate(ent, manualArgs)) {
+                        return false;
+                }
+
+                std::string_view storedArg;
+                if (manualArgs.count() >= 3) {
+                        storedArg = manualArgs.getString(2);
+                }
+
+                VoteCommandStore(ent, &found_cmd, storedArg);
+                return true;
+        }
+
+
+        // --- Main Command Functions ---
 
 	void CallVote(gentity_t* ent, const CommandArgs& args) {
 		if (!g_allowVoting->integer) {

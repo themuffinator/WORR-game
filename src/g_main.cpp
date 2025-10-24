@@ -22,6 +22,7 @@
 
 #include "g_local.hpp"
 #include "bots/bot_includes.hpp"
+#include "command_registration.hpp"
 #include <fstream>
 #include <sstream>
 
@@ -1444,7 +1445,7 @@ void ExitLevel() {
 		if (Game::Is(GameType::RedRover) &&
 			level.pop.num_playing_clients > 1 &&
 			(!level.pop.num_playing_red || !level.pop.num_playing_blue))
-			TeamShuffle();
+			Commands::TeamSkillShuffle();
 
 		// Do not proceed further in DM - map voting or shuffle controls transition
 		return;
@@ -1746,6 +1747,28 @@ extern void CheckDMEndFrame();
 
 /*
 =================
+TimeoutEnd
+
+Clears the timeout state and notifies players that the match has resumed.
+=================
+*/
+static void TimeoutEnd() {
+        gentity_t *owner = level.timeoutOwner;
+
+        level.timeoutActive = 0_ms;
+        level.timeoutOwner = nullptr;
+
+        if (owner && owner->client) {
+                gi.LocBroadcast_Print(PRINT_HIGH, "{} is resuming the match.\n", owner->client->sess.netName);
+        } else {
+                gi.LocBroadcast_Print(PRINT_HIGH, "Match has resumed.\n");
+        }
+
+        G_LogEvent("MATCH TIMEOUT ENDED");
+}
+
+/*
+=================
 G_RunFrame_
 
 Main game frame logic - called every tick.
@@ -1753,7 +1776,7 @@ Handles timeouts, intermission, entity updates, and respawns.
 =================
 */
 static inline void G_RunFrame_(bool main_loop) {
-	level.inFrame = true;
+        level.inFrame = true;
 
 	// --- Timeout Handling ---
 	if (level.timeoutActive > 0_ms && level.timeoutOwner) {

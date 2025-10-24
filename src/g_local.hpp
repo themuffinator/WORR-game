@@ -360,34 +360,7 @@ enum class GrappleState : uint8_t {
 	None, Fly, Pull, Hang
 };
 
-struct VoteCommand {
-	std::string_view name;
-	std::function<bool(gentity_t *)> validate;
-	std::function<void()> execute;
-	int32_t flag = 0;
-	int8_t minArgs = 1;
-	std::string_view argsUsage;
-	std::string_view helpText;
-	bool visibleInMenu = true;
-
-	VoteCommand(
-		std::string_view name,
-		bool (*validateFn)(gentity_t *),
-		void (*executeFn)(),
-		int32_t flag,
-		int8_t minArgs,
-		std::string_view argsUsage,
-		std::string_view helpText,
-		bool visibleInMenu = true)
-		: name(name),
-		validate(validateFn),
-		execute(executeFn),
-		flag(flag),
-		minArgs(minArgs),
-		argsUsage(argsUsage),
-		helpText(helpText),
-		visibleInMenu(visibleInMenu) {}
-};
+struct VoteCommand;
 
 extern int ii_highlight;
 extern int ii_duel_header;
