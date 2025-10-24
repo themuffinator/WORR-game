@@ -10,6 +10,9 @@
 #include <optional>
 #include <functional>
 #include <charconv>
+#include <string>
+#include <vector>
+#include <initializer_list>
 
 // C++20 Heterogeneous Lookup Support for string_view
 // Allows searching maps with string_view without creating a std::string.
@@ -33,38 +36,63 @@ template<> struct is_bitmask_enum<CommandFlag> : std::true_type {};
 
 class CommandArgs {
 private:
-	int _argc;
+        int _argc;
+        std::vector<std::string> _manualArgs;
+        bool _useManualArgs = false;
+
+        template<typename It>
+        void setManualArgs(It begin, It end) {
+                _manualArgs.clear();
+                for (auto it = begin; it != end; ++it) {
+                        _manualArgs.emplace_back(*it);
+                }
+                _argc = static_cast<int>(_manualArgs.size());
+                _useManualArgs = true;
+        }
+
 public:
-	CommandArgs() : _argc(gi.argc()) {}
+        CommandArgs() : _argc(gi.argc()) {}
 
-	int count() const { return _argc; }
+        CommandArgs(std::initializer_list<std::string_view> args) {
+                setManualArgs(args.begin(), args.end());
+        }
 
-	std::string_view getString(int index) const {
-		if (index < 0 || index >= _argc) return "";
-		return gi.argv(index);
-	}
+        explicit CommandArgs(std::vector<std::string> args)
+                : _argc(static_cast<int>(args.size())),
+                _manualArgs(std::move(args)),
+                _useManualArgs(true) {}
 
-	std::optional<int> getInt(int index) const {
-		return ParseInt(getString(index));
-	}
+        int count() const { return _argc; }
 
-	static std::optional<int> ParseInt(std::string_view str) {
-		int value;
-		auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
-		if (ec == std::errc()) { return value; }
-		return std::nullopt;
-	}
+        std::string_view getString(int index) const {
+                if (index < 0 || index >= _argc) return "";
+                if (_useManualArgs) {
+                        return _manualArgs[index];
+                }
+                return gi.argv(index);
+        }
 
-	std::optional<float> getFloat(int index) const {
-		return ParseFloat(getString(index));
-	}
+        std::optional<int> getInt(int index) const {
+                return ParseInt(getString(index));
+        }
 
-	static std::optional<float> ParseFloat(std::string_view str) {
-		float value;
-		auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
-		if (ec == std::errc()) { return value; }
-		return std::nullopt;
-	}
+        static std::optional<int> ParseInt(std::string_view str) {
+                int value;
+                auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+                if (ec == std::errc()) { return value; }
+                return std::nullopt;
+        }
+
+        std::optional<float> getFloat(int index) const {
+                return ParseFloat(getString(index));
+        }
+
+        static std::optional<float> ParseFloat(std::string_view str) {
+                float value;
+                auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+                if (ec == std::errc()) { return value; }
+                return std::nullopt;
+        }
 };
 
 struct Command {
