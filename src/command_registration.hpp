@@ -26,4 +26,8 @@ namespace Commands {
 
         // Helper exposed for UI/menu systems to check vote availability.
         bool IsVoteCommandEnabled(std::string_view name);
+
+        // Helpers exposed for gameplay systems to trigger core client commands.
+        void Help(gentity_t* ent, const CommandArgs& args);
+        void Score(gentity_t* ent, const CommandArgs& args);
 }

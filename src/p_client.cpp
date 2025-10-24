@@ -21,6 +21,7 @@
 //   holds all of a player's game-related state.
 
 #include "g_local.hpp"
+#include "command_registration.hpp"
 #include "monsters/m_player.hpp"
 #include "bots/bot_includes.hpp"
 
@@ -1440,7 +1441,7 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 		Weapon_Grapple_DoReset(self->client);
 
 		if (deathmatch->integer && !self->client->showScores)
-			Cmd_Help_f(self); // show scores
+			Commands::Help(self, CommandArgs{}); // show scores
 
 		if (coop->integer && !P_UseCoopInstancedItems()) {
 			// clear inventory
@@ -3558,7 +3559,7 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 			if (ent == host) {
 				if (!g_autoScreenshotTool->integer) {
 					if (g_owner_push_scores->integer)
-						Cmd_Score_f(ent);
+						Commands::Score(ent, CommandArgs{});
 					else OpenJoinMenu(ent);
 				}
 			}
