@@ -517,4 +517,41 @@ void G_RevertVote(gclient_t *client) {
                         ec->client->pers.voted = 0;
                 }
         }
+        if (client->pers.voted == 1 && level.vote.countYes > 0) {
+                level.vote.countYes--;
+        } else if (client->pers.voted == -1 && level.vote.countNo > 0) {
+                level.vote.countNo--;
+        }
+
+        client->pers.voted = 0;
+
+        if (level.vote.client == client) {
+                level.vote.client = nullptr;
+        }
+}
+
+
+void Vote_Passed() {
+        const VoteCommand *command = level.vote.cmd;
+        if (!command) {
+                gi.Com_Print("Vote_Passed called without an active command.\n");
+        } else if (command->execute) {
+                command->execute();
+        }
+
+        for (auto ent : active_clients()) {
+                if (ent->client) {
+                        ent->client->pers.voted = 0;
+                }
+        }
+
+        level.vote.cmd = nullptr;
+        level.vote.client = nullptr;
+        level.vote.arg.clear();
+        level.vote.countYes = 0;
+        level.vote.countNo = 0;
+        level.vote.time = 0_sec;
+        level.vote.executeTime = 0_sec;
+        level.vote_flags_enable = 0;
+        level.vote_flags_disable = 0;
 }
