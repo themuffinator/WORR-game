@@ -114,7 +114,7 @@ namespace Commands {
 	}
 
 	static void KillAI(gentity_t* ent, const CommandArgs& args) {
-		for (size_t i = 1; i < globals.numEntities; i++) {
+		for (int i = 1; i < static_cast<int>(globals.numEntities); i++) {
 			gentity_t* entity = &g_entities[i];
 			if (entity->inUse && (entity->svFlags & SVF_MONSTER)) {
 				FreeEntity(entity);
@@ -125,7 +125,7 @@ namespace Commands {
 
 	static void ListEntities(gentity_t* ent, const CommandArgs& args) {
 		gi.Client_Print(ent, PRINT_HIGH, "--- Entity List ---\n");
-		for (int i = 0; i < globals.numEntities; ++i) {
+		for (int i = 0; i < static_cast<int>(globals.numEntities); ++i) {
 			gentity_t* e = &g_entities[i];
 			if (e->inUse) {
 				gi.Com_PrintFmt("%3i: %s\n", i, e->className);
@@ -137,7 +137,7 @@ namespace Commands {
 	static void ListMonsters(gentity_t* ent, const CommandArgs& args) {
 		gi.Client_Print(ent, PRINT_HIGH, "--- Monster List ---\n");
 		int count = 0;
-		for (int i = 0; i < globals.numEntities; ++i) {
+		for (int i = 0; i < static_cast<int>(globals.numEntities); ++i) {
 			gentity_t* e = &g_entities[i];
 			if (e->inUse && (e->svFlags & SVF_MONSTER)) {
 				gi.Com_PrintFmt("%3i: %s at %.1f %.1f %.1f\n", i, e->className, e->s.origin[0], e->s.origin[1], e->s.origin[2]);
