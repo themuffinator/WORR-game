@@ -7,15 +7,15 @@
 
 struct gentity_t;
 
-bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags, uint8_t &disableFlags);
+bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags, uint16_t &disableFlags);
 
 namespace Commands {
 
 struct MapVoteParseResult {
         std::string mapName;
         std::string displayArg;
-        uint8_t enableFlags = 0;
-        uint8_t disableFlags = 0;
+        uint16_t enableFlags = 0;
+        uint16_t disableFlags = 0;
 };
 
 inline std::optional<MapVoteParseResult> ParseMapVoteArguments(

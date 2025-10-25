@@ -52,8 +52,8 @@ Map flags state
 */
 
 struct MapVoteState {
-	uint8_t enableFlags = 0; // bitset matching MyMapOverride mini-flags
-	uint8_t disableFlags = 0;
+        uint16_t enableFlags = 0; // bitset matching MyMapOverride mini-flags
+        uint16_t disableFlags = 0;
 };
 static MapVoteState g_mapVote; // maintained while inside callvote menu
 
@@ -81,44 +81,44 @@ static inline void MapFlags_Clear() {
 	g_mapVote.disableFlags = 0;
 }
 
-static inline void MapFlags_ToggleTri(uint8_t bit) {
-	// default -> enable -> disable -> default
-	const bool en = (g_mapVote.enableFlags & (1u << bit)) != 0;
-	const bool dis = (g_mapVote.disableFlags & (1u << bit)) != 0;
+static inline void MapFlags_ToggleTri(uint16_t mask) {
+        // default -> enable -> disable -> default
+        const bool en = (g_mapVote.enableFlags & mask) != 0;
+        const bool dis = (g_mapVote.disableFlags & mask) != 0;
 
-	if (!en && !dis) {
-		g_mapVote.enableFlags |= (1u << bit);
-	}
-	else if (en) {
-		g_mapVote.enableFlags &= ~(1u << bit);
-		g_mapVote.disableFlags |= (1u << bit);
-	}
-	else {
-		g_mapVote.disableFlags &= ~(1u << bit);
-	}
+        if (!en && !dis) {
+                g_mapVote.enableFlags |= mask;
+        }
+        else if (en) {
+                g_mapVote.enableFlags &= ~mask;
+                g_mapVote.disableFlags |= mask;
+        }
+        else {
+                g_mapVote.disableFlags &= ~mask;
+        }
 }
 
 static std::string MapFlags_Summary() {
-	std::string out;
-	for (const auto& f : kMapFlags) {
-		const bool en = (g_mapVote.enableFlags & (1u << f.bit)) != 0;
-		const bool dis = (g_mapVote.disableFlags & (1u << f.bit)) != 0;
-		if (en) { out += "+"; out += f.code; out += " "; }
-		if (dis) { out += "-"; out += f.code; out += " "; }
-	}
+        std::string out;
+        for (const auto& f : kMapFlags) {
+                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+                if (en) { out += "+"; out += f.code; out += " "; }
+                if (dis) { out += "-"; out += f.code; out += " "; }
+        }
 	if (out.empty()) out = "Default";
 	else if (out.back() == ' ') out.pop_back();
 	return out;
 }
 
 static std::string BuildMapVoteArg(const std::string& mapname) {
-	std::string arg = mapname;
-	for (const auto& f : kMapFlags) {
-		const bool en = (g_mapVote.enableFlags & (1u << f.bit)) != 0;
-		const bool dis = (g_mapVote.disableFlags & (1u << f.bit)) != 0;
-		if (en) { arg += " +"; arg += f.code; }
-		if (dis) { arg += " -"; arg += f.code; }
-	}
+        std::string arg = mapname;
+        for (const auto& f : kMapFlags) {
+                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+                if (en) { arg += " +"; arg += f.code; }
+                if (dis) { arg += " -"; arg += f.code; }
+        }
 	return arg;
 }
 
@@ -184,15 +184,15 @@ static void OpenCallvoteMapFlags(gentity_t* ent) {
 	MenuBuilder builder;
 	builder.add("Map Flags", MenuAlign::Center).spacer();
 
-	for (const auto& f : kMapFlags) {
-		const bool en = (g_mapVote.enableFlags & (1u << f.bit)) != 0;
-		const bool dis = (g_mapVote.disableFlags & (1u << f.bit)) != 0;
-		const char* state = (!en && !dis) ? "Default" : (en ? "Enabled" : "Disabled");
-		builder.add(std::string(f.label) + " [" + state + "]", MenuAlign::Left, [bit = f.bit](gentity_t* e, Menu&) {
-			MapFlags_ToggleTri(bit);
-			OpenCallvoteMapFlags(e);
-			});
-	}
+        for (const auto& f : kMapFlags) {
+                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+                const char* state = (!en && !dis) ? "Default" : (en ? "Enabled" : "Disabled");
+                builder.add(std::string(f.label) + " [" + state + "]", MenuAlign::Left, [mask = f.bit](gentity_t* e, Menu&) {
+                        MapFlags_ToggleTri(mask);
+                        OpenCallvoteMapFlags(e);
+                        });
+        }
 
 	builder.spacer().add("Back", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenCallvoteMap(e);
