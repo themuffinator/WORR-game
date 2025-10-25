@@ -265,7 +265,7 @@ int PrintMapList(gentity_t *ent, bool cycleOnly) {
 ParseMyMapFlags
 =========================
 */
-bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags, uint8_t &disableFlags) {
+bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags, uint16_t &disableFlags) {
 	enableFlags = 0;
 	disableFlags = 0;
 

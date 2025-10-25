@@ -1,5 +1,6 @@
 #include "command_voting_utils.hpp"
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <optional>
@@ -25,7 +26,26 @@ enum MyMapOverride : uint16_t {
         MAPFLAG_WS = 1 << 9
 };
 
-bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags, uint8_t &disableFlags) {
+struct MapFlagEntry {
+        uint16_t bit;
+        const char *code;
+        const char *label;
+};
+
+static constexpr std::array<MapFlagEntry, 10> kMapFlags = { {
+        { MAPFLAG_PU, "pu", "Powerups" },
+        { MAPFLAG_PA, "pa", "Power Armor" },
+        { MAPFLAG_AR, "ar", "Armor" },
+        { MAPFLAG_AM, "am", "Ammo" },
+        { MAPFLAG_HT, "ht", "Health" },
+        { MAPFLAG_BFG, "bfg", "BFG10K" },
+        { MAPFLAG_PB, "pb", "Plasma Beam" },
+        { MAPFLAG_FD, "fd", "Falling Damage" },
+        { MAPFLAG_SD, "sd", "Self Damage" },
+        { MAPFLAG_WS, "ws", "Weapons Stay" },
+} };
+
+bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags, uint16_t &disableFlags) {
         enableFlags = 0;
         disableFlags = 0;
 
@@ -56,6 +76,40 @@ bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags,
         return true;
 }
 
+struct MapVoteState {
+        uint16_t enableFlags = 0;
+        uint16_t disableFlags = 0;
+};
+
+static void MapFlags_ToggleTri(MapVoteState &state, uint16_t mask) {
+        const bool en = (state.enableFlags & mask) != 0;
+        const bool dis = (state.disableFlags & mask) != 0;
+
+        if (!en && !dis) {
+                state.enableFlags |= mask;
+        } else if (en) {
+                state.enableFlags &= ~mask;
+                state.disableFlags |= mask;
+        } else {
+                state.disableFlags &= ~mask;
+        }
+}
+
+static std::string BuildMapVoteArg(const std::string &mapname, const MapVoteState &state) {
+        std::string arg = mapname;
+        for (const auto &f : kMapFlags) {
+                if (state.enableFlags & f.bit) {
+                        arg += " +";
+                        arg += f.code;
+                }
+                if (state.disableFlags & f.bit) {
+                        arg += " -";
+                        arg += f.code;
+                }
+        }
+        return arg;
+}
+
 int main() {
         std::string error;
         auto parsed = Commands::ParseMapVoteArguments({ "testmap", "+pu", "-pb" }, error);
@@ -69,8 +123,8 @@ int main() {
         // Simulate Pass_Map by applying overrides to a simple context
         struct {
                 std::string changeMap;
-                uint8_t enable = 0;
-                uint8_t disable = 0;
+                uint16_t enable = 0;
+                uint16_t disable = 0;
         } context{};
         context.changeMap = parsed->mapName;
         context.enable = parsed->enableFlags;
@@ -93,6 +147,22 @@ int main() {
         auto parsedInvalid = Commands::ParseMapVoteArguments({ "testmap", "+unknown" }, error);
         assert(!parsedInvalid.has_value());
         assert(!error.empty());
+
+        // High-order flags should survive parsing
+        error.clear();
+        auto parsedHighBits = Commands::ParseMapVoteArguments({ "testmap", "+sd", "-ws" }, error);
+        assert(parsedHighBits.has_value());
+        assert(error.empty());
+        assert((parsedHighBits->enableFlags & MAPFLAG_SD) == MAPFLAG_SD);
+        assert((parsedHighBits->disableFlags & MAPFLAG_WS) == MAPFLAG_WS);
+
+        MapVoteState menuState{};
+        MapFlags_ToggleTri(menuState, MAPFLAG_SD); // enable +sd
+        MapFlags_ToggleTri(menuState, MAPFLAG_WS); // enable ws
+        MapFlags_ToggleTri(menuState, MAPFLAG_WS); // disable ws
+        const std::string builtArg = BuildMapVoteArg("testmap", menuState);
+        assert(builtArg.find("+sd") != std::string::npos);
+        assert(builtArg.find("-ws") != std::string::npos);
 
         return 0;
 }

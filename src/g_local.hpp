@@ -1808,17 +1808,17 @@ enum MyMapOverride : uint16_t {
 };
 
 struct MyMapRequest {
-	std::string mapName = {};
-	std::string socialID = {};
-	uint8_t enableFlags = 0;
-	uint8_t disableFlags = 0;
-	GameTime queuedTime = 0_sec;
+        std::string mapName = {};
+        std::string socialID = {};
+        uint16_t enableFlags = 0;
+        uint16_t disableFlags = 0;
+        GameTime queuedTime = 0_sec;
 };
 
 struct QueuedMap {
-	std::string filename;
-	std::string socialID;      // One-per-client rule
-	std::bitset<8> settings;   // MyMapSettingFlag
+        std::string filename;
+        std::string socialID;      // One-per-client rule
+        std::bitset<10> settings;   // MyMapSettingFlag
 };
 
 struct MapSystem {
@@ -1903,9 +1903,9 @@ struct GameLocals {
 		bool selfDamage = true;
 		bool weaponsStay = false;
 
-		uint8_t overrideEnableFlags = 0;
-		uint8_t overrideDisableFlags = 0;
-	} map;
+                uint16_t overrideEnableFlags = 0;
+                uint16_t overrideDisableFlags = 0;
+        } map;
 
 	MapSystem mapSystem = {};
 
@@ -2279,8 +2279,8 @@ struct LevelLocals {
 	MatchOverallStats	match;
 
 	// new map system stuff
-	uint8_t		vote_flags_enable = 0;
-	uint8_t		vote_flags_disable = 0;
+	uint16_t	vote_flags_enable = 0;
+	uint16_t	vote_flags_disable = 0;
 
 	// map selector
 	struct {
@@ -3804,7 +3804,7 @@ bool RemoveIDFromFile(const char *filename, const std::string &id);
 //
 constexpr GameTime MAP_SELECTOR_DURATION = 5_sec;
 int PrintMapList(gentity_t *ent, bool cycleOnly);
-bool ParseMyMapFlags(const std::vector<std::string> &args, uint8_t &enableFlags, uint8_t &disableFlags);
+bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags, uint16_t &disableFlags);
 void LoadMapPool(gentity_t *ent);
 void LoadMapCycle(gentity_t *ent);
 std::optional<MapEntry> AutoSelectNextMap();
