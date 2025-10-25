@@ -593,33 +593,36 @@ fire_grenade
 =================
 */
 static THINK(Grenade_Explode) (gentity_t *ent) -> void {
-	// Cache victim pointer and origin
-	gentity_t* victim = ent->enemy;
-	Vector3 victim_origin = victim ? victim->s.origin : Vector3{};
-	Vector3 origin;
+        // Cache victim pointer before any damage logic potentially frees it.
+        gentity_t* victim = ent->enemy;
+        Vector3 origin;
 
-	MeansOfDeath  mod;
+        MeansOfDeath  mod;
 
-	if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HELD))
-		mod = ModID::HandGrenade_Held;
-	else if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HAND))
-		mod = ModID::HandGrenade_Splash;
-	else
-		mod = ModID::GrenadeLauncher_Splash;
+        if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HELD))
+                mod = ModID::HandGrenade_Held;
+        else if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HAND))
+                mod = ModID::HandGrenade_Splash;
+        else
+                mod = ModID::GrenadeLauncher_Splash;
 
-	if (victim && victim->inUse) {
-		float points;
-		Vector3 v, dir;
-		v = victim->mins + victim->maxs;
-		v = victim_origin + (v * 0.5f);
-		v = ent->s.origin - v;
-		points = ent->dmg - 0.5f * v.length();
-		dir = victim_origin - ent->s.origin;
+        if (victim && victim->inUse) {
+                float points;
+                Vector3 v, dir;
+                const Vector3 victim_origin = victim->s.origin;
+                v = victim->mins + victim->maxs;
+                v = victim_origin + (v * 0.5f);
+                v = ent->s.origin - v;
+                points = ent->dmg - 0.5f * v.length();
+                dir = victim_origin - ent->s.origin;
 
-		Damage(victim, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DamageFlags::Radius | DamageFlags::StatOnce, mod);
-	}
+                Damage(victim, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DamageFlags::Radius | DamageFlags::StatOnce, mod);
+        } else {
+                victim = nullptr;
+                ent->enemy = nullptr;
+        }
 
-	RadiusDamage(ent, ent->owner, (float)ent->dmg, ent->enemy, ent->splashRadius, DamageFlags::Normal | DamageFlags::StatOnce, mod);
+        RadiusDamage(ent, ent->owner, (float)ent->dmg, victim, ent->splashRadius, DamageFlags::Normal | DamageFlags::StatOnce, mod);
 
 	origin = ent->s.origin + (ent->velocity * -0.02f);
 	gi.WriteByte(svc_temp_entity);
