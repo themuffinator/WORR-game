@@ -1403,31 +1403,57 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 			continue;
 		}
 
+		const PlayerStats *matchedStats = nullptr;
+
+		auto matchesName = [&](const PlayerStats &stats) {
+			if (stats.playerName.empty())
+				return false;
+
+			return _stricmp(stats.playerName.c_str(), name.data()) == 0;
+		};
+
 		for (const PlayerStats &p : matchStats.players) {
-			if (p.playerName.empty())
+			if (!matchesName(p))
 				continue;
 
-			if (_stricmp(p.playerName.c_str(), name.data()) != 0)
-				continue;
-
-			std::string msg;
-			msg += ":: Match Summary ::\n";
-			msg += G_Fmt("{} - ", rawName);
-			msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
-
-                        msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
-			/*
-			double total = p.totalKills + p.totalAssists + p.totalDeaths;
-			double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
-			msg += G_Fmt(" | Eff: {:.1f}%%\n", eff);
-			*/
-			gi.LocClient_Print(ec, PRINT_HIGH, "{}\n", msg.c_str());
+			matchedStats = &p;
 			break;
 		}
+
+		if (!matchedStats) {
+			for (const TeamStats &team : matchStats.teams) {
+				for (const PlayerStats &teamPlayer : team.players) {
+					if (!matchesName(teamPlayer))
+						continue;
+
+					matchedStats = &teamPlayer;
+					break;
+				}
+
+				if (matchedStats)
+					break;
+			}
+		}
+
+		if (!matchedStats)
+			continue;
+
+		const PlayerStats &p = *matchedStats;
+
+		std::string msg;
+		msg += ":: Match Summary ::\n";
+		msg += G_Fmt("{} - ", rawName);
+		msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
+
+		msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
+		/*
+		double total = p.totalKills + p.totalAssists + p.totalDeaths;
+		double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
+		msg += G_Fmt(" | Eff: {:.1f}%%\n", eff);
+		*/
+		gi.LocClient_Print(ec, PRINT_HIGH, "{}\n", msg.c_str());
 	}
 }
-
-
 /*
 =============
 MatchStats_WriteAll
