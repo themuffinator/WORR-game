@@ -131,13 +131,28 @@ Entities_Reset
 Reset clients and items
 ============
 */
-static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_score) {
+enum class LimitedLivesResetMode {
+        Auto,
+        Force,
+};
+
+static bool ShouldResetLimitedLives(LimitedLivesResetMode mode) {
+        if (!G_LimitedLivesActive())
+                return false;
+
+        if (G_LimitedLivesInCoop())
+                return true;
+
+        return mode == LimitedLivesResetMode::Force;
+}
+
+static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_score, LimitedLivesResetMode limitedLivesResetMode = LimitedLivesResetMode::Auto) {
 
 	// reset the players
 	if (reset_players) {
                 for (auto ec : active_clients()) {
                         ec->client->resp.ctf_state = 0;
-                        if (G_LimitedLivesActive()) {
+                        if (ShouldResetLimitedLives(limitedLivesResetMode)) {
                                 ec->client->pers.lives = G_LimitedLivesMax();
                                 if (G_LimitedLivesInCoop())
                                         ec->client->resp.coopRespawn.lives = ec->client->pers.lives;
@@ -954,7 +969,7 @@ void Match_Reset() {
                 return;
         }
 
-	Entities_Reset(true, true, true);
+	Entities_Reset(true, true, true, LimitedLivesResetMode::Force);
 	UnReadyAll();
 
 	level.matchStartRealTime = GetCurrentRealTimeMillis();
