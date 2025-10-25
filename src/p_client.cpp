@@ -2672,8 +2672,12 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	const int64_t now = GetCurrentRealTimeMillis();
 
 	if (target == Team::Spectator) {
-		if (wasPlaying)
+		if (wasPlaying) {
+			CTF_DeadDropFlag(ent);
+			Tech_DeadDrop(ent);
+			Weapon_Grapple_DoReset(cl);
 			cl->sess.playEndRealTime = now;
+		}
 		cl->sess.team = Team::Spectator;
 		cl->ps.teamID = static_cast<int>(cl->sess.team);
 		if (changedTeam || changedQueue)
