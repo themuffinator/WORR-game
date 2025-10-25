@@ -6,6 +6,7 @@
 
 class Menu;
 #include "bg_local.hpp"
+#include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset
 #include <random>
@@ -1503,23 +1504,27 @@ enum class HighValueItems : uint8_t {
 	Total
 };
 
-static const char *HighValueItemNames[] = {
-	"",
-	"MegaHealth",
-	"BodyArmor",
-	"CombatArmor",
-	"PowerShield",
-	"PowerScreen",
-	"Adrenaline",
-	"QuadDamage",
-	"DoubleDamage",
-	"Invisibility",
-	"Haste",
-	"Regeneration",
-	"BattleSuit",
-	"AmmoPack",
-	"Bandolier"
+static constexpr std::array<const char *, static_cast<size_t>(HighValueItems::Total)> HighValueItemNames = {
+        "",
+        "MegaHealth",
+        "BodyArmor",
+        "CombatArmor",
+        "PowerShield",
+        "PowerScreen",
+        "Adrenaline",
+        "QuadDamage",
+        "DoubleDamage",
+        "Invisibility",
+        "Haste",
+        "Regeneration",
+        "BattleSuit",
+        "EmpathyShield",
+        "AmmoPack",
+        "Bandolier"
 };
+
+static_assert(HighValueItemNames.size() == static_cast<size_t>(HighValueItems::Total),
+              "HighValueItemNames must match HighValueItems enum length");
 
 constexpr int FIRST_WEAPON = IT_WEAPON_GRAPPLE;
 constexpr int LAST_WEAPON = IT_WEAPON_DISRUPTOR;
