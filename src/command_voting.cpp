@@ -517,17 +517,6 @@ void G_RevertVote(gclient_t *client) {
                         ec->client->pers.voted = 0;
                 }
         }
-        if (client->pers.voted == 1 && level.vote.countYes > 0) {
-                level.vote.countYes--;
-        } else if (client->pers.voted == -1 && level.vote.countNo > 0) {
-                level.vote.countNo--;
-        }
-
-        client->pers.voted = 0;
-
-        if (level.vote.client == client) {
-                level.vote.client = nullptr;
-        }
 }
 
 
