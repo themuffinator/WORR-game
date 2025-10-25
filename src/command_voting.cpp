@@ -370,10 +370,52 @@ namespace Commands {
 			return;
 		}
 
-		if (args.count() < 2) {
-			PrintUsage(ent, args, "<command>", "[params]", "Call a vote to change a server setting.");
-			return;
-		}
+                if (args.count() < 2) {
+                        PrintUsage(ent, args, "<command>", "[params]", "Call a vote to change a server setting.");
+
+                        std::vector<const VoteCommand*> enabledVotes;
+                        enabledVotes.reserve(s_voteDefinitions.size());
+                        const int32_t voteFlags = g_vote_flags->integer;
+
+                        for (const auto& definition : s_voteDefinitions) {
+                                if ((voteFlags & definition.flag) == 0) {
+                                        continue;
+                                }
+
+                                auto itCommand = s_voteCommands.find(definition.name);
+                                if (itCommand == s_voteCommands.end()) {
+                                        continue;
+                                }
+
+                                enabledVotes.push_back(&itCommand->second);
+                        }
+
+                        if (!enabledVotes.empty()) {
+                                std::ostringstream oss;
+                                oss << "Available votes:\n";
+
+                                for (const VoteCommand* command : enabledVotes) {
+                                        oss << "  " << command->name;
+                                        if (!command->argsUsage.empty()) {
+                                                oss << ' ' << command->argsUsage;
+                                        }
+
+                                        if (!command->helpText.empty()) {
+                                                oss << " - " << command->helpText;
+                                        }
+
+                                        oss << '\n';
+                                }
+
+                                const std::string message = oss.str();
+                                gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+                        }
+                        else {
+                                gi.Client_Print(ent, PRINT_HIGH, "No votes are currently enabled.\n");
+                        }
+
+                        return;
+                }
 
 		std::string_view voteName = args.getString(1);
 		auto it = s_voteCommands.find(voteName);
