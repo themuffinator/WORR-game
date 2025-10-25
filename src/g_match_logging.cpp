@@ -1606,9 +1606,14 @@ void MatchStats_End() {
 		}
 
                 std::unordered_set<std::string> accountedPlayerIDs;
+                bool hasAccountedEmptyPlayerID = false;
                 auto accumulateModTotals = [&](const std::vector<PlayerStats> &playersVec) {
                         for (const auto &p : playersVec) {
-                                accountedPlayerIDs.insert(p.socialID);
+                                if (!p.socialID.empty()) {
+                                        accountedPlayerIDs.insert(p.socialID);
+                                } else {
+                                        hasAccountedEmptyPlayerID = true;
+                                }
 
                                 for (const auto &[modId, kills] : p.modTotalKills) {
                                         if (kills <= 0)
@@ -1634,7 +1639,10 @@ void MatchStats_End() {
                 }
 
                 auto isAccounted = [&](const std::string &id) {
-                        return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
+                        if (id.empty())
+                                return hasAccountedEmptyPlayerID;
+
+                        return accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
                 };
 
                 for (const auto &e : level.match.deathLog) {
