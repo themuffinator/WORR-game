@@ -21,6 +21,8 @@
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
+#include <unordered_set>
+#include <string_view>
 
 using json = Json::Value;
 
@@ -1384,67 +1386,48 @@ static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string
 MatchStats_WriteAll
 =============
 */
-static bool PlayerNameMatches(const PlayerStats &stats, const char *name) {
-        if (!name || name[0] == '\0')
-                return false;
+static void SendIndividualMiniStats(const MatchStats &matchStats) {
+	for (auto ec : active_players()) {
+		if (!ec || !ec->client)
+			continue;
 
         if (stats.playerName.empty())
                 return false;
 
-        return _stricmp(stats.playerName.c_str(), name) == 0;
-}
+		const char *rawName = ec->client->sess.netName;
+		if (!rawName) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
+			continue;
+		}
 
-static const PlayerStats *FindPlayerStats(const MatchStats &matchStats, const char *name) {
-        if (!name || name[0] == '\0')
-                return nullptr;
+		std::string_view name(rawName);
+		if (name.empty()) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
+			continue;
+		}
 
-        if (!matchStats.players.empty()) {
-                for (const PlayerStats &p : matchStats.players) {
-                        if (PlayerNameMatches(p, name))
-                                return &p;
-                }
-        }
+		for (const PlayerStats &p : matchStats.players) {
+			if (p.playerName.empty())
+				continue;
 
-        for (const auto &team : matchStats.teams) {
-                for (const PlayerStats &p : team.players) {
-                        if (PlayerNameMatches(p, name))
-                                return &p;
-                }
-        }
+			if (_stricmp(p.playerName.c_str(), name.data()) != 0)
+				continue;
 
-        return nullptr;
-}
+			std::string msg;
+			msg += ":: Match Summary ::\n";
+			msg += G_Fmt("{} - ", rawName);
+			msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
 
-static void SendIndividualMiniStats(const MatchStats &matchStats) {
-        for (auto ec : active_players()) {
-                if (!ec || !ec->client) // || ec->client->sess.netName[0] == '\0')
-                        continue;
-
-                if (!ClientIsPlaying(ec->client))
-                        continue;
-
-                const char *name = ec->client->sess.netName;
-
-                const PlayerStats *playerStats = FindPlayerStats(matchStats, name);
-                if (!playerStats)
-                        continue;
-
-                std::string msg;
-                msg += ":: Match Summary ::\n";
-                msg += G_Fmt("{} - ", name);
-                msg += G_Fmt("Kills: {} | Deaths: {}", playerStats->totalKills, playerStats->totalDeaths);
-
-                double kdr = (playerStats->totalDeaths > 0)
-                        ? (double)playerStats->totalKills / playerStats->totalDeaths
-                        : (double)playerStats->totalKills;
-                msg += G_Fmt(" | K/D Ratio: {:.2f}", kdr);
-                /*
-                double total = p.totalKills + p.totalAssists + p.totalDeaths;
-                double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
-                msg += G_Fmt(" | Eff: {:.1f}%%\n", eff);
-                */
-                gi.LocClient_Print(ec, PRINT_HIGH, "{}\n", msg.c_str());
-        }
+                        msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
+			/*
+			double total = p.totalKills + p.totalAssists + p.totalDeaths;
+			double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
+			msg += G_Fmt(" | Eff: {:.1f}%%\n", eff);
+			*/
+			gi.LocClient_Print(ec, PRINT_HIGH, "{}\n", msg.c_str());
+			break;
+		}
+	}
 }
 
 
@@ -1515,8 +1498,9 @@ void MatchStats_End() {
 			p.totalKills = cl->pers.match.totalKills;
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
-			p.totalDeaths = cl->pers.match.totalDeaths;
-			p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.totalDeaths = cl->pers.match.totalDeaths;
+                        p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.calculateKDR();
 			p.totalScore = cl->resp.score;
 			p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
@@ -1622,29 +1606,83 @@ void MatchStats_End() {
 			}
 		}
 
-		// Total MOD stats
-		for (auto &p : matchStats.players) {
-			for (auto &[modId, kills] : p.modTotalKills)
-				matchStats.totalKillsByMOD[modr[static_cast<int>(modId)].name] += kills;
-			for (auto &[modId, deaths] : p.modTotalDeaths)
-				matchStats.totalDeathsByMOD[modr[static_cast<int>(modId)].name] += deaths;
-		}
+                std::unordered_set<std::string> accountedPlayerIDs;
+                auto accumulateModTotals = [&](const std::vector<PlayerStats> &playersVec) {
+                        for (const auto &p : playersVec) {
+                                accountedPlayerIDs.insert(p.socialID);
 
-		for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
-			int deaths = matchStats.totalDeathsByMOD[modName];
-			matchStats.totalKDRByMOD[modName] = deaths > 0
-				? (double)kills / deaths
-				: (double)kills;
-		}
+                                for (const auto &[modId, kills] : p.modTotalKills) {
+                                        if (kills <= 0)
+                                                continue;
 
-		for (auto &e : level.match.deathLog) {
-			matchStats.totalDeathsByMOD[modr[static_cast<int>(e.mod.id)].name]++;
-		}
+                                        const auto &modName = modr[static_cast<int>(modId)].name;
+                                        matchStats.totalKillsByMOD[modName] += kills;
+                                }
 
-		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
-	} catch (const std::exception &e) {
-		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
-	}
+                                for (const auto &[modId, deaths] : p.modTotalDeaths) {
+                                        if (deaths <= 0)
+                                                continue;
+
+                                        const auto &modName = modr[static_cast<int>(modId)].name;
+                                        matchStats.totalDeathsByMOD[modName] += deaths;
+                                }
+                        }
+                };
+
+                accumulateModTotals(matchStats.players);
+                for (const auto &team : matchStats.teams) {
+                        accumulateModTotals(team.players);
+                }
+
+                auto isAccounted = [&](const std::string &id) {
+                        return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
+                };
+
+                for (const auto &e : level.match.deathLog) {
+                        const auto &modName = modr[static_cast<int>(e.mod.id)].name;
+                        const bool attackerAccounted = isAccounted(e.attacker.id);
+                        const bool victimAccounted = isAccounted(e.victim.id);
+                        const bool environmentKill = e.attacker.id.empty() || e.attacker.id == "0";
+                        const bool suicide = !environmentKill && !e.attacker.id.empty() && e.attacker.id == e.victim.id;
+
+                        if (!victimAccounted) {
+                                matchStats.totalDeathsByMOD[modName]++;
+                        }
+
+                        if (!attackerAccounted && !environmentKill && !suicide) {
+                                matchStats.totalKillsByMOD[modName]++;
+                        }
+                }
+
+                for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
+                        int deaths = matchStats.totalDeathsByMOD[modName];
+                        matchStats.totalKDRByMOD[modName] = deaths > 0
+                                ? (double)kills / deaths
+                                : (double)kills;
+                }
+
+                int aggregatedKillSum = 0;
+                for (const auto &[modName, kills] : matchStats.totalKillsByMOD) {
+                        aggregatedKillSum += kills;
+                }
+
+                int aggregatedDeathSum = 0;
+                for (const auto &[modName, deaths] : matchStats.totalDeathsByMOD) {
+                        aggregatedDeathSum += deaths;
+                }
+
+                if (aggregatedKillSum != level.match.totalKills) {
+                        gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, level.match.totalKills);
+                }
+
+                if (aggregatedDeathSum != level.match.totalDeaths) {
+                        gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, level.match.totalDeaths);
+                }
+
+                MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
+        } catch (const std::exception &e) {
+                gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+        }
 }
 
 /*
