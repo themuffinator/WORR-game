@@ -265,6 +265,59 @@ static void RoundAnnounceDraw() {
 	AnnouncerSound(world, "round_draw");
 }
 
+static bool IsFreezeTagPlayerFrozen(const gentity_t* ent) {
+	if (!ent || !ent->client)
+		return false;
+
+	if (!ClientIsPlaying(ent->client))
+		return false;
+
+	switch (ent->client->sess.team) {
+	case Team::Red:
+	case Team::Blue:
+		break;
+	default:
+		return false;
+	}
+
+	return ent->client->eliminated || ent->client->ps.pmove.pmType == PM_DEAD;
+}
+
+static void CheckRoundFreezeTag() {
+	bool redHasPlayers = false;
+	bool blueHasPlayers = false;
+	bool redAllFrozen = true;
+	bool blueAllFrozen = true;
+
+	for (auto ec : active_players()) {
+		switch (ec->client->sess.team) {
+		case Team::Red:
+			redHasPlayers = true;
+			if (!IsFreezeTagPlayerFrozen(ec))
+				redAllFrozen = false;
+			break;
+		case Team::Blue:
+			blueHasPlayers = true;
+			if (!IsFreezeTagPlayerFrozen(ec))
+				blueAllFrozen = false;
+			break;
+		default:
+			break;
+		}
+	}
+
+	if (redHasPlayers && blueHasPlayers && redAllFrozen) {
+		RoundAnnounceWin(Team::Blue, "froze the enemy team");
+		Round_End();
+		return;
+	}
+
+	if (redHasPlayers && blueHasPlayers && blueAllFrozen) {
+		RoundAnnounceWin(Team::Red, "froze the enemy team");
+		Round_End();
+	}
+}
+
 static void CheckRoundEliminationCA() {
 	int redAlive = 0, blueAlive = 0;
 	for (auto ec : active_players()) {
@@ -444,6 +497,21 @@ static bool Round_StartNew() {
 
 	if (!horde)
 		Entities_Reset(!horde, false, false);
+
+	if (Game::Is(GameType::FreezeTag)) {
+		for (auto ec : active_clients()) {
+			gclient_t *cl = ec->client;
+			if (!cl)
+				continue;
+
+			cl->resp.thawer = nullptr;
+			cl->resp.help = 0;
+			cl->resp.thawed = 0;
+			cl->freeze.thawTime = 0_ms;
+			cl->freeze.frozenTime = 0_ms;
+			cl->eliminated = false;
+		}
+	}
 
 	if (Game::Is(GameType::CaptureStrike)) {
 		level.strike_red_attacks ^= true;
@@ -1034,7 +1102,8 @@ static void CheckDMRoundState() {
 		using enum GameType;
 		switch (gt) {
 		case ClanArena:     CheckRoundEliminationCA(); break;
-		case Horde:  CheckRoundHorde(); break;
+		case FreezeTag:     CheckRoundFreezeTag(); break;
+		case Horde:        CheckRoundHorde(); break;
 		case RedRover:     CheckRoundRR(); break;
 		}
 
