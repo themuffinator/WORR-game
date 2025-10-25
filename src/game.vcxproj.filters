@@ -6,8 +6,14 @@
     <ClInclude Include="g_local.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
     <ClInclude Include="game.hpp" />
+    <ClInclude Include="freezetag_damage.hpp" />
+    <ClInclude Include="g_match_grace_scope.hpp" />
+    <ClInclude Include="g_match_state_utils.hpp" />
+    <ClInclude Include="g_monster_defines.hpp" />
+    <ClInclude Include="match_state_helper.hpp" />
     <ClInclude Include="q_std.hpp" />
     <ClInclude Include="q_vec3.hpp" />
+    <ClInclude Include="team_join_capacity.hpp" />
     <ClInclude Include="bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
@@ -173,6 +179,12 @@
     <ClInclude Include="command_system.hpp">
       <Filter>commands</Filter>
     </ClInclude>
+    <ClInclude Include="command_voting.hpp">
+      <Filter>commands</Filter>
+    </ClInclude>
+    <ClInclude Include="command_voting_utils.hpp">
+      <Filter>commands</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cg_main.cpp" />
@@ -194,6 +206,9 @@
     <ClCompile Include="g_turret.cpp" />
     <ClCompile Include="g_utils.cpp" />
     <ClCompile Include="g_weapon.cpp" />
+    <ClCompile Include="fmt.cc" />
+    <ClCompile Include="format.cc" />
+    <ClCompile Include="os.cc" />
     <ClCompile Include="p_client.cpp" />
     <ClCompile Include="p_hud_main.cpp" />
     <ClCompile Include="p_move.cpp" />
