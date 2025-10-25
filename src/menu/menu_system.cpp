@@ -42,21 +42,24 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
 
 	const int total = static_cast<int>(menu->entries.size());
 
-	for (int i = 0; i < total; ++i) {
-		menu->entries[i].text = TrimToWidth(menu->entries[i].text);
-		menu->entries[i].scrollable = (i > 0 && i < total - 1);
-	}
+        for (int i = 0; i < total; ++i) {
+                menu->entries[i].text = TrimToWidth(menu->entries[i].text);
+                menu->entries[i].scrollable = (i > 0 && i < total - 1);
+        }
 
-	// Select the first entry with a valid onSelect
-	menu->current = -1;
-	for (size_t i = 0; i < menu->entries.size(); ++i) {
-		if (menu->entries[i].onSelect) {
-			menu->current = static_cast<int>(i);
-			break;
-		}
-	}
+        // Select the first entry with a valid onSelect
+        menu->current = -1;
+        for (size_t i = 0; i < menu->entries.size(); ++i) {
+                if (menu->entries[i].onSelect) {
+                        menu->current = static_cast<int>(i);
+                        break;
+                }
+        }
 
-	ent->client->menu.current = std::move(menu);
+        menu->scrollOffset = 0;
+        menu->EnsureCurrentVisible();
+
+        ent->client->menu.current = std::move(menu);
 
 	// These two are required to render layouts!
 	ent->client->showScores = true;   // <- must be true!
