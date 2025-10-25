@@ -593,33 +593,36 @@ fire_grenade
 =================
 */
 static THINK(Grenade_Explode) (gentity_t *ent) -> void {
-	// Cache victim pointer and origin
-	gentity_t* victim = ent->enemy;
-	Vector3 victim_origin = victim ? victim->s.origin : Vector3{};
-	Vector3 origin;
+        // Cache victim pointer before any damage logic potentially frees it.
+        gentity_t* victim = ent->enemy;
+        Vector3 origin;
 
-	MeansOfDeath  mod;
+        MeansOfDeath  mod;
 
-	if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HELD))
-		mod = ModID::HandGrenade_Held;
-	else if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HAND))
-		mod = ModID::HandGrenade_Splash;
-	else
-		mod = ModID::GrenadeLauncher_Splash;
+        if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HELD))
+                mod = ModID::HandGrenade_Held;
+        else if (ent->spawnFlags.has(SPAWNFLAG_GRENADE_HAND))
+                mod = ModID::HandGrenade_Splash;
+        else
+                mod = ModID::GrenadeLauncher_Splash;
 
-	if (victim && victim->inUse) {
-		float points;
-		Vector3 v, dir;
-		v = victim->mins + victim->maxs;
-		v = victim_origin + (v * 0.5f);
-		v = ent->s.origin - v;
-		points = ent->dmg - 0.5f * v.length();
-		dir = victim_origin - ent->s.origin;
+        if (victim && victim->inUse) {
+                float points;
+                Vector3 v, dir;
+                const Vector3 victim_origin = victim->s.origin;
+                v = victim->mins + victim->maxs;
+                v = victim_origin + (v * 0.5f);
+                v = ent->s.origin - v;
+                points = ent->dmg - 0.5f * v.length();
+                dir = victim_origin - ent->s.origin;
 
-		Damage(victim, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DamageFlags::Radius | DamageFlags::StatOnce, mod);
-	}
+                Damage(victim, ent, ent->owner, dir, ent->s.origin, vec3_origin, (int)points, (int)points, DamageFlags::Radius | DamageFlags::StatOnce, mod);
+        } else {
+                victim = nullptr;
+                ent->enemy = nullptr;
+        }
 
-	RadiusDamage(ent, ent->owner, (float)ent->dmg, ent->enemy, ent->splashRadius, DamageFlags::Normal | DamageFlags::StatOnce, mod);
+        RadiusDamage(ent, ent->owner, (float)ent->dmg, victim, ent->splashRadius, DamageFlags::Normal | DamageFlags::StatOnce, mod);
 
 	origin = ent->s.origin + (ent->velocity * -0.02f);
 	gi.WriteByte(svc_temp_entity);
@@ -3366,9 +3369,17 @@ static THINK(Trap_Think) (gentity_t *ent) -> void {
 		vec = ent->s.origin - best->s.origin;
 		len = vec.normalize();
 
-		float max_speed = best->client ? 290.f : 150.f;
+                float max_speed = best->client ? 290.f : 150.f;
 
-		best->velocity += (vec * std::clamp(max_speed - len, 64.f, max_speed));
+                // Ensure clamp bounds are ordered even if max_speed falls below the
+                // intended minimum pull speed. This avoids triggering the MSVC debug
+                // runtime assert for invalid std::clamp bounds during trap damage
+                // handling (seen when certain entities customise their speed).
+                const float min_pull_speed = std::min(64.0f, max_speed);
+                const float max_pull_speed = std::max(64.0f, max_speed);
+                const float pull_speed = std::clamp(max_speed - len, min_pull_speed, max_pull_speed);
+
+                best->velocity += (vec * pull_speed);
 
 		ent->s.sound = gi.soundIndex("weapons/trapsuck.wav");
 

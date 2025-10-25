@@ -16,6 +16,7 @@
 #include <unordered_map>
 #include <sstream>
 #include <string_view>
+#include <algorithm>
 
 namespace Commands {
 
@@ -73,7 +74,7 @@ namespace Commands {
 		level.changeMap = map->filename.c_str();
 		game.map.overrideEnableFlags = level.vote_flags_enable;
 		game.map.overrideDisableFlags = level.vote_flags_disable;
-		ExitLevel();
+                ExitLevel(true);
 	}
 
 	static void Pass_NextMap() {
@@ -82,7 +83,7 @@ namespace Commands {
 			level.changeMap = queued.filename.c_str();
 			game.map.overrideEnableFlags = queued.settings.to_ulong();
 			game.map.overrideDisableFlags = 0;
-			ExitLevel();
+                        ExitLevel(true);
 			return;
 		}
 
@@ -91,7 +92,7 @@ namespace Commands {
 			level.changeMap = result->filename.c_str();
 			game.map.overrideEnableFlags = 0;
 			game.map.overrideDisableFlags = 0;
-			ExitLevel();
+                        ExitLevel(true);
 		}
 		else {
 			gi.Broadcast_Print(PRINT_HIGH, "No eligible maps available.\n");
@@ -101,6 +102,38 @@ namespace Commands {
 	static void Pass_RestartMatch() { Match_Reset(); }
 	static void Pass_ShuffleTeams() { TeamSkillShuffle(); }
 	static void Pass_BalanceTeams() { TeamBalance(true); }
+
+	static void Pass_Unlagged() {
+		const bool enable = CommandArgs::ParseInt(level.vote.arg).value_or(0) != 0;
+		gi.cvarForceSet("g_lag_compensation", enable ? "1" : "0");
+		gi.LocBroadcast_Print(PRINT_HIGH, "Lag compensation has been {}.\n", enable ? "ENABLED" : "DISABLED");
+	}
+
+	static void Pass_Cointoss() {
+		const bool heads = brandom();
+		gi.LocBroadcast_Print(PRINT_HIGH, "Coin toss result: {}!\n", heads ? "HEADS" : "TAILS");
+	}
+
+	static void Pass_Random() {
+		const int maxValue = CommandArgs::ParseInt(level.vote.arg).value_or(0);
+		if (maxValue <= 0) {
+			gi.Com_Print("Random vote passed with invalid range.\n");
+			return;
+		}
+
+		const int roll = irandom(1, maxValue + 1);
+		gi.LocBroadcast_Print(PRINT_HIGH, "Random roll (1-{}): {}\n", maxValue, roll);
+	}
+
+	static void Pass_Arena() {
+		auto desiredArena = CommandArgs::ParseInt(level.vote.arg);
+		if (!desiredArena || !ChangeArena(*desiredArena)) {
+			gi.Com_Print("Arena vote failed to change arenas.\n");
+			return;
+		}
+
+		gi.LocBroadcast_Print(PRINT_HIGH, "Arena {} is now active.\n", *desiredArena);
+	}
 
 	static void Pass_Gametype() {
 		auto gt = Game::FromString(level.vote.arg);
@@ -219,20 +252,84 @@ namespace Commands {
 		return true;
 	}
 
+	static bool Validate_Unlagged(gentity_t* ent, const CommandArgs& args) {
+		auto value = args.getInt(2);
+		if (!value || (*value != 0 && *value != 1)) {
+			gi.Client_Print(ent, PRINT_HIGH, "Usage: callvote unlagged <0|1>.\n");
+			return false;
+		}
+
+		const bool currentlyEnabled = g_lagCompensation && g_lagCompensation->integer != 0;
+		if (currentlyEnabled == (*value != 0)) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "Lag compensation is already {}.\n", currentlyEnabled ? "ENABLED" : "DISABLED");
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool Validate_Cointoss(gentity_t* ent, const CommandArgs& args) {
+		if (args.count() > 2) {
+			gi.Client_Print(ent, PRINT_HIGH, "Cointoss does not take any parameters.\n");
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool Validate_Random(gentity_t* ent, const CommandArgs& args) {
+		auto limit = args.getInt(2);
+		if (!limit || *limit < 2 || *limit > 100) {
+			gi.Client_Print(ent, PRINT_HIGH, "Random vote range must be between 2 and 100.\n");
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool Validate_Arena(gentity_t* ent, const CommandArgs& args) {
+		if (level.arenaTotal <= 0) {
+			gi.Client_Print(ent, PRINT_HIGH, "This vote is only available in arena-based modes.\n");
+			return false;
+		}
+
+		auto arenaNum = args.getInt(2);
+		if (!arenaNum) {
+			gi.Client_Print(ent, PRINT_HIGH, "Invalid arena number.\n");
+			return false;
+		}
+
+		if (!CheckArenaValid(*arenaNum)) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "Arena {} is not available.\n", *arenaNum);
+			return false;
+		}
+
+		if (*arenaNum == level.arenaActive) {
+			gi.Client_Print(ent, PRINT_HIGH, "That arena is already active.\n");
+			return false;
+		}
+
+		return true;
+	}
+
 
         static void RegisterAllVoteCommands() {
                 s_voteCommands.clear();
                 s_voteDefinitions.clear();
-                RegisterVoteCommand("map", &Validate_Map, &Pass_Map, 1, 2, "<mapname> [flags]", "Changes to the specified map");
-                RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, 2, 1, "", "Moves to the next map in the rotation");
-                RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, 4, 1, "", "Restarts the current match");
-                RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, 8, 2, "<gametype>", "Changes the current gametype");
-		RegisterVoteCommand("timelimit", &Validate_Timelimit, &Pass_Timelimit, 16, 2, "<minutes>", "Alters the match time limit (0 for none)");
-		RegisterVoteCommand("scorelimit", &Validate_Scorelimit, &Pass_Scorelimit, 32, 2, "<score>", "Alters the match score limit (0 for none)");
-		RegisterVoteCommand("shuffle", &Validate_TeamBased, &Pass_ShuffleTeams, 64, 1, "", "Shuffles the teams based on skill");
-		RegisterVoteCommand("balance", &Validate_TeamBased, &Pass_BalanceTeams, 1024, 1, "", "Balances teams without shuffling");
-		RegisterVoteCommand("ruleset", &Validate_Ruleset, &Pass_Ruleset, 2048, 2, "<q1|q2|q3a>", "Changes the current ruleset");
-	}
+                RegisterVoteCommand("map", &Validate_Map, &Pass_Map, kVoteFlag_Map, 2, "<mapname> [flags]", "Changes to the specified map");
+                RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, kVoteFlag_NextMap, 1, "", "Moves to the next map in the rotation");
+                RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, kVoteFlag_Restart, 1, "", "Restarts the current match");
+                RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, kVoteFlag_Gametype, 2, "<gametype>", "Changes the current gametype");
+                RegisterVoteCommand("ruleset", &Validate_Ruleset, &Pass_Ruleset, kVoteFlag_Ruleset, 2, "<q1|q2|q3a>", "Changes the current ruleset", true);
+                RegisterVoteCommand("timelimit", &Validate_Timelimit, &Pass_Timelimit, kVoteFlag_Timelimit, 2, "<minutes>", "Alters the match time limit (0 for none)");
+                RegisterVoteCommand("scorelimit", &Validate_Scorelimit, &Pass_Scorelimit, kVoteFlag_Scorelimit, 2, "<score>", "Alters the match score limit (0 for none)");
+                RegisterVoteCommand("shuffle", &Validate_TeamBased, &Pass_ShuffleTeams, kVoteFlag_Shuffle, 1, "", "Shuffles the teams based on skill");
+                RegisterVoteCommand("balance", &Validate_TeamBased, &Pass_BalanceTeams, kVoteFlag_Balance, 1, "", "Balances teams without shuffling");
+                RegisterVoteCommand("unlagged", &Validate_Unlagged, &Pass_Unlagged, kVoteFlag_Unlagged, 2, "<0|1>", "Toggles lag compensation", true);
+                RegisterVoteCommand("cointoss", &Validate_Cointoss, &Pass_Cointoss, kVoteFlag_Cointoss, 1, "", "Flip a coin for a random decision", true);
+                RegisterVoteCommand("random", &Validate_Random, &Pass_Random, kVoteFlag_Random, 2, "<max>", "Roll a random number between 1 and <max>", true);
+                RegisterVoteCommand("arena", &Validate_Arena, &Pass_Arena, kVoteFlag_Arena, 2, "<number>", "Switches to a different arena", true);
+        }
 
         static void VoteCommandStore(
                 gentity_t* ent,
@@ -249,10 +346,15 @@ namespace Commands {
 
                 std::string_view effectiveArg = displayArg.empty() ? arg : displayArg;
 
+                std::string argSuffix;
+                if (!effectiveArg.empty()) {
+                        argSuffix = std::format(" {}", effectiveArg);
+                }
+
                 gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
                         level.vote.client->sess.netName,
                         vote_cmd->name.data(),
-                        effectiveArg.empty() ? "" : std::format(" {}", effectiveArg).c_str());
+                        argSuffix.empty() ? "" : argSuffix.c_str());
 
 		for (auto ec : active_clients()) {
 			ec->client->pers.voted = (ec == ent) ? 1 : 0;
@@ -303,12 +405,24 @@ namespace Commands {
                         return false;
                 }
 
+                level.vote_flags_enable = 0;
+                level.vote_flags_disable = 0;
+
                 std::vector<std::string> args;
-                args.reserve(voteArg.empty() ? 2 : 3);
                 args.emplace_back("callvote");
                 args.emplace_back(voteName);
+
+                std::vector<std::string> splitTokens;
+                std::string voteArgStr;
                 if (!voteArg.empty()) {
-                        args.emplace_back(voteArg);
+                        voteArgStr = std::string(voteArg);
+
+                        std::istringstream splitter(voteArgStr);
+                        std::string token;
+                        while (splitter >> token) {
+                                splitTokens.emplace_back(token);
+                                args.emplace_back(splitTokens.back());
+                        }
                 }
 
                 CommandArgs manualArgs(std::move(args));
@@ -320,12 +434,33 @@ namespace Commands {
                         return false;
                 }
 
+                std::string displayArg = voteArgStr;
                 std::string_view storedArg;
-                if (manualArgs.count() >= 3) {
+                std::string mapStoredArg;
+
+                if (found_cmd.name == "map") {
+                        std::string parseError;
+                        auto parsed = ParseMapVoteArguments(splitTokens, parseError);
+                        if (!parsed) {
+                                if (!parseError.empty()) {
+                                        gi.LocClient_Print(ent, PRINT_HIGH, "{}\n", parseError.c_str());
+                                }
+                                return false;
+                        }
+
+                        level.vote_flags_enable = parsed->enableFlags;
+                        level.vote_flags_disable = parsed->disableFlags;
+
+                        mapStoredArg = parsed->mapName;
+
+                        storedArg = mapStoredArg;
+                        displayArg = parsed->displayArg;
+                }
+                else if (manualArgs.count() >= 3) {
                         storedArg = manualArgs.getString(2);
                 }
 
-                VoteCommandStore(ent, &found_cmd, storedArg);
+                VoteCommandStore(ent, &found_cmd, storedArg, displayArg);
                 return true;
         }
 
@@ -362,10 +497,52 @@ namespace Commands {
 			return;
 		}
 
-		if (args.count() < 2) {
-			PrintUsage(ent, args, "<command>", "[params]", "Call a vote to change a server setting.");
-			return;
-		}
+                if (args.count() < 2) {
+                        PrintUsage(ent, args, "<command>", "[params]", "Call a vote to change a server setting.");
+
+                        std::vector<const VoteCommand*> enabledVotes;
+                        enabledVotes.reserve(s_voteDefinitions.size());
+                        const int32_t voteFlags = g_vote_flags->integer;
+
+                        for (const auto& definition : s_voteDefinitions) {
+                                if ((voteFlags & definition.flag) == 0) {
+                                        continue;
+                                }
+
+                                auto itCommand = s_voteCommands.find(definition.name);
+                                if (itCommand == s_voteCommands.end()) {
+                                        continue;
+                                }
+
+                                enabledVotes.push_back(&itCommand->second);
+                        }
+
+                        if (!enabledVotes.empty()) {
+                                std::ostringstream oss;
+                                oss << "Available votes:\n";
+
+                                for (const VoteCommand* command : enabledVotes) {
+                                        oss << "  " << command->name;
+                                        if (!command->argsUsage.empty()) {
+                                                oss << ' ' << command->argsUsage;
+                                        }
+
+                                        if (!command->helpText.empty()) {
+                                                oss << " - " << command->helpText;
+                                        }
+
+                                        oss << '\n';
+                                }
+
+                                const std::string message = oss.str();
+                                gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+                        }
+                        else {
+                                gi.Client_Print(ent, PRINT_HIGH, "No votes are currently enabled.\n");
+                        }
+
+                        return;
+                }
 
 		std::string_view voteName = args.getString(1);
 		auto it = s_voteCommands.find(voteName);
@@ -474,3 +651,72 @@ namespace Commands {
 	}
 
 } // namespace Commands
+
+void G_RevertVote(gclient_t *client) {
+        if (!client) {
+                return;
+        }
+
+        if (!level.vote.time || !level.vote.client) {
+                client->pers.voted = 0;
+                return;
+        }
+
+        if (client->pers.voted > 0) {
+                int yesVotes = std::max(0, static_cast<int>(level.vote.countYes) - 1);
+                level.vote.countYes = static_cast<int8_t>(yesVotes);
+        } else if (client->pers.voted < 0) {
+                int noVotes = std::max(0, static_cast<int>(level.vote.countNo) - 1);
+                level.vote.countNo = static_cast<int8_t>(noVotes);
+        }
+
+        client->pers.voted = 0;
+
+        if (level.vote.client != client) {
+                return;
+        }
+
+        gi.Broadcast_Print(PRINT_HIGH, "Vote cancelled (caller disconnected).\n");
+
+        level.vote.client = nullptr;
+        level.vote.cmd = nullptr;
+        level.vote.arg.clear();
+        level.vote.time = 0_sec;
+        level.vote.executeTime = 0_sec;
+        level.vote.countYes = 0;
+        level.vote.countNo = 0;
+        level.vote_flags_enable = 0;
+        level.vote_flags_disable = 0;
+
+        for (auto ec : active_clients()) {
+                if (ec->client) {
+                        ec->client->pers.voted = 0;
+                }
+        }
+}
+
+
+void Vote_Passed() {
+        const VoteCommand *command = level.vote.cmd;
+        if (!command) {
+                gi.Com_Print("Vote_Passed called without an active command.\n");
+        } else if (command->execute) {
+                command->execute();
+        }
+
+        for (auto ent : active_clients()) {
+                if (ent->client) {
+                        ent->client->pers.voted = 0;
+                }
+        }
+
+        level.vote.cmd = nullptr;
+        level.vote.client = nullptr;
+        level.vote.arg.clear();
+        level.vote.countYes = 0;
+        level.vote.countNo = 0;
+        level.vote.time = 0_sec;
+        level.vote.executeTime = 0_sec;
+        level.vote_flags_enable = 0;
+        level.vote_flags_disable = 0;
+}

@@ -254,34 +254,40 @@ bool Pickup_Weapon(gentity_t *ent, gentity_t *other) {
 	if (!(ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED) || ent->count) {
 		if (ent->item->ammo) {
 			Item *ammo = GetItemByIndex(ent->item->ammo);
-			if (InfiniteAmmoOn(ammo)) {
-				Add_Ammo(other, ammo, AMMO_INFINITE);
-			} else {
-				int count = 0;
-
-				if (RS(RS_Q3A)) {
-					count = ent->count ? ent->count : (
-						ammo->id == IT_AMMO_GRENADES ||
-						ammo->id == IT_AMMO_ROCKETS ||
-						ammo->id == IT_AMMO_SLUGS ? 10 : ammo->quantity
-						);
-
-					if (other->client->pers.inventory[ammo->id] < count)
-						count -= other->client->pers.inventory[ammo->id];
-					else
-						count = 1;
-
-				} else {
-					if (ammo && InfiniteAmmoOn(ent->item)) {
-						count = AMMO_INFINITE;
-					} else if (ent->count) {
-						count = ent->count;
-					} else {
-						count = ammo->quantity;
-					}
+			if (ammo) {
+				if (InfiniteAmmoOn(ammo)) {
+					Add_Ammo(other, ammo, AMMO_INFINITE);
 				}
+				else {
+					int count = 0;
 
-				Add_Ammo(other, ammo, count);
+					if (RS(RS_Q3A)) {
+						count = ent->count ? ent->count : (
+							ammo->id == IT_AMMO_GRENADES ||
+							ammo->id == IT_AMMO_ROCKETS ||
+							ammo->id == IT_AMMO_SLUGS ? 10 : ammo->quantity
+							);
+
+						if (other->client->pers.inventory[ammo->id] < count)
+							count -= other->client->pers.inventory[ammo->id];
+						else
+							count = 1;
+
+					}
+					else {
+						if (ammo && InfiniteAmmoOn(ent->item)) {
+							count = AMMO_INFINITE;
+						}
+						else if (ent->count) {
+							count = ent->count;
+						}
+						else {
+							count = ammo->quantity;
+						}
+					}
+
+					Add_Ammo(other, ammo, count);
+				}
 			}
 		}
 

@@ -23,8 +23,10 @@
 #include "g_local.hpp"
 #include "bots/bot_includes.hpp"
 #include "command_registration.hpp"
+#include "command_voting.hpp"
 #include <fstream>
 #include <sstream>
+#include <string>
 
 CHECK_GCLIENT_INTEGRITY;
 CHECK_ENTITY_INTEGRITY;
@@ -656,6 +658,8 @@ Called after PreInitGame when the game has set up cvars.
 static void InitGame() {
 	gi.Com_Print("==== InitGame ====\n");
 
+	RegisterAllCommands();
+
 	G_InitSave();
 
 	std::random_device rd;
@@ -847,7 +851,8 @@ static void InitGame() {
 	g_teamplay_force_balance = gi.cvar("g_teamplay_force_balance", "0", CVAR_NOFLAGS);
 	g_teamplay_item_drop_notice = gi.cvar("g_teamplay_item_drop_notice", "1", CVAR_NOFLAGS);
 	g_verbose = gi.cvar("g_verbose", "0", CVAR_NOFLAGS);
-	g_vote_flags = gi.cvar("g_vote_flags", "0", CVAR_NOFLAGS);
+        static const std::string kDefaultVoteFlagsValue = std::to_string(Commands::kDefaultVoteFlags);
+        g_vote_flags = gi.cvar("g_vote_flags", kDefaultVoteFlagsValue.c_str(), CVAR_NOFLAGS);
 	g_vote_limit = gi.cvar("g_vote_limit", "3", CVAR_NOFLAGS);
 	g_warmup_countdown = gi.cvar("g_warmup_countdown", "10", CVAR_NOFLAGS);
 	g_warmup_ready_percentage = gi.cvar("g_warmup_ready_percentage", "0.51f", CVAR_NOFLAGS);
@@ -1416,7 +1421,7 @@ depending on mode and configured changeMap.
 =================
 */
 extern void Gauntlet_RemoveLoser();
-void ExitLevel() {
+void ExitLevel(bool forceImmediate) {
 	// Ensure a valid map transition is set
 	if (level.changeMap.empty()) {
 		gi.Com_Error("Got null changeMap when trying to exit level. Was a trigger_changelevel configured correctly?");
@@ -1436,20 +1441,21 @@ void ExitLevel() {
 	// Reset intermission state
 	level.intermission = {};
 
-	if (deathmatch->integer) {
-		// In Gauntlet mode, rotate the loser
-		if (Game::Is(GameType::Gauntlet))
-			Gauntlet_RemoveLoser();
+        if (deathmatch->integer) {
+                // In Gauntlet mode, rotate the loser
+                if (Game::Is(GameType::Gauntlet))
+                        Gauntlet_RemoveLoser();
 
-		// In Red Rover, shuffle teams if only one team has players
-		if (Game::Is(GameType::RedRover) &&
-			level.pop.num_playing_clients > 1 &&
-			(!level.pop.num_playing_red || !level.pop.num_playing_blue))
-			Commands::TeamSkillShuffle();
+                // In Red Rover, shuffle teams if only one team has players
+                if (Game::Is(GameType::RedRover) &&
+                        level.pop.num_playing_clients > 1 &&
+                        (!level.pop.num_playing_red || !level.pop.num_playing_blue))
+                        Commands::TeamSkillShuffle();
 
-		// Do not proceed further in DM - map voting or shuffle controls transition
-		return;
-	}
+                // Do not proceed further in DM - map voting or shuffle controls transition
+                if (!forceImmediate)
+                        return;
+        }
 
 	// Singleplayer or coop logic
 	if (level.intermission.clear) {
@@ -1912,7 +1918,7 @@ static inline void G_RunFrame_(bool main_loop) {
 					ent->s.effects |= EF_COLOR_SHELL;
 				}
 				if (ent->owner->client->powerupTime.doubleDamage > level.time) {
-					ent->s.renderFX |= (RF_SHELL_RED);
+					ent->s.renderFX |= (RF_SHELL_BLUE);
 					ent->s.effects |= EF_COLOR_SHELL;
 				}
 				if (ent->owner->client->powerupTime.invisibility > level.time) {

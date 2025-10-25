@@ -13,6 +13,7 @@
 //   (either by passing, failing, or timing out) while it is open.
 
 #include "../g_local.hpp"
+#include "../command_system.hpp"
 
 void OpenVoteMenu(gentity_t *ent) {
 	if (!Vote_Menu_Active(ent)) return;
@@ -48,22 +49,22 @@ void OpenVoteMenu(gentity_t *ent) {
 			i = 7;
 			menu.entries[i++].text = "[ YES ]";
 			if (i > 0 && i <= menu.entries.size())
-				menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t *e, Menu &) {
-					level.vote.countYes++;
-					e->client->pers.voted = 1;
-					gi.LocClient_Print(e, PRINT_HIGH, "Vote cast.\n");
-					MenuSystem::Close(e);
-					};
+                                menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t *e, Menu &) {
+                                        level.vote.countYes++;
+                                        e->client->pers.voted = 1;
+                                        gi.Client_Print(e, PRINT_HIGH, "Vote cast.\n");
+                                        MenuSystem::Close(e);
+                                        };
 
 			i = 8;
 			menu.entries[i++].text = "[ NO ]";
 			if (i > 0 && i <= menu.entries.size())
-				menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t *e, Menu &) {
-					level.vote.countNo++;
-					e->client->pers.voted = -1;
-					gi.LocClient_Print(e, PRINT_HIGH, "Vote cast.\n");
-					MenuSystem::Close(e);
-					};
+                                menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t *e, Menu &) {
+                                        level.vote.countNo++;
+                                        e->client->pers.voted = -1;
+                                        gi.Client_Print(e, PRINT_HIGH, "Vote cast.\n");
+                                        MenuSystem::Close(e);
+                                        };
 		}
 
 		i = 16;

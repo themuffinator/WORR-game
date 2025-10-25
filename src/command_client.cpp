@@ -114,7 +114,7 @@ namespace Commands {
 		for (auto ec : active_clients()) {
 			if (!ec || !ec->client) continue;
 			int ci = int(ec->client - game.clients);
-			if (ci < 0 || ci >= game.maxClients) continue;
+			if (ci < 0 || ci >= static_cast<int>(game.maxClients)) continue;
 			rows.push_back({ ci, ec });
 		}
 
@@ -249,12 +249,13 @@ namespace Commands {
 			return;
 		}
 
-		std::string_view arg1 = args.getString(1);
+                std::string itemQuery = args.joinFrom(1);
+                std::string_view arg1 = args.getString(1);
 
-		if (arg1.empty()) {
-			PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
-			return;
-		}
+                if (itemQuery.empty()) {
+                        PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
+                        return;
+                }
 
 		Item* it = nullptr;
 
@@ -284,14 +285,22 @@ namespace Commands {
 				}
 			}
 		}
-		else {
-			it = FindItem(arg1.data());
-		}
+                else {
+                        it = FindItem(arg1.data());
 
-		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
-			return;
-		}
+                        if (!it) {
+                                if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
+                                        if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
+                                                it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
+                                        }
+                                }
+                        }
+                }
+
+                if (!it) {
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
+                        return;
+                }
 
 		if (!it->drop) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
@@ -694,13 +703,13 @@ namespace Commands {
 
 	void MapInfo(gentity_t* ent, const CommandArgs& args) {
 		if (level.mapName[0]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "MAP INFO:\nfilename: {}\n", level.mapName);
+			gi.LocClient_Print(ent, PRINT_HIGH, "MAP INFO:\nfilename: {}\n", level.mapName.data());
 		}
 		else {
 			return;
 		}
 		if (level.longName[0]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "longname: {}\n", level.longName);
+			gi.LocClient_Print(ent, PRINT_HIGH, "longname: {}\n", level.longName.data());
 		}
 		if (level.author[0]) {
 			std::string authors = level.author;
@@ -708,7 +717,7 @@ namespace Commands {
 				authors += ", ";
 				authors += level.author2;
 			}
-			gi.LocClient_Print(ent, PRINT_HIGH, "author{}: {}\n", level.author2[0] ? "s" : "", authors);
+			gi.LocClient_Print(ent, PRINT_HIGH, "author{}: {}\n", level.author2[0] ? "s" : "", authors.c_str());
 		}
 	}
 
@@ -724,7 +733,7 @@ namespace Commands {
 
 	void Motd(gentity_t* ent, const CommandArgs& args) {
 		if (!game.motd.empty()) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Message of the Day:\n{}\n", game.motd);
+			gi.LocClient_Print(ent, PRINT_HIGH, "Message of the Day:\n{}\n", game.motd.c_str());
 		}
 		else {
 			gi.Client_Print(ent, PRINT_HIGH, "No Message of the Day set.\n");
@@ -771,7 +780,7 @@ namespace Commands {
 			numPlayers++;
 		}
 		int averageSkill = (numPlayers > 0) ? (totalSkill / numPlayers) : 0;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Your Skill Rating in {}: {} (server avg: {})\n", level.gametype_name, ent->client->sess.skillRating, averageSkill);
+		gi.LocClient_Print(ent, PRINT_HIGH, "Your Skill Rating in {}: {} (server avg: {})\n", level.gametype_name.data(), ent->client->sess.skillRating, averageSkill);
 	}
 
 	void NotReady(gentity_t* ent, const CommandArgs& args) {
@@ -833,7 +842,7 @@ namespace Commands {
 				ent->client->sess.weaponPrefs.push_back(token);
 			}
 			else {
-				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token);
+				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token.c_str());
 			}
 		}
 		gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
@@ -911,27 +920,28 @@ namespace Commands {
 	}
 
 	void Use(gentity_t* ent, const CommandArgs& args) {
-		std::string_view itemName = args.getString(1);
-		if (itemName.empty()) {
-			PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
-			return;
-		}
+                std::string itemQuery = args.joinFrom(1);
+                std::string_view itemName = args.getString(1);
+                if (itemQuery.empty()) {
+                        PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
+                        return;
+                }
 
-		Item* it = nullptr;
-		if (itemName == "holdable") {
-			// Logic to find the current holdable item
-			if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
-			else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
-			// ... and so on for other holdables
-		}
-		else {
-			it = FindItem(itemName.data());
-		}
+                Item* it = nullptr;
+                if (itemName == "holdable") {
+                        // Logic to find the current holdable item
+                        if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
+                        else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
+                        // ... and so on for other holdables
+                }
+                else {
+                        it = FindItem(itemQuery.c_str());
+                }
 
-		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemName.data());
-			return;
-		}
+                if (!it) {
+                        gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemQuery.c_str());
+                        return;
+                }
 		if (!it->use) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
 			return;
@@ -1025,55 +1035,57 @@ namespace Commands {
 		const auto& angles = ent->client->ps.viewAngles;
 		std::string location = std::format("{:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f}",
 			origin[X], origin[Y], origin[Z], angles[PITCH], angles[YAW], angles[ROLL]);
-		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location);
+		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location.c_str());
 		gi.SendToClipBoard(location.c_str());
 	}
 
 	// --- Registration Function ---
 	void RegisterClientCommands() {
 		using enum CommandFlag;
+
 		RegisterCommand("admin", &Admin, AllowIntermission | AllowSpectator);
 		RegisterCommand("clientlist", &ClientList, AllowDead | AllowIntermission | AllowSpectator);
 		RegisterCommand("drop", &Drop);
-		RegisterCommand("drop_index", &Drop);
+		RegisterCommand("dropindex", &Drop);
 		RegisterCommand("eyecam", &EyeCam, AllowSpectator);
 		RegisterCommand("fm", &FragMessages, AllowSpectator | AllowDead);
 		RegisterCommand("follow", &Follow, AllowSpectator | AllowDead, true);
-		RegisterCommand("follow_killer", &FollowKiller, AllowSpectator | AllowDead, true);
-		RegisterCommand("follow_leader", &FollowLeader, AllowSpectator | AllowDead, true);
-		RegisterCommand("follow_powerup", &FollowPowerup, AllowSpectator | AllowDead, true);
+		RegisterCommand("followkiller", &FollowKiller, AllowSpectator | AllowDead, true);
+		RegisterCommand("followleader", &FollowLeader, AllowSpectator | AllowDead, true);
+		RegisterCommand("followpowerup", &FollowPowerup, AllowSpectator | AllowDead, true);
 		RegisterCommand("forfeit", &Forfeit, AllowDead, true);
 		RegisterCommand("help", &Help, AllowDead | AllowSpectator, true);
 		RegisterCommand("hook", &Hook, {}, true);
-		RegisterCommand("impulse", &Impulse);
 		RegisterCommand("id", &CrosshairID, AllowSpectator | AllowDead);
-		RegisterCommand("inv_drop", &InvDrop);
+		RegisterCommand("impulse", &Impulse);
+		RegisterCommand("invdrop", &InvDrop);
 		RegisterCommand("inven", &Inven, AllowDead | AllowSpectator, true);
-		RegisterCommand("inv_next", &InvNext, AllowSpectator | AllowIntermission, true);
-		RegisterCommand("inv_nextp", &InvNextP, {}, true);
-		RegisterCommand("inv_nextw", &InvNextW, {}, true);
-		RegisterCommand("inv_prev", &InvPrev, AllowSpectator | AllowIntermission, true);
-		RegisterCommand("inv_prevp", &InvPrevP, {}, true);
-		RegisterCommand("inv_prevw", &InvPrevW, {}, true);
-		RegisterCommand("inv_use", &InvUse, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("invnext", &InvNext, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("invnextp", &InvNextP, {}, true);
+		RegisterCommand("invnextw", &InvNextW, {}, true);
+		RegisterCommand("invprev", &InvPrev, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("invprevp", &InvPrevP, {}, true);
+		RegisterCommand("invprevw", &InvPrevW, {}, true);
+		RegisterCommand("invuse", &InvUse, AllowSpectator | AllowIntermission, true);
 		RegisterCommand("kb", &KillBeep, AllowSpectator | AllowDead);
 		RegisterCommand("kill", &Kill);
-		RegisterCommand("map_info", &MapInfo, AllowDead | AllowSpectator);
-		RegisterCommand("map_pool", &MapPool, AllowDead | AllowSpectator);
-		RegisterCommand("map_cycle", &MapCycle, AllowDead | AllowSpectator);
+		RegisterCommand("mapcycle", &MapCycle, AllowDead | AllowSpectator);
+		RegisterCommand("mapinfo", &MapInfo, AllowDead | AllowSpectator);
+		RegisterCommand("mappool", &MapPool, AllowDead | AllowSpectator);
 		RegisterCommand("motd", &Motd, AllowSpectator | AllowIntermission);
-		RegisterCommand("my_map", &MyMap, AllowDead | AllowSpectator);
-		RegisterCommand("not_ready", &NotReady, AllowDead);
-		RegisterCommand("put_away", &PutAway, AllowSpectator);
+		RegisterCommand("mymap", &MyMap, AllowDead | AllowSpectator);
+		RegisterCommand("notready", &NotReady, AllowDead);
+		RegisterCommand("putaway", &PutAway, AllowSpectator);
 		RegisterCommand("ready", &Ready, AllowDead);
 		RegisterCommand("ready_up", &ReadyUp, AllowDead);
+		RegisterCommand("readyup", &ReadyUp, AllowDead);
 		RegisterCommand("score", &Score, AllowDead | AllowIntermission | AllowSpectator, true);
-		RegisterCommand("set_weapon_pref", &SetWeaponPref, AllowDead | AllowIntermission | AllowSpectator);
+		RegisterCommand("setweaponpref", &SetWeaponPref, AllowDead | AllowIntermission | AllowSpectator);
 		RegisterCommand("sr", &MySkill, AllowDead | AllowSpectator);
 		RegisterCommand("stats", &Stats, AllowIntermission | AllowSpectator);
 		RegisterCommand("team", &JoinTeam, AllowDead | AllowSpectator);
-		RegisterCommand("time_in", &TimeIn, AllowDead | AllowSpectator);
-		RegisterCommand("time_out", &TimeOut, AllowDead | AllowSpectator);
+		RegisterCommand("timein", &TimeIn, AllowDead | AllowSpectator);
+		RegisterCommand("timeout", &TimeOut, AllowDead | AllowSpectator);
 		RegisterCommand("timer", &Timer, AllowSpectator | AllowDead);
 		RegisterCommand("unhook", &UnHook, {}, true);
 		RegisterCommand("use", &Use, {}, true);
@@ -1081,9 +1093,9 @@ namespace Commands {
 		RegisterCommand("use_index_only", &Use, {}, true);
 		RegisterCommand("use_only", &Use, {}, true);
 		RegisterCommand("wave", &Wave);
-		RegisterCommand("weap_last", &WeapLast, {}, true);
-		RegisterCommand("weap_next", &WeapNext, {}, true);
-		RegisterCommand("weap_prev", &WeapPrev, {}, true);
+		RegisterCommand("weaplast", &WeapLast, {}, true);
+		RegisterCommand("weapnext", &WeapNext, {}, true);
+		RegisterCommand("weapprev", &WeapPrev, {}, true);
 		RegisterCommand("where", &Where, AllowSpectator);
 	}
 
