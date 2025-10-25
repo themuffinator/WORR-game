@@ -2713,7 +2713,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->respawnMinTime = 0_ms;
 		cl->respawnMaxTime = level.time;
 		cl->respawn_timeout = 0_ms;
-		cl->teamState = {};
+		cl->pers.teamState = {};
 
 		FreeFollower(ent);
 		MoveClientToFreeCam(ent);
