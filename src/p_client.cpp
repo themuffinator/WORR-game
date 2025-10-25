@@ -24,6 +24,7 @@
 #include "command_registration.hpp"
 #include "monsters/m_player.hpp"
 #include "bots/bot_includes.hpp"
+#include "team_join_capacity.hpp"
 
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 
@@ -2596,26 +2597,52 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	bool joinPlaying = (target != Team::Spectator);
 	const bool matchLocked = match_lock->integer && level.matchState >= MatchState::Countdown;
 
-	if (joinPlaying && !requestQueue && !force) {
-		if (matchLocked && !wasPlaying) {
-			if (duel) {
-				target = Team::Spectator;
-				joinPlaying = false;
-				requestQueue = true;
+        if (joinPlaying && !requestQueue && !force) {
+                if (matchLocked && !wasPlaying) {
+                        if (duel) {
+                                target = Team::Spectator;
+                                joinPlaying = false;
+                                requestQueue = true;
 			}
 			else {
 				if (!silent)
 					gi.LocClient_Print(ent, PRINT_HIGH, "The match is locked.\n");
 				return false;
 			}
-		}
-	}
+                }
+        }
 
-	if (joinPlaying && !requestQueue && duel && !force && !wasPlaying) {
-		int playingClients = 0;
-		for (auto ec : active_clients()) {
-			if (ec && ec->client && ClientIsPlaying(ec->client))
-				++playingClients;
+        if (joinPlaying) {
+                const TeamJoinCapacityAction capacityAction = EvaluateTeamJoinCapacity(
+                        joinPlaying,
+                        requestQueue,
+                        force,
+                        wasPlaying,
+                        duel,
+                        !cl->sess.is_a_bot,
+                        level.pop.num_playing_human_clients,
+                        maxplayers->integer);
+
+                switch (capacityAction) {
+                case TeamJoinCapacityAction::Allow:
+                        break;
+                case TeamJoinCapacityAction::QueueForDuel:
+                        target = Team::Spectator;
+                        joinPlaying = false;
+                        requestQueue = true;
+                        break;
+                case TeamJoinCapacityAction::Deny:
+                        if (!silent)
+                                gi.LocClient_Print(ent, PRINT_HIGH, "Server is full.\n");
+                        return false;
+                }
+        }
+
+        if (joinPlaying && !requestQueue && duel && !force && !wasPlaying) {
+                int playingClients = 0;
+                for (auto ec : active_clients()) {
+                        if (ec && ec->client && ClientIsPlaying(ec->client))
+                                ++playingClients;
 		}
 		if (playingClients >= 2) {
 			target = Team::Spectator;
