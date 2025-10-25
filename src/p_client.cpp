@@ -1766,10 +1766,14 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
                                 self->client->pers.lives--;
                                 self->client->pers.limitedLivesStash = self->client->pers.lives;
                                 self->client->pers.limitedLivesPersist = true;
+
+                                if (self->client->pers.lives > 0)
+                                        self->client->coopRespawnState = CoopRespawn::None;
                         }
 
                         if (self->client->pers.lives == 0) {
                                 self->client->eliminated = true;
+                                self->client->coopRespawnState = CoopRespawn::NoLives;
                                 CalculateRanks();
                         }
                 }
@@ -4515,6 +4519,7 @@ static bool G_LimitedLivesRespawn(gentity_t* ent) {
         if (G_LimitedLivesInLMS()) {
                 if (ent->client->pers.lives == 0) {
                         ent->client->eliminated = true;
+                        ent->client->coopRespawnState = CoopRespawn::NoLives;
                         if (ClientIsPlaying(ent->client)) {
                                 CopyToBodyQue(ent);
                                 MoveClientToFreeCam(ent);
@@ -4523,6 +4528,7 @@ static bool G_LimitedLivesRespawn(gentity_t* ent) {
                         }
                         return true;
                 }
+                ent->client->coopRespawnState = CoopRespawn::None;
                 return false;
         }
 
