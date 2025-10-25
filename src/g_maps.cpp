@@ -97,9 +97,8 @@ void MapSelectorFinalize() {
 		AnnouncerSound(world, "vote_failed");
 	}
 	
-	//ms.voteStartTime = 0_sec;
-	level.intermission.exit = true;
-	level.intermission.postIntermission = false;
+        ms.voteStartTime = 0_sec;
+        level.intermission.exit = true;
 }
 
 /*

@@ -1537,28 +1537,28 @@ static void PreExitLevel() {
 		return;
 	}
 
-	// Run vote sequence once
-	if (ms.voteStartTime == 0_sec) {
-		MapSelectorBegin(); // sets voteStartTime internally
-		return;
-	}
+        if (level.intermission.postIntermissionTime == 0_sec) {
+                // Run vote sequence once
+                if (ms.voteStartTime == 0_sec) {
+                        MapSelectorBegin(); // sets voteStartTime internally
+                        return;
+                }
 
-	// Wait for voting period to complete
-	if (level.time < ms.voteStartTime + MAP_SELECTOR_DURATION)
-		return;
+                // Wait for voting period to complete
+                if (level.time < ms.voteStartTime + MAP_SELECTOR_DURATION)
+                        return;
 
-	// Finalize vote once after voting ends
-	if (level.intermission.postIntermissionTime == 0_sec) {
-		MapSelectorFinalize();
-		level.intermission.postIntermissionTime = level.time;
-		return;
-	}
+                // Finalize vote once after voting ends
+                MapSelectorFinalize();
+                level.intermission.postIntermissionTime = level.time;
+                return;
+        }
 
-	// Delay briefly before actual level exit
-	if (level.time < level.intermission.postIntermissionTime + 2_sec)
-		return;
+        // Delay briefly before actual level exit
+        if (level.time < level.intermission.postIntermissionTime + 2_sec)
+                return;
 
-	ExitLevel();
+        ExitLevel();
 }
 
 /*
