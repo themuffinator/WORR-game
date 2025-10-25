@@ -1236,7 +1236,7 @@ bool G_LimitedLivesInCoop() {
 }
 
 bool G_LimitedLivesInLMS() {
-        return Game::Is(GameType::LastManStanding);
+        return Game::Is(GameType::LastManStanding) || Game::Is(GameType::LastTeamStanding);
 }
 
 bool G_LimitedLivesActive() {
