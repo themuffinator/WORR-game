@@ -656,6 +656,8 @@ Called after PreInitGame when the game has set up cvars.
 static void InitGame() {
 	gi.Com_Print("==== InitGame ====\n");
 
+	RegisterAllCommands();
+
 	G_InitSave();
 
 	std::random_device rd;
