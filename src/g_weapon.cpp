@@ -3369,9 +3369,17 @@ static THINK(Trap_Think) (gentity_t *ent) -> void {
 		vec = ent->s.origin - best->s.origin;
 		len = vec.normalize();
 
-		float max_speed = best->client ? 290.f : 150.f;
+                float max_speed = best->client ? 290.f : 150.f;
 
-		best->velocity += (vec * std::clamp(max_speed - len, 64.f, max_speed));
+                // Ensure clamp bounds are ordered even if max_speed falls below the
+                // intended minimum pull speed. This avoids triggering the MSVC debug
+                // runtime assert for invalid std::clamp bounds during trap damage
+                // handling (seen when certain entities customise their speed).
+                const float min_pull_speed = std::min(64.0f, max_speed);
+                const float max_pull_speed = std::max(64.0f, max_speed);
+                const float pull_speed = std::clamp(max_speed - len, min_pull_speed, max_pull_speed);
+
+                best->velocity += (vec * pull_speed);
 
 		ent->s.sound = gi.soundIndex("weapons/trapsuck.wav");
 
