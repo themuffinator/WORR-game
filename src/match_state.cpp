@@ -17,9 +17,9 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "g_local.hpp"
-#include "g_match_grace_scope.hpp"
+#include "match_grace_scope.hpp"
 #include "command_registration.hpp"
-#include "g_match_state_utils.hpp"
+#include "match_state_utils.hpp"
 #include "match_state_helper.hpp"
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
