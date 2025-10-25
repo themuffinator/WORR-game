@@ -1339,19 +1339,41 @@ void SetStats(gentity_t *ent) {
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = 0;
 	}
 
-	if (deathmatch->integer) {
-		ent->client->ps.stats[STAT_COUNTDOWN] = level.countdownTimerCheck.seconds<int>();
+        const bool freezeActive = Game::Is(GameType::FreezeTag);
+        bool       frozen = false;
 
-		if (ent->client->sess.pc.show_timer)
-			SetMatchTimerStats(ent);
-	} else {
-		ent->client->ps.stats[STAT_COUNTDOWN] = 0;
-	}
+        if (deathmatch->integer) {
+                int countdown = level.countdownTimerCheck.seconds<int>();
 
-	// Medal time blocking FOLLOWING tag
-	if (ent->client->pers.medalTime + 3_sec > level.time)
-		//todo
-		ent->client->ps.stats[STAT_FOLLOWING] = 0;
+                if (freezeActive && ent->client->eliminated && !ent->client->resp.thawer) {
+                        frozen = true;
+
+                        if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
+                                countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
+                        } else {
+                                countdown = 0;
+                        }
+                }
+
+                ent->client->ps.stats[STAT_COUNTDOWN] = countdown;
+
+                if (ent->client->sess.pc.show_timer)
+                        SetMatchTimerStats(ent);
+        } else {
+                ent->client->ps.stats[STAT_COUNTDOWN] = 0;
+        }
+
+        if (freezeActive && frozen) {
+                ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+                gi.configString(CONFIG_MATCH_STATE2, "Frozen - waiting for thaw");
+        } else {
+                ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
+        }
+
+        // Medal time blocking FOLLOWING tag
+        if (ent->client->pers.medalTime + 3_sec > level.time)
+                //todo
+                ent->client->ps.stats[STAT_FOLLOWING] = 0;
 	else
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 }

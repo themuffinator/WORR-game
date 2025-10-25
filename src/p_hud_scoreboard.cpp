@@ -268,13 +268,35 @@ static void AddPlayerEntry(
 	entry.clear();
 
 	// === Score/ping line ===
-	fmt::format_to(std::back_inserter(entry),
-		"client {} {} {} {} {} {} ",
-		x, y, clientNum, cl->resp.score, std::min(cl->ping, 999), 0);
+        fmt::format_to(std::back_inserter(entry),
+                "client {} {} {} {} {} {} ",
+                x, y, clientNum, cl->resp.score, std::min(cl->ping, 999), 0);
 
-	if (layout.size() + entry.size() >= MAX_STRING_CHARS)
-		return;
-	layout += entry;
+        if (layout.size() + entry.size() >= MAX_STRING_CHARS)
+                return;
+        layout += entry;
+
+        if (Game::Is(GameType::FreezeTag)) {
+                std::string extra;
+
+                if (cl->eliminated && !cl->resp.thawer) {
+                        fmt::format_to(std::back_inserter(extra),
+                                "xv {} yv {} string \"FROZEN\" ",
+                                x + 96, y);
+                }
+
+                if (cl->resp.thawed > 0) {
+                        fmt::format_to(std::back_inserter(extra),
+                                "xv {} yv {} string \"TH:{}\" ",
+                                x + 96, y + 8, cl->resp.thawed);
+                }
+
+                if (!extra.empty()) {
+                        if (layout.size() + extra.size() >= MAX_STRING_CHARS)
+                                return;
+                        layout += extra;
+                }
+        }
 }
 
 /*

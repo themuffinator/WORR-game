@@ -3629,6 +3629,7 @@ constexpr SpawnFlags SPAWNFLAG_CHANGELEVEL_FADE_OUT = 32_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_CHANGELEVEL_IMMEDIATE_LEAVE = 64_spawnflag;
 
 void ClientRespawn(gentity_t *ent);
+void FreezeTag_ForceRespawn(gentity_t *ent);
 void BeginIntermission(gentity_t *targ);
 void ClientSpawn(gentity_t *ent);
 void InitClientPersistant(gentity_t *ent, gclient_t *client);

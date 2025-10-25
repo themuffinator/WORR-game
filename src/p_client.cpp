@@ -1286,9 +1286,9 @@ GibPlayer
 ==================
 */
 static void GibPlayer(gentity_t* self, int damage) {
-	if (self->flags & FL_NOGIB) {
-		return;
-	}
+        if (self->flags & FL_NOGIB) {
+                return;
+        }
 
 	// 1) udeath sound
 	gi.sound(self,
@@ -1379,6 +1379,171 @@ static void GibPlayer(gentity_t* self, int damage) {
 					GIB_NONE } });
 		}
 	}
+}
+
+static inline bool FreezeTag_IsActive() {
+        return Game::Is(GameType::FreezeTag) && !level.intermission.time;
+}
+
+static inline bool FreezeTag_IsFrozen(const gentity_t* ent) {
+        return FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated;
+}
+
+static GameTime FreezeTag_Duration() {
+        if (!g_frozen_time)
+                return 0_ms;
+
+        return GameTime::from_sec(std::max(0.0f, g_frozen_time->value));
+}
+
+static void FreezeTag_ResetState(gclient_t* cl) {
+        if (!cl)
+                return;
+
+        cl->freeze.frozenTime = 0_ms;
+        cl->freeze.thawTime = 0_ms;
+        cl->resp.thawer = nullptr;
+}
+
+static void FreezeTag_StartFrozenState(gentity_t* ent) {
+        if (!ent || !ent->client)
+                return;
+
+        gclient_t* cl = ent->client;
+
+        cl->eliminated = true;
+        cl->resp.thawer = nullptr;
+        cl->freeze.frozenTime = level.time;
+
+        const GameTime thawDuration = FreezeTag_Duration();
+
+        if (thawDuration > 0_ms) {
+                cl->freeze.thawTime = level.time + thawDuration;
+                cl->respawnMinTime = cl->freeze.thawTime;
+                cl->respawnMaxTime = cl->freeze.thawTime;
+        }
+        else {
+                cl->freeze.thawTime = 0_ms;
+                const GameTime hold = level.time + 86400_sec;
+                cl->respawnMinTime = hold;
+                cl->respawnMaxTime = hold;
+        }
+}
+
+static bool FreezeTag_CanThawTarget(gentity_t* thawer, gentity_t* frozen) {
+        if (!FreezeTag_IsActive())
+                return false;
+
+        if (!thawer || !thawer->client || !frozen || !frozen->client)
+                return false;
+
+        if (!ClientIsPlaying(thawer->client) || thawer->client->eliminated)
+                return false;
+
+        if (!ClientIsPlaying(frozen->client) || !frozen->client->eliminated)
+                return false;
+
+        if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
+                return false;
+
+        if (frozen->client->resp.thawer)
+                return false;
+
+        return true;
+}
+
+static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
+        if (!FreezeTag_IsActive() || !thawer || !thawer->client)
+                return nullptr;
+
+        constexpr float THAW_RANGE = 96.0f;
+
+        Vector3 forward;
+        AngleVectors(thawer->client->vAngle, forward, nullptr, nullptr);
+
+        Vector3 eyeOrigin = thawer->s.origin + thawer->client->ps.viewOffset +
+                Vector3{ 0, 0, static_cast<float>(thawer->client->ps.pmove.viewHeight) };
+
+        trace_t tr = gi.traceLine(eyeOrigin, eyeOrigin + forward * THAW_RANGE, thawer, MASK_SHOT);
+        if (tr.ent && FreezeTag_CanThawTarget(thawer, tr.ent))
+                return tr.ent;
+
+        gentity_t* best = nullptr;
+        float       bestDot = 0.0f;
+
+        for (gentity_t* candidate : active_clients()) {
+                if (!FreezeTag_CanThawTarget(thawer, candidate))
+                        continue;
+
+                Vector3 toTarget = candidate->s.origin - thawer->s.origin;
+                const float distance = toTarget.length();
+                if (distance > THAW_RANGE)
+                        continue;
+
+                Vector3 dir = toTarget.normalized();
+                const float dot = dir.dot(forward);
+                if (dot < 0.35f)
+                        continue;
+
+                if (gi.traceLine(eyeOrigin, candidate->s.origin, thawer, MASK_SHOT).fraction != 1.0f)
+                        continue;
+
+                if (!best || dot > bestDot) {
+                        best = candidate;
+                        bestDot = dot;
+                }
+        }
+
+        return best;
+}
+
+static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
+        if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
+                return;
+
+        gclient_t* fcl = frozen->client;
+
+        if (thawer == frozen)
+                thawer = nullptr;
+
+        fcl->resp.thawer = thawer;
+
+        if (thawer && thawer->client && awardScore) {
+                ++thawer->client->resp.thawed;
+                G_AdjustPlayerScore(thawer->client, 1, false, 0);
+                gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
+        }
+
+        if (thawer && thawer->client) {
+                gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
+        }
+        else if (autoThaw) {
+                gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
+        }
+
+        MeansOfDeath thawMod{ ModID::Thaw, false };
+        frozen->lastMOD = thawMod;
+
+        if (frozen->health > frozen->gibHealth)
+                frozen->health = frozen->gibHealth - 1;
+
+        GibPlayer(frozen, 400);
+        ThrowClientHead(frozen, 400);
+
+        fcl->freeze.thawTime = 0_ms;
+        fcl->freeze.frozenTime = 0_ms;
+        fcl->eliminated = false;
+        fcl->respawnMinTime = level.time;
+        fcl->respawnMaxTime = level.time;
+
+        ClientRespawn(frozen);
+}
+
+void FreezeTag_ForceRespawn(gentity_t* ent) {
+        if (!FreezeTag_IsFrozen(ent))
+                return;
+
+        FreezeTag_ThawPlayer(nullptr, ent, false, true);
 }
 
 /*
@@ -1605,11 +1770,18 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
                 }
         }
 
-	G_LogDeathEvent(self, attacker, mod);
+        if (FreezeTag_IsActive()) {
+                FreezeTag_StartFrozenState(self);
+        }
+        else {
+                FreezeTag_ResetState(self->client);
+        }
 
-	self->deadFlag = true;
+        G_LogDeathEvent(self, attacker, mod);
 
-	gi.linkEntity(self);
+        self->deadFlag = true;
+
+        gi.linkEntity(self);
 }
 
 //=======================================================================
@@ -2084,11 +2256,19 @@ void G_PostRespawn(gentity_t* self) {
 }
 
 void ClientRespawn(gentity_t* ent) {
-	if (deathmatch->integer || coop->integer) {
-		// spectators don't leave bodies
-		if (ClientIsPlaying(ent->client))
-			CopyToBodyQue(ent);
-		ent->svFlags &= ~SVF_NOCLIENT;
+        if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
+                const bool gibbed = ent->health <= ent->gibHealth;
+                if (!ent->client->resp.thawer && !gibbed)
+                        return;
+
+                ent->client->eliminated = false;
+        }
+
+        if (deathmatch->integer || coop->integer) {
+                // spectators don't leave bodies
+                if (ClientIsPlaying(ent->client))
+                        CopyToBodyQue(ent);
+                ent->svFlags &= ~SVF_NOCLIENT;
 
 		if (Game::Is(GameType::RedRover) && level.matchState == MatchState::In_Progress) {
 			ent->client->sess.team = Teams_OtherTeam(ent->client->sess.team);
@@ -2096,13 +2276,16 @@ void ClientRespawn(gentity_t* ent) {
 			AssignPlayerSkin(ent, ent->client->sess.skinName);
 		}
 
-		ClientSpawn(ent);
-		G_PostRespawn(ent);
-		return;
-	}
+                ClientSpawn(ent);
+                G_PostRespawn(ent);
 
-	// restart the entire server
-	gi.AddCommandString("menu_loadgame\n");
+                if (FreezeTag_IsActive())
+                        FreezeTag_ResetState(ent->client);
+                return;
+        }
+
+        // restart the entire server
+        gi.AddCommandString("menu_loadgame\n");
 }
 
 //==============================================================
@@ -3760,15 +3943,22 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	// [Paril-KEX] pass buttons through even if we are in intermission or
 	// chasing.
 	cl->oldButtons = cl->buttons;
-	cl->buttons = ucmd->buttons;
-	cl->latchedButtons |= cl->buttons & ~cl->oldButtons;
-	cl->cmd = *ucmd;
+        cl->buttons = ucmd->buttons;
+        cl->latchedButtons |= cl->buttons & ~cl->oldButtons;
+        cl->cmd = *ucmd;
 
-	if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
-		if (!ClientIsPlaying(cl) && (!cl->sess.initialised || cl->sess.inactiveStatus)) {
-			if (ent == host) {
-				if (!g_autoScreenshotTool->integer) {
-					if (g_owner_push_scores->integer)
+        if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
+                if (gentity_t* target = FreezeTag_FindFrozenTarget(ent))
+                        FreezeTag_ThawPlayer(ent, target, true, false);
+
+                cl->latchedButtons &= ~BUTTON_USE;
+        }
+
+        if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
+                if (!ClientIsPlaying(cl) && (!cl->sess.initialised || cl->sess.inactiveStatus)) {
+                        if (ent == host) {
+                                if (!g_autoScreenshotTool->integer) {
+                                        if (g_owner_push_scores->integer)
 						Commands::Score(ent, CommandArgs{});
 					else OpenJoinMenu(ent);
 				}
@@ -4341,13 +4531,20 @@ void ClientBeginServerFrame(gentity_t* ent) {
 	if (level.intermission.time)
 		return;
 
-	client = ent->client;
+        client = ent->client;
 
-	if (client->awaitingRespawn) {
-		if ((level.time.milliseconds() % 500) == 0)
-			ClientSpawn(ent);
-		return;
-	}
+        if (FreezeTag_IsActive() && client->eliminated && !client->resp.thawer) {
+                if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+                        FreezeTag_ThawPlayer(nullptr, ent, false, true);
+                        return;
+                }
+        }
+
+        if (client->awaitingRespawn) {
+                if ((level.time.milliseconds() % 500) == 0)
+                        ClientSpawn(ent);
+                return;
+        }
 
 	if ((ent->svFlags & SVF_BOT) != 0) {
 		Bot_BeginFrame(ent);
