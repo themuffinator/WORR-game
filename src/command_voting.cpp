@@ -378,31 +378,44 @@ namespace Commands {
                 return s_voteDefinitions;
         }
 
-        bool TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
+        VoteLaunchResult TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
+                VoteLaunchResult result;
+
                 if (!g_allowVoting || !g_allowVoting->integer) {
-                        return false;
+                        result.message = "Voting is disabled on this server.";
+                        return result;
                 }
-                if (level.vote.time || level.vote.executeTime || level.restarted) {
-                        return false;
+                if (level.vote.time) {
+                        result.message = "A vote is already in progress.";
+                        return result;
+                }
+                if (level.vote.executeTime || level.restarted) {
+                        result.message = "Cannot start a vote right now.";
+                        return result;
                 }
                 if (!g_allowVoteMidGame->integer && level.matchState >= MatchState::Countdown) {
-                        return false;
+                        result.message = "Voting is only allowed during warmup.";
+                        return result;
                 }
                 if (g_vote_limit->integer && ent->client->pers.vote_count >= g_vote_limit->integer) {
-                        return false;
+                        result.message = std::format("You have called the maximum number of votes ({}).", g_vote_limit->integer);
+                        return result;
                 }
                 if (!ClientIsPlaying(ent->client) && !g_allowSpecVote->integer) {
-                        return false;
+                        result.message = "Spectators cannot call a vote on this server.";
+                        return result;
                 }
 
                 auto it = s_voteCommands.find(voteName);
                 if (it == s_voteCommands.end()) {
-                        return false;
+                        result.message = std::format("Invalid vote command: '{}'.", voteName);
+                        return result;
                 }
 
                 const VoteCommand& found_cmd = it->second;
                 if ((g_vote_flags->integer & found_cmd.flag) == 0) {
-                        return false;
+                        result.message = "That vote type is disabled on this server.";
+                        return result;
                 }
 
                 level.vote_flags_enable = 0;
@@ -427,11 +440,12 @@ namespace Commands {
 
                 CommandArgs manualArgs(std::move(args));
                 if (manualArgs.count() < (1 + found_cmd.minArgs)) {
-                        return false;
+                        result.message = "Not enough parameters supplied for that vote.";
+                        return result;
                 }
 
                 if (!found_cmd.validate || !found_cmd.validate(ent, manualArgs)) {
-                        return false;
+                        return result;
                 }
 
                 std::string displayArg = voteArgStr;
@@ -442,10 +456,8 @@ namespace Commands {
                         std::string parseError;
                         auto parsed = ParseMapVoteArguments(splitTokens, parseError);
                         if (!parsed) {
-                                if (!parseError.empty()) {
-                                        gi.LocClient_Print(ent, PRINT_HIGH, "{}\n", parseError.c_str());
-                                }
-                                return false;
+                                result.message = parseError.empty() ? "Unable to parse map vote arguments." : parseError;
+                                return result;
                         }
 
                         level.vote_flags_enable = parsed->enableFlags;
@@ -461,7 +473,8 @@ namespace Commands {
                 }
 
                 VoteCommandStore(ent, &found_cmd, storedArg, displayArg);
-                return true;
+                result.success = true;
+                return result;
         }
 
 
