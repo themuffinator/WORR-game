@@ -206,7 +206,8 @@ static void P_DamageFeedback(gentity_t* player) {
 	float kick = static_cast<float>(std::abs(client->damage.knockback));
 	if (kick > 0.0f && player->health > 0) {
 		kick = kick * 100.0f / player->health;
-		kick = std::clamp(kick, count * 0.5f, 50.0f);
+		const float minKick = std::min(count * 0.5f, 50.0f);
+		kick = std::clamp(kick, minKick, 50.0f);
 
 		Vector3 dir = (client->damage.origin - player->s.origin).normalized();
 		client->feedback.vDamageRoll = kick * dir.dot(right) * 0.3f;
