@@ -512,6 +512,12 @@ void G_RevertVote(gclient_t *client) {
         client->pers.voted = 0;
 
         if (level.vote.client == client) {
+                if (level.vote.executeTime > 0_sec) {
+                        // Keep the scheduled execution intact for already-passed votes.
+                        level.vote.client = nullptr;
+                        return;
+                }
+
                 gi.Broadcast_Print(PRINT_HIGH, "Vote cancelled because the caller disconnected.\n");
                 AnnouncerSound(world, "vote_failed");
                 ResetActiveVoteState();
