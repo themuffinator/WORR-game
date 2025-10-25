@@ -328,9 +328,34 @@ namespace Commands {
                         return false;
                 }
 
+                level.vote_flags_enable = 0;
+                level.vote_flags_disable = 0;
+
+                std::string storedArgBuffer;
                 std::string_view storedArg;
-                if (manualArgs.count() >= 3) {
-                        storedArg = manualArgs.getString(2);
+
+                if (found_cmd.name == "map") {
+                        std::vector<std::string> mapArgs;
+                        for (int i = 2; i < manualArgs.count(); ++i) {
+                                mapArgs.emplace_back(manualArgs.getString(i));
+                        }
+
+                        std::string parseError;
+                        auto parsed = ParseMapVoteArguments(mapArgs, parseError);
+                        if (!parsed) {
+                                return false;
+                        }
+
+                        storedArgBuffer = std::move(parsed->mapName);
+                        displayArg = std::move(parsed->displayArg);
+                        level.vote_flags_enable = parsed->enableFlags;
+                        level.vote_flags_disable = parsed->disableFlags;
+                        storedArg = storedArgBuffer;
+                }
+                else {
+                        if (manualArgs.count() >= 3) {
+                                storedArg = manualArgs.getString(2);
+                        }
                 }
 
                 VoteCommandStore(ent, &found_cmd, storedArg, displayArg);
