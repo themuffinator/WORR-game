@@ -1391,8 +1391,8 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 		if (!ec || !ec->client)
 			continue;
 
-		if (!ClientIsPlaying(ec->client))
-			continue;
+        if (stats.playerName.empty())
+                return false;
 
 		const char *rawName = ec->client->sess.netName;
 		if (!rawName) {
@@ -1429,6 +1429,7 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 		}
 	}
 }
+
 
 /*
 =============
