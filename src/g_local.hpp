@@ -224,7 +224,7 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 	{GameType::OneFlag,        "oneflag",  "ONEFLAG",  "One Flag",            "1f",			GameFlags::Teams | GameFlags::CTF},
 	{GameType::Harvester,      "har",      "HAR",      "Harvester",           "har",		GameFlags::Teams | GameFlags::CTF},
 	{GameType::Overload,       "overload", "OVLD",     "Overload",            "obelisk",	GameFlags::Teams | GameFlags::CTF},
-	{GameType::FreezeTag,      "ft",       "FT",       "Freeze Tag",          "freeze",		GameFlags::Teams | GameFlags::Elimination},
+	{GameType::FreezeTag,      "ft",       "FT",       "Freeze Tag",          "freeze",		GameFlags::Teams | GameFlags::Rounds | GameFlags::Elimination},
 	{GameType::CaptureStrike,  "strike",   "STRIKE",   "CaptureStrike",       "strike",		GameFlags::Teams | GameFlags::Arena | GameFlags::Rounds | GameFlags::CTF | GameFlags::Elimination},
 	{GameType::RedRover,       "rr",       "REDROVER", "Red Rover",           "rr",			GameFlags::Teams | GameFlags::Rounds | GameFlags::Arena},
 	{GameType::LastManStanding,"lms",      "LMS",      "Last Man Standing",   "lms",		GameFlags::Elimination},
