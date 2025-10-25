@@ -708,9 +708,9 @@ static bool ApplyDamage(
 			}
 
 			// freeze tag: do not gib unless thawing logic demands
-			if (Game::Is(GameType::FreezeTag) && mod.id != ModID::Thaw && targ->health <= targ->gibHealth) {
-				targ->health = targ->gibHealth + 1;
-			}
+                        if (Game::Is(GameType::FreezeTag) && mod.id != ModID::Thaw && targ->health <= targ->gibHealth && attacker && attacker->client) {
+                                targ->health = targ->gibHealth + 1;
+                        }
 		}
 
 		// record monster damage meta
@@ -1036,8 +1036,14 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	}
 
 	// actually apply the damage; can kill
-	if (ApplyDamage(targ, inflictor, attacker, targCl, take, knockback, point, normal, mod, tempEvent, sphereNotified))
-		return;
+        if (ApplyDamage(targ, inflictor, attacker, targCl, take, knockback, point, normal, mod, tempEvent, sphereNotified))
+                return;
+
+        if (Game::Is(GameType::FreezeTag) && !level.intermission.time && targCl && targCl->eliminated &&
+                targ->health <= targ->gibHealth && (!attacker || !attacker->client)) {
+                FreezeTag_ForceRespawn(targ);
+                return;
+        }
 
 	// spheres need to know the attacker to retaliate
 	if (!sphereNotified && targCl && targCl->ownedSphere && targCl->ownedSphere->pain)
