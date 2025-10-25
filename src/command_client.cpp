@@ -286,11 +286,19 @@ namespace Commands {
 			}
 		}
                 else {
-                        it = FindItem(itemQuery.c_str());
+                        it = FindItem(arg1.data());
+
+                        if (!it) {
+                                if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
+                                        if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
+                                                it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
+                                        }
+                                }
+                        }
                 }
 
                 if (!it) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", itemQuery.c_str());
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
                         return;
                 }
 
