@@ -18,6 +18,13 @@
 
 #include "g_local.hpp"
 #include "command_registration.hpp"
+#include "match_state_helper.hpp"
+
+using LevelMatchTransition = MatchStateTransition<LevelLocals>;
+
+static void SetMatchState(LevelMatchTransition transition) {
+        ApplyMatchState(level, transition);
+}
 
 /*
 =================
@@ -928,14 +935,17 @@ Match_Reset
 ============
 */
 void Match_Reset() {
-	if (!warmup_enabled->integer) {
-		level.levelStartTime = level.time;
-		level.matchState = MatchState::In_Progress;
-		level.warmupState = WarmupState::Default;
-		level.warmupNoticeTime = 0_sec;
-		level.matchStateTimer = 0_sec;
-		return;
-	}
+        if (!warmup_enabled->integer) {
+                level.levelStartTime = level.time;
+                // Transition: warmup disabled -> immediate in-progress gameplay.
+                SetMatchState(LevelMatchTransition{
+                        MatchState::In_Progress,
+                        0_sec,
+                        std::optional<WarmupState>{WarmupState::Default},
+                        std::optional<GameTime>{0_sec}
+                });
+                return;
+        }
 
 	Entities_Reset(true, true, true);
 	UnReadyAll();
@@ -943,10 +953,14 @@ void Match_Reset() {
 	level.matchStartRealTime = GetCurrentRealTimeMillis();
 	level.matchEndRealTime = 0;
 	level.levelStartTime = level.time;
-	level.matchState = MatchState::Warmup_Default;
-	level.warmupState = WarmupState::Default;
-	level.warmupNoticeTime = 0_sec;
-	level.matchStateTimer = 0_sec;
+        // Transition: reset -> default warmup lobby before players ready up.
+        SetMatchState(LevelMatchTransition{
+                MatchState::Warmup_Default,
+                0_sec,
+                std::optional<WarmupState>{WarmupState::Default},
+                std::optional<GameTime>{0_sec},
+                std::optional<bool>{false}
+        });
 	level.intermission.queued = 0_sec;
 	level.intermission.postIntermission = false;
 	level.intermission.time = 0_sec;
@@ -1176,13 +1190,17 @@ static void CheckDMWarmupState() {
 	const int min_players = duel ? 2 : minplayers->integer;
 
 	// Handle no players
-	if (!level.pop.num_playing_clients) {
-		if (level.matchState != MatchState::None) {
-			level.matchState = MatchState::None;
-			level.matchStateTimer = 0_sec;
-			level.warmupState = WarmupState::Default;
-			level.warmupNoticeTime = 0_sec;
-		}
+        if (!level.pop.num_playing_clients) {
+                if (level.matchState != MatchState::None) {
+                        // Transition: all players left -> return to idle state.
+                        SetMatchState(LevelMatchTransition{
+                                MatchState::None,
+                                0_sec,
+                                std::optional<WarmupState>{WarmupState::Default},
+                                std::optional<GameTime>{0_sec},
+                                std::optional<bool>{false}
+                        });
+                }
 
 		// Pull in idle bots
 		for (auto ec : active_clients())
@@ -1204,13 +1222,17 @@ static void CheckDMWarmupState() {
 	}
 
 	// Trigger initial delayed warmup on fresh map
-	if (level.matchState == MatchState::None) {
-		level.matchState = MatchState::Initial_Delay;
-		level.matchStateTimer = level.time + 5_sec;
-		level.warmupState = WarmupState::Default;
-		level.warmupNoticeTime = level.time;
-		return;
-	}
+        if (level.matchState == MatchState::None) {
+                // Transition: idle -> initial warmup delay after map load.
+                SetMatchState(LevelMatchTransition{
+                        MatchState::Initial_Delay,
+                        level.time + 5_sec,
+                        std::optional<WarmupState>{WarmupState::Default},
+                        std::optional<GameTime>{level.time},
+                        std::optional<bool>{false}
+                });
+                return;
+        }
 
 	// Wait for delayed warmup to trigger
 	if (level.matchState == MatchState::Initial_Delay &&
@@ -1243,29 +1265,39 @@ static void CheckDMWarmupState() {
 				gi.LocBroadcast_Print(PRINT_CENTER, ".Countdown cancelled: {}\n", reason);
 			}
 
-			if (level.matchState != MatchState::Warmup_Default) {
-				level.matchState = MatchState::Warmup_Default;
-				level.matchStateTimer = 0_sec;
-				level.warmupState = teamsImbalanced ? WarmupState::Teams_Imbalanced : WarmupState::Too_Few_Players;
-				level.warmupNoticeTime = level.time;
-			}
-		}
+                        if (level.matchState != MatchState::Warmup_Default) {
+                                // Transition: countdown cancelled -> communicate imbalance reason.
+                                SetMatchState(LevelMatchTransition{
+                                        MatchState::Warmup_Default,
+                                        0_sec,
+                                        std::optional<WarmupState>{teamsImbalanced ? WarmupState::Teams_Imbalanced : WarmupState::Too_Few_Players},
+                                        std::optional<GameTime>{level.time},
+                                        std::optional<bool>{false}
+                                });
+                        }
+                }
 		return;
 	}
 
 	// If we're in default warmup and ready-up is required
-	if (level.matchState == MatchState::Warmup_Default) {
-		if (!warmup_enabled->integer && g_warmup_countdown->integer <= 0) {
-			level.matchState = MatchState::Countdown;
-			level.matchStateTimer = 0_sec;
-		} else {
-			// Transition to ready-up
-			level.matchState = MatchState::Warmup_ReadyUp;
-			level.matchStateTimer = 0_sec;
-			level.warmupState = WarmupState::Not_Ready;
-			level.warmupNoticeTime = level.time;
+        if (level.matchState == MatchState::Warmup_Default) {
+                if (!warmup_enabled->integer && g_warmup_countdown->integer <= 0) {
+                        // Transition: warmup disabled but countdown allowed -> start countdown immediately.
+                        SetMatchState(LevelMatchTransition{
+                                MatchState::Countdown,
+                                0_sec
+                        });
+                } else {
+                        // Transition to ready-up
+                        SetMatchState(LevelMatchTransition{
+                                MatchState::Warmup_ReadyUp,
+                                0_sec,
+                                std::optional<WarmupState>{WarmupState::Not_Ready},
+                                std::optional<GameTime>{level.time},
+                                std::optional<bool>{false}
+                        });
 
-			if (!duel) {
+                        if (!duel) {
 				// Pull in bots
 				for (auto ec : active_clients())
 					if (!ClientIsPlaying(ec->client) && ec->client->sess.is_a_bot)
@@ -1278,30 +1310,35 @@ static void CheckDMWarmupState() {
 	}
 
 	// Cancel countdown if warmup settings changed
-	if (level.matchState <= MatchState::Countdown &&
-		g_warmup_countdown->modifiedCount != level.warmupModificationCount) {
-		level.warmupModificationCount = g_warmup_countdown->modifiedCount;
-		level.matchState = MatchState::Warmup_Default;
-		level.warmupState = WarmupState::Default;
-		level.matchStateTimer = 0_sec;
-		level.warmupNoticeTime = 0_sec;
-		level.prepare_to_fight = false;
-		return;
-	}
+        if (level.matchState <= MatchState::Countdown &&
+                g_warmup_countdown->modifiedCount != level.warmupModificationCount) {
+                level.warmupModificationCount = g_warmup_countdown->modifiedCount;
+                // Transition: configuration changed -> reset warmup messaging.
+                SetMatchState(LevelMatchTransition{
+                        MatchState::Warmup_Default,
+                        0_sec,
+                        std::optional<WarmupState>{WarmupState::Default},
+                        std::optional<GameTime>{0_sec},
+                        std::optional<bool>{false}
+                });
+                return;
+        }
 
 	// Ready-up check
 	if (level.matchState == MatchState::Warmup_ReadyUp) {
 		if (!CheckReady())
 			return;
 
-		if (g_warmup_countdown->integer > 0) {
-			level.matchState = MatchState::Countdown;
-			level.warmupState = WarmupState::Default;
-			level.warmupNoticeTime = 0_sec;
+                if (g_warmup_countdown->integer > 0) {
+                        // Transition: ready-up complete -> begin countdown.
+                        SetMatchState(LevelMatchTransition{
+                                MatchState::Countdown,
+                                level.time + GameTime::from_sec(g_warmup_countdown->integer),
+                                std::optional<WarmupState>{WarmupState::Default},
+                                std::optional<GameTime>{0_sec}
+                        });
 
-			level.matchStateTimer = level.time + GameTime::from_sec(g_warmup_countdown->integer);
-
-			if ((duel || (level.pop.num_playing_clients == 2 && match_lock->integer)) &&
+                        if ((duel || (level.pop.num_playing_clients == 2 && match_lock->integer)) &&
 				game.clients[level.sortedClients[0]].pers.connected &&
 				game.clients[level.sortedClients[1]].pers.connected) {
 				gi.LocBroadcast_Print(PRINT_CENTER, "{} vs {}\nBegins in...",
