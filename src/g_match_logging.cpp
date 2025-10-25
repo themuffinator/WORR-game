@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <json/json.h>
 #include <unordered_set>
+#include <string_view>
 
 using json = Json::Value;
 
@@ -1387,25 +1388,37 @@ MatchStats_WriteAll
 */
 static void SendIndividualMiniStats(const MatchStats &matchStats) {
 	for (auto ec : active_players()) {
-		if (!ec || !ec->client)	// || ec->client->sess.netName[0] == '\0')
+		if (!ec || !ec->client)
 			continue;
 
 		if (!ClientIsPlaying(ec->client))
 			continue;
 
-		const char *name = ec->client->sess.netName;
+		const char *rawName = ec->client->sess.netName;
+		if (!rawName) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
+			continue;
+		}
+
+		std::string_view name(rawName);
+		if (name.empty()) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
+			continue;
+		}
 
 		for (const PlayerStats &p : matchStats.players) {
-			if (_stricmp(p.playerName.c_str(), name) != 0)
+			if (p.playerName.empty())
+				continue;
+
+			if (_stricmp(p.playerName.c_str(), name.data()) != 0)
 				continue;
 
 			std::string msg;
 			msg += ":: Match Summary ::\n";
-			msg += G_Fmt("{} - ", name);
+			msg += G_Fmt("{} - ", rawName);
 			msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
 
-			double kdr = (p.totalDeaths > 0) ? (double)p.totalKills / p.totalDeaths : (double)p.totalKills;
-			msg += G_Fmt(" | K/D Ratio: {:.2f}", kdr);
+                        msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
 			/*
 			double total = p.totalKills + p.totalAssists + p.totalDeaths;
 			double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
@@ -1484,8 +1497,9 @@ void MatchStats_End() {
 			p.totalKills = cl->pers.match.totalKills;
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
-			p.totalDeaths = cl->pers.match.totalDeaths;
-			p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.totalDeaths = cl->pers.match.totalDeaths;
+                        p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.calculateKDR();
 			p.totalScore = cl->resp.score;
 			p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
