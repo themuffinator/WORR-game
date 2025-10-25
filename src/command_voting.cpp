@@ -250,10 +250,15 @@ namespace Commands {
 
                 std::string_view effectiveArg = displayArg.empty() ? arg : displayArg;
 
+                std::string argSuffix;
+                if (!effectiveArg.empty()) {
+                        argSuffix = std::format(" {}", effectiveArg);
+                }
+
                 gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
                         level.vote.client->sess.netName,
                         vote_cmd->name.data(),
-                        effectiveArg.empty() ? "" : std::format(" {}", effectiveArg).c_str());
+                        argSuffix.empty() ? "" : argSuffix.c_str());
 
 		for (auto ec : active_clients()) {
 			ec->client->pers.voted = (ec == ent) ? 1 : 0;
