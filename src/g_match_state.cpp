@@ -17,6 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "g_local.hpp"
+#include "g_match_grace_scope.hpp"
 #include "command_registration.hpp"
 
 /*
@@ -1538,7 +1539,9 @@ Evaluates end-of-match rules for deathmatch, including:
 =================
 */
 void CheckDMExitRules() {
-	constexpr auto GRACE_TIME = 200_ms;
+        constexpr auto GRACE_TIME = 200_ms;
+
+        EndmatchGraceScope<GameTime> graceScope(level.endmatch_grace, 0_ms);
 
 	if (level.intermission.time) {
 		CheckDMIntermissionExit();
@@ -1590,10 +1593,11 @@ void CheckDMExitRules() {
 	}
 
 	// --- No human players remaining ---
-	if (!match_startNoHumans->integer && !level.pop.num_playing_human_clients) {
-		if (!level.endmatch_grace) {
-			level.endmatch_grace = level.time;
-			return;
+        if (!match_startNoHumans->integer && !level.pop.num_playing_human_clients) {
+                graceScope.MarkConditionActive();
+                if (!level.endmatch_grace) {
+                        level.endmatch_grace = level.time;
+                        return;
 		}
 		if (level.time > level.endmatch_grace + GRACE_TIME) {
 			QueueIntermission("No human players remaining.", true, false);
@@ -1602,10 +1606,11 @@ void CheckDMExitRules() {
 	}
 
 	// --- Not enough players for match ---
-	if (minplayers->integer > 0 && level.pop.num_playing_clients < minplayers->integer) {
-		if (!level.endmatch_grace) {
-			level.endmatch_grace = level.time;
-			return;
+        if (minplayers->integer > 0 && level.pop.num_playing_clients < minplayers->integer) {
+                graceScope.MarkConditionActive();
+                if (!level.endmatch_grace) {
+                        level.endmatch_grace = level.time;
+                        return;
 		}
 		if (level.time > level.endmatch_grace + GRACE_TIME) {
 			QueueIntermission("Not enough players remaining.", true, false);
@@ -1616,10 +1621,11 @@ void CheckDMExitRules() {
 	// --- Team imbalance enforcement ---
 	if (teams && g_teamplay_force_balance->integer) {
 		int diff = abs(level.pop.num_playing_red - level.pop.num_playing_blue);
-		if (diff > 1) {
-			if (g_teamplay_auto_balance->integer) {
-				TeamBalance(true);
-			}
+                if (diff > 1) {
+                        graceScope.MarkConditionActive();
+                        if (g_teamplay_auto_balance->integer) {
+                                TeamBalance(true);
+                        }
 			else {
 				if (!level.endmatch_grace) {
 					level.endmatch_grace = level.time;
