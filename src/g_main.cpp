@@ -1558,7 +1558,7 @@ static void PreExitLevel() {
         if (level.time < level.intermission.postIntermissionTime + 2_sec)
                 return;
 
-        ExitLevel();
+	ExitLevel(true);
 }
 
 /*
