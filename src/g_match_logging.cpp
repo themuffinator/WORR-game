@@ -17,6 +17,7 @@
 //   to generate a unique match ID and reset all statistical counters.
 
 #include "g_local.hpp"
+#include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
@@ -1452,12 +1453,13 @@ void MatchStats_End() {
 		return;
 	}
 
-	try {
+		try {
 		matchStats.matchID = level.matchID;
-		matchStats.gameType = Game::GetCurrentInfo().short_name_upper.data();
+		matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
 		matchStats.ruleSet = rs_long_name[game.ruleset];
 		matchStats.serverName = hostname->string;
-		matchStats.mapName = level.mapName.data();
+		const auto mapNameEnd = std::find(level.mapName.begin(), level.mapName.end(), '\0');
+		matchStats.mapName.assign(level.mapName.begin(), mapNameEnd);
 		matchStats.ranked = "false";
 		matchStats.totalKills = level.match.totalKills;
 		matchStats.totalSpawnKills = level.match.totalSpawnKills;
