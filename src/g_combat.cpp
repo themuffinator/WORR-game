@@ -19,6 +19,7 @@
 //   damage falloff and checking line-of-sight to affected entities.
 
 #include "g_local.hpp"
+#include "freezetag_damage.hpp"
 
 /*
 ============
@@ -883,15 +884,27 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 
 	damage = std::max(1, damage);
 
-	int take = damage;
-	int save = 0;
+        int take = damage;
+        int save = 0;
 
-	// global get-out clauses
-	CheckDamageProtection(targ, targCl, attacker, take, save, damage, dFlags, point, normal, mod, tempEvent);
+        FreezeTagDamageQuery freezeQuery{};
+        freezeQuery.freezeTagActive = Game::Is(GameType::FreezeTag);
+        freezeQuery.targetEliminated = (targCl && targCl->eliminated);
+        freezeQuery.targetThawing = (targCl && targCl->resp.thawer);
+        freezeQuery.attackerHasClient = (attacker && attacker->client);
+        freezeQuery.modIsThaw = (mod.id == ModID::Thaw);
 
-	// vampiric healing
-	if (g_vampiric_damage->integer && targ->health > 0 &&
-		attacker && attacker != targ && !OnSameTeam(targ, attacker) && take > 0) {
+        const bool freezeSuppressed = FreezeTag_ShouldSuppressDamage(freezeQuery);
+
+        // global get-out clauses
+        CheckDamageProtection(targ, targCl, attacker, take, save, damage, dFlags, point, normal, mod, tempEvent);
+
+        if (freezeSuppressed)
+                take = 0;
+
+        // vampiric healing
+        if (g_vampiric_damage->integer && targ->health > 0 &&
+                attacker && attacker != targ && !OnSameTeam(targ, attacker) && take > 0) {
 		const int   maxHP = std::clamp(g_vampiric_health_max->integer, 100, 9999);
 		const int   base = std::min(take, targ->health);
 		const float pct = std::clamp(g_vampiric_percentile->value, 0.0f, 1.0f);
@@ -904,35 +917,37 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	int armorSave = 0;
 	int powerArmorSave = 0;
 
-	if (Teams() && targCl && attacker && attacker->client &&
-		targCl->sess.team == attacker->client->sess.team && targ != attacker && g_teamplay_armor_protect->integer) {
-		// teammates do not drain armor under protect mode
-		powerArmorSave = 0;
-		armorSave = 0;
-	}
-	else {
-		if (targ == attacker && Game::Has(GameFlags::Arena) && !g_arenaSelfDmgArmor->integer) {
-			take = 0;
-			save = damage;
-		}
-		else {
-			powerArmorSave = CheckPowerArmor(targ, point, normal, take, dFlags);
-			take -= powerArmorSave;
+        if (!freezeSuppressed) {
+                if (Teams() && targCl && attacker && attacker->client &&
+                        targCl->sess.team == attacker->client->sess.team && targ != attacker && g_teamplay_armor_protect->integer) {
+                        // teammates do not drain armor under protect mode
+                        powerArmorSave = 0;
+                        armorSave = 0;
+                }
+                else {
+                        if (targ == attacker && Game::Has(GameFlags::Arena) && !g_arenaSelfDmgArmor->integer) {
+                                take = 0;
+                                save = damage;
+                        }
+                        else {
+                                powerArmorSave = CheckPowerArmor(targ, point, normal, take, dFlags);
+                                take -= powerArmorSave;
 
-			armorSave = CheckArmor(targ, point, normal, take, tempEvent, dFlags);
-			take -= armorSave;
-		}
-	}
+                                armorSave = CheckArmor(targ, point, normal, take, tempEvent, dFlags);
+                                take -= armorSave;
+                        }
+                }
+        }
 
-	// treat previous "save" like armor for HUD/indicators
-	armorSave += save;
+        // treat previous "save" like armor for HUD/indicators
+        armorSave += save;
 
-	// additional protections and powerups
-	if (!static_cast<int>(dFlags & DamageFlags::NoProtection)) {
-		if (targ == attacker && Game::Has(GameFlags::Arena)) {
-			take = 0;
-			save = 0;
-		}
+        // additional protections and powerups
+        if (!freezeSuppressed && !static_cast<int>(dFlags & DamageFlags::NoProtection)) {
+                if (targ == attacker && Game::Has(GameFlags::Arena)) {
+                        take = 0;
+                        save = 0;
+                }
 
 		// tech: disruptor shield, etc.
 		take = Tech_ApplyDisruptorShield(targ, take);
@@ -959,20 +974,21 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 		}
 	}
 
-	CTF_CheckHurtCarrier(targ, attacker);
+        if (!freezeSuppressed)
+                CTF_CheckHurtCarrier(targ, attacker);
 
-	// DamageFlags::DestroyArmor: do full damage through armor unless explicitly protected
-	if (static_cast<int>(dFlags & DamageFlags::DestroyArmor)) {
-		if (!(targ->flags & FL_GODMODE) &&
-			!static_cast<int>(dFlags & DamageFlags::NoProtection) &&
-			!(targCl && targCl->powerupTime.battleSuit > level.time)) {
-			take = damage;
-		}
-	}
+        // DamageFlags::DestroyArmor: do full damage through armor unless explicitly protected
+        if (!freezeSuppressed && static_cast<int>(dFlags & DamageFlags::DestroyArmor)) {
+                if (!(targ->flags & FL_GODMODE) &&
+                        !static_cast<int>(dFlags & DamageFlags::NoProtection) &&
+                        !(targCl && targCl->powerupTime.battleSuit > level.time)) {
+                        take = damage;
+                }
+        }
 
-	// scoring and stat tracking for the attacker (only if target still alive here)
-	if (targ != attacker && attacker && attacker->client && targ->health > 0) {
-		int statTake = std::min(take, targ->health);
+        // scoring and stat tracking for the attacker (only if target still alive here)
+        if (!freezeSuppressed && targ != attacker && attacker && attacker->client && targ->health > 0) {
+                int statTake = std::min(take, targ->health);
 
 		// arena damage scoring: +1 score per 100 dmg dealt to enemies
 		if (Game::Has(GameFlags::Arena) && !OnSameTeam(targ, attacker)) {
