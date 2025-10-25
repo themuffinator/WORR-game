@@ -2562,6 +2562,169 @@ static void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bo
 	}
 }
 
+bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool silent) {
+	if (!ent || !ent->client)
+		return false;
+
+	gclient_t* cl = ent->client;
+	const Team old_team = cl->sess.team;
+	const bool wasPlaying = ClientIsPlaying(cl);
+	const bool duel = Game::Has(GameFlags::OneVOne);
+	const int clientNum = static_cast<int>(cl - game.clients);
+
+	Team target = desired_team;
+	bool requestQueue = duel && desired_team == Team::None;
+
+	if (!deathmatch->integer) {
+		target = (desired_team == Team::Spectator) ? Team::Spectator : Team::Free;
+	}
+	else if (!requestQueue) {
+		if (target == Team::None)
+			target = PickTeam(clientNum);
+		if (!Teams()) {
+			if (target != Team::Spectator)
+				target = Team::Free;
+		}
+		else {
+			if (target == Team::Free || target == Team::None)
+				target = PickTeam(clientNum);
+			if (target != Team::Spectator && target != Team::Red && target != Team::Blue)
+				target = PickTeam(clientNum);
+		}
+	}
+
+	bool joinPlaying = (target != Team::Spectator);
+	const bool matchLocked = match_lock->integer && level.matchState >= MatchState::Countdown;
+
+	if (joinPlaying && !requestQueue && !force) {
+		if (matchLocked && !wasPlaying) {
+			if (duel) {
+				target = Team::Spectator;
+				joinPlaying = false;
+				requestQueue = true;
+			}
+			else {
+				if (!silent)
+					gi.LocClient_Print(ent, PRINT_HIGH, "The match is locked.\n");
+				return false;
+			}
+		}
+	}
+
+	if (joinPlaying && !requestQueue && duel && !force && !wasPlaying) {
+		int playingClients = 0;
+		for (auto ec : active_clients()) {
+			if (ec && ec->client && ClientIsPlaying(ec->client))
+				++playingClients;
+		}
+		if (playingClients >= 2) {
+			target = Team::Spectator;
+			joinPlaying = false;
+			requestQueue = true;
+		}
+	}
+
+	if (requestQueue)
+		target = Team::Spectator;
+
+	const bool queueNow = duel && requestQueue;
+	const bool spectatorInactive = (target == Team::Spectator) && inactive;
+	const bool changedTeam = (target != old_team);
+	const bool changedQueue = (queueNow != cl->sess.matchQueued);
+	const bool changedInactive = (spectatorInactive != cl->sess.inactiveStatus);
+
+	if (!changedTeam && !changedQueue && !changedInactive)
+		return false;
+
+	const int64_t now = GetCurrentRealTimeMillis();
+
+	if (target == Team::Spectator) {
+		if (wasPlaying)
+			cl->sess.playEndRealTime = now;
+		cl->sess.team = Team::Spectator;
+		cl->ps.teamID = static_cast<int>(cl->sess.team);
+		if (changedTeam || changedQueue)
+			cl->sess.teamJoinTime = level.time;
+		cl->sess.matchQueued = queueNow;
+		cl->sess.inactiveStatus = spectatorInactive;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inactivityTime = 0_sec;
+		cl->sess.inGame = false;
+		cl->sess.initialised = true;
+		cl->pers.readyStatus = false;
+		cl->pers.spawned = false;
+
+		cl->buttons = BUTTON_NONE;
+		cl->oldButtons = BUTTON_NONE;
+		cl->latchedButtons = BUTTON_NONE;
+
+		cl->weapon.fireFinished = 0_ms;
+		cl->weapon.thinkTime = 0_ms;
+		cl->weapon.fireBuffered = false;
+		cl->weapon.pending = nullptr;
+
+		cl->ps.pmove.pmFlags = PMF_NONE;
+		cl->ps.pmove.pmTime = 0;
+		cl->ps.damageBlend = {};
+		cl->ps.screenBlend = {};
+		cl->ps.rdFlags = RDF_NONE;
+
+		cl->damage = {};
+		cl->kick = {};
+		cl->feedback = {};
+
+		cl->respawnMinTime = 0_ms;
+		cl->respawnMaxTime = level.time;
+		cl->respawn_timeout = 0_ms;
+		cl->teamState = {};
+
+		FreeFollower(ent);
+		MoveClientToFreeCam(ent);
+		FreeClientFollowers(ent);
+	}
+	else {
+		cl->sess.team = target;
+		cl->ps.teamID = static_cast<int>(cl->sess.team);
+		cl->sess.matchQueued = false;
+		cl->sess.inactiveStatus = false;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inGame = true;
+		cl->sess.initialised = true;
+		cl->sess.teamJoinTime = level.time;
+		cl->pers.readyStatus = false;
+
+		GameTime timeout = GameTime::from_sec(g_inactivity->integer);
+		if (timeout && timeout < 15_sec)
+			timeout = 15_sec;
+		cl->sess.inactivityTime = timeout ? level.time + timeout : 0_sec;
+
+		if (!wasPlaying)
+			cl->sess.playStartRealTime = now;
+		cl->sess.playEndRealTime = 0;
+
+		cl->buttons = BUTTON_NONE;
+		cl->oldButtons = BUTTON_NONE;
+		cl->latchedButtons = BUTTON_NONE;
+
+		cl->weapon.fireBuffered = false;
+		cl->weapon.pending = nullptr;
+
+		cl->ps.pmove.pmFlags = PMF_NONE;
+		cl->ps.pmove.pmTime = 0;
+
+		FreeFollower(ent);
+		ClientRespawn(ent);
+	}
+
+	BroadcastTeamChange(ent, old_team, spectatorInactive, silent);
+	CalculateRanks();
+	ClientUpdateFollowers(ent);
+
+	return true;
+}
+
+
+
 /*
 ===========
 ClientBegin
