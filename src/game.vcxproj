@@ -122,9 +122,16 @@
     <ClInclude Include="cg_local.hpp" />
     <ClInclude Include="command_registration.hpp" />
     <ClInclude Include="command_system.hpp" />
+    <ClInclude Include="command_voting.hpp" />
+    <ClInclude Include="command_voting_utils.hpp" />
     <ClInclude Include="game.hpp" />
     <ClInclude Include="g_local.hpp" />
+    <ClInclude Include="freezetag_damage.hpp" />
+    <ClInclude Include="g_match_grace_scope.hpp" />
+    <ClInclude Include="g_match_state_utils.hpp" />
+    <ClInclude Include="g_monster_defines.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
+    <ClInclude Include="match_state_helper.hpp" />
     <ClInclude Include="monsters\m_actor.hpp" />
     <ClInclude Include="monsters\m_arachnid.hpp" />
     <ClInclude Include="monsters\m_berserk.hpp" />
@@ -175,6 +182,7 @@
     <ClInclude Include="monsters\m_zombie.hpp" />
     <ClInclude Include="q_std.hpp" />
     <ClInclude Include="q_vec3.hpp" />
+    <ClInclude Include="team_join_capacity.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bots\bot_debug.cpp" />
@@ -215,6 +223,9 @@
     <ClCompile Include="g_turret.cpp" />
     <ClCompile Include="g_utils.cpp" />
     <ClCompile Include="g_weapon.cpp" />
+    <ClCompile Include="fmt.cc" />
+    <ClCompile Include="format.cc" />
+    <ClCompile Include="os.cc" />
     <ClCompile Include="menu\menu_page_admin.cpp" />
     <ClCompile Include="menu\menu_page_callvote.cpp" />
     <ClCompile Include="menu\menu_page_hostinfo.cpp" />
