@@ -304,18 +304,23 @@ namespace Commands {
                         return false;
                 }
 
+                level.vote_flags_enable = 0;
+                level.vote_flags_disable = 0;
+
                 std::vector<std::string> args;
                 args.emplace_back("callvote");
                 args.emplace_back(voteName);
 
-                std::string displayArg;
+                std::vector<std::string> splitTokens;
+                std::string voteArgStr;
                 if (!voteArg.empty()) {
-                        displayArg = std::string(voteArg);
+                        voteArgStr = std::string(voteArg);
 
-                        std::istringstream splitter(displayArg);
+                        std::istringstream splitter(voteArgStr);
                         std::string token;
                         while (splitter >> token) {
-                                args.emplace_back(token);
+                                splitTokens.emplace_back(token);
+                                args.emplace_back(splitTokens.back());
                         }
                 }
 
@@ -328,8 +333,29 @@ namespace Commands {
                         return false;
                 }
 
+                std::string displayArg = voteArgStr;
                 std::string_view storedArg;
-                if (manualArgs.count() >= 3) {
+                std::string mapStoredArg;
+
+                if (found_cmd.name == "map") {
+                        std::string parseError;
+                        auto parsed = ParseMapVoteArguments(splitTokens, parseError);
+                        if (!parsed) {
+                                if (!parseError.empty()) {
+                                        gi.LocClient_Print(ent, PRINT_HIGH, "{}\n", parseError.c_str());
+                                }
+                                return false;
+                        }
+
+                        level.vote_flags_enable = parsed->enableFlags;
+                        level.vote_flags_disable = parsed->disableFlags;
+
+                        mapStoredArg = parsed->mapName;
+
+                        storedArg = mapStoredArg;
+                        displayArg = parsed->displayArg;
+                }
+                else if (manualArgs.count() >= 3) {
                         storedArg = manualArgs.getString(2);
                 }
 
