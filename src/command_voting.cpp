@@ -305,11 +305,18 @@ namespace Commands {
                 }
 
                 std::vector<std::string> args;
-                args.reserve(voteArg.empty() ? 2 : 3);
                 args.emplace_back("callvote");
                 args.emplace_back(voteName);
+
+                std::string displayArg;
                 if (!voteArg.empty()) {
-                        args.emplace_back(voteArg);
+                        displayArg = std::string(voteArg);
+
+                        std::istringstream splitter(displayArg);
+                        std::string token;
+                        while (splitter >> token) {
+                                args.emplace_back(token);
+                        }
                 }
 
                 CommandArgs manualArgs(std::move(args));
@@ -326,7 +333,7 @@ namespace Commands {
                         storedArg = manualArgs.getString(2);
                 }
 
-                VoteCommandStore(ent, &found_cmd, storedArg);
+                VoteCommandStore(ent, &found_cmd, storedArg, displayArg);
                 return true;
         }
 
