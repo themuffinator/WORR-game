@@ -4354,6 +4354,8 @@ struct gclient_t {
 		std::shared_ptr<Menu> current;		// Currently open menu, if any
 		GameTime		updateTime = 0_ms; // time to update menu
 		bool			doUpdate = false;
+		bool			restoreStatusBar = false; // should STAT_SHOW_STATUSBAR be restored on close?
+		int32_t			previousStatusBar = 0;    // cached STAT_SHOW_STATUSBAR value
 	} menu;
 
 	struct {

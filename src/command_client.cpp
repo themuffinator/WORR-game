@@ -625,7 +625,7 @@ namespace Commands {
 
 		if (deathmatch->integer) {
 			if (Vote_Menu_Active(ent)) return;
-			if (cl->menu.current) {
+			if (cl->menu.current || cl->menu.restoreStatusBar) {
 				CloseActiveMenu(ent);
 			}
 			else {
@@ -793,7 +793,7 @@ namespace Commands {
 		ent->client->showHelp = false;
 		ent->client->showInventory = false;
 		globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
-		if (deathmatch->integer && ent->client->menu.current) {
+		if (deathmatch->integer && (ent->client->menu.current || ent->client->menu.restoreStatusBar)) {
 			if (Vote_Menu_Active(ent)) return;
 			CloseActiveMenu(ent);
 		}
@@ -822,7 +822,7 @@ namespace Commands {
 		ent->client->showHelp = false;
 		globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
 
-		if (ent->client->menu.current) CloseActiveMenu(ent);
+		if (ent->client->menu.current || ent->client->menu.restoreStatusBar) CloseActiveMenu(ent);
 
 		if (ent->client->showScores) {
 			ent->client->showScores = false;

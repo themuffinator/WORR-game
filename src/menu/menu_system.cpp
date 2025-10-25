@@ -59,13 +59,18 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
         menu->scrollOffset = 0;
         menu->EnsureCurrentVisible();
 
+        auto &menuState = ent->client->menu;
         ent->client->menu.current = std::move(menu);
 
-	// These two are required to render layouts!
-	ent->client->showScores = true;   // <- must be true!
+        menuState.previousStatusBar = ent->client->ps.stats[STAT_SHOW_STATUSBAR];
+        menuState.restoreStatusBar = true;
+        ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
 
-	ent->client->menu.updateTime = level.time;
-	ent->client->menu.doUpdate = true;
+        // These two are required to render layouts!
+        ent->client->showScores = true;   // <- must be true!
+
+        menuState.updateTime = level.time;
+        menuState.doUpdate = true;
 }
 
 /*
@@ -74,12 +79,23 @@ MenuSystem::Close
 ===============
 */
 void MenuSystem::Close(gentity_t *ent) {
-	if (!ent || !ent->client || !ent->client->menu.current)
-		return;
+        if (!ent || !ent->client)
+                return;
 
-	ent->client->menu.current.reset();
-	ent->client->menu.current = nullptr;
-	//ent->client->showScores = false;
+        auto &menuState = ent->client->menu;
+
+        if (menuState.current) {
+                menuState.current.reset();
+                menuState.current = nullptr;
+        }
+
+        if (menuState.restoreStatusBar) {
+                ent->client->ps.stats[STAT_SHOW_STATUSBAR] = menuState.previousStatusBar;
+                menuState.restoreStatusBar = false;
+                menuState.previousStatusBar = 0;
+        }
+
+        //ent->client->showScores = false;
 }
 
 /*
