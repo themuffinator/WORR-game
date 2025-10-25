@@ -519,7 +519,9 @@ void Match_Start() {
 	const char *s = TimeString(timeLimit->value ? timeLimit->value * 1000 : 0, false, true);
 	gi.configString(CONFIG_MATCH_STATE, s);
 
-	level.matchState = MatchState::In_Progress;
+        const auto previousMatchState = level.matchState;
+
+        level.matchState = MatchState::In_Progress;
 	level.matchStateTimer = level.time;
 	level.warmupState = WarmupState::Default;
 	level.warmupNoticeTime = 0_sec;
@@ -531,8 +533,8 @@ void Match_Start() {
         Monsters_KillAll();
 
         const bool precededByWarmup = warmup_enabled->integer &&
-                level.matchState >= MatchState::Warmup_Default &&
-                level.matchState <= MatchState::Countdown;
+                previousMatchState >= MatchState::Warmup_Default &&
+                previousMatchState <= MatchState::Countdown;
         const auto limitedLivesResetMode = precededByWarmup ?
                 LimitedLivesResetMode::Auto :
                 LimitedLivesResetMode::Force;
