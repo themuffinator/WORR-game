@@ -610,8 +610,6 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 	bool isDuel = Game::Has(GameFlags::OneVOne);
 	bool isTDM = Teams();
 
-	bool preferred = true;
-
 	for (const auto &map : game.mapSystem.mapPool) {
 		if (!map.isCycleable)
 			continue;
@@ -625,9 +623,14 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 		if (!Q_strcasecmp(level.mapName.data(), map.filename.c_str()))
 			continue;
 
-		if (isCTF && !map.preferredCTF) preferred = false;
-		else if (isDuel && !map.preferredDuel) preferred = false;
-		else if (isTDM && !map.preferredTDM) preferred = false;
+		bool preferred = true;
+
+		if (isCTF && !map.preferredCTF)
+			preferred = false;
+		else if (isDuel && !map.preferredDuel)
+			preferred = false;
+		else if (isTDM && !map.preferredTDM)
+			preferred = false;
 
 		if (!preferred)
 			continue;
