@@ -14,6 +14,14 @@
 //   on game state, such as showing "Admin" options only for admin players or
 //   hiding team-join options in FFA.
 
+#include <algorithm>
+#include <cmath>
+#include <memory>
+
+namespace std {
+        using ::sinf;
+}
+
 #include "../g_local.hpp"
 #include "../g_statusbar.hpp"
 
@@ -47,14 +55,21 @@ void Menu::Next() {
         if (entries.empty())
                 return;
 
+        if (std::none_of(entries.begin(), entries.end(), [](const MenuEntry &entry) { return static_cast<bool>(entry.onSelect); }))
+                return;
+
         const int count = static_cast<int>(entries.size());
-        const int start = current;
+        const int start = (current >= 0 && current < count) ? current : (count - 1);
+        int index = start;
 
         do {
-                current = (current + 1) % count;
-        } while (!entries[current].onSelect && current != start);
+                index = (index + 1) % count;
 
-        EnsureCurrentVisible();
+                if (entries[index].onSelect) {
+                        current = index;
+                        return;
+                }
+        } while (index != start);
 }
 
 /*
@@ -66,14 +81,21 @@ void Menu::Prev() {
         if (entries.empty())
                 return;
 
+        if (std::none_of(entries.begin(), entries.end(), [](const MenuEntry &entry) { return static_cast<bool>(entry.onSelect); }))
+                return;
+
         const int count = static_cast<int>(entries.size());
-        const int start = current;
+        const int start = (current >= 0 && current < count) ? current : 0;
+        int index = start;
 
         do {
-                current = (current - 1 + count) % count;
-        } while (!entries[current].onSelect && current != start);
+                index = (index - 1 + count) % count;
 
-        EnsureCurrentVisible();
+                if (entries[index].onSelect) {
+                        current = index;
+                        return;
+                }
+        } while (index != start);
 }
 
 /*

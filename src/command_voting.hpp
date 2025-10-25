@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 
 struct gentity_t;
@@ -43,7 +44,12 @@ struct VoteDefinitionView {
         bool visibleInMenu;
 };
 
-bool TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg);
+struct VoteLaunchResult {
+        bool success = false;
+        std::string message;
+};
+
+VoteLaunchResult TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg);
 std::span<const VoteDefinitionView> GetRegisteredVoteDefinitions();
 
 } // namespace Commands
