@@ -1418,7 +1418,7 @@ depending on mode and configured changeMap.
 =================
 */
 extern void Gauntlet_RemoveLoser();
-void ExitLevel() {
+void ExitLevel(bool forceImmediate) {
 	// Ensure a valid map transition is set
 	if (level.changeMap.empty()) {
 		gi.Com_Error("Got null changeMap when trying to exit level. Was a trigger_changelevel configured correctly?");
@@ -1438,20 +1438,21 @@ void ExitLevel() {
 	// Reset intermission state
 	level.intermission = {};
 
-	if (deathmatch->integer) {
-		// In Gauntlet mode, rotate the loser
-		if (Game::Is(GameType::Gauntlet))
-			Gauntlet_RemoveLoser();
+        if (deathmatch->integer) {
+                // In Gauntlet mode, rotate the loser
+                if (Game::Is(GameType::Gauntlet))
+                        Gauntlet_RemoveLoser();
 
-		// In Red Rover, shuffle teams if only one team has players
-		if (Game::Is(GameType::RedRover) &&
-			level.pop.num_playing_clients > 1 &&
-			(!level.pop.num_playing_red || !level.pop.num_playing_blue))
-			Commands::TeamSkillShuffle();
+                // In Red Rover, shuffle teams if only one team has players
+                if (Game::Is(GameType::RedRover) &&
+                        level.pop.num_playing_clients > 1 &&
+                        (!level.pop.num_playing_red || !level.pop.num_playing_blue))
+                        Commands::TeamSkillShuffle();
 
-		// Do not proceed further in DM - map voting or shuffle controls transition
-		return;
-	}
+                // Do not proceed further in DM - map voting or shuffle controls transition
+                if (!forceImmediate)
+                        return;
+        }
 
 	// Singleplayer or coop logic
 	if (level.intermission.clear) {

@@ -74,7 +74,7 @@ namespace Commands {
 		level.changeMap = map->filename.c_str();
 		game.map.overrideEnableFlags = level.vote_flags_enable;
 		game.map.overrideDisableFlags = level.vote_flags_disable;
-		ExitLevel();
+                ExitLevel(true);
 	}
 
 	static void Pass_NextMap() {
@@ -83,7 +83,7 @@ namespace Commands {
 			level.changeMap = queued.filename.c_str();
 			game.map.overrideEnableFlags = queued.settings.to_ulong();
 			game.map.overrideDisableFlags = 0;
-			ExitLevel();
+                        ExitLevel(true);
 			return;
 		}
 
@@ -92,7 +92,7 @@ namespace Commands {
 			level.changeMap = result->filename.c_str();
 			game.map.overrideEnableFlags = 0;
 			game.map.overrideDisableFlags = 0;
-			ExitLevel();
+                        ExitLevel(true);
 		}
 		else {
 			gi.Broadcast_Print(PRINT_HIGH, "No eligible maps available.\n");
