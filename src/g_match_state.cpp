@@ -526,10 +526,18 @@ void Match_Start() {
 
 	level.teamScores[static_cast<int>(Team::Red)] = level.teamScores[static_cast<int>(Team::Blue)] = 0;
 
-	level.match = {};
+        level.match = {};
 
-	Monsters_KillAll();
-	Entities_Reset(true, true, true);
+        Monsters_KillAll();
+
+        const bool precededByWarmup = warmup_enabled->integer &&
+                level.matchState >= MatchState::Warmup_Default &&
+                level.matchState <= MatchState::Countdown;
+        const auto limitedLivesResetMode = precededByWarmup ?
+                LimitedLivesResetMode::Auto :
+                LimitedLivesResetMode::Force;
+
+        Entities_Reset(true, true, true, limitedLivesResetMode);
 	UnReadyAll();
 
 	for (auto ec : active_players())
