@@ -316,20 +316,20 @@ namespace Commands {
         static void RegisterAllVoteCommands() {
                 s_voteCommands.clear();
                 s_voteDefinitions.clear();
-                RegisterVoteCommand("map", &Validate_Map, &Pass_Map, 1, 2, "<mapname> [flags]", "Changes to the specified map");
-                RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, 2, 1, "", "Moves to the next map in the rotation");
-                RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, 4, 1, "", "Restarts the current match");
-                RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, 8, 2, "<gametype>", "Changes the current gametype");
-		RegisterVoteCommand("ruleset", &Validate_Ruleset, &Pass_Ruleset, 2048, 2, "<q1|q2|q3a>", "Changes the current ruleset", true);
-		RegisterVoteCommand("timelimit", &Validate_Timelimit, &Pass_Timelimit, 16, 2, "<minutes>", "Alters the match time limit (0 for none)");
-		RegisterVoteCommand("scorelimit", &Validate_Scorelimit, &Pass_Scorelimit, 32, 2, "<score>", "Alters the match score limit (0 for none)");
-		RegisterVoteCommand("shuffle", &Validate_TeamBased, &Pass_ShuffleTeams, 64, 1, "", "Shuffles the teams based on skill");
-		RegisterVoteCommand("balance", &Validate_TeamBased, &Pass_BalanceTeams, 1024, 1, "", "Balances teams without shuffling");
-		RegisterVoteCommand("unlagged", &Validate_Unlagged, &Pass_Unlagged, 128, 2, "<0|1>", "Toggles lag compensation", true);
-		RegisterVoteCommand("cointoss", &Validate_Cointoss, &Pass_Cointoss, 256, 1, "", "Flip a coin for a random decision", true);
-		RegisterVoteCommand("random", &Validate_Random, &Pass_Random, 512, 2, "<max>", "Roll a random number between 1 and <max>", true);
-		RegisterVoteCommand("arena", &Validate_Arena, &Pass_Arena, 4096, 2, "<number>", "Switches to a different arena", true);
-	}
+                RegisterVoteCommand("map", &Validate_Map, &Pass_Map, kVoteFlag_Map, 2, "<mapname> [flags]", "Changes to the specified map");
+                RegisterVoteCommand("nextmap", &Validate_None, &Pass_NextMap, kVoteFlag_NextMap, 1, "", "Moves to the next map in the rotation");
+                RegisterVoteCommand("restart", &Validate_None, &Pass_RestartMatch, kVoteFlag_Restart, 1, "", "Restarts the current match");
+                RegisterVoteCommand("gametype", &Validate_Gametype, &Pass_Gametype, kVoteFlag_Gametype, 2, "<gametype>", "Changes the current gametype");
+                RegisterVoteCommand("ruleset", &Validate_Ruleset, &Pass_Ruleset, kVoteFlag_Ruleset, 2, "<q1|q2|q3a>", "Changes the current ruleset", true);
+                RegisterVoteCommand("timelimit", &Validate_Timelimit, &Pass_Timelimit, kVoteFlag_Timelimit, 2, "<minutes>", "Alters the match time limit (0 for none)");
+                RegisterVoteCommand("scorelimit", &Validate_Scorelimit, &Pass_Scorelimit, kVoteFlag_Scorelimit, 2, "<score>", "Alters the match score limit (0 for none)");
+                RegisterVoteCommand("shuffle", &Validate_TeamBased, &Pass_ShuffleTeams, kVoteFlag_Shuffle, 1, "", "Shuffles the teams based on skill");
+                RegisterVoteCommand("balance", &Validate_TeamBased, &Pass_BalanceTeams, kVoteFlag_Balance, 1, "", "Balances teams without shuffling");
+                RegisterVoteCommand("unlagged", &Validate_Unlagged, &Pass_Unlagged, kVoteFlag_Unlagged, 2, "<0|1>", "Toggles lag compensation", true);
+                RegisterVoteCommand("cointoss", &Validate_Cointoss, &Pass_Cointoss, kVoteFlag_Cointoss, 1, "", "Flip a coin for a random decision", true);
+                RegisterVoteCommand("random", &Validate_Random, &Pass_Random, kVoteFlag_Random, 2, "<max>", "Roll a random number between 1 and <max>", true);
+                RegisterVoteCommand("arena", &Validate_Arena, &Pass_Arena, kVoteFlag_Arena, 2, "<number>", "Switches to a different arena", true);
+        }
 
         static void VoteCommandStore(
                 gentity_t* ent,

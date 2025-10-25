@@ -1,8 +1,9 @@
 # `g_vote_flags` Reference
 
-The `g_vote_flags` cvar controls which vote types players can initiate. Set it to
-the bitwise OR of the options you want to allow (for example, `g_vote_flags 8191`
-enables every vote listed below).
+The `g_vote_flags` cvar controls which vote types players can initiate. By
+default the server enables every vote (`g_vote_flags 8191`) so the Call Vote menu
+lists all available actions. You can override this by setting the cvar to the
+bitwise OR of the options you want to allow.
 
 | Bit (1 << n) | Value | Vote Command | Description |
 |--------------|-------|--------------|-------------|
