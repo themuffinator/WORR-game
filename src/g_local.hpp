@@ -5153,15 +5153,17 @@ Menu
 */
 class Menu {
 public:
-	std::vector<MenuEntry> entries;
-	int current = -1;
-	std::function<void(gentity_t *, const Menu &)> onUpdate;
-	std::shared_ptr<void> context;
+        std::vector<MenuEntry> entries;
+        int current = -1;
+        int scrollOffset = 0;
+        std::function<void(gentity_t *, const Menu &)> onUpdate;
+        std::shared_ptr<void> context;
 
-	void Next();
-	void Prev();
-	void Select(gentity_t *ent);
-	void Render(gentity_t *ent) const;
+        void Next();
+        void Prev();
+        void Select(gentity_t *ent);
+        void Render(gentity_t *ent) const;
+        void EnsureCurrentVisible();
 };
 
 /*
