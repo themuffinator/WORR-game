@@ -18,6 +18,7 @@
 
 #include "g_local.hpp"
 #include "command_registration.hpp"
+#include "g_match_state_utils.hpp"
 
 /*
 =================
@@ -1212,10 +1213,27 @@ static void CheckDMWarmupState() {
 		return;
 	}
 
-	// Wait for delayed warmup to trigger
-	if (level.matchState == MatchState::Initial_Delay &&
-		level.matchStateTimer > level.time)
-		return;
+        // Wait for delayed warmup to trigger, then immediately promote into warmup
+        if (level.matchState == MatchState::Initial_Delay) {
+                const bool transitioned = MatchWarmup::PromoteInitialDelayToWarmup(
+                        level.matchState,
+                        level.matchStateTimer,
+                        level.time,
+                        level.warmupState,
+                        level.warmupNoticeTime,
+                        MatchState::Initial_Delay,
+                        MatchState::Warmup_Default,
+                        WarmupState::Default,
+                        0_sec);
+
+                if (!transitioned)
+                        return;
+
+                if (g_verbose->integer) {
+                        gi.Com_PrintFmt("Initial warmup delay expired; entering Warmup_Default with {} players.\n",
+                                level.pop.num_playing_clients);
+                }
+        }
 
 	// Run spawning logic during warmup (e.g., Horde)
 	if (level.matchState == MatchState::Warmup_Default ||
