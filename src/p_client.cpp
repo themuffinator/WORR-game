@@ -1569,35 +1569,41 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 		}
 	}
 
-	if (!self->deadFlag) {
-		if (CooperativeModeOn() && (g_coop_squad_respawn->integer || g_coop_enable_lives->integer)) {
-			if (g_coop_enable_lives->integer && self->client->pers.lives) {
-				self->client->pers.lives--;
-				self->client->resp.coopRespawn.lives--;
-			}
+        if (!self->deadFlag) {
+                if (G_LimitedLivesInCoop()) {
+                        if (self->client->pers.lives > 0) {
+                                self->client->pers.lives--;
+                                if (self->client->resp.coopRespawn.lives > 0)
+                                        self->client->resp.coopRespawn.lives--;
+                        }
 
-			bool allPlayersDead = true;
+                        bool allPlayersDead = true;
 
-			for (auto player : active_clients())
-				if (player->health > 0 || (!level.campaign.deadly_kill_box && g_coop_enable_lives->integer && player->client->pers.lives > 0)) {
-					allPlayersDead = false;
-					break;
-				}
+                        for (auto player : active_clients())
+                                if (player->health > 0 || (!level.campaign.deadly_kill_box && player->client->pers.lives > 0)) {
+                                        allPlayersDead = false;
+                                        break;
+                                }
 
-			if (allPlayersDead) // allow respawns for telefrags and weird shit
-			{
-				level.campaign.coopLevelRestartTime = level.time + 5_sec;
+                        if (allPlayersDead) {
+                                level.campaign.coopLevelRestartTime = level.time + 5_sec;
 
-				for (auto player : active_clients())
-					gi.LocCenter_Print(player, "$g_coop_lose");
-			}
+                                for (auto player : active_clients())
+                                        gi.LocCenter_Print(player, "$g_coop_lose");
+                        }
 
-			// in 3 seconds, attempt a respawn or put us into
-			// spectator mode
-			if (!level.campaign.coopLevelRestartTime)
-				self->client->respawnMaxTime = level.time + 3_sec;
-		}
-	}
+                        if (!level.campaign.coopLevelRestartTime)
+                                self->client->respawnMaxTime = level.time + 3_sec;
+                } else if (G_LimitedLivesInLMS()) {
+                        if (self->client->pers.lives > 0)
+                                self->client->pers.lives--;
+
+                        if (self->client->pers.lives == 0) {
+                                self->client->eliminated = true;
+                                CalculateRanks();
+                        }
+                }
+        }
 
 	G_LogDeathEvent(self, attacker, mod);
 
@@ -1884,8 +1890,9 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 		client->pers.lastWeapon = client->pers.weapon;
 	}
 
-	if (CooperativeModeOn() && g_coop_enable_lives->integer)
-		client->pers.lives = g_coop_num_lives->integer + 1;
+        if (G_LimitedLivesActive()) {
+                client->pers.lives = G_LimitedLivesMax();
+        }
 
 	if (ent->client->pers.autoshield >= AUTO_SHIELD_AUTO)
 		ent->flags |= FL_WANTS_POWER_ARMOR;
@@ -4225,90 +4232,95 @@ enum respawn_state_t {
 // [Paril-KEX] return false to fall back to click-to-respawn behavior.
 // note that this is only called if they are allowed to respawn (not
 // restarting the level due to all being dead)
-static bool G_CoopRespawn(gentity_t* ent) {
-	// don't do this in non-coop
-	if (!CooperativeModeOn())
-		return false;
-	// if we don't have squad or lives, it doesn't matter
-	if (!g_coop_squad_respawn->integer && !g_coop_enable_lives->integer)
-		return false;
+static bool G_LimitedLivesRespawn(gentity_t* ent) {
+        if (CooperativeModeOn()) {
+                const bool limitedLives = G_LimitedLivesInCoop();
+                const bool allowSquadRespawn = coop->integer && g_coop_squad_respawn->integer;
 
-	respawn_state_t state = RESPAWN_NONE;
+                if (!allowSquadRespawn && !limitedLives)
+                        return false;
 
-	// first pass: if we have no lives left, just move to spectator
-	if (g_coop_enable_lives->integer) {
-		if (ent->client->pers.lives == 0) {
-			state = RESPAWN_SPECTATE;
-			ent->client->coopRespawnState = CoopRespawn::NoLives;
-		}
-	}
+                respawn_state_t state = RESPAWN_NONE;
 
-	// second pass: check for where to spawn
-	if (state == RESPAWN_NONE) {
-		// if squad respawn, don't respawn until we can find a good player to spawn on.
-		if (coop->integer && g_coop_squad_respawn->integer) {
-			bool allDead = true;
+                if (limitedLives && ent->client->pers.lives == 0) {
+                        state = RESPAWN_SPECTATE;
+                        ent->client->coopRespawnState = CoopRespawn::NoLives;
+                }
 
-			for (auto player : active_clients()) {
-				if (player->health > 0) {
-					allDead = false;
-					break;
-				}
-			}
+                if (state == RESPAWN_NONE) {
+                        if (allowSquadRespawn) {
+                                bool allDead = true;
 
-			// all dead, so if we ever get here we have lives enabled;
-			// we should just respawn at the start of the level
-			if (allDead)
-				state = RESPAWN_START;
-			else {
-				auto [good_player, good_spot] = G_FindSquadRespawnTarget();
+                                for (auto player : active_clients()) {
+                                        if (player->health > 0) {
+                                                allDead = false;
+                                                break;
+                                        }
+                                }
 
-				if (good_player) {
-					state = RESPAWN_SQUAD;
+                                if (allDead)
+                                        state = RESPAWN_START;
+                                else {
+                                        auto [good_player, good_spot] = G_FindSquadRespawnTarget();
 
-					ent->client->coopRespawn.squadOrigin = good_spot;
-					ent->client->coopRespawn.squadAngles = good_player->s.angles;
-					ent->client->coopRespawn.squadAngles[ROLL] = 0;
+                                        if (good_player) {
+                                                state = RESPAWN_SQUAD;
 
-					ent->client->coopRespawn.useSquad = true;
-				}
-				else {
-					state = RESPAWN_SPECTATE;
-				}
-			}
-		}
-		else
-			state = RESPAWN_START;
-	}
+                                                ent->client->coopRespawn.squadOrigin = good_spot;
+                                                ent->client->coopRespawn.squadAngles = good_player->s.angles;
+                                                ent->client->coopRespawn.squadAngles[ROLL] = 0;
 
-	if (state == RESPAWN_SQUAD || state == RESPAWN_START) {
-		// give us our max health back since it will reset
-		// to pers.health; in instanced items we'd lose the items
-		// we touched so we always want to respawn with our max.
-		if (P_UseCoopInstancedItems())
-			ent->client->pers.health = ent->client->pers.maxHealth = ent->maxHealth;
+                                                ent->client->coopRespawn.useSquad = true;
+                                        }
+                                        else {
+                                                state = RESPAWN_SPECTATE;
+                                        }
+                                }
+                        }
+                        else
+                                state = RESPAWN_START;
+                }
 
-		ClientRespawn(ent);
+                if (state == RESPAWN_SQUAD || state == RESPAWN_START) {
+                        if (P_UseCoopInstancedItems())
+                                ent->client->pers.health = ent->client->pers.maxHealth = ent->maxHealth;
 
-		ent->client->latchedButtons = BUTTON_NONE;
-		ent->client->coopRespawn.useSquad = false;
-	}
-	else if (state == RESPAWN_SPECTATE) {
-		if (!static_cast<int>(ent->client->coopRespawnState))
-			ent->client->coopRespawnState = CoopRespawn::Waiting;
+                        ClientRespawn(ent);
 
-		if (ClientIsPlaying(ent->client)) {
-			// move us to spectate just so we don't have to twiddle
-			// our thumbs forever
-			CopyToBodyQue(ent);
-			ent->client->sess.team = Team::Spectator;
-			MoveClientToFreeCam(ent);
-			gi.linkEntity(ent);
-			GetFollowTarget(ent);
-		}
-	}
+                        ent->client->latchedButtons = BUTTON_NONE;
+                        ent->client->coopRespawn.useSquad = false;
+                }
+                else if (state == RESPAWN_SPECTATE) {
+                        if (!static_cast<int>(ent->client->coopRespawnState))
+                                ent->client->coopRespawnState = CoopRespawn::Waiting;
 
-	return true;
+                        if (ClientIsPlaying(ent->client)) {
+                                CopyToBodyQue(ent);
+                                ent->client->sess.team = Team::Spectator;
+                                MoveClientToFreeCam(ent);
+                                gi.linkEntity(ent);
+                                GetFollowTarget(ent);
+                        }
+                }
+
+                return true;
+        }
+
+        if (G_LimitedLivesInLMS()) {
+                if (ent->client->pers.lives == 0) {
+                        ent->client->eliminated = true;
+                        if (ClientIsPlaying(ent->client)) {
+                                CopyToBodyQue(ent);
+                                MoveClientToFreeCam(ent);
+                                gi.linkEntity(ent);
+                                GetFollowTarget(ent);
+                        }
+                        return true;
+                }
+                return false;
+        }
+
+        return false;
 }
 
 /*
@@ -4365,7 +4377,7 @@ void ClientBeginServerFrame(gentity_t* ent) {
 		else if (level.time > client->respawnMaxTime && !level.campaign.coopLevelRestartTime) {
 			// don't respawn if level is waiting to restart
 			// check for coop handling
-			if (!G_CoopRespawn(ent)) {
+                        if (!G_LimitedLivesRespawn(ent)) {
 				// in deathmatch, only wait for attack button
 				if ((client->latchedButtons & (deathmatch->integer ? BUTTON_ATTACK : -1)) ||
 					(deathmatch->integer && match_doForceRespawn->integer)) {

@@ -122,6 +122,7 @@ cvar_t *g_coop_instanced_items;
 cvar_t *g_coop_num_lives;
 cvar_t *g_coop_player_collision;
 cvar_t *g_coop_squad_respawn;
+cvar_t *g_lms_num_lives;
 cvar_t *g_damage_scale;
 cvar_t *g_debug_monster_kills;
 cvar_t *g_debug_monster_paths;
@@ -693,11 +694,12 @@ static void InitGame() {
 	g_frozen_time = gi.cvar("g_frozen_time", "180", CVAR_NOFLAGS);
 
 	// [Paril-KEX]
-	g_coop_player_collision = gi.cvar("g_coop_player_collision", "0", CVAR_LATCH);
-	g_coop_squad_respawn = gi.cvar("g_coop_squad_respawn", "1", CVAR_LATCH);
-	g_coop_enable_lives = gi.cvar("g_coop_enable_lives", "0", CVAR_LATCH);
-	g_coop_num_lives = gi.cvar("g_coop_num_lives", "2", CVAR_LATCH);
-	g_coop_instanced_items = gi.cvar("g_coop_instanced_items", "1", CVAR_LATCH);
+        g_coop_player_collision = gi.cvar("g_coop_player_collision", "0", CVAR_LATCH);
+        g_coop_squad_respawn = gi.cvar("g_coop_squad_respawn", "1", CVAR_LATCH);
+        g_coop_enable_lives = gi.cvar("g_coop_enable_lives", "0", CVAR_LATCH);
+        g_coop_num_lives = gi.cvar("g_coop_num_lives", "2", CVAR_LATCH);
+        g_coop_instanced_items = gi.cvar("g_coop_instanced_items", "1", CVAR_LATCH);
+        g_lms_num_lives = gi.cvar("g_lms_num_lives", "4", CVAR_LATCH);
 	g_allow_grapple = gi.cvar("g_allow_grapple", "auto", CVAR_NOFLAGS);
 	g_allow_kill = gi.cvar("g_allow_kill", "1", CVAR_NOFLAGS);
 	g_grapple_offhand = gi.cvar("g_grapple_offhand", "0", CVAR_NOFLAGS);

@@ -135,10 +135,15 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
 
 	// reset the players
 	if (reset_players) {
-		for (auto ec : active_clients()) {
-			ec->client->resp.ctf_state = 0;
-			if (reset_score)
-				ec->client->resp.score = 0;
+                for (auto ec : active_clients()) {
+                        ec->client->resp.ctf_state = 0;
+                        if (G_LimitedLivesActive()) {
+                                ec->client->pers.lives = G_LimitedLivesMax();
+                                if (G_LimitedLivesInCoop())
+                                        ec->client->resp.coopRespawn.lives = ec->client->pers.lives;
+                        }
+                        if (reset_score)
+                                ec->client->resp.score = 0;
 			if (reset_ghost) {
 
 			}
@@ -1764,11 +1769,40 @@ void CheckDMExitRules() {
 	}
 
 	// --- Final score check (not Horde) ---
-	if (Game::Is(GameType::Horde))
-		return;
+        if (Game::Is(GameType::Horde))
+                return;
 
-	if (ScoreIsTied())
-		return;
+        if (Game::Is(GameType::LastManStanding)) {
+                int playingClients = 0;
+                int playersWithLives = 0;
+                gentity_t* potentialWinner = nullptr;
+
+                for (auto ec : active_clients()) {
+                        if (!ClientIsPlaying(ec->client))
+                                continue;
+                        if (ec->client->sess.team != Team::Free)
+                                continue;
+
+                        playingClients++;
+
+                        if (ec->client->pers.lives > 0) {
+                                playersWithLives++;
+                                potentialWinner = ec;
+                        }
+                }
+
+                if (playingClients > 1 && playersWithLives <= 1) {
+                        if (playersWithLives == 1 && potentialWinner) {
+                                QueueIntermission(G_Fmt("{} WINS! (last survivor)", potentialWinner->client->sess.netName).data(), false, false);
+                        } else {
+                                QueueIntermission("All players eliminated!", true, false);
+                        }
+                        return;
+                }
+        }
+
+        if (ScoreIsTied())
+                return;
 
 	int scoreLimit = GT_ScoreLimit();
 	if (scoreLimit <= 0)
