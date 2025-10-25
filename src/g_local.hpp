@@ -2113,6 +2113,7 @@ struct LevelLocals {
 
 	std::string changeMap = "";		// map to change to, if any
 	std::string achievement = "";		// achievement to show on intermission, if any
+	std::string entityString = "";		// cached entity string for world respawns
 
 	struct Intermission {
 		// intermission state
@@ -3806,6 +3807,7 @@ void Match_Reset();
 gentity_t* CreateTargetChangeLevel(std::string_view map);
 bool InAMatch();
 void SpawnEntities(const char *mapname, const char *entities, const char *spawnPoint);
+void ReloadWorldEntities();
 void LoadMotd();
 void LoadAdminList();
 void LoadBanList();

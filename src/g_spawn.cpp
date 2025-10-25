@@ -1734,6 +1734,90 @@ static const char *TryLoadEntityOverride(const char *mapName, const char *defaul
 	return default_entities;
 }
 
+static int SpawnEntitiesFromStringInternal(const char *entityData, const char *callerName) {
+	int inhibited = 0;
+	bool firstEntity = true;
+	const char *cursor = entityData;
+
+	while (true) {
+		const char *token = COM_Parse(&cursor);
+		if (!cursor || token[0] == '\0')
+			break;
+
+		if (token[0] != '{') {
+			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", callerName, token);
+		}
+
+		gentity_t *ent = firstEntity ? g_entities : Spawn();
+		firstEntity = false;
+
+		cursor = ED_ParseEntity(cursor, ent);
+
+		if (ent != g_entities) {
+			if (G_InhibitEntity(ent)) {
+				FreeEntity(ent);
+				++inhibited;
+				continue;
+			}
+			ent->spawnFlags &= ~SPAWNFLAG_EDITOR_MASK;
+		}
+
+		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
+		ED_CallSpawn(ent);
+		MapPostProcess(ent);
+		ent->s.renderFX |= RF_IR_VISIBLE;
+	}
+
+	return inhibited;
+}
+
+static void FinalizeLevelInitialization() {
+	PrecacheStartItems();
+	PrecacheInventoryItems();
+	G_FindTeams();
+	QuadHog_SetupSpawn(5_sec);
+	Tech_SetupSpawn();
+
+	if (deathmatch->integer) {
+		if (g_dm_random_items->integer) {
+			PrecacheForRandomRespawn();
+		}
+		game.item_inhibit_pu = 0;
+		game.item_inhibit_pa = 0;
+		game.item_inhibit_ht = 0;
+		game.item_inhibit_ar = 0;
+		game.item_inhibit_am = 0;
+		game.item_inhibit_wp = 0;
+	} else {
+		InitHintPaths();
+	}
+
+	G_LocateSpawnSpots();
+	setup_shadow_lights();
+
+	level.init = true;
+}
+
+static void ResetLevelForEntityReload() {
+	level.achievement.clear();
+	level.nextMap.fill('\0');
+	level.instantItems = false;
+	level.start_items = nullptr;
+	level.no_grapple = false;
+	level.no_dm_spawnpads = false;
+	level.no_dm_telepads = false;
+	level.arenaTotal = 0;
+	level.arenaActive = 0;
+	level.viewWeaponOffset = 0;
+	level.spawn.Clear();
+	level.spawnSpots.fill(nullptr);
+	level.shadowLightInfo = {};
+	level.shadowLightCount = 0;
+	level.campaign = {};
+	level.author[0] = '\0';
+	level.author2[0] = '\0';
+}
+
 /*
 ===============
 SpawnEntities
@@ -1747,6 +1831,8 @@ void SpawnEntities(const char *mapName, const char *entities, const char *spawnP
 	if (!entities || !*entities) {
 		gi.Com_ErrorFmt("{}: Empty or null entity string.\n", __FUNCTION__);
 	}
+
+	std::string entityStringCopy(entities);
 
 	// Clamp skill level to valid range [0, 4]
 	const int skillLevel = std::clamp(skill->integer, 0, 4);
@@ -1775,6 +1861,8 @@ void SpawnEntities(const char *mapName, const char *entities, const char *spawnP
 		game.spawnPoint[n] = '\0';
 	}
 
+	level.entityString = std::move(entityStringCopy);
+
 	std::string_view mapView(level.mapName.data(), strnlen(level.mapName.data(), level.mapName.size()));
 	level.isN64 = mapView.starts_with("q64/");
 	level.campaign.coopScalePlayers = 0;
@@ -1783,77 +1871,75 @@ void SpawnEntities(const char *mapName, const char *entities, const char *spawnP
 	// Initialize all client structs
 	for (size_t i = 0; i < game.maxClients; ++i) {
 		g_entities[i + 1].client = &game.clients[i];
-                game.clients[i].pers.connected = false;
-                game.clients[i].pers.limitedLivesPersist = false;
-                game.clients[i].pers.limitedLivesStash = 0;
-                game.clients[i].pers.spawned = false;
+		game.clients[i].pers.connected = false;
+		game.clients[i].pers.limitedLivesPersist = false;
+		game.clients[i].pers.limitedLivesStash = 0;
+		game.clients[i].pers.spawned = false;
 	}
 
 	InitBodyQue();
 
-	int inhibited = 0;
-	bool firstEntity = true;
-
-	while (true) {
-		const char *token = COM_Parse(&entities);
-		if (!entities || token[0] == '\0')
-			break;
-
-		if (token[0] != '{') {
-			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", __FUNCTION__, token);
-		}
-
-		gentity_t *ent = firstEntity ? g_entities : Spawn();
-		firstEntity = false;
-
-		entities = ED_ParseEntity(entities, ent);
-
-		if (ent != g_entities) {
-			if (G_InhibitEntity(ent)) {
-				FreeEntity(ent);
-				++inhibited;
-				continue;
-			}
-			ent->spawnFlags &= ~SPAWNFLAG_EDITOR_MASK;
-		}
-
-		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-		ED_CallSpawn(ent);
-		MapPostProcess(ent);
-		ent->s.renderFX |= RF_IR_VISIBLE;
-	}
+	int inhibited = SpawnEntitiesFromStringInternal(level.entityString.c_str(), __FUNCTION__);
 
 	if (inhibited > 0 && g_verbose->integer) {
 		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
 	}
 
-	// Level post-processing and setup
-	PrecacheStartItems();
-	PrecacheInventoryItems();
-	G_FindTeams();
-	QuadHog_SetupSpawn(5_sec);
-	Tech_SetupSpawn();
-
-	if (deathmatch->integer) {
-		if (g_dm_random_items->integer) {
-			PrecacheForRandomRespawn();
-		}
-		game.item_inhibit_pu = 0;
-		game.item_inhibit_pa = 0;
-		game.item_inhibit_ht = 0;
-		game.item_inhibit_ar = 0;
-		game.item_inhibit_am = 0;
-		game.item_inhibit_wp = 0;
-	} else {
-		InitHintPaths();
-	}
-
-	G_LocateSpawnSpots();
-	setup_shadow_lights();
-
-	level.init = true;
+	FinalizeLevelInitialization();
 }
 
+void ReloadWorldEntities() {
+	if (level.entityString.empty()) {
+		if (g_verbose->integer) {
+			gi.Com_PrintFmt("{}: No cached entity string available for map \"{}\".\n", __FUNCTION__, level.mapName.data());
+		}
+		return;
+	}
+
+	cached_soundIndex::clear_all();
+	cached_modelIndex::clear_all();
+	cached_imageIndex::clear_all();
+
+	gi.FreeTags(TAG_LEVEL);
+
+	for (uint32_t i = 0; i < globals.numEntities; ++i) {
+		gentity_t *ent = &g_entities[i];
+		if (!ent->inUse || ent->client)
+			continue;
+		if (i == 0) {
+			gi.unlinkEntity(ent);
+		} else {
+			FreeEntity(ent);
+		}
+	}
+
+	gi.unlinkEntity(world);
+	std::memset(world, 0, sizeof(*world));
+	for (size_t i = static_cast<size_t>(game.maxClients) + 1; i < game.maxEntities; ++i) {
+		if (g_entities[i].client)
+			continue;
+		std::memset(&g_entities[i], 0, sizeof(g_entities[i]));
+	}
+
+	globals.numEntities = game.maxClients + 1;
+
+	ResetLevelForEntityReload();
+
+	std::string_view mapView(level.mapName.data(), strnlen(level.mapName.data(), level.mapName.size()));
+	level.isN64 = mapView.starts_with("q64/");
+	level.campaign.coopScalePlayers = 0;
+	level.campaign.coopHealthScaling = std::clamp(g_coop_health_scaling->value, 0.0f, 1.0f);
+
+	InitBodyQue();
+
+	const char *entityData = level.entityString.c_str();
+	int inhibited = SpawnEntitiesFromStringInternal(entityData, __FUNCTION__);
+	if (inhibited > 0 && g_verbose->integer) {
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+	}
+
+	FinalizeLevelInitialization();
+}
 //===================================================================
 
 #include "g_statusbar.hpp"

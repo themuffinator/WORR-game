@@ -73,81 +73,31 @@ constexpr struct GameTypeRules {
 	/* GameType::Gauntlet */ { }
 };
 
-static void Monsters_KillAll() {
-	for (size_t i = 0; i < globals.maxEntities; i++) {
-		if (!g_entities[i].inUse)
-			continue;
-		if (!(g_entities[i].svFlags & SVF_MONSTER))
-			continue;
-		FreeEntity(&g_entities[i]);
-	}
-	level.campaign.totalMonsters = 0;
-	level.campaign.killedMonsters = 0;
-}
-
-static void Entities_ItemTeams_Reset() {
-	gentity_t	*ent;
-	size_t		i;
-
-	gentity_t	*master;
-	int			count, choice;
-
-	for (ent = g_entities + 1, i = 1; i < globals.numEntities; i++, ent++) {
-		if (!ent)
-			continue;
-
-		if (!ent->inUse)
-			continue;
-
-		if (!ent->item)
-			continue;
-
-		if (!ent->team)
-			continue;
-
-		if (!ent->teamMaster)
-			continue;
-
-		master = ent->teamMaster;
-
-		ent->svFlags |= SVF_NOCLIENT;
-		ent->solid = SOLID_NOT;
-		gi.linkEntity(ent);
-
-		for (count = 0, ent = master; ent; ent = ent->chain, count++)
-			;
-
-		choice = irandom(count);
-		if (ent && ent->chain) {
-			for (count = 0, ent = master; count < choice; ent = ent->chain, count++)
-				;
-		}
-	}
-}
-
-/*
-============
-Entities_Reset
-
-Reset clients and items
-============
-*/
 enum class LimitedLivesResetMode {
-        Auto,
-        Force,
+	Auto,
+	Force,
 };
 
 static bool ShouldResetLimitedLives(LimitedLivesResetMode mode) {
-        if (!G_LimitedLivesActive())
-                return false;
+	if (!G_LimitedLivesActive())
+		return false;
 
-        if (G_LimitedLivesInCoop())
-                return true;
+	if (G_LimitedLivesInCoop())
+		return true;
 
-        return mode == LimitedLivesResetMode::Force;
+	return mode == LimitedLivesResetMode::Force;
 }
 
+/*
+===============
+Entities_Reset
+
+Reset clients and rebuild world entities
+===============
+*/
 static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_score, LimitedLivesResetMode limitedLivesResetMode = LimitedLivesResetMode::Auto) {
+
+	ReloadWorldEntities();
 
 	// reset the players
 	if (reset_players) {
@@ -186,70 +136,6 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
 		CalculateRanks();
 	}
 
-	// reset the level items
-	Tech_Reset();
-	CTF_ResetFlags();
-
-	Monsters_KillAll();
-
-	Entities_ItemTeams_Reset();
-
-	gentity_t* ent;
-	size_t	i;
-
-	// reset item spawns and gibs/corpses, remove dropped items and projectiles
-	for (ent = g_entities + 1, i = 1; i < globals.numEntities; i++, ent++) {
-		if (!ent->inUse)
-			continue;
-
-		if (Q_strcasecmp(ent->className, "gib") == 0) {
-			ent->svFlags = SVF_NOCLIENT;
-			ent->takeDamage = false;
-			ent->solid = SOLID_NOT;
-			gi.unlinkEntity(ent);
-			FreeEntity(ent);
-		} else if ((ent->svFlags & SVF_PROJECTILE) || (ent->clipMask & CONTENTS_PROJECTILECLIP)) {
-			FreeEntity(ent);
-		} else if (ent->item) {
-			// already processed in CTF_ResetFlags()
-			if (ent->item->id == IT_FLAG_RED || ent->item->id == IT_FLAG_BLUE)
-				continue;
-
-			if (ent->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED | SPAWNFLAG_ITEM_DROPPED_PLAYER)) {
-				//FreeEntity(ent);
-				ent->nextThink = level.time;
-			} else {
-				// powerups don't spawn in for a while
-				if (ent->item->flags & IF_POWERUP) {
-					if (g_quadhog->integer && ent->item->id == IT_POWERUP_QUAD) {
-						FreeEntity(ent);
-						QuadHog_SetupSpawn(5_sec);
-					} else {
-						ent->svFlags |= SVF_NOCLIENT;
-						ent->solid = SOLID_NOT;
-
-						ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
-						//if (!ent->think)
-						ent->think = RespawnItem;
-					}
-					continue;
-				} else {
-					if (ent->svFlags & (SVF_NOCLIENT | SVF_RESPAWNING) || ent->solid == SOLID_NOT) {
-						GameTime t = 0_sec;
-						if (ent->random) {
-							t += GameTime::from_ms((crandom() * ent->random) * 1000);
-							if (t < FRAME_TIME_MS) {
-								t = FRAME_TIME_MS;
-							}
-						}
-						//if (ent->item->id == IT_HEALTH_MEGA)
-						ent->think = RespawnItem;
-						ent->nextThink = level.time + t;
-					}
-				}
-			}
-		}
-	}
 }
 
 // =================================================
@@ -599,7 +485,6 @@ void Match_Start() {
 
 	level.match = {};
 
-	Monsters_KillAll();
 	Entities_Reset(true, true, true);
 	UnReadyAll();
 
