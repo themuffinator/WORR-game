@@ -2567,14 +2567,20 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	if (!ent || !ent->client)
 		return false;
 
-	gclient_t* cl = ent->client;
-	const Team old_team = cl->sess.team;
-	const bool wasPlaying = ClientIsPlaying(cl);
-	const bool duel = Game::Has(GameFlags::OneVOne);
-	const int clientNum = static_cast<int>(cl - game.clients);
+        gclient_t* cl = ent->client;
+        const bool wasInitialised = cl->sess.initialised;
+        const Team old_team = cl->sess.team;
+        const bool wasPlaying = ClientIsPlaying(cl);
+        const bool duel = Game::Has(GameFlags::OneVOne);
+        const int clientNum = static_cast<int>(cl - game.clients);
 
-	Team target = desired_team;
-	bool requestQueue = duel && desired_team == Team::None;
+        if (!force && cl->resp.teamDelayTime > level.time) {
+                gi.LocClient_Print(ent, PRINT_HIGH, ".You must wait before switching teams again.\n");
+                return false;
+        }
+
+        Team target = desired_team;
+        bool requestQueue = duel && desired_team == Team::None;
 
 	if (!deathmatch->integer) {
 		target = (desired_team == Team::Spectator) ? Team::Spectator : Team::Free;
@@ -2743,11 +2749,14 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		ClientRespawn(ent);
 	}
 
-	BroadcastTeamChange(ent, old_team, spectatorInactive, silent);
-	CalculateRanks();
-	ClientUpdateFollowers(ent);
+        BroadcastTeamChange(ent, old_team, spectatorInactive, silent);
+        CalculateRanks();
+        ClientUpdateFollowers(ent);
 
-	return true;
+        if (!force && wasInitialised && changedTeam)
+                cl->resp.teamDelayTime = level.time + 5_sec;
+
+        return true;
 }
 
 
