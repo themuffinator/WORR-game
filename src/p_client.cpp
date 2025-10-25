@@ -4233,19 +4233,22 @@ enum respawn_state_t {
 // note that this is only called if they are allowed to respawn (not
 // restarting the level due to all being dead)
 static bool G_LimitedLivesRespawn(gentity_t* ent) {
-        if (G_LimitedLivesInCoop()) {
-                if (!g_coop_squad_respawn->integer && !g_coop_enable_lives->integer)
+        if (CooperativeModeOn()) {
+                const bool limitedLives = G_LimitedLivesInCoop();
+                const bool allowSquadRespawn = coop->integer && g_coop_squad_respawn->integer;
+
+                if (!allowSquadRespawn && !limitedLives)
                         return false;
 
                 respawn_state_t state = RESPAWN_NONE;
 
-                if (g_coop_enable_lives->integer && ent->client->pers.lives == 0) {
+                if (limitedLives && ent->client->pers.lives == 0) {
                         state = RESPAWN_SPECTATE;
                         ent->client->coopRespawnState = CoopRespawn::NoLives;
                 }
 
                 if (state == RESPAWN_NONE) {
-                        if (coop->integer && g_coop_squad_respawn->integer) {
+                        if (allowSquadRespawn) {
                                 bool allDead = true;
 
                                 for (auto player : active_clients()) {
