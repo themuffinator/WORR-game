@@ -1123,6 +1123,8 @@ void ClientSpawn(gentity_t* ent) {
     if (!cl)
         return;
 
+    cl->coopRespawnState = CoopRespawn::None;
+
     if (Game::Has(GameFlags::Rounds | GameFlags::Elimination) && level.matchState == MatchState::In_Progress && Game::IsNot(GameType::Horde))
         if (level.roundState == RoundState::In_Progress || level.roundState == RoundState::Ended)
             cl->eliminated = true;
