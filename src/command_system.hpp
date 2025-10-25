@@ -72,6 +72,36 @@ public:
                 return gi.argv(index);
         }
 
+        std::string joinFrom(int index) const {
+                if (index < 0 || index >= _argc) {
+                        return {};
+                }
+
+                std::string result;
+                auto append = [&result](std::string_view part) {
+                        if (part.empty()) {
+                                return;
+                        }
+                        if (!result.empty()) {
+                                result.push_back(' ');
+                        }
+                        result.append(part.data(), part.size());
+                };
+
+                if (_useManualArgs) {
+                        for (int i = index; i < _argc; ++i) {
+                                append(_manualArgs[i]);
+                        }
+                }
+                else {
+                        for (int i = index; i < _argc; ++i) {
+                                append(gi.argv(i));
+                        }
+                }
+
+                return result;
+        }
+
         std::optional<int> getInt(int index) const {
                 return ParseInt(getString(index));
         }
