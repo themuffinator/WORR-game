@@ -1403,8 +1403,7 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 			msg += G_Fmt("{} - ", name);
 			msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
 
-			double kdr = (p.totalDeaths > 0) ? (double)p.totalKills / p.totalDeaths : (double)p.totalKills;
-			msg += G_Fmt(" | K/D Ratio: {:.2f}", kdr);
+                        msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
 			/*
 			double total = p.totalKills + p.totalAssists + p.totalDeaths;
 			double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
@@ -1483,8 +1482,9 @@ void MatchStats_End() {
 			p.totalKills = cl->pers.match.totalKills;
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
-			p.totalDeaths = cl->pers.match.totalDeaths;
-			p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.totalDeaths = cl->pers.match.totalDeaths;
+                        p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.calculateKDR();
 			p.totalScore = cl->resp.score;
 			p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
