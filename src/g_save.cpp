@@ -777,6 +777,8 @@ FIELD_AUTO(wanted_fog),
 FIELD_STRUCT(wanted_heightfog, height_fog_t),
 FIELD_AUTO(megaTime),
 FIELD_AUTO(lives),
+FIELD_AUTO(limitedLivesPersist),
+FIELD_AUTO(limitedLivesStash),
 FIELD_AUTO(n64_crouch_warn_times),
 FIELD_AUTO(n64_crouch_warning)
 SAVE_STRUCT_END
