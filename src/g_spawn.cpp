@@ -1906,8 +1906,8 @@ static void AddCoopStatus(statusbar_t &sb) {
 
 	int y = 2;
 	const int step = 26;
-	if (g_coop_enable_lives->integer && g_coop_num_lives->integer > 0)
-		sb.ifstat(STAT_LIVES).xr(-16).yt(y).lives_num(STAT_LIVES).xr(0).yt(y += step).loc_rstring("$g_lives").endifstat();
+        if (G_LimitedLivesActive())
+                sb.ifstat(STAT_LIVES).xr(-16).yt(y).lives_num(STAT_LIVES).xr(0).yt(y += step).loc_rstring("$g_lives").endifstat();
 
 	if (Game::Is(GameType::Horde)) {
 		int n = level.roundNumber;
@@ -1990,7 +1990,7 @@ static void G_InitStatusbar() {
 	if (!minhud) AddCombatHUD(sb);
 	AddPowerupsAndTech(sb);
 
-	if (CooperativeModeOn()) AddCoopStatus(sb);
+        if (CooperativeModeOn() || Game::Is(GameType::LastManStanding)) AddCoopStatus(sb);
 	if (!deathmatch->integer) AddSPExtras(sb);
 	else AddDeathmatchStatus(sb);
 

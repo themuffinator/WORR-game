@@ -392,16 +392,16 @@ void DrawHelpComputer(gentity_t* ent) {
 ===============
 SetCoopStats
 
-Sets HUD stats used in cooperative gameplay.
-This runs even if the player is spectating.
+Sets HUD stats used in cooperative gameplay and other
+limited-lives modes. This runs even if the player is spectating.
 ===============
 */
 void SetCoopStats(gentity_t *ent) {
 	// Show lives (if enabled)
-	if (CooperativeModeOn() && g_coop_enable_lives->integer) {
-		ent->client->ps.stats[STAT_LIVES] = ent->client->pers.lives + 1;
-	} else {
-		ent->client->ps.stats[STAT_LIVES] = 0;
+        if (G_LimitedLivesActive()) {
+                ent->client->ps.stats[STAT_LIVES] = ent->client->pers.lives + 1;
+        } else {
+                ent->client->ps.stats[STAT_LIVES] = 0;
 	}
 
 	// Monster count (if horde)

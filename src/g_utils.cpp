@@ -1228,7 +1228,37 @@ CooperativeModeOn
 =================
 */
 bool CooperativeModeOn() {
-	return coop->integer || Game::Is(GameType::Horde);
+        return coop->integer || Game::Is(GameType::Horde);
+}
+
+bool G_LimitedLivesInCoop() {
+        return CooperativeModeOn() && g_coop_enable_lives->integer;
+}
+
+bool G_LimitedLivesInLMS() {
+        return Game::Is(GameType::LastManStanding);
+}
+
+bool G_LimitedLivesActive() {
+        return G_LimitedLivesInCoop() || G_LimitedLivesInLMS();
+}
+
+int G_LimitedLivesMax() {
+        if (G_LimitedLivesInCoop()) {
+                int lives = g_coop_num_lives->integer;
+                if (lives < 0)
+                        lives = 0;
+                return lives + 1;
+        }
+
+        if (G_LimitedLivesInLMS()) {
+                int lives = g_lms_num_lives->integer;
+                if (lives < 0)
+                        lives = 0;
+                return lives + 1;
+        }
+
+        return 0;
 }
 
 /*
