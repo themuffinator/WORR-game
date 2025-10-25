@@ -1990,7 +1990,7 @@ static void G_InitStatusbar() {
 	if (!minhud) AddCombatHUD(sb);
 	AddPowerupsAndTech(sb);
 
-        if (CooperativeModeOn() || Game::Is(GameType::LastManStanding)) AddCoopStatus(sb);
+        if (CooperativeModeOn() || G_LimitedLivesInLMS()) AddCoopStatus(sb);
 	if (!deathmatch->integer) AddSPExtras(sb);
 	else AddDeathmatchStatus(sb);
 

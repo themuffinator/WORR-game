@@ -67,6 +67,7 @@ constexpr struct GameTypeRules {
 	/* GameType::CaptureStrike */ { },
 	/* GameType::RedRover */ { },
 	/* GameType::LastManStanding */ { },
+	/* GameType::LastTeamStanding */ { },
 	/* GameType::Horde */ { },
 	/* GameType::ProBall */ { },
 	/* GameType::Gauntlet */ { }
@@ -1772,32 +1773,78 @@ void CheckDMExitRules() {
         if (Game::Is(GameType::Horde))
                 return;
 
-        if (Game::Is(GameType::LastManStanding)) {
-                int playingClients = 0;
-                int playersWithLives = 0;
-                gentity_t* potentialWinner = nullptr;
+        if (Game::Is(GameType::LastManStanding) || Game::Is(GameType::LastTeamStanding)) {
+                if (Game::Is(GameType::LastTeamStanding)) {
+                        std::array<int, static_cast<size_t>(Team::Total)> teamPlayers{};
+                        std::array<int, static_cast<size_t>(Team::Total)> teamLives{};
 
-                for (auto ec : active_clients()) {
-                        if (!ClientIsPlaying(ec->client))
-                                continue;
-                        if (ec->client->sess.team != Team::Free)
-                                continue;
+                        for (auto ec : active_clients()) {
+                                if (!ClientIsPlaying(ec->client))
+                                        continue;
 
-                        playingClients++;
+                                const Team team = ec->client->sess.team;
+                                if (team != Team::Red && team != Team::Blue)
+                                        continue;
 
-                        if (ec->client->pers.lives > 0) {
-                                playersWithLives++;
-                                potentialWinner = ec;
+                                const auto teamIndex = static_cast<size_t>(team);
+                                teamPlayers[teamIndex]++;
+
+                                if (ec->client->pers.lives > 0)
+                                        teamLives[teamIndex] += ec->client->pers.lives;
                         }
-                }
 
-                if (playingClients > 1 && playersWithLives <= 1) {
-                        if (playersWithLives == 1 && potentialWinner) {
-                                QueueIntermission(G_Fmt("{} WINS! (last survivor)", potentialWinner->client->sess.netName).data(), false, false);
-                        } else {
-                                QueueIntermission("All players eliminated!", true, false);
+                        int participatingTeams = 0;
+                        int teamsWithLives = 0;
+                        Team potentialWinner = Team::None;
+
+                        for (Team team : { Team::Red, Team::Blue }) {
+                                const auto teamIndex = static_cast<size_t>(team);
+                                if (teamPlayers[teamIndex] == 0)
+                                        continue;
+
+                                participatingTeams++;
+
+                                if (teamLives[teamIndex] > 0) {
+                                        teamsWithLives++;
+                                        potentialWinner = team;
+                                }
                         }
-                        return;
+
+                        if (participatingTeams > 1 && teamsWithLives <= 1) {
+                                if (teamsWithLives == 1 && potentialWinner != Team::None) {
+                                        QueueIntermission(G_Fmt("{} Team WINS! (last surviving team)", Teams_TeamName(potentialWinner)).data(), false, false);
+                                } else {
+                                        QueueIntermission("All teams eliminated!", true, false);
+                                }
+                                return;
+                        }
+                } else {
+                        int playingClients = 0;
+                        int playersWithLives = 0;
+                        gentity_t* potentialWinner = nullptr;
+
+                        for (auto ec : active_clients()) {
+                                if (!ClientIsPlaying(ec->client))
+                                        continue;
+                                if (ec->client->sess.team != Team::Free)
+                                        continue;
+
+                                playingClients++;
+
+                                if (ec->client->pers.lives > 0) {
+                                        playersWithLives++;
+                                        potentialWinner = ec;
+                                }
+                        }
+
+                        if (playingClients > 1 && playersWithLives <= 1) {
+                                if (playersWithLives == 1 && potentialWinner) {
+                                        QueueIntermission(G_Fmt("{} WINS! (last survivor)", potentialWinner->client->sess.netName).data(), false, false);
+                                } else {
+                                        QueueIntermission("All players eliminated!", true, false);
+                                }
+                                return;
+                        }
                 }
         }
 

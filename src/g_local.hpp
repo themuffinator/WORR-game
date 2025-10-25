@@ -168,6 +168,7 @@ enum class GameType : uint8_t {
 	CaptureStrike,
 	RedRover,
 	LastManStanding,
+	LastTeamStanding,
 	Horde,
 	ProBall,
 	Gauntlet,
@@ -228,6 +229,7 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 	{GameType::CaptureStrike,  "strike",   "STRIKE",   "CaptureStrike",       "strike",		GameFlags::Teams | GameFlags::Arena | GameFlags::Rounds | GameFlags::CTF | GameFlags::Elimination},
 	{GameType::RedRover,       "rr",       "REDROVER", "Red Rover",           "rr",			GameFlags::Teams | GameFlags::Rounds | GameFlags::Arena},
 	{GameType::LastManStanding,"lms",      "LMS",      "Last Man Standing",   "lms",		GameFlags::Elimination},
+	{GameType::LastTeamStanding,"lts",     "LTS",      "Last Team Standing",  "lts",		GameFlags::Teams | GameFlags::Elimination},
 	{GameType::Horde,          "horde",    "HORDE",    "Horde Mode",          "horde",		GameFlags::Rounds},
 	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::None},
 	{GameType::Gauntlet,       "gauntlet", "GAUNTLET", "Gauntlet",            "gauntlet",	GameFlags::OneVOne | GameFlags::Rounds | GameFlags::Frags}
