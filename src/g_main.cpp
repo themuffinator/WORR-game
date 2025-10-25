@@ -23,8 +23,10 @@
 #include "g_local.hpp"
 #include "bots/bot_includes.hpp"
 #include "command_registration.hpp"
+#include "command_voting.hpp"
 #include <fstream>
 #include <sstream>
+#include <string>
 
 CHECK_GCLIENT_INTEGRITY;
 CHECK_ENTITY_INTEGRITY;
@@ -849,7 +851,8 @@ static void InitGame() {
 	g_teamplay_force_balance = gi.cvar("g_teamplay_force_balance", "0", CVAR_NOFLAGS);
 	g_teamplay_item_drop_notice = gi.cvar("g_teamplay_item_drop_notice", "1", CVAR_NOFLAGS);
 	g_verbose = gi.cvar("g_verbose", "0", CVAR_NOFLAGS);
-	g_vote_flags = gi.cvar("g_vote_flags", "0", CVAR_NOFLAGS);
+        static const std::string kDefaultVoteFlagsValue = std::to_string(Commands::kDefaultVoteFlags);
+        g_vote_flags = gi.cvar("g_vote_flags", kDefaultVoteFlagsValue.c_str(), CVAR_NOFLAGS);
 	g_vote_limit = gi.cvar("g_vote_limit", "3", CVAR_NOFLAGS);
 	g_warmup_countdown = gi.cvar("g_warmup_countdown", "10", CVAR_NOFLAGS);
 	g_warmup_ready_percentage = gi.cvar("g_warmup_ready_percentage", "0.51f", CVAR_NOFLAGS);
