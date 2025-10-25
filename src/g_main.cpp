@@ -1484,9 +1484,11 @@ void ExitLevel(bool forceImmediate) {
 
 		// Restore lives to all players in coop
 		if (g_coop_enable_lives->integer) {
-			for (auto ec : active_clients()) {
-				ec->client->pers.lives = g_coop_num_lives->integer + 1;
-			}
+                        for (auto ec : active_clients()) {
+                                ec->client->pers.lives = g_coop_num_lives->integer + 1;
+                                ec->client->pers.limitedLivesStash = ec->client->pers.lives;
+                                ec->client->pers.limitedLivesPersist = false;
+                        }
 		}
 	}
 

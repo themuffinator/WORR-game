@@ -1129,8 +1129,13 @@ void ClientSpawn(gentity_t* ent) {
         else cl->eliminated = false;
     bool eliminated = ent->client->eliminated;
     int lives = 0;
-    if (G_LimitedLivesActive())
-        lives = cl->pers.spawned ? cl->pers.lives : G_LimitedLivesMax();
+    if (G_LimitedLivesActive()) {
+        if (cl->pers.limitedLivesPersist) {
+            lives = cl->pers.limitedLivesStash;
+        } else {
+            lives = G_LimitedLivesMax();
+        }
+    }
 
     // clear velocity now, since landmark may change it
     ent->velocity = {};
@@ -1292,6 +1297,13 @@ void ClientSpawn(gentity_t* ent) {
     ent->maxs = PLAYER_MAXS;
 
     ent->client->pers.lives = lives;
+    if (G_LimitedLivesActive()) {
+        cl->pers.limitedLivesStash = lives;
+        cl->pers.limitedLivesPersist = true;
+    } else {
+        cl->pers.limitedLivesStash = 0;
+        cl->pers.limitedLivesPersist = false;
+    }
     if (G_LimitedLivesInCoop())
         ent->client->resp.coopRespawn.lives = lives;
 

@@ -139,6 +139,8 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
                         ec->client->resp.ctf_state = 0;
                         if (G_LimitedLivesActive()) {
                                 ec->client->pers.lives = G_LimitedLivesMax();
+                                ec->client->pers.limitedLivesStash = ec->client->pers.lives;
+                                ec->client->pers.limitedLivesPersist = false;
                                 if (G_LimitedLivesInCoop())
                                         ec->client->resp.coopRespawn.lives = ec->client->pers.lives;
                         }
