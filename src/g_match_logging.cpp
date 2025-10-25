@@ -21,6 +21,7 @@
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
+#include <unordered_set>
 #include <string_view>
 
 using json = Json::Value;
@@ -1604,29 +1605,83 @@ void MatchStats_End() {
 			}
 		}
 
-		// Total MOD stats
-		for (auto &p : matchStats.players) {
-			for (auto &[modId, kills] : p.modTotalKills)
-				matchStats.totalKillsByMOD[modr[static_cast<int>(modId)].name] += kills;
-			for (auto &[modId, deaths] : p.modTotalDeaths)
-				matchStats.totalDeathsByMOD[modr[static_cast<int>(modId)].name] += deaths;
-		}
+                std::unordered_set<std::string> accountedPlayerIDs;
+                auto accumulateModTotals = [&](const std::vector<PlayerStats> &playersVec) {
+                        for (const auto &p : playersVec) {
+                                accountedPlayerIDs.insert(p.socialID);
 
-		for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
-			int deaths = matchStats.totalDeathsByMOD[modName];
-			matchStats.totalKDRByMOD[modName] = deaths > 0
-				? (double)kills / deaths
-				: (double)kills;
-		}
+                                for (const auto &[modId, kills] : p.modTotalKills) {
+                                        if (kills <= 0)
+                                                continue;
 
-		for (auto &e : level.match.deathLog) {
-			matchStats.totalDeathsByMOD[modr[static_cast<int>(e.mod.id)].name]++;
-		}
+                                        const auto &modName = modr[static_cast<int>(modId)].name;
+                                        matchStats.totalKillsByMOD[modName] += kills;
+                                }
 
-		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
-	} catch (const std::exception &e) {
-		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
-	}
+                                for (const auto &[modId, deaths] : p.modTotalDeaths) {
+                                        if (deaths <= 0)
+                                                continue;
+
+                                        const auto &modName = modr[static_cast<int>(modId)].name;
+                                        matchStats.totalDeathsByMOD[modName] += deaths;
+                                }
+                        }
+                };
+
+                accumulateModTotals(matchStats.players);
+                for (const auto &team : matchStats.teams) {
+                        accumulateModTotals(team.players);
+                }
+
+                auto isAccounted = [&](const std::string &id) {
+                        return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
+                };
+
+                for (const auto &e : level.match.deathLog) {
+                        const auto &modName = modr[static_cast<int>(e.mod.id)].name;
+                        const bool attackerAccounted = isAccounted(e.attacker.id);
+                        const bool victimAccounted = isAccounted(e.victim.id);
+                        const bool environmentKill = e.attacker.id.empty() || e.attacker.id == "0";
+                        const bool suicide = !environmentKill && !e.attacker.id.empty() && e.attacker.id == e.victim.id;
+
+                        if (!victimAccounted) {
+                                matchStats.totalDeathsByMOD[modName]++;
+                        }
+
+                        if (!attackerAccounted && !environmentKill && !suicide) {
+                                matchStats.totalKillsByMOD[modName]++;
+                        }
+                }
+
+                for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
+                        int deaths = matchStats.totalDeathsByMOD[modName];
+                        matchStats.totalKDRByMOD[modName] = deaths > 0
+                                ? (double)kills / deaths
+                                : (double)kills;
+                }
+
+                int aggregatedKillSum = 0;
+                for (const auto &[modName, kills] : matchStats.totalKillsByMOD) {
+                        aggregatedKillSum += kills;
+                }
+
+                int aggregatedDeathSum = 0;
+                for (const auto &[modName, deaths] : matchStats.totalDeathsByMOD) {
+                        aggregatedDeathSum += deaths;
+                }
+
+                if (aggregatedKillSum != level.match.totalKills) {
+                        gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, level.match.totalKills);
+                }
+
+                if (aggregatedDeathSum != level.match.totalDeaths) {
+                        gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, level.match.totalDeaths);
+                }
+
+                MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
+        } catch (const std::exception &e) {
+                gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+        }
 }
 
 /*
