@@ -284,14 +284,22 @@ namespace Commands {
 				}
 			}
 		}
-		else {
-			it = FindItem(arg1.data());
-		}
+                else {
+                        it = FindItem(arg1.data());
 
-		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
-			return;
-		}
+                        if (!it) {
+                                if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
+                                        if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
+                                                it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
+                                        }
+                                }
+                        }
+                }
+
+                if (!it) {
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
+                        return;
+                }
 
 		if (!it->drop) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
