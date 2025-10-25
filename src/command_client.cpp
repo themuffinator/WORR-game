@@ -1089,9 +1089,9 @@ namespace Commands {
 		RegisterCommand("timer", &Timer, AllowSpectator | AllowDead);
 		RegisterCommand("unhook", &UnHook, {}, true);
 		RegisterCommand("use", &Use, {}, true);
-		RegisterCommand("useindex", &Use, {}, true);
-		RegisterCommand("useindexonly", &Use, {}, true);
-		RegisterCommand("useonly", &Use, {}, true);
+		RegisterCommand("use_index", &Use, {}, true);
+		RegisterCommand("use_index_only", &Use, {}, true);
+		RegisterCommand("use_only", &Use, {}, true);
 		RegisterCommand("wave", &Wave);
 		RegisterCommand("weaplast", &WeapLast, {}, true);
 		RegisterCommand("weapnext", &WeapNext, {}, true);
