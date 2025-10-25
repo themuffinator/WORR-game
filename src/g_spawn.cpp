@@ -1783,8 +1783,10 @@ void SpawnEntities(const char *mapName, const char *entities, const char *spawnP
 	// Initialize all client structs
 	for (size_t i = 0; i < game.maxClients; ++i) {
 		g_entities[i + 1].client = &game.clients[i];
-		game.clients[i].pers.connected = false;
-		game.clients[i].pers.spawned = false;
+                game.clients[i].pers.connected = false;
+                game.clients[i].pers.limitedLivesPersist = false;
+                game.clients[i].pers.limitedLivesStash = 0;
+                game.clients[i].pers.spawned = false;
 	}
 
 	InitBodyQue();

@@ -4043,6 +4043,8 @@ struct client_persistant_t {
 	GameTime			fog_transition_time = 0_ms;
 	GameTime			megaTime = 0_ms; // relative megahealth time value
 	int32_t			lives = 0; // player lives left (1 = no respawns remaining)
+        bool                    limitedLivesPersist = false; // whether the stored lives should survive the next respawn
+        int32_t                 limitedLivesStash = 0;        // cached lives value for respawn restoration
 	uint8_t			n64_crouch_warn_times = 0;
 	GameTime			n64_crouch_warning = 0_ms;
 

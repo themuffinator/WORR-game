@@ -1573,6 +1573,8 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
                 if (G_LimitedLivesInCoop()) {
                         if (self->client->pers.lives > 0) {
                                 self->client->pers.lives--;
+                                self->client->pers.limitedLivesStash = self->client->pers.lives;
+                                self->client->pers.limitedLivesPersist = true;
                                 if (self->client->resp.coopRespawn.lives > 0)
                                         self->client->resp.coopRespawn.lives--;
                         }
@@ -1595,8 +1597,11 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
                         if (!level.campaign.coopLevelRestartTime)
                                 self->client->respawnMaxTime = level.time + 3_sec;
                 } else if (G_LimitedLivesInLMS()) {
-                        if (self->client->pers.lives > 0)
+                        if (self->client->pers.lives > 0) {
                                 self->client->pers.lives--;
+                                self->client->pers.limitedLivesStash = self->client->pers.lives;
+                                self->client->pers.limitedLivesPersist = true;
+                        }
 
                         if (self->client->pers.lives == 0) {
                                 self->client->eliminated = true;
@@ -1890,8 +1895,11 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 		client->pers.lastWeapon = client->pers.weapon;
 	}
 
+        client->pers.limitedLivesPersist = false;
+        client->pers.limitedLivesStash = 0;
         if (G_LimitedLivesActive()) {
                 client->pers.lives = G_LimitedLivesMax();
+                client->pers.limitedLivesStash = client->pers.lives;
         }
 
 	if (ent->client->pers.autoshield >= AUTO_SHIELD_AUTO)
@@ -2426,7 +2434,9 @@ static void G_SetLevelEntry() {
 		if (g_coop_enable_lives->integer) {
 			for (auto ec : active_clients()) {
 				const int max_lives = g_coop_num_lives->integer + 1;
-				ec->client->pers.lives = std::min(max_lives, ec->client->pers.lives + 1);
+                                ec->client->pers.lives = std::min(max_lives, ec->client->pers.lives + 1);
+                                ec->client->pers.limitedLivesStash = ec->client->pers.lives;
+                                ec->client->pers.limitedLivesPersist = true;
 			}
 		}
 	}
@@ -2693,10 +2703,14 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inactiveStatus = spectatorInactive;
 		cl->sess.inactivityWarning = false;
 		cl->sess.inactivityTime = 0_sec;
-		cl->sess.inGame = false;
-		cl->sess.initialised = true;
-		cl->pers.readyStatus = false;
-		cl->pers.spawned = false;
+                cl->sess.inGame = false;
+                cl->sess.initialised = true;
+                cl->pers.readyStatus = false;
+                if (G_LimitedLivesActive()) {
+                        cl->pers.limitedLivesStash = cl->pers.lives;
+                        cl->pers.limitedLivesPersist = true;
+                }
+                cl->pers.spawned = false;
 
 		cl->buttons = BUTTON_NONE;
 		cl->oldButtons = BUTTON_NONE;
@@ -3401,8 +3415,10 @@ void ClientDisconnect(gentity_t* ent) {
 	ent->inUse = false;
 	ent->sv.init = false;
 	ent->className = "disconnected";
-	ent->client->pers.connected = false;
-	ent->client->pers.spawned = false;
+        ent->client->pers.connected = false;
+        ent->client->pers.limitedLivesPersist = false;
+        ent->client->pers.limitedLivesStash = 0;
+        ent->client->pers.spawned = false;
 	ent->timeStamp = level.time + 1_sec;
 
 	if (ent->client->pers.spawned)
