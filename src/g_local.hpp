@@ -3784,7 +3784,7 @@ void SetIntermissionPoint(void);
 void FindIntermissionPoint(void);
 void G_RevertVote(gclient_t *client);
 void Vote_Passed();
-void ExitLevel();
+void ExitLevel(bool forceImmediate = false);
 void Teams_CalcRankings(std::array<uint32_t, MAX_CLIENTS> &playerRanks); // [Paril-KEX]
 void ReadyAll();
 void UnReadyAll();
