@@ -1391,9 +1391,9 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 		if (!ec || !ec->client)
 			continue;
 
-		const char *rawName = ec->client->sess.netName;
-		if (!rawName) {
-			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
+                const char *rawName = ec->client->sess.netName;
+                if (!rawName) {
+                        gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
 			continue;
 		}
 
