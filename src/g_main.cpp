@@ -1932,11 +1932,11 @@ static inline void G_RunFrame_(bool main_loop) {
 				ent->s.effects &= ~EF_COLOR_SHELL;
 
 				if (ent->owner->client->powerupTime.quadDamage > level.time) {
-					ent->s.renderFX |= (RF_SHELL_BLUE);
+					ent->s.renderFX |= RF_SHELL_BLUE;
 					ent->s.effects |= EF_COLOR_SHELL;
 				}
 				if (ent->owner->client->powerupTime.doubleDamage > level.time) {
-					ent->s.renderFX |= (RF_SHELL_BLUE);
+					ent->s.renderFX |= RF_SHELL_BLUE;
 					ent->s.effects |= EF_COLOR_SHELL;
 				}
 				if (ent->owner->client->powerupTime.invisibility > level.time) {
