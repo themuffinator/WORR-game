@@ -87,7 +87,7 @@ namespace Commands {
 		std::string_view arg(rawArg);
 		foundClient = ClientEntFromString(rawArg);
 		if (foundClient && foundClient->client) {
-			return foundClient->client->pers.socialID;
+			return foundClient->client->sess.socialID;
 		}
 
 		if (ValidateSocialIDFormat(arg)) {

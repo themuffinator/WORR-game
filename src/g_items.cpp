@@ -185,15 +185,16 @@ static THINK(drop_make_touchable) (gentity_t* ent) -> void {
 }
 
 static inline void SetDroppedItemBounds(gentity_t* e, float scale = 1.0f) {
-	if (!e)
-		return;
+        if (!e)
+                return;
 
-	const float s = std::max(0.001f, scale);
-	const Vector3 mins = { -15.0f * s, -15.0f * s, 0.0f };
-	const Vector3 maxs = { 15.0f * s,  15.0f * s, 30.0f * s };
+        const float s = std::max(0.001f, scale);
+        const Vector3 extent = { 15.0f * s, 15.0f * s, 15.0f * s };
 
-	e->mins = mins;
-	e->maxs = maxs;
+        // Keep the dropped item's origin centered within its bounds so the world model
+        // doesn't clip through the floor once physics settles.
+        e->mins = -extent;
+        e->maxs = extent;
 }
 
 /**

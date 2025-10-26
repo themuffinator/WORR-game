@@ -747,7 +747,6 @@ SAVE_STRUCT_END
 #define DECLARE_SAVE_STRUCT client_persistant_t
 SAVE_STRUCT_START
 FIELD_AUTO(userInfo),
-FIELD_AUTO(socialID),
 FIELD_AUTO(netName),
 FIELD_AUTO(hand),
 
