@@ -357,7 +357,7 @@ namespace Commands {
 			argSuffix.empty() ? "" : argSuffix.c_str());
 
 		for (auto ec : active_clients()) {
-			ec->client->resp.voted = (ec == ent) ? 1 : 0;
+			ec->client->pers.voted = (ec == ent) ? 1 : 0;
 		}
 
 		ent->client->pers.vote_count++;
@@ -617,7 +617,7 @@ namespace Commands {
 			gi.Client_Print(ent, PRINT_HIGH, "No vote in progress.\n");
 			return;
 		}
-		if (ent->client->resp.voted != 0) {
+		if (ent->client->pers.voted != 0) {
 			gi.Client_Print(ent, PRINT_HIGH, "You have already voted.\n");
 			return;
 		}
@@ -639,11 +639,11 @@ namespace Commands {
 		std::string_view vote = args.getString(1);
 		if (vote == "yes" || vote == "y") {
 			level.vote.countYes++;
-			ent->client->resp.voted = 1;
+			ent->client->pers.voted = 1;
 		}
 		else if (vote == "no" || vote == "n") {
 			level.vote.countNo++;
-			ent->client->resp.voted = -1;
+			ent->client->pers.voted = -1;
 		}
 		else {
 			PrintUsage(ent, args, "<yes|no>", "", "Casts your vote.");
@@ -671,20 +671,20 @@ void G_RevertVote(gclient_t* client) {
 	}
 
 	if (!level.vote.time || !level.vote.client) {
-		client->resp.voted = 0;
+		client->pers.voted = 0;
 		return;
 	}
 
-	if (client->resp.voted > 0) {
+	if (client->pers.voted > 0) {
 		int yesVotes = std::max(0, static_cast<int>(level.vote.countYes) - 1);
 		level.vote.countYes = static_cast<int8_t>(yesVotes);
 	}
-	else if (client->resp.voted < 0) {
+	else if (client->pers.voted < 0) {
 		int noVotes = std::max(0, static_cast<int>(level.vote.countNo) - 1);
 		level.vote.countNo = static_cast<int8_t>(noVotes);
 	}
 
-	client->resp.voted = 0;
+	client->pers.voted = 0;
 
 	if (level.vote.client != client) {
 		return;
@@ -704,7 +704,7 @@ void G_RevertVote(gclient_t* client) {
 
 	for (auto ec : active_clients()) {
 		if (ec->client) {
-			ec->client->resp.voted = 0;
+			ec->client->pers.voted = 0;
 		}
 	}
 }
@@ -721,7 +721,7 @@ void Vote_Passed() {
 
 	for (auto ent : active_clients()) {
 		if (ent->client) {
-			ent->client->resp.voted = 0;
+			ent->client->pers.voted = 0;
 		}
 	}
 

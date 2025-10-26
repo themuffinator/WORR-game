@@ -47,27 +47,27 @@ static inline void deathmatch_spawn_flags(gentity_t* self) {
 }
 
 static void BroadcastReadyStatus(gentity_t* ent) {
-	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->resp.readyStatus ? "" : "NOT ");
+	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
 }
 
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
 	if (!ReadyConditions(ent, false)) return;
 
-        client_respawn_t* resp = &ent->client->resp;
+	client_persistant_t* pers = &ent->client->pers;
 
-        if (toggle) {
-                resp->readyStatus = !resp->readyStatus;
-        }
-        else {
-                if (resp->readyStatus == state) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT ");
-                        return;
-                }
-                else {
-                        resp->readyStatus = state;
-                }
-        }
-        BroadcastReadyStatus(ent);
+	if (toggle) {
+		pers->readyStatus = !pers->readyStatus;
+	}
+	else {
+		if (pers->readyStatus == state) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT ");
+			return;
+		}
+		else {
+			pers->readyStatus = state;
+		}
+	}
+	BroadcastReadyStatus(ent);
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -202,10 +202,10 @@ void PushAward(gentity_t* ent, PlayerMedal medal) {
 	auto idx = static_cast<std::size_t>(medal);
 	auto& info = medalTable[idx];
 
-	cl.resp.medalTime = level.time;
-	cl.resp.medalType = medal;
+	cl.pers.medalTime = level.time;
+	cl.pers.medalType = medal;
 
-	auto& count = cl.resp.match.medalCount[idx];
+	auto& count = cl.pers.match.medalCount[idx];
 	++count;
 
 	std::string_view key = (count == 1 && !info.soundKeyFirst.empty())
@@ -216,7 +216,7 @@ void PushAward(gentity_t* ent, PlayerMedal medal) {
 		const std::string path = G_Fmt("vo/{}.wav", key).data();
 		const int soundIdx = gi.soundIndex(path.c_str());
 
-		auto& queue = cl.resp.awardQueue;
+	auto& queue = cl.pers.awardQueue;
 		if (queue.queueSize < MAX_QUEUED_AWARDS) {
 			queue.soundIndex[queue.queueSize++] = soundIdx;
 
@@ -277,7 +277,7 @@ void P_SaveGhostSlot(gentity_t* ent) {
 	// Store inventory and stats
 	slot->inventory = cl->pers.inventory;
 	slot->ammoMax = cl->pers.ammoMax;
-	slot->match = cl->resp.match;
+slot->match = cl->pers.match;
 	slot->weapon = cl->pers.weapon;
 	slot->lastWeapon = cl->pers.lastWeapon;
 	slot->team = cl->sess.team;
@@ -312,7 +312,7 @@ void P_RestoreFromGhostSlot(gentity_t* ent) {
 		// Restore inventory and stats
 		cl->pers.inventory = g.inventory;
 		cl->pers.ammoMax = g.ammoMax;
-		cl->resp.match = g.match;
+cl->pers.match = g.match;
 		cl->pers.weapon = g.weapon;
 		cl->pers.lastWeapon = g.lastWeapon;
 		cl->sess.team = g.team;
@@ -884,7 +884,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 				else {
 					if (attacker->client->sess.pc.show_fragmessages)
 						gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}\n{} place with {}", Game::Is(GameType::FreezeTag) ? "froze" : "fragged",
-							victim->client->sess.netName, PlaceString(attacker->client->resp.currentRank + 1), attacker->client->resp.score);
+victim->client->sess.netName, PlaceString(attacker->client->pers.currentRank + 1), attacker->client->resp.score);
 				}
 			}
 			if (attacker->client->sess.pc.killbeep_num > 0 && attacker->client->sess.pc.killbeep_num < 5) {
@@ -1193,14 +1193,14 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 	auto  now = level.time;
 	auto& glob = level.match;
 	auto* vcl = victim->client;
-	auto& vSess = vcl->resp.match;
+auto& vSess = vcl->pers.match;
 	bool  isSuicide = (attacker == victim);
 	bool  validKill = (attacker && attacker->client && !isSuicide && !mod.friendly_fire);
 
 	// -- handle a valid non-suicide kill --
 	if (validKill) {
 		auto* acl = attacker->client;
-		auto& aSess = acl->resp.match;
+auto& aSess = acl->pers.match;
 
 		if (glob.totalKills == 0) {
 			PushAward(attacker, PlayerMedal::First_Frag);
@@ -1218,13 +1218,13 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 		++glob.modKills[static_cast<int>(mod.id)];
 		if (now - victim->client->respawnMaxTime < 1_sec) {
 			++glob.totalSpawnKills;
-			++acl->resp.match.totalSpawnKills;
+++acl->pers.match.totalSpawnKills;
 		}
 
 
 		if (OnSameTeam(attacker, victim)) {
 			++glob.totalTeamKills;
-			++acl->resp.match.totalTeamKills;
+++acl->pers.match.totalTeamKills;
 		}
 
 		if (acl->pers.lastFragTime && acl->pers.lastFragTime + 2_sec > now) {
@@ -1867,7 +1867,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 	client->pers.health = 100;
 	client->pers.maxHealth = 100;
 
-        // don't give us weapons if we shouldn't have any
+	// don't give us weapons if we shouldn't have any
 	if (ClientIsPlaying(client)) {
 		// in coop, if there's already a player in the game and we're new,
 		// steal their loadout. this would fix a potential softlock where a new
@@ -2889,7 +2889,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inactivityTime = 0_sec;
 		cl->sess.inGame = false;
 		cl->sess.initialised = true;
-		cl->resp.readyStatus = false;
+cl->pers.readyStatus = false;
 		if (G_LimitedLivesActive()) {
 			cl->pers.limitedLivesStash = cl->pers.lives;
 			cl->pers.limitedLivesPersist = true;
@@ -2918,7 +2918,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->respawnMinTime = 0_ms;
 		cl->respawnMaxTime = level.time;
 		cl->respawn_timeout = 0_ms;
-		cl->resp.teamState = {};
+cl->pers.teamState = {};
 
 		FreeFollower(ent);
 		MoveClientToFreeCam(ent);
@@ -2933,7 +2933,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inGame = true;
 		cl->sess.initialised = true;
 		cl->sess.teamJoinTime = level.time;
-		cl->resp.readyStatus = false;
+cl->pers.readyStatus = false;
 
 		GameTime timeout = GameTime::from_sec(g_inactivity->integer);
 		if (timeout && timeout < 15_sec)
@@ -3310,12 +3310,12 @@ gentity_t* ClientChooseSlot(const char* userInfo, const char* socialID, bool isB
 }
 
 static inline bool CheckBanned(gentity_t* ent, char* userInfo, const char* socialID) {
-        if (!socialID || !*socialID)
-                return false;
+	if (!socialID || !*socialID)
+	        return false;
 
-        // currently all bans are in Steamworks and Epic, don't bother if not from there
-        if (socialID[0] != 'S' && socialID[0] != 'E')
-                return false;
+	// currently all bans are in Steamworks and Epic, don't bother if not from there
+	if (socialID[0] != 'S' && socialID[0] != 'E')
+	        return false;
 
 	// Israel
 	if (!Q_strcasecmp(socialID, "Steamworks-76561198026297488")) {
@@ -3410,13 +3410,13 @@ ClientCheckPermissions
 ================
 */
 static void ClientCheckPermissions(gentity_t* ent, const char* socialID) {
-        if (!socialID || !*socialID)
-                return;
+	if (!socialID || !*socialID)
+	        return;
 
-        std::string id(socialID);
+	std::string id(socialID);
 
-        ent->client->sess.banned = game.bannedIDs.contains(id);
-        ent->client->sess.admin = game.adminIDs.contains(id);
+	ent->client->sess.banned = game.bannedIDs.contains(id);
+	ent->client->sess.admin = game.adminIDs.contains(id);
 }
 
 /*
@@ -3432,14 +3432,14 @@ loadgames will.
 ============
 */
 bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-        const char* safeSocialID = (socialID && *socialID) ? socialID : "";
+	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 
-        if (!isBot) {
-                if (CheckBanned(ent, userInfo, safeSocialID))
-                        return false;
+	if (!isBot) {
+	        if (CheckBanned(ent, userInfo, safeSocialID))
+	                return false;
 
-                ClientCheckPermissions(ent, safeSocialID);
-        }
+	        ClientCheckPermissions(ent, safeSocialID);
+	}
 
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
@@ -3488,34 +3488,34 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 		}
 	}
 
-        Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
+	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
 	std::array<char, MAX_INFO_VALUE> value = {};
 	// [Paril-KEX] fetch name because now netName is kinda unsuitable
 	gi.Info_ValueForKey(userInfo, "name", value.data(), value.size());
 	Q_strlcpy(ent->client->sess.netName, value.data(), sizeof(ent->client->sess.netName));
 
-        ent->client->sess.skillRating = 0;
-        ent->client->sess.skillRatingChange = 0;
+	ent->client->sess.skillRating = 0;
+	ent->client->sess.skillRatingChange = 0;
 
-        if (!isBot) {
-                if (ent->client->sess.socialID[0]) {
-                        ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
-                }
-                else {
-                        ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
-                }
+	if (!isBot) {
+	        if (ent->client->sess.socialID[0]) {
+	                ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
+	        }
+	        else {
+	                ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
+	        }
 
-                if (ent->client->sess.banned) {
-                        gi.LocBroadcast_Print(PRINT_HIGH, "BANNED PLAYER {} connects.\n", value.data());
+	        if (ent->client->sess.banned) {
+	                gi.LocBroadcast_Print(PRINT_HIGH, "BANNED PLAYER {} connects.\n", value.data());
 			gi.AddCommandString(G_Fmt("kick {}\n", ent - g_entities - 1).data());
 			return false;
 		}
 
-                if (ent->client->sess.skillRating > 0) {
-                        gi.LocBroadcast_Print(PRINT_HIGH, "{} connects. (SR: {})\n", value.data(), ent->client->sess.skillRating);
-                }
-                else {
+	        if (ent->client->sess.skillRating > 0) {
+	                gi.LocBroadcast_Print(PRINT_HIGH, "{} connects. (SR: {})\n", value.data(), ent->client->sess.skillRating);
+	        }
+	        else {
 			gi.LocBroadcast_Print(PRINT_HIGH, "$g_player_connected", value.data());
 		}
 
@@ -3524,10 +3524,10 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 			ent->client->sess.admin = true;
 
 		// Detect if client is on a console system
-                if (*safeSocialID && (
-                        _strnicmp(safeSocialID, "PSN", 3) == 0 ||
-                        _strnicmp(safeSocialID, "NX", 2) == 0 ||
-                        _strnicmp(safeSocialID, "GDK", 3) == 0
+	        if (*safeSocialID && (
+	                _strnicmp(safeSocialID, "PSN", 3) == 0 ||
+	                _strnicmp(safeSocialID, "NX", 2) == 0 ||
+	                _strnicmp(safeSocialID, "GDK", 3) == 0
 			)) {
 			ent->client->sess.consolePlayer = true;
 		}
