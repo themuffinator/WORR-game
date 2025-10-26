@@ -134,7 +134,7 @@ static void AddScoreboardHeaderAndFooter(std::string& layout, gentity_t* viewer,
 		if (viewer->client->resp.score > 0 && level.pop.num_playing_clients > 1) {
 			fmt::format_to(std::back_inserter(layout),
 				"xv 0 yv -10 cstring2 \"{} place with a score of {}\" ",
-				PlaceString(viewer->client->pers.currentRank + 1), viewer->client->resp.score);
+				PlaceString(viewer->client->resp.currentRank + 1), viewer->client->resp.score);
 		}
 		if (includeFooter) {
 			fmt::format_to(std::back_inserter(layout),
@@ -373,7 +373,7 @@ static uint8_t AddTeamPlayerEntries(std::string& layout, int teamIndex, const ui
 		int y = 52 + i * 8;
 		int x = (teamIndex == 0) ? -40 : 200;
 		bool isReady = (level.matchState == MatchState::Warmup_ReadyUp &&
-			(cl->pers.readyStatus || cl->sess.is_a_bot));
+			(cl->resp.readyStatus || cl->sess.is_a_bot));
 
 		const char* flagIcon = nullptr;
 		if (teamIndex == 0 && cl->pers.inventory[IT_FLAG_BLUE])  flagIcon = "sbfctf2";
@@ -553,7 +553,7 @@ void DeathmatchScoreboardMessage(gentity_t* ent, gentity_t* killer) {
 
 		int x = (i >= 8) ? 130 : -72;
 		int y = 32 * (i % 8);
-		AddPlayerEntry(layout, cl_ent, x, y, PlayerEntryMode::FFA, ent, killer, cl->pers.readyStatus, nullptr);
+		AddPlayerEntry(layout, cl_ent, x, y, PlayerEntryMode::FFA, ent, killer, cl->resp.readyStatus, nullptr);
 	}
 	AddScoreboardHeaderAndFooter(layout, ent);
 

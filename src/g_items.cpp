@@ -298,8 +298,8 @@ static void HighValuePickupCounter(gentity_t* ent, gentity_t* other) {
 	const GameTime delay = level.time - ent->timeStamp;
 
 	// Per-client stats
-	other->client->pers.match.pickupCounts[index]++;
-	other->client->pers.match.pickupDelay[index] += delay;
+	other->client->resp.match.pickupCounts[index]++;
+	other->client->resp.match.pickupDelay[index] += delay;
 
 	// Global match stats
 	level.match.pickupCounts[index]++;

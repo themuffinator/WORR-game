@@ -665,11 +665,11 @@ static void SetMiniScoreStats(gentity_t* ent) {
 
 	int16_t pos1 = -1, pos2 = -1, own = -1;
 
-	const PlayerMedal medalType = ent->client->pers.medalType;
+	const PlayerMedal medalType = ent->client->resp.medalType;
 
 	// Medal HUD display
 	if (medalType != PlayerMedal::None) {
-		const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
+		const auto count = ent->client->resp.match.medalCount[static_cast<size_t>(medalType)];
 		if (count >= 2 && static_cast<size_t>(medalType) < awardNames.size()) {
 			const std::string& medalName = awardNames[static_cast<size_t>(medalType)];
 			const std::string medalText = fmt::format("{} (x{})", medalName, count);
@@ -690,7 +690,7 @@ static void SetMiniScoreStats(gentity_t* ent) {
 		if (ent->client->sess.team == Team::Free || ent->client->follow.target) {
 			const gentity_t* target = ent->client->follow.target ? ent->client->follow.target : ent;
 			own = target->s.number - 1;
-			ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
+			ownRank = game.clients[own].resp.currentRank & ~RANK_TIED_FLAG;
 		}
 
 		for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -1400,7 +1400,7 @@ void SetStats(gentity_t* ent) {
 	}
 
 	// Medal time blocking FOLLOWING tag
-	if (ent->client->pers.medalTime + 3_sec > level.time)
+	if (ent->client->resp.medalTime + 3_sec > level.time)
 		//todo
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 	else

@@ -171,13 +171,13 @@ static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_scor
 				}
 				Weapon_Grapple_DoReset(ec->client);
 				ec->client->eliminated = false;
-				ec->client->pers.readyStatus = false;
+				ec->client->resp.readyStatus = false;
 				ec->moveType = MoveType::NoClip;
 				ec->client->respawnMaxTime = level.time + FRAME_TIME_MS;
 				ec->svFlags &= ~SVF_NOCLIENT;
 				ClientSpawn(ec);
 				G_PostRespawn(ec);
-				memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
+				memset(&ec->client->resp.match, 0, sizeof(ec->client->resp.match));
 
 				gi.linkEntity(ec);
 			}
@@ -1145,7 +1145,7 @@ void ReadyAll() {
 	for (auto ec : active_clients()) {
 		if (!ClientIsPlaying(ec->client))
 			continue;
-		ec->client->pers.readyStatus = true;
+		ec->client->resp.readyStatus = true;
 	}
 }
 
@@ -1158,7 +1158,7 @@ void UnReadyAll() {
 	for (auto ec : active_clients()) {
 		if (!ClientIsPlaying(ec->client))
 			continue;
-		ec->client->pers.readyStatus = false;
+		ec->client->resp.readyStatus = false;
 	}
 }
 
@@ -1182,7 +1182,7 @@ static bool CheckReady() {
 			continue;
 		}
 
-		if (ec->client->pers.readyStatus)
+		if (ec->client->resp.readyStatus)
 			count_ready++;
 		count_humans++;
 	}
