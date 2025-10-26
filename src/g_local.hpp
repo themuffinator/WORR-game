@@ -3176,7 +3176,7 @@ constexpr SpawnFlags SPAWNFLAG_ITEM_DROPPED			= 0x00010000_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_ITEM_DROPPED_PLAYER	= 0x00020000_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_ITEM_TARGETS_USED		= 0x00040000_spawnflag;
 
-extern Item itemList[IT_TOTAL];
+extern std::array<Item, IT_TOTAL> itemList;
 
 //
 // g_items.cpp

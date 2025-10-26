@@ -206,6 +206,7 @@
     <ClCompile Include="g_combat.cpp" />
     <ClCompile Include="g_teamplay.cpp" />
     <ClCompile Include="g_func.cpp" />
+    <ClCompile Include="g_item_list.cpp" />
     <ClCompile Include="g_items.cpp" />
     <ClCompile Include="match_logging.cpp" />
     <ClCompile Include="g_main.cpp" />

@@ -671,9 +671,8 @@ void ED_CallSpawn(gentity_t *ent) {
 	SpawnEnt_MapFixes(ent);
 
 	// check item spawn functions
-	Item	*item;
-	int		 i;
-	for (i = IT_NULL + 1, item = itemList; i < IT_TOTAL; i++, item++) {
+	for (size_t index = IT_NULL + 1; index < itemList.size(); ++index) {
+		Item* item = &itemList[index];
 		if (!item->className)
 			continue;
 		if (!strcmp(item->className, ent->className)) {
@@ -1644,13 +1643,11 @@ static bool VerifyEntityString(const char *entities) {
 }
 
 static void PrecacheForRandomRespawn() {
-	Item	*it = itemList;
-
-	for (size_t i = 0; i < IT_TOTAL; i++, it++) {
-		if (!it->flags || (it->flags & (IF_NOT_GIVEABLE | IF_TECH | IF_NOT_RANDOM)) || !it->pickup || !it->worldModel)
+	for (auto& item : itemList) {
+		if (!item.flags || (item.flags & (IF_NOT_GIVEABLE | IF_TECH | IF_NOT_RANDOM)) || !item.pickup || !item.worldModel)
 			continue;
 
-		PrecacheItem(it);
+		PrecacheItem(&item);
 	}
 }
 

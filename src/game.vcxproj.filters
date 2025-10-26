@@ -193,6 +193,7 @@
     <ClCompile Include="g_spectator.cpp" />
     <ClCompile Include="g_combat.cpp" />
     <ClCompile Include="g_func.cpp" />
+    <ClCompile Include="g_item_list.cpp" />
     <ClCompile Include="g_items.cpp" />
     <ClCompile Include="g_main.cpp" />
     <ClCompile Include="g_misc.cpp" />
