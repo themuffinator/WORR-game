@@ -1293,7 +1293,7 @@ PlayQueuedAwardSound
 */
 static void PlayQueuedAwardSound(gentity_t* ent) {
 	auto* cl = ent->client;
-	auto& queue = cl->resp.awardQueue;
+auto& queue = cl->pers.awardQueue;
 
 	if (queue.queueSize <= 0 || level.time < queue.nextPlayTime)
 		return;

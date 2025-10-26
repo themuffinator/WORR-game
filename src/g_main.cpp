@@ -1369,7 +1369,7 @@ void BeginIntermission(gentity_t* targ) {
 			AnnouncerSound(ec, level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)] ? "red_wins" : "blue_wins");
 		}
 		else if (ClientIsPlaying(ec->client)) {
-			AnnouncerSound(ec, ec->client->resp.currentRank == 0 ? "you_win" : "you_lose");
+AnnouncerSound(ec, ec->client->pers.currentRank == 0 ? "you_win" : "you_lose");
 		}
 	}
 }
