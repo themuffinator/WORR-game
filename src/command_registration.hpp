@@ -20,14 +20,14 @@ void RegisterCommand(
 
 // Declare common helper functions shared across command modules.
 namespace Commands {
-        void PrintUsage(gentity_t* ent, const CommandArgs& args, std::string_view required_params, std::string_view optional_params, std::string_view help_text);
-        const char* ResolveSocialID(const char* rawArg, gentity_t*& foundClient);
-        bool TeamSkillShuffle();
+	void PrintUsage(gentity_t* ent, const CommandArgs& args, std::string_view required_params, std::string_view optional_params, std::string_view help_text);
+	const char* ResolveSocialID(const char* rawArg, gentity_t*& foundClient);
+	bool TeamSkillShuffle();
 
-        // Helper exposed for UI/menu systems to check vote availability.
-        bool IsVoteCommandEnabled(std::string_view name);
+	// Helper exposed for UI/menu systems to check vote availability.
+	bool IsVoteCommandEnabled(std::string_view name);
 
-        // Helpers exposed for gameplay systems to trigger core client commands.
-        void Help(gentity_t* ent, const CommandArgs& args);
-        void Score(gentity_t* ent, const CommandArgs& args);
+	// Helpers exposed for gameplay systems to trigger core client commands.
+	void Help(gentity_t* ent, const CommandArgs& args);
+	void Score(gentity_t* ent, const CommandArgs& args);
 }

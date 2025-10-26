@@ -29,7 +29,7 @@ Returns true if the inflictor can directly damage the target.  Used for
 explosions and melee attacks.
 ============
 */
-bool CanDamage(gentity_t *targ, gentity_t *inflictor) {
+bool CanDamage(gentity_t* targ, gentity_t* inflictor) {
 	Vector3	dest;
 	trace_t trace;
 
@@ -96,7 +96,7 @@ bool CanDamage(gentity_t *targ, gentity_t *inflictor) {
 Killed
 ============
 */
-void Killed(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, int damage, const Vector3 &point, MeansOfDeath mod) {
+void Killed(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, MeansOfDeath mod) {
 	if (targ->health < -999)
 		targ->health = -999;
 
@@ -127,7 +127,7 @@ void Killed(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker, int dama
 SpawnDamage
 ================
 */
-void SpawnDamage(int type, const Vector3 &origin, const Vector3 &normal, int damage) {
+void SpawnDamage(int type, const Vector3& origin, const Vector3& normal, int damage) {
 	if (damage > 255)
 		damage = 255;
 	gi.WriteByte(svc_temp_entity);
@@ -708,9 +708,9 @@ static bool ApplyDamage(
 			}
 
 			// freeze tag: do not gib unless thawing logic demands
-                        if (Game::Is(GameType::FreezeTag) && mod.id != ModID::Thaw && targ->health <= targ->gibHealth && attacker && attacker->client) {
-                                targ->health = targ->gibHealth + 1;
-                        }
+			if (Game::Is(GameType::FreezeTag) && mod.id != ModID::Thaw && targ->health <= targ->gibHealth && attacker && attacker->client) {
+				targ->health = targ->gibHealth + 1;
+			}
 		}
 
 		// record monster damage meta
@@ -884,27 +884,27 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 
 	damage = std::max(1, damage);
 
-        int take = damage;
-        int save = 0;
+	int take = damage;
+	int save = 0;
 
-        FreezeTagDamageQuery freezeQuery{};
-        freezeQuery.freezeTagActive = Game::Is(GameType::FreezeTag);
-        freezeQuery.targetEliminated = (targCl && targCl->eliminated);
-        freezeQuery.targetThawing = (targCl && targCl->resp.thawer);
-        freezeQuery.attackerHasClient = (attacker && attacker->client);
-        freezeQuery.modIsThaw = (mod.id == ModID::Thaw);
+	FreezeTagDamageQuery freezeQuery{};
+	freezeQuery.freezeTagActive = Game::Is(GameType::FreezeTag);
+	freezeQuery.targetEliminated = (targCl && targCl->eliminated);
+	freezeQuery.targetThawing = (targCl && targCl->resp.thawer);
+	freezeQuery.attackerHasClient = (attacker && attacker->client);
+	freezeQuery.modIsThaw = (mod.id == ModID::Thaw);
 
-        const bool freezeSuppressed = FreezeTag_ShouldSuppressDamage(freezeQuery);
+	const bool freezeSuppressed = FreezeTag_ShouldSuppressDamage(freezeQuery);
 
-        // global get-out clauses
-        CheckDamageProtection(targ, targCl, attacker, take, save, damage, dFlags, point, normal, mod, tempEvent);
+	// global get-out clauses
+	CheckDamageProtection(targ, targCl, attacker, take, save, damage, dFlags, point, normal, mod, tempEvent);
 
-        if (freezeSuppressed)
-                take = 0;
+	if (freezeSuppressed)
+		take = 0;
 
-        // vampiric healing
-        if (g_vampiric_damage->integer && targ->health > 0 &&
-                attacker && attacker != targ && !OnSameTeam(targ, attacker) && take > 0) {
+	// vampiric healing
+	if (g_vampiric_damage->integer && targ->health > 0 &&
+		attacker && attacker != targ && !OnSameTeam(targ, attacker) && take > 0) {
 		const int   maxHP = std::clamp(g_vampiric_health_max->integer, 100, 9999);
 		const int   base = std::min(take, targ->health);
 		const float pct = std::clamp(g_vampiric_percentile->value, 0.0f, 1.0f);
@@ -917,37 +917,37 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	int armorSave = 0;
 	int powerArmorSave = 0;
 
-        if (!freezeSuppressed) {
-                if (Teams() && targCl && attacker && attacker->client &&
-                        targCl->sess.team == attacker->client->sess.team && targ != attacker && g_teamplay_armor_protect->integer) {
-                        // teammates do not drain armor under protect mode
-                        powerArmorSave = 0;
-                        armorSave = 0;
-                }
-                else {
-                        if (targ == attacker && Game::Has(GameFlags::Arena) && !g_arenaSelfDmgArmor->integer) {
-                                take = 0;
-                                save = damage;
-                        }
-                        else {
-                                powerArmorSave = CheckPowerArmor(targ, point, normal, take, dFlags);
-                                take -= powerArmorSave;
+	if (!freezeSuppressed) {
+		if (Teams() && targCl && attacker && attacker->client &&
+			targCl->sess.team == attacker->client->sess.team && targ != attacker && g_teamplay_armor_protect->integer) {
+			// teammates do not drain armor under protect mode
+			powerArmorSave = 0;
+			armorSave = 0;
+		}
+		else {
+			if (targ == attacker && Game::Has(GameFlags::Arena) && !g_arenaSelfDmgArmor->integer) {
+				take = 0;
+				save = damage;
+			}
+			else {
+				powerArmorSave = CheckPowerArmor(targ, point, normal, take, dFlags);
+				take -= powerArmorSave;
 
-                                armorSave = CheckArmor(targ, point, normal, take, tempEvent, dFlags);
-                                take -= armorSave;
-                        }
-                }
-        }
+				armorSave = CheckArmor(targ, point, normal, take, tempEvent, dFlags);
+				take -= armorSave;
+			}
+		}
+	}
 
-        // treat previous "save" like armor for HUD/indicators
-        armorSave += save;
+	// treat previous "save" like armor for HUD/indicators
+	armorSave += save;
 
-        // additional protections and powerups
-        if (!freezeSuppressed && !static_cast<int>(dFlags & DamageFlags::NoProtection)) {
-                if (targ == attacker && Game::Has(GameFlags::Arena)) {
-                        take = 0;
-                        save = 0;
-                }
+	// additional protections and powerups
+	if (!freezeSuppressed && !static_cast<int>(dFlags & DamageFlags::NoProtection)) {
+		if (targ == attacker && Game::Has(GameFlags::Arena)) {
+			take = 0;
+			save = 0;
+		}
 
 		// tech: disruptor shield, etc.
 		take = Tech_ApplyDisruptorShield(targ, take);
@@ -974,21 +974,21 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 		}
 	}
 
-        if (!freezeSuppressed)
-                CTF_CheckHurtCarrier(targ, attacker);
+	if (!freezeSuppressed)
+		CTF_CheckHurtCarrier(targ, attacker);
 
-        // DamageFlags::DestroyArmor: do full damage through armor unless explicitly protected
-        if (!freezeSuppressed && static_cast<int>(dFlags & DamageFlags::DestroyArmor)) {
-                if (!(targ->flags & FL_GODMODE) &&
-                        !static_cast<int>(dFlags & DamageFlags::NoProtection) &&
-                        !(targCl && targCl->powerupTime.battleSuit > level.time)) {
-                        take = damage;
-                }
-        }
+	// DamageFlags::DestroyArmor: do full damage through armor unless explicitly protected
+	if (!freezeSuppressed && static_cast<int>(dFlags & DamageFlags::DestroyArmor)) {
+		if (!(targ->flags & FL_GODMODE) &&
+			!static_cast<int>(dFlags & DamageFlags::NoProtection) &&
+			!(targCl && targCl->powerupTime.battleSuit > level.time)) {
+			take = damage;
+		}
+	}
 
-        // scoring and stat tracking for the attacker (only if target still alive here)
-        if (!freezeSuppressed && targ != attacker && attacker && attacker->client && targ->health > 0) {
-                int statTake = std::min(take, targ->health);
+	// scoring and stat tracking for the attacker (only if target still alive here)
+	if (!freezeSuppressed && targ != attacker && attacker && attacker->client && targ->health > 0) {
+		int statTake = std::min(take, targ->health);
 
 		// arena damage scoring: +1 score per 100 dmg dealt to enemies
 		if (Game::Has(GameFlags::Arena) && !OnSameTeam(targ, attacker)) {
@@ -1036,14 +1036,14 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	}
 
 	// actually apply the damage; can kill
-        if (ApplyDamage(targ, inflictor, attacker, targCl, take, knockback, point, normal, mod, tempEvent, sphereNotified))
-                return;
+	if (ApplyDamage(targ, inflictor, attacker, targCl, take, knockback, point, normal, mod, tempEvent, sphereNotified))
+		return;
 
-        if (Game::Is(GameType::FreezeTag) && !level.intermission.time && targCl && targCl->eliminated &&
-                targ->health <= targ->gibHealth && (!attacker || !attacker->client)) {
-                FreezeTag_ForceRespawn(targ);
-                return;
-        }
+	if (Game::Is(GameType::FreezeTag) && !level.intermission.time && targCl && targCl->eliminated &&
+		targ->health <= targ->gibHealth && (!attacker || !attacker->client)) {
+		FreezeTag_ForceRespawn(targ);
+		return;
+	}
 
 	// spheres need to know the attacker to retaliate
 	if (!sphereNotified && targCl && targCl->ownedSphere && targCl->ownedSphere->pain)
@@ -1083,9 +1083,9 @@ RadiusDamage
 ============
 */
 #if 0
-bool RadiusDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, DamageFlags dFlags, MeansOfDeath mod) {
+bool RadiusDamage(gentity_t* inflictor, gentity_t* attacker, float damage, gentity_t* ignore, float radius, DamageFlags dFlags, MeansOfDeath mod) {
 	float	 points;
-	gentity_t *ent = nullptr;
+	gentity_t* ent = nullptr;
 	Vector3	 v, dir, origin;
 
 	origin = inflictor->linked ? ((inflictor->absMax + inflictor->absMin) * 0.5f) : inflictor->s.origin;
@@ -1123,9 +1123,9 @@ bool RadiusDamage(gentity_t *inflictor, gentity_t *attacker, float damage, genti
 }
 #endif
 
-bool RadiusDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, DamageFlags dFlags, MeansOfDeath mod) {
+bool RadiusDamage(gentity_t* inflictor, gentity_t* attacker, float damage, gentity_t* ignore, float radius, DamageFlags dFlags, MeansOfDeath mod) {
 	float	 points;
-	gentity_t *ent = nullptr;
+	gentity_t* ent = nullptr;
 	Vector3	 v, dir, origin;
 	bool	hitClient = false;
 
@@ -1190,9 +1190,9 @@ Like RadiusDamage, but ignores walls (skips CanDamage check, among others)
 ============
 */
 
-void RadiusNukeDamage(gentity_t *inflictor, gentity_t *attacker, float damage, gentity_t *ignore, float radius, MeansOfDeath mod) {
+void RadiusNukeDamage(gentity_t* inflictor, gentity_t* attacker, float damage, gentity_t* ignore, float radius, MeansOfDeath mod) {
 	float	 points;
-	gentity_t *ent = nullptr;
+	gentity_t* ent = nullptr;
 	Vector3	 v;
 	Vector3	 dir;
 	float	 len;
@@ -1222,7 +1222,8 @@ void RadiusNukeDamage(gentity_t *inflictor, gentity_t *attacker, float damage, g
 			if (ent->client)
 				ent->flags |= FL_NOGIB;
 			points = 10000;
-		} else if (len <= killZone2)
+		}
+		else if (len <= killZone2)
 			points = (damage / killZone) * (killZone2 - len);
 		else
 			points = 0;
@@ -1249,7 +1250,8 @@ void RadiusNukeDamage(gentity_t *inflictor, gentity_t *attacker, float damage, g
 					ent->client->nukeTime = max(ent->client->nukeTime, level.time + 1_sec);
 			}
 			ent++;
-		} else
+		}
+		else
 			ent = nullptr;
 	}
 }

@@ -13,17 +13,17 @@
 
 #include "../g_local.hpp"
 
-void OpenPlayerMatchStatsMenu(gentity_t *ent) {
+void OpenPlayerMatchStatsMenu(gentity_t* ent) {
 	auto menu = std::make_unique<Menu>();
 
 	for (int i = 0; i < 16; ++i)
 		menu->entries.emplace_back("", MenuAlign::Left);
 
-	menu->onUpdate = [](gentity_t *ent, const Menu &m) {
+	menu->onUpdate = [](gentity_t* ent, const Menu& m) {
 		if (!ent || !ent->client || !g_matchstats->integer) return;
 
-		auto &menu = const_cast<Menu &>(m);
-		auto &st = ent->client->pers.match;
+		auto& menu = const_cast<Menu&>(m);
+		auto& st = ent->client->pers.match;
 		int i = 0;
 
 		menu.entries[i++].text = "Player Stats for Match";

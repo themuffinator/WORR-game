@@ -15,14 +15,14 @@
 
 #include "../g_local.hpp"
 
-void MapSelector_CastVote(gentity_t *ent, int voteIndex);
+void MapSelector_CastVote(gentity_t* ent, int voteIndex);
 
 /*
 ========================
 OpenMapSelectorMenu
 ========================
 */
-void OpenMapSelectorMenu(gentity_t *ent) {
+void OpenMapSelectorMenu(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
 
@@ -30,7 +30,7 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 	constexpr int TOTAL_BAR_SEGMENTS = 28;	//24;
 	constexpr GameTime VOTE_DURATION = 5_sec;
 
-	auto &ms = level.mapSelector;
+	auto& ms = level.mapSelector;
 	MenuBuilder builder;
 
 	// --- Initial spacing ---
@@ -45,7 +45,7 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 	std::array<int, NUM_CANDIDATES> voteEntryIndices{};
 	for (int i = 0; i < NUM_CANDIDATES; ++i) {
 		voteEntryIndices[i] = builder.size();
-		builder.add("(loading...)", MenuAlign::Center, [i](gentity_t *ent, Menu &menu) {
+		builder.add("(loading...)", MenuAlign::Center, [i](gentity_t* ent, Menu& menu) {
 			MapSelector_CastVote(ent, i);
 			});
 	}
@@ -62,8 +62,8 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 	builder.add("", MenuAlign::Center);
 
 	// --- Update logic ---
-	builder.update([=](gentity_t *ent, const Menu &m) {
-		auto &menu = const_cast<Menu &>(m);
+	builder.update([=](gentity_t* ent, const Menu& m) {
+		auto& menu = const_cast<Menu&>(m);
 		const int clientNum = ent->s.number;
 		const int vote = ms.votes[clientNum];
 		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && ms.candidates[vote]);
@@ -73,25 +73,27 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 
 			for (int i = 0; i < NUM_CANDIDATES; ++i) {
 				const int idx = voteEntryIndices[i];
-				auto *candidate = ms.candidates[i];
+				auto* candidate = ms.candidates[i];
 
 				if (candidate) {
 					menu.entries[idx].text = candidate->longName.empty()
 						? candidate->filename
 						: candidate->longName;
 
-					menu.entries[idx].onSelect = [i](gentity_t *ent, Menu &menu) {
+					menu.entries[idx].onSelect = [i](gentity_t* ent, Menu& menu) {
 						MapSelector_CastVote(ent, i);
 						};
 					menu.entries[idx].align = MenuAlign::Left;
-				} else {
+				}
+				else {
 					menu.entries[idx].text.clear();
 					menu.entries[idx].onSelect = nullptr;
 				}
 			}
 
 			menu.entries[ackIndex].text.clear();
-		} else {
+		}
+		else {
 			// Hide vote options, show result
 			menu.entries[headerIndex].text.clear();
 			for (int idx : voteEntryIndices) {
@@ -99,10 +101,10 @@ void OpenMapSelectorMenu(gentity_t *ent) {
 				menu.entries[idx].onSelect = nullptr;
 			}
 
-			const MapEntry *voted = ms.candidates[vote];
+			const MapEntry* voted = ms.candidates[vote];
 			const std::string name = voted->longName.empty() ? voted->filename : voted->longName;
 			menu.entries[ackIndex].text = "Vote cast:";
-			menu.entries[ackIndex+1].text = G_Fmt("{}", name);
+			menu.entries[ackIndex + 1].text = G_Fmt("{}", name);
 		}
 
 		// --- Progress bar ---

@@ -27,7 +27,7 @@ constexpr SpawnFlags SPAWNFLAG_TRIGGER_TOGGLE = 0x08_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_LATCHED = 0x10_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_CLIP = 0x20_spawnflag;
 
-static void InitTrigger(gentity_t *self) {
+static void InitTrigger(gentity_t* self) {
 	if (st.was_key_specified("angle") || st.was_key_specified("angles") || self->s.angles)
 		SetMoveDir(self->s.angles, self->moveDir);
 
@@ -41,14 +41,14 @@ static void InitTrigger(gentity_t *self) {
 }
 
 // the wait time has passed, so set back up for another activation
-static THINK(multi_wait) (gentity_t *ent) -> void {
+static THINK(multi_wait) (gentity_t* ent) -> void {
 	ent->nextThink = 0_ms;
 }
 
 // the trigger was just activated
 // ent->activator should be set to the activator so it can be held through a delay
 // so wait for the delay time before firing
-static void multi_trigger(gentity_t *ent) {
+static void multi_trigger(gentity_t* ent) {
 	if (ent->nextThink)
 		return; // already been triggered
 
@@ -57,7 +57,8 @@ static void multi_trigger(gentity_t *ent) {
 	if (ent->wait > 0) {
 		ent->think = multi_wait;
 		ent->nextThink = level.time + GameTime::from_sec(ent->wait + ent->random * crandom());
-	} else { // we can't just remove (self) here, because this is a touch function
+	}
+	else { // we can't just remove (self) here, because this is a touch function
 		// called while looping through area links...
 		ent->touch = nullptr;
 		ent->nextThink = level.time + FRAME_TIME_S;
@@ -65,7 +66,7 @@ static void multi_trigger(gentity_t *ent) {
 	}
 }
 
-static USE(Use_Multi) (gentity_t *ent, gentity_t *other, gentity_t *activator) -> void {
+static USE(Use_Multi) (gentity_t* ent, gentity_t* other, gentity_t* activator) -> void {
 	// PGM
 	if (ent->spawnFlags.has(SPAWNFLAG_TRIGGER_TOGGLE)) {
 		if (ent->solid == SOLID_TRIGGER)
@@ -73,21 +74,24 @@ static USE(Use_Multi) (gentity_t *ent, gentity_t *other, gentity_t *activator) -
 		else
 			ent->solid = SOLID_TRIGGER;
 		gi.linkEntity(ent);
-	} else {
+	}
+	else {
 		ent->activator = activator;
 		multi_trigger(ent);
 	}
 	// PGM
 }
 
-static TOUCH(Touch_Multi) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(Touch_Multi) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (other->client) {
 		if (self->spawnFlags.has(SPAWNFLAG_TRIGGER_NOT_PLAYER))
 			return;
-	} else if (other->svFlags & SVF_MONSTER) {
+	}
+	else if (other->svFlags & SVF_MONSTER) {
 		if (!self->spawnFlags.has(SPAWNFLAG_TRIGGER_MONSTER))
 			return;
-	} else
+	}
+	else
 		return;
 
 	if (CombatIsDisabled())
@@ -127,22 +131,24 @@ sounds
 4)
 set "message" to text string
 */
-static USE(trigger_enable) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_enable) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	self->solid = SOLID_TRIGGER;
 	self->use = Use_Multi;
 	gi.linkEntity(self);
 }
 
-static BoxEntitiesResult_t latched_trigger_filter(gentity_t *other, void *data) {
-	gentity_t *self = (gentity_t *)data;
+static BoxEntitiesResult_t latched_trigger_filter(gentity_t* other, void* data) {
+	gentity_t* self = (gentity_t*)data;
 
 	if (other->client) {
 		if (self->spawnFlags.has(SPAWNFLAG_TRIGGER_NOT_PLAYER))
 			return BoxEntitiesResult_t::Skip;
-	} else if (other->svFlags & SVF_MONSTER) {
+	}
+	else if (other->svFlags & SVF_MONSTER) {
 		if (!self->spawnFlags.has(SPAWNFLAG_TRIGGER_MONSTER))
 			return BoxEntitiesResult_t::Skip;
-	} else
+	}
+	else
 		return BoxEntitiesResult_t::Skip;
 
 	if (self->moveDir) {
@@ -157,7 +163,7 @@ static BoxEntitiesResult_t latched_trigger_filter(gentity_t *other, void *data) 
 	return BoxEntitiesResult_t::Keep | BoxEntitiesResult_t::End;
 }
 
-static THINK(latched_trigger_think) (gentity_t *self) -> void {
+static THINK(latched_trigger_think) (gentity_t* self) -> void {
 	self->nextThink = level.time + 1_ms;
 
 	bool any_inside = !!gi.BoxEntities(self->absMin, self->absMax, nullptr, 0, AREA_SOLID, latched_trigger_filter, self);
@@ -168,7 +174,7 @@ static THINK(latched_trigger_think) (gentity_t *self) -> void {
 	}
 }
 
-void SP_trigger_multiple(gentity_t *ent) {
+void SP_trigger_multiple(gentity_t* ent) {
 	if (ent->sounds == 1)
 		ent->noiseIndex = gi.soundIndex("misc/secret.wav");
 	else if (ent->sounds == 2)
@@ -189,13 +195,15 @@ void SP_trigger_multiple(gentity_t *ent) {
 		ent->nextThink = level.time + 1_ms;
 		ent->use = Use_Multi;
 		return;
-	} else
+	}
+	else
 		ent->touch = Touch_Multi;
 
 	if (ent->spawnFlags.has(SPAWNFLAG_TRIGGER_TRIGGERED | SPAWNFLAG_TRIGGER_TOGGLE)) {
 		ent->solid = SOLID_NOT;
 		ent->use = trigger_enable;
-	} else {
+	}
+	else {
 		ent->solid = SOLID_TRIGGER;
 		ent->use = Use_Multi;
 	}
@@ -221,7 +229,7 @@ sounds
 "message"	string to be displayed when triggered
 */
 
-void SP_trigger_once(gentity_t *ent) {
+void SP_trigger_once(gentity_t* ent) {
 	// make old maps work because I messed up on flag assignments here
 	// triggered was on bit 1 when it should have been on bit 4
 	if (ent->spawnFlags.has(SPAWNFLAG_TRIGGER_MONSTER)) {
@@ -244,7 +252,7 @@ constexpr SpawnFlags SPAWNFLAGS_TRIGGER_RELAY_RED_ONLY = 1_spawnflag;
 constexpr SpawnFlags SPAWNFLAGS_TRIGGER_RELAY_BLUE_ONLY = 2_spawnflag;
 constexpr SpawnFlags SPAWNFLAGS_TRIGGER_RELAY_RANDOM = 4_spawnflag;
 
-static USE(trigger_relay_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_relay_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->crosslevel_flags && !(self->crosslevel_flags == (game.crossLevelFlags & SFL_CROSS_TRIGGER_MASK & self->crosslevel_flags)))
 		return;
 
@@ -269,7 +277,7 @@ static USE(trigger_relay_use) (gentity_t *self, gentity_t *other, gentity_t *act
 	UseTargets(self, activator);
 }
 
-void SP_trigger_relay(gentity_t *self) {
+void SP_trigger_relay(gentity_t* self) {
 	self->use = trigger_relay_use;
 
 	if ((!deathmatch->integer && self->spawnFlags.has(SPAWNFLAGS_TRIGGER_RELAY_NO_SOUND)) || deathmatch->integer)
@@ -290,7 +298,7 @@ Use "item" to specify the required key, for example "key_data_cd"
 
 MULTI : allow multiple uses
 */
-static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_key_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	item_id_t index;
 
 	if (!self->item)
@@ -330,7 +338,8 @@ static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 					}
 				}
 			}
-		} else {
+		}
+		else {
 			for (auto ce : active_clients()) {
 				ce->client->pers.inventory[index] = 0;
 
@@ -340,7 +349,8 @@ static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 					ce->client->resp.coopRespawn.inventory[index] = 0;
 			}
 		}
-	} else {
+	}
+	else {
 		// don't remove keys in DM
 		if (!deathmatch->integer)
 			activator->client->pers.inventory[index]--;
@@ -353,7 +363,7 @@ static USE(trigger_key_use) (gentity_t *self, gentity_t *other, gentity_t *activ
 		self->use = nullptr;
 }
 
-void SP_trigger_key(gentity_t *self) {
+void SP_trigger_key(gentity_t* self) {
 	if (!st.item) {
 		gi.Com_PrintFmt("{}: no key item\n", *self);
 		return;
@@ -394,7 +404,7 @@ After the counter has been triggered "count" times (default 2), it will fire all
 
 constexpr SpawnFlags SPAWNFLAG_COUNTER_NOMESSAGE = 1_spawnflag;
 
-static USE(trigger_counter_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_counter_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->count == 0)
 		return;
 
@@ -416,7 +426,7 @@ static USE(trigger_counter_use) (gentity_t *self, gentity_t *other, gentity_t *a
 	multi_trigger(self);
 }
 
-void SP_trigger_counter(gentity_t *self) {
+void SP_trigger_counter(gentity_t* self) {
 	self->wait = -1;
 	if (!self->count)
 		self->count = 2;
@@ -435,7 +445,7 @@ trigger_always
 /*QUAKED trigger_always (.5 .5 .5) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 This trigger will always fire.  It is activated by the world.
 */
-void SP_trigger_always(gentity_t *ent) {
+void SP_trigger_always(gentity_t* ent) {
 	// we must have some delay to make sure our use targets are present
 	if (!ent->delay)
 		ent->delay = 0.2f;
@@ -452,7 +462,7 @@ Deaths considered are monsters during campaigns and players during deathmatch.
 
 REPEAT : repeats per every 'count' deaths
 */
-void SP_trigger_deathcount(gentity_t *ent) {
+void SP_trigger_deathcount(gentity_t* ent) {
 	if (!ent->count) {
 		gi.Com_PrintFmt("{}: No count key set, setting to 10.\n", *ent);
 		ent->count = 10;
@@ -469,7 +479,8 @@ void SP_trigger_deathcount(gentity_t *ent) {
 			FreeEntity(ent);
 			return;
 		}
-	} else {	// every 'count' deaths
+	}
+	else {	// every 'count' deaths
 		if (!(kills % ent->count)) {
 			UseTargets(ent, ent);
 		}
@@ -484,15 +495,15 @@ Auto-removed in deathmatch (except horde mode).
 
 ONCE : will be removed after firing once
 */
-void SP_trigger_no_monsters(gentity_t *ent) {
+void SP_trigger_no_monsters(gentity_t* ent) {
 	if (deathmatch->integer && Game::IsNot(GameType::Horde)) {
 		FreeEntity(ent);
 		return;
 	}
-	
+
 	if (level.campaign.killedMonsters < level.campaign.totalMonsters)
 		return;
-	
+
 	UseTargets(ent, ent);
 
 	if (ent->spawnFlags.has(1_spawnflag))
@@ -507,15 +518,15 @@ Auto-removed in deathmatch (except horde mode).
 
 ONCE : will be removed after firing once
 */
-void SP_trigger_monsters(gentity_t *ent) {
+void SP_trigger_monsters(gentity_t* ent) {
 	if (deathmatch->integer && Game::IsNot(GameType::Horde)) {
 		FreeEntity(ent);
 		return;
 	}
-	
+
 	if (level.campaign.killedMonsters >= level.campaign.totalMonsters)
 		return;
-	
+
 	UseTargets(ent, ent);
 
 	if (ent->spawnFlags.has(1_spawnflag))
@@ -537,8 +548,8 @@ AimAtTarget
 Calculate origin2 so the target apogee will be hit
 =================
 */
-static THINK(AimAtTarget) (gentity_t *self) -> void {
-	gentity_t *ent;
+static THINK(AimAtTarget) (gentity_t* self) -> void {
+	gentity_t* ent;
 	Vector3	origin;
 	float	height, gravity, time, forward;
 	float	dist;
@@ -583,7 +594,7 @@ constexpr SpawnFlags SPAWNFLAG_PUSH_CLIP = 0x10_spawnflag;
 
 static cached_soundIndex windsound;
 
-static TOUCH(trigger_push_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_push_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (self->spawnFlags.has(SPAWNFLAG_PUSH_CLIP)) {
 		trace_t clip = gi.clip(self, other->s.origin, other->mins, other->maxs, other->s.origin, G_GetClipMask(other));
 
@@ -598,7 +609,8 @@ static TOUCH(trigger_push_touch) (gentity_t *self, gentity_t *other, const trace
 
 	if (strcmp(other->className, "grenade") == 0) {
 		other->velocity = velocity ? velocity : self->moveDir * (self->speed * 10);
-	} else if (other->health > 0 || (other->client && other->client->eliminated)) {
+	}
+	else if (other->health > 0 || (other->client && other->client->eliminated)) {
 		other->velocity = velocity ? velocity : self->moveDir * (self->speed * 10);
 
 		if (other->client) {
@@ -616,7 +628,7 @@ static TOUCH(trigger_push_touch) (gentity_t *self, gentity_t *other, const trace
 		FreeEntity(self);
 }
 
-static USE(trigger_push_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_push_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->solid == SOLID_NOT)
 		self->solid = SOLID_TRIGGER;
 	else
@@ -624,9 +636,9 @@ static USE(trigger_push_use) (gentity_t *self, gentity_t *other, gentity_t *acti
 	gi.linkEntity(self);
 }
 
-void trigger_push_active(gentity_t *self);
+void trigger_push_active(gentity_t* self);
 
-static void trigger_effect(gentity_t *self) {
+static void trigger_effect(gentity_t* self) {
 	Vector3 origin;
 	int	   i;
 
@@ -644,10 +656,11 @@ static void trigger_effect(gentity_t *self) {
 	}
 }
 
-static THINK(trigger_push_inactive) (gentity_t *self) -> void {
+static THINK(trigger_push_inactive) (gentity_t* self) -> void {
 	if (self->delay > level.time.seconds()) {
 		self->nextThink = level.time + 100_ms;
-	} else {
+	}
+	else {
 		self->touch = trigger_push_touch;
 		self->think = trigger_push_active;
 		self->nextThink = level.time + 100_ms;
@@ -655,11 +668,12 @@ static THINK(trigger_push_inactive) (gentity_t *self) -> void {
 	}
 }
 
-THINK(trigger_push_active) (gentity_t *self) -> void {
+THINK(trigger_push_active) (gentity_t* self) -> void {
 	if (self->delay > level.time.seconds()) {
 		self->nextThink = level.time + 100_ms;
 		trigger_effect(self);
-	} else {
+	}
+	else {
 		self->touch = nullptr;
 		self->think = trigger_push_inactive;
 		self->nextThink = level.time + 100_ms;
@@ -678,7 +692,7 @@ If it has a target, it will set an apogee to that target and modify velocity and
 START_OFF - toggled trigger_push begins in off setting
 SILENT - doesn't make wind noise
 */
-void SP_trigger_push(gentity_t *self) {
+void SP_trigger_push(gentity_t* self) {
 	InitTrigger(self);
 
 	if (self->target) {
@@ -706,7 +720,8 @@ void SP_trigger_push(gentity_t *self) {
 		self->use = trigger_push_use;
 		if (self->spawnFlags.has(SPAWNFLAG_PUSH_START_OFF))
 			self->solid = SOLID_NOT;
-	} else if (self->spawnFlags.has(SPAWNFLAG_PUSH_START_OFF)) {
+	}
+	else if (self->spawnFlags.has(SPAWNFLAG_PUSH_START_OFF)) {
 		gi.Com_PrintFmt("{}: START_OFF but not targeted.\n", *self);
 		self->svFlags = SVF_NONE;
 		self->touch = nullptr;
@@ -721,7 +736,7 @@ void SP_trigger_push(gentity_t *self) {
 }
 
 
-static USE(target_push_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(target_push_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (!activator->client || !ClientIsPlaying(activator->client))
 		return;
 
@@ -734,7 +749,7 @@ Pushes the activator in the direction of angle, or towards a target apex.
 
 BOUNCEPAD: if set, will play a bouncepad sound instead of a wind sound.
 */
-void SP_target_push(gentity_t *self) {
+void SP_target_push(gentity_t* self) {
 	if (!self->speed)
 		self->speed = 1000;
 
@@ -742,10 +757,11 @@ void SP_target_push(gentity_t *self) {
 
 	if (self->spawnFlags.has(1_spawnflag)) {
 		windsound.assign("world/jumppad.wav");
-	} else {
+	}
+	else {
 		windsound.assign("misc/windfly.wav");
 	}
-	
+
 	if (self->target) {
 		self->absMin = self->s.origin;
 		self->absMax = self->s.origin;
@@ -785,7 +801,7 @@ constexpr SpawnFlags SPAWNFLAG_HURT_NO_PLAYERS = 32_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_HURT_NO_MONSTERS = 64_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_HURT_CLIPPED = 128_spawnflag;
 
-static USE(hurt_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(hurt_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->solid == SOLID_NOT)
 		self->solid = SOLID_TRIGGER;
 	else
@@ -796,7 +812,7 @@ static USE(hurt_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -
 		self->use = nullptr;
 }
 
-static TOUCH(hurt_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(hurt_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	DamageFlags damageFlags;
 
 	if (!other->takeDamage)
@@ -838,7 +854,7 @@ static TOUCH(hurt_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, 
 	Damage(other, self, self, vec3_origin, other->s.origin, vec3_origin, self->dmg, self->dmg, damageFlags, ModID::Hurt);
 }
 
-void SP_trigger_hurt(gentity_t *self) {
+void SP_trigger_hurt(gentity_t* self) {
 	InitTrigger(self);
 
 	self->noiseIndex = gi.soundIndex("world/electro.wav");
@@ -881,7 +897,7 @@ constexpr SpawnFlags SPAWNFLAG_GRAVITY_TOGGLE = 1_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_GRAVITY_START_OFF = 2_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_GRAVITY_CLIPPED = 4_spawnflag;
 
-static USE(trigger_gravity_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_gravity_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->solid == SOLID_NOT)
 		self->solid = SOLID_TRIGGER;
 	else
@@ -889,7 +905,7 @@ static USE(trigger_gravity_use) (gentity_t *self, gentity_t *other, gentity_t *a
 	gi.linkEntity(self);
 }
 
-static TOUCH(trigger_gravity_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_gravity_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 
 	if (self->spawnFlags.has(SPAWNFLAG_GRAVITY_CLIPPED)) {
 		trace_t clip = gi.clip(self, other->s.origin, other->mins, other->maxs, other->s.origin, G_GetClipMask(other));
@@ -901,7 +917,7 @@ static TOUCH(trigger_gravity_touch) (gentity_t *self, gentity_t *other, const tr
 	other->gravity = self->gravity;
 }
 
-void SP_trigger_gravity(gentity_t *self) {
+void SP_trigger_gravity(gentity_t* self) {
 	if (!st.gravity || !*st.gravity) {
 		gi.Com_PrintFmt("{}: no gravity set\n", *self);
 		FreeEntity(self);
@@ -949,7 +965,7 @@ constexpr SpawnFlags SPAWNFLAG_MONSTERJUMP_TOGGLE = 1_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_MONSTERJUMP_START_OFF = 2_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_MONSTERJUMP_CLIPPED = 4_spawnflag;
 
-static USE(trigger_monsterjump_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_monsterjump_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->solid == SOLID_NOT)
 		self->solid = SOLID_TRIGGER;
 	else
@@ -957,7 +973,7 @@ static USE(trigger_monsterjump_use) (gentity_t *self, gentity_t *other, gentity_
 	gi.linkEntity(self);
 }
 
-static TOUCH(trigger_monsterjump_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_monsterjump_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (other->flags & (FL_FLY | FL_SWIM))
 		return;
 	if (other->svFlags & SVF_DEADMONSTER)
@@ -983,7 +999,7 @@ static TOUCH(trigger_monsterjump_touch) (gentity_t *self, gentity_t *other, cons
 	other->velocity[2] = self->moveDir[2];
 }
 
-void SP_trigger_monsterjump(gentity_t *self) {
+void SP_trigger_monsterjump(gentity_t* self) {
 	if (!self->speed)
 		self->speed = 200;
 	if (!st.height)
@@ -1024,7 +1040,7 @@ Players moving against this trigger will have their flashlight turned on or off.
 
 constexpr SpawnFlags SPAWNFLAG_FLASHLIGHT_CLIPPED = 1_spawnflag;
 
-static TOUCH(trigger_flashlight_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_flashlight_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (!other->client)
 		return;
 
@@ -1037,15 +1053,17 @@ static TOUCH(trigger_flashlight_touch) (gentity_t *self, gentity_t *other, const
 
 	if (self->style == 1) {
 		P_ToggleFlashlight(other, true);
-	} else if (self->style == 2) {
+	}
+	else if (self->style == 2) {
 		P_ToggleFlashlight(other, false);
-	} else if (other->velocity.lengthSquared() > 32.f) {
+	}
+	else if (other->velocity.lengthSquared() > 32.f) {
 		Vector3 forward = other->velocity.normalized();
 		P_ToggleFlashlight(other, forward.dot(self->moveDir) > 0);
 	}
 }
 
-void SP_trigger_flashlight(gentity_t *self) {
+void SP_trigger_flashlight(gentity_t* self) {
 	if (self->s.angles[YAW] == 0)
 		self->s.angles[YAW] = 360;
 	InitTrigger(self);
@@ -1104,7 +1122,7 @@ constexpr SpawnFlags SPAWNFLAG_FOG_INSTANTANEOUS = 4_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_FOG_FORCE = 8_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_FOG_BLEND = 16_spawnflag;
 
-static TOUCH(trigger_fog_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_fog_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (!other->client)
 		return;
 
@@ -1113,7 +1131,7 @@ static TOUCH(trigger_fog_touch) (gentity_t *self, gentity_t *other, const trace_
 
 	self->timeStamp = level.time + GameTime::from_sec(self->wait);
 
-	gentity_t *fog_value_storage = self;
+	gentity_t* fog_value_storage = self;
 
 	if (self->moveTarget)
 		fog_value_storage = self->moveTarget;
@@ -1189,7 +1207,8 @@ static TOUCH(trigger_fog_touch) (gentity_t *self, gentity_t *other, const trace_
 				fog_value_storage->fog.color[2],
 				fog_value_storage->fog.sky_factor
 			};
-		} else {
+		}
+		else {
 			other->client->pers.wanted_fog = {
 				fog_value_storage->fog.density_off,
 				fog_value_storage->fog.color_off[0],
@@ -1218,7 +1237,8 @@ static TOUCH(trigger_fog_touch) (gentity_t *self, gentity_t *other, const trace_
 				fog_value_storage->heightfog.falloff,
 				fog_value_storage->heightfog.density
 			};
-		} else {
+		}
+		else {
 			other->client->pers.wanted_heightfog = {
 				{
 					fog_value_storage->heightfog.start_color_off[0],
@@ -1239,7 +1259,7 @@ static TOUCH(trigger_fog_touch) (gentity_t *self, gentity_t *other, const trace_
 	}
 }
 
-void SP_trigger_fog(gentity_t *self) {
+void SP_trigger_fog(gentity_t* self) {
 	if (self->s.angles[YAW] == 0)
 		self->s.angles[YAW] = 360;
 
@@ -1269,17 +1289,17 @@ The same as a trigger_relay.
 
 constexpr SpawnFlags SPAWNFLAG_COOP_RELAY_AUTO_FIRE = 1_spawnflag;
 
-static inline bool trigger_coop_relay_filter(gentity_t *player) {
+static inline bool trigger_coop_relay_filter(gentity_t* player) {
 	return (player->health <= 0 || player->deadFlag || player->moveType == MoveType::NoClip || player->moveType == MoveType::FreeCam ||
 		!ClientIsPlaying(player->client) || player->s.modelIndex != MODELINDEX_PLAYER);
 }
 
-static bool trigger_coop_relay_can_use(gentity_t *self, gentity_t *activator) {
+static bool trigger_coop_relay_can_use(gentity_t* self, gentity_t* activator) {
 	//wor: this is a hinderance, remove this
 	return true;
 }
 
-static USE(trigger_coop_relay_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_coop_relay_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (!trigger_coop_relay_can_use(self, activator)) {
 		if (self->timeStamp < level.time)
 			gi.LocCenter_Print(activator, self->message);
@@ -1288,13 +1308,13 @@ static USE(trigger_coop_relay_use) (gentity_t *self, gentity_t *other, gentity_t
 		return;
 	}
 
-	const char *msg = self->message;
+	const char* msg = self->message;
 	self->message = nullptr;
 	UseTargets(self, activator);
 	self->message = msg;
 }
 
-static BoxEntitiesResult_t trigger_coop_relay_player_filter(gentity_t *ent, void *data) {
+static BoxEntitiesResult_t trigger_coop_relay_player_filter(gentity_t* ent, void* data) {
 	if (!ent->client)
 		return BoxEntitiesResult_t::Skip;
 	else if (trigger_coop_relay_filter(ent))
@@ -1303,8 +1323,8 @@ static BoxEntitiesResult_t trigger_coop_relay_player_filter(gentity_t *ent, void
 	return BoxEntitiesResult_t::Keep;
 }
 
-static THINK(trigger_coop_relay_think) (gentity_t *self) -> void {
-	std::array<gentity_t *, MAX_SPLIT_PLAYERS> players{};
+static THINK(trigger_coop_relay_think) (gentity_t* self) -> void {
+	std::array<gentity_t*, MAX_SPLIT_PLAYERS> players{};
 	size_t num_active = 0;
 
 	for (auto player : active_clients())
@@ -1314,14 +1334,15 @@ static THINK(trigger_coop_relay_think) (gentity_t *self) -> void {
 	size_t n = gi.BoxEntities(self->absMin, self->absMax, players.data(), num_active, AREA_SOLID, trigger_coop_relay_player_filter, nullptr);
 
 	if (n == num_active) {
-		const char *msg = self->message;
+		const char* msg = self->message;
 		self->message = nullptr;
 		UseTargets(self, &globals.gentities[1]);
 		self->message = msg;
 
 		FreeEntity(self);
 		return;
-	} else if (n && self->timeStamp < level.time) {
+	}
+	else if (n && self->timeStamp < level.time) {
 		for (size_t i = 0; i < n; i++)
 			gi.LocCenter_Print(players[i], self->message);
 
@@ -1335,7 +1356,7 @@ static THINK(trigger_coop_relay_think) (gentity_t *self) -> void {
 	self->nextThink = level.time + GameTime::from_sec(self->wait);
 }
 
-void SP_trigger_coop_relay(gentity_t *self) {
+void SP_trigger_coop_relay(gentity_t* self) {
 	if (self->targetName && self->spawnFlags.has(SPAWNFLAG_COOP_RELAY_AUTO_FIRE))
 		gi.Com_PrintFmt("{}: targetName and auto-fire are mutually exclusive\n", *self);
 
@@ -1353,7 +1374,8 @@ void SP_trigger_coop_relay(gentity_t *self) {
 	if (self->spawnFlags.has(SPAWNFLAG_COOP_RELAY_AUTO_FIRE)) {
 		self->think = trigger_coop_relay_think;
 		self->nextThink = level.time + GameTime::from_sec(self->wait);
-	} else
+	}
+	else
 		self->use = trigger_coop_relay_use;
 	self->svFlags |= SVF_NOCLIENT;
 	gi.linkEntity(self);
@@ -1363,13 +1385,13 @@ void SP_trigger_coop_relay(gentity_t *self) {
 /*QUAKED info_teleport_destination (.5 .5 .5) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Destination marker for a teleporter.
 */
-void SP_info_teleport_destination(gentity_t *self) {}
+void SP_info_teleport_destination(gentity_t* self) {}
 
-constexpr SpawnFlags SPAWNFLAG_TELEPORT_SPECTATORS_ONLY	= 1_spawnflag;
-constexpr SpawnFlags SPAWNFLAG_TELEPORT_NO_FX				= 2_spawnflag;
-constexpr SpawnFlags SPAWNFLAG_TELEPORT_CTF_ONLY			= 4_spawnflag;
-constexpr SpawnFlags SPAWNFLAG_TELEPORT_START_ON			= 8_spawnflag;
-constexpr SpawnFlags SPAWNFLAG_TELEPORT_PLAYERS_ONLY		= 16_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_TELEPORT_SPECTATORS_ONLY = 1_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_TELEPORT_NO_FX = 2_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_TELEPORT_CTF_ONLY = 4_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_TELEPORT_START_ON = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_TELEPORT_PLAYERS_ONLY = 16_spawnflag;
 
 /*QUAKED trigger_teleport (.5 .5 .5) ? SPECTATORS_ONLY NO_FX CTF_ONLY START_ON PLAYERS_ONLY x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Any object touching this will be transported to the corresponding
@@ -1385,8 +1407,8 @@ NO_FX: no teleport effect is played, and the player does not get a teleport even
 CTF_ONLY: only in CTF mode
 START_ON: when trigger has targetName, start active, deactivate when used.
 */
-static TOUCH(trigger_teleport_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
-	gentity_t *dest;
+static TOUCH(trigger_teleport_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
+	gentity_t* dest;
 
 	if (!other->client)
 		return;
@@ -1447,7 +1469,7 @@ static TOUCH(trigger_teleport_touch) (gentity_t *self, gentity_t *other, const t
 
 	// [Paril-KEX] move sphere, if we own it
 	if (other->client && other->client->ownedSphere) {
-		gentity_t *sphere = other->client->ownedSphere;
+		gentity_t* sphere = other->client->ownedSphere;
 		sphere->s.origin = other->s.origin;
 		sphere->s.origin[Z] = other->absMax[2];
 		sphere->s.angles[YAW] = other->s.angles[YAW];
@@ -1455,11 +1477,11 @@ static TOUCH(trigger_teleport_touch) (gentity_t *self, gentity_t *other, const t
 	}
 }
 
-static USE(trigger_teleport_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_teleport_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	self->delay = self->delay ? 0 : 1;
 }
 
-void SP_trigger_teleport(gentity_t *self) {
+void SP_trigger_teleport(gentity_t* self) {
 
 	InitTrigger(self);
 
@@ -1491,8 +1513,8 @@ Players touching this will be teleported
 */
 
 //just here to help old map conversions
-static TOUCH(old_teleporter_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
-	gentity_t *dest;
+static TOUCH(old_teleporter_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
+	gentity_t* dest;
 	Vector3	 forward;
 
 	if (!other->client)
@@ -1541,7 +1563,7 @@ static TOUCH(old_teleporter_touch) (gentity_t *self, gentity_t *other, const tra
 
 	// [Paril-KEX] move sphere, if we own it
 	if (other->client->ownedSphere) {
-		gentity_t *sphere = other->client->ownedSphere;
+		gentity_t* sphere = other->client->ownedSphere;
 		sphere->s.origin = other->s.origin;
 		sphere->s.origin[Z] = other->absMax[2];
 		sphere->s.angles[YAW] = other->s.angles[YAW];
@@ -1549,8 +1571,8 @@ static TOUCH(old_teleporter_touch) (gentity_t *self, gentity_t *other, const tra
 	}
 }
 
-void SP_trigger_ctf_teleport(gentity_t *ent) {
-	gentity_t *s;
+void SP_trigger_ctf_teleport(gentity_t* ent) {
+	gentity_t* s;
 	int		 i;
 
 	if (!ent->target) {
@@ -1589,7 +1611,7 @@ REMOVE - field removes the disguise
 constexpr SpawnFlags SPAWNFLAG_DISGUISE_START_ON = 2_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_DISGUISE_REMOVE = 4_spawnflag;
 
-static TOUCH(trigger_disguise_touch) (gentity_t *self, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(trigger_disguise_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (other->client) {
 		if (self->spawnFlags.has(SPAWNFLAG_DISGUISE_REMOVE))
 			other->flags &= ~FL_DISGUISED;
@@ -1598,7 +1620,7 @@ static TOUCH(trigger_disguise_touch) (gentity_t *self, gentity_t *other, const t
 	}
 }
 
-static USE(trigger_disguise_use) (gentity_t *self, gentity_t *other, gentity_t *activator) -> void {
+static USE(trigger_disguise_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	if (self->solid == SOLID_NOT)
 		self->solid = SOLID_TRIGGER;
 	else
@@ -1607,7 +1629,7 @@ static USE(trigger_disguise_use) (gentity_t *self, gentity_t *other, gentity_t *
 	gi.linkEntity(self);
 }
 
-void SP_trigger_disguise(gentity_t *self) {
+void SP_trigger_disguise(gentity_t* self) {
 	if (!level.campaign.disguiseIcon)
 		level.campaign.disguiseIcon = gi.imageIndex("i_disguise");
 

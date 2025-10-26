@@ -2417,10 +2417,10 @@ void ReadLevelJson(const char* jsonString) {
 	for (size_t i = 0; i < game.maxClients; i++) {
 		gentity_t* ent = &g_entities[i + 1];
 		ent->client = game.clients + i;
-                ent->client->pers.connected = false;
-                ent->client->pers.limitedLivesPersist = false;
-                ent->client->pers.limitedLivesStash = 0;
-                ent->client->pers.spawned = false;
+		ent->client->pers.connected = false;
+		ent->client->pers.limitedLivesPersist = false;
+		ent->client->pers.limitedLivesStash = 0;
+		ent->client->pers.spawned = false;
 	}
 
 	// do any load time things at this point

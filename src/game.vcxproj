@@ -129,7 +129,6 @@
     <ClInclude Include="freezetag_damage.hpp" />
     <ClInclude Include="match_grace_scope.hpp" />
     <ClInclude Include="match_state_utils.hpp" />
-    <ClInclude Include="g_monster_defines.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
     <ClInclude Include="match_state_helper.hpp" />
     <ClInclude Include="monsters\m_actor.hpp" />

@@ -113,7 +113,7 @@ struct TeamGame {
 // Global instance
 TeamGame teamGame;
 
-gentity_t *neutralObelisk;
+gentity_t* neutralObelisk;
 
 static void Team_SetFlagStatus(Team team, FlagStatus status);
 
@@ -192,7 +192,8 @@ void Team_ReturnFlag(Team team) {
 
 	if (team == Team::Free) {
 		gi.Broadcast_Print(PRINT_HIGH, "The flag has returned!\n");
-	} else {
+	}
+	else {
 		gi.LocBroadcast_Print(PRINT_HIGH, "The {} flag has returned!\n", Teams_TeamName(team));
 	}
 }
@@ -245,19 +246,22 @@ static void Team_SetFlagStatus(Team team, FlagStatus status) {
 	if (g_gametype->integer == static_cast<int>(GameType::CaptureTheFlag)) {
 		flagStatusStr += ctfFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus));
 		flagStatusStr += ctfFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus));
-	} else {
+	}
+	else {
 		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.neutralFlagStatus));
 	}
 
 	//trap_SetConfigstring(CS_FLAGSTATUS, flagStatusStr);
 }
 
-void Team_CheckDroppedItem(gentity_t *dropped) {
+void Team_CheckDroppedItem(gentity_t* dropped) {
 	if (dropped->item->id == IT_FLAG_RED) {
 		Team_SetFlagStatus(Team::Red, FlagStatus::Dropped);
-	} else if (dropped->item->id == IT_FLAG_BLUE) {
+	}
+	else if (dropped->item->id == IT_FLAG_BLUE) {
 		Team_SetFlagStatus(Team::Blue, FlagStatus::Dropped);
-	} else if (dropped->item->id == IT_FLAG_NEUTRAL) {
+	}
+	else if (dropped->item->id == IT_FLAG_NEUTRAL) {
 		Team_SetFlagStatus(Team::Free, FlagStatus::Dropped);
 	}
 }
@@ -271,11 +275,11 @@ Note that bonuses are not cumaltive.  You get one, they are in importance
 order.
 ============
 */
-void CTF_ScoreBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker) {
+void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker) {
 	item_id_t	flag_item, enemy_flag_item;
 	Team		otherTeam = Team::None;
-	gentity_t	*flag, *carrier = nullptr;
-	const char	*c;
+	gentity_t* flag, * carrier = nullptr;
+	const char* c;
 	Vector3		v1, v2;
 
 	if (!Game::Has(GameFlags::CTF))
@@ -293,7 +297,8 @@ void CTF_ScoreBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 	if (targ->client->sess.team == Team::Red) {
 		flag_item = IT_FLAG_RED;
 		enemy_flag_item = IT_FLAG_BLUE;
-	} else {
+	}
+	else {
 		flag_item = IT_FLAG_BLUE;
 		enemy_flag_item = IT_FLAG_RED;
 	}
@@ -392,7 +397,7 @@ void CTF_ScoreBonuses(gentity_t *targ, gentity_t *inflictor, gentity_t *attacker
 CTF_CheckHurtCarrier
 ============
 */
-void CTF_CheckHurtCarrier(gentity_t *targ, gentity_t *attacker) {
+void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -415,8 +420,8 @@ bool CTF_ResetTeamFlag(Team team) {
 	if (!Game::Has(GameFlags::CTF))
 		return false;
 
-	gentity_t *ent;
-	const char *c = team == Team::Red ? ITEM_CTF_FLAG_RED : ITEM_CTF_FLAG_BLUE;
+	gentity_t* ent;
+	const char* c = team == Team::Red ? ITEM_CTF_FLAG_RED : ITEM_CTF_FLAG_BLUE;
 	bool found = false;
 
 	ent = nullptr;
@@ -424,7 +429,8 @@ bool CTF_ResetTeamFlag(Team team) {
 		if (ent->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			FreeEntity(ent);
 			found = true;
-		} else {
+		}
+		else {
 			ent->svFlags &= ~SVF_NOCLIENT;
 			ent->solid = SOLID_TRIGGER;
 			gi.linkEntity(ent);
@@ -454,7 +460,7 @@ void CTF_ResetFlags() {
 CTF_PickupFlag
 ============
 */
-bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
+bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	if (!Game::Has(GameFlags::CTF))
 		return false;
 
@@ -476,7 +482,8 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 	if (team == Team::Red) {
 		flag_item = IT_FLAG_RED;
 		enemy_flag_item = IT_FLAG_BLUE;
-	} else {
+	}
+	else {
 		flag_item = IT_FLAG_BLUE;
 		enemy_flag_item = IT_FLAG_RED;
 	}
@@ -491,7 +498,8 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 				if (other->client->pers.teamState.flag_pickup_time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
 						Teams_TeamName(team), other->client->sess.netName, TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
-				} else {
+				}
+				else {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! (captured by {})\n",
 						Teams_TeamName(team), other->client->sess.netName);
 				}
@@ -553,7 +561,7 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 	// capturestrike: can't pick up enemy flag if defending
 	if (Game::Is(GameType::CaptureStrike)) {
 		if ((level.strike_red_attacks && other->client->sess.team != Team::Red) ||
-				(!level.strike_red_attacks && other->client->sess.team != Team::Blue)) {
+			(!level.strike_red_attacks && other->client->sess.team != Team::Blue)) {
 			//gi.LocClient_Print(other, PRINT_CENTER, "Your team is defending!\n");
 			return false;
 		}
@@ -591,7 +599,7 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 CTF_DropFlagTouch
 ============
 */
-static TOUCH(CTF_DropFlagTouch) (gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf) -> void {
+static TOUCH(CTF_DropFlagTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -608,7 +616,7 @@ static TOUCH(CTF_DropFlagTouch) (gentity_t *ent, gentity_t *other, const trace_t
 CTF_DropFlagThink
 ============
 */
-static THINK(CTF_DropFlagThink) (gentity_t *ent) -> void {
+static THINK(CTF_DropFlagThink) (gentity_t* ent) -> void {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -618,7 +626,8 @@ static THINK(CTF_DropFlagThink) (gentity_t *ent) -> void {
 		CTF_ResetTeamFlag(Team::Red);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
 			Teams_TeamName(Team::Red));
-	} else if (ent->item->id == IT_FLAG_BLUE) {
+	}
+	else if (ent->item->id == IT_FLAG_BLUE) {
 		CTF_ResetTeamFlag(Team::Blue);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
 			Teams_TeamName(Team::Blue));
@@ -634,18 +643,19 @@ CTF_DeadDropFlag
 Called from PlayerDie, to drop the flag from a dying player
 ============
 */
-void CTF_DeadDropFlag(gentity_t *self) {
+void CTF_DeadDropFlag(gentity_t* self) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
-	gentity_t *dropped = nullptr;
+	gentity_t* dropped = nullptr;
 
 	if (self->client->pers.inventory[IT_FLAG_RED]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_RED));
 		self->client->pers.inventory[IT_FLAG_RED] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
 			self->client->sess.netName, Teams_TeamName(Team::Red));
-	} else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
+	}
+	else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_BLUE));
 		self->client->pers.inventory[IT_FLAG_BLUE] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
@@ -666,7 +676,7 @@ void CTF_DeadDropFlag(gentity_t *self) {
 CTF_DropFlag
 ============
 */
-void CTF_DropFlag(gentity_t *ent, Item *item) {
+void CTF_DropFlag(gentity_t* ent, Item* item) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -683,7 +693,7 @@ void CTF_DropFlag(gentity_t *ent, Item *item) {
 CTF_FlagThink
 ============
 */
-static THINK(CTF_FlagThink) (gentity_t *ent) -> void {
+static THINK(CTF_FlagThink) (gentity_t* ent) -> void {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -697,7 +707,7 @@ static THINK(CTF_FlagThink) (gentity_t *ent) -> void {
 CTF_FlagSetup
 ============
 */
-THINK(CTF_FlagSetup) (gentity_t *ent) -> void {
+THINK(CTF_FlagSetup) (gentity_t* ent) -> void {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -738,7 +748,7 @@ THINK(CTF_FlagSetup) (gentity_t *ent) -> void {
 CTF_ClientEffects
 ============
 */
-void CTF_ClientEffects(gentity_t *player) {
+void CTF_ClientEffects(gentity_t* player) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 

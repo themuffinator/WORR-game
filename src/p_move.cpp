@@ -189,7 +189,7 @@ struct PMoveLocal {
 	Vector3		forward{}, right{}, up{};
 	float		frameTime = 0.0f;
 
-	csurface_t	*groundSurface{};
+	csurface_t* groundSurface{};
 	int			groundContents = 0;
 
 	Vector3		previousOrigin{};
@@ -198,26 +198,26 @@ struct PMoveLocal {
 
 pm_config_t	pm_config;
 
-PMove		*pm;
+PMove* pm;
 PMoveLocal	pml;
 
 // movement parameters
-float pm_stopSpeed			= 100;
-float pm_maxSpeed			= 300;
-float pm_duckSpeed			= 100;
-float pm_accelerate			= 10;
-float pm_waterAccelerate	= 10;
-float pm_friction			= 6;
-float pm_waterFriction		= 1;
-float pm_waterSpeed			= 400;
-float pm_ladderScale		= 0.5f;
+float pm_stopSpeed = 100;
+float pm_maxSpeed = 300;
+float pm_duckSpeed = 100;
+float pm_accelerate = 10;
+float pm_waterAccelerate = 10;
+float pm_friction = 6;
+float pm_waterFriction = 1;
+float pm_waterSpeed = 400;
+float pm_ladderScale = 0.5f;
 
 /*
 ==================
 MaxSpeed
 ==================
 */
-static float MaxSpeed(pmove_state_t *ps) {
+static float MaxSpeed(pmove_state_t* ps) {
 	return ps->haste ? pm_maxSpeed * 1.25 : pm_maxSpeed;
 }
 
@@ -254,7 +254,7 @@ static inline void PM_ClipVelocity(const Vector3& in, const Vector3& normal, Vec
 PM_Clip
 ==================
 */
-static trace_t PM_Clip(const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end, contents_t mask) {
+static trace_t PM_Clip(const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end, contents_t mask) {
 	return pm->clip(start, &mins, &maxs, end, mask);
 }
 
@@ -263,7 +263,7 @@ static trace_t PM_Clip(const Vector3 &start, const Vector3 &mins, const Vector3 
 PM_Trace
 ==================
 */
-static trace_t PM_Trace(const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end, contents_t mask = CONTENTS_NONE) {
+static trace_t PM_Trace(const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end, contents_t mask = CONTENTS_NONE) {
 	if (pm->s.pmType == PM_SPECTATOR)
 		return PM_Clip(start, mins, maxs, end, MASK_SOLID);
 
@@ -288,7 +288,7 @@ PM_Trace_Auto
 only here to satisfy pm_trace_t
 ==================
 */
-static inline trace_t PM_Trace_Auto(const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end) {
+static inline trace_t PM_Trace_Auto(const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
 	return PM_Trace(start, mins, maxs, end);
 }
 
@@ -306,7 +306,7 @@ Does not modify any world state?
 constexpr float	 MIN_STEP_NORMAL = 0.7f; // can't step up onto very steep slopes
 constexpr size_t MAX_CLIP_PLANES = 5;
 
-static inline void PM_RecordTrace(touch_list_t &touch, trace_t &tr) {
+static inline void PM_RecordTrace(touch_list_t& touch, trace_t& tr) {
 	if (touch.num == MAXTOUCH)
 		return;
 

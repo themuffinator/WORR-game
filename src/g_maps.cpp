@@ -27,9 +27,9 @@
 MapSelectorFinalize
 =============
 */
-void CloseActiveMenu(gentity_t *ent);
+void CloseActiveMenu(gentity_t* ent);
 void MapSelectorFinalize() {
-	auto &ms = level.mapSelector;
+	auto& ms = level.mapSelector;
 
 	if (ms.voteStartTime == 0_sec)
 		return;
@@ -64,7 +64,8 @@ void MapSelectorFinalize() {
 
 	if (!tiedIndices.empty() && maxVotes > 0) {
 		selectedIndex = tiedIndices[rand() % tiedIndices.size()];
-	} else {
+	}
+	else {
 		// No votes or all invalid - fallback
 		std::vector<int> available;
 		for (size_t i = 0; i < ms.candidates.size(); ++i) {
@@ -76,7 +77,7 @@ void MapSelectorFinalize() {
 	}
 
 	if (selectedIndex >= 0 && ms.candidates[selectedIndex]) {
-		const MapEntry *selected = ms.candidates[selectedIndex];
+		const MapEntry* selected = ms.candidates[selectedIndex];
 		level.changeMap = selected->filename.c_str();
 
 		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
@@ -84,21 +85,23 @@ void MapSelectorFinalize() {
 			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
 
 		AnnouncerSound(world, "vote_passed");
-	} else {
+	}
+	else {
 		auto fallback = AutoSelectNextMap();
 		if (fallback) {
 			level.changeMap = fallback->filename.c_str();
 			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
 				fallback->filename.c_str(),
 				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
-		} else {
+		}
+		else {
 			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
 		}
 		AnnouncerSound(world, "vote_failed");
 	}
-	
-        ms.voteStartTime = 0_sec;
-        level.intermission.exit = true;
+
+	ms.voteStartTime = 0_sec;
+	level.intermission.exit = true;
 }
 
 /*
@@ -107,7 +110,7 @@ MapSelectorBegin
 =============
 */
 void MapSelectorBegin() {
-	auto &ms = level.mapSelector;
+	auto& ms = level.mapSelector;
 
 	if (ms.voteStartTime != 0_sec)
 		return; // already started
@@ -140,13 +143,13 @@ void MapSelectorBegin() {
 MapSelector_CastVote
 ====================
 */
-void MapSelector_CastVote(gentity_t *ent, int voteIndex) {
+void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 	if (!ent || !ent->client || voteIndex < 0 || voteIndex >= 3)
 		return;
 
-	auto &ms = level.mapSelector;
+	auto& ms = level.mapSelector;
 
-	auto *candidate = ms.candidates[voteIndex];
+	auto* candidate = ms.candidates[voteIndex];
 	if (!candidate)
 		return;
 
@@ -166,7 +169,7 @@ void MapSelector_CastVote(gentity_t *ent, int voteIndex) {
 	ms.voteCounts[voteIndex]++;
 
 	// Feedback
-	const char *mapName = candidate->longName.empty()
+	const char* mapName = candidate->longName.empty()
 		? candidate->filename.c_str()
 		: candidate->longName.c_str();
 
@@ -203,7 +206,7 @@ void MapSelector_CastVote(gentity_t *ent, int voteIndex) {
 PrintMapList
 =========================
 */
-int PrintMapList(gentity_t *ent, bool cycleOnly) {
+int PrintMapList(gentity_t* ent, bool cycleOnly) {
 	if (!ent || !ent->client)
 		return 0;
 
@@ -212,7 +215,7 @@ int PrintMapList(gentity_t *ent, bool cycleOnly) {
 	int longestName = 0;
 
 	// Determine longest map name for formatting
-	for (const auto &map : game.mapSystem.mapPool) {
+	for (const auto& map : game.mapSystem.mapPool) {
 		if (cycleOnly && !map.isCycleable)
 			continue;
 		if ((int)map.filename.length() > longestName)
@@ -227,7 +230,7 @@ int PrintMapList(gentity_t *ent, bool cycleOnly) {
 	int colCount = 0;
 	int printedCount = 0;
 
-	for (const auto &map : game.mapSystem.mapPool) {
+	for (const auto& map : game.mapSystem.mapPool) {
 		if (cycleOnly && !map.isCycleable)
 			continue;
 
@@ -264,16 +267,16 @@ int PrintMapList(gentity_t *ent, bool cycleOnly) {
 ParseMyMapFlags
 =========================
 */
-bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags, uint16_t &disableFlags) {
+bool ParseMyMapFlags(const std::vector<std::string>& args, uint16_t& enableFlags, uint16_t& disableFlags) {
 	enableFlags = 0;
 	disableFlags = 0;
 
-	for (const std::string &arg : args) {
+	for (const std::string& arg : args) {
 		if (arg.length() < 2 || (arg[0] != '+' && arg[0] != '-'))
 			return false;
 
 		bool enable = (arg[0] == '+');
-		const char *flag = arg.c_str() + 1;
+		const char* flag = arg.c_str() + 1;
 
 		uint16_t bit = 0;
 		if (_stricmp(flag, "pu") == 0) bit = MAPFLAG_PU;
@@ -300,8 +303,8 @@ bool ParseMyMapFlags(const std::vector<std::string> &args, uint16_t &enableFlags
 MapSystem::GetMapEntry
 ===============
 */
-const MapEntry *MapSystem::GetMapEntry(const std::string &mapName) const {
-	for (const auto &map : mapPool) {
+const MapEntry* MapSystem::GetMapEntry(const std::string& mapName) const {
+	for (const auto& map : mapPool) {
 		if (_stricmp(map.filename.c_str(), mapName.c_str()) == 0)
 			return &map;
 	}
@@ -313,8 +316,8 @@ const MapEntry *MapSystem::GetMapEntry(const std::string &mapName) const {
 MapSystem::IsClientInQueue
 ===============
 */
-bool MapSystem::IsClientInQueue(const std::string &socialID) const {
-	for (const auto &q : playQueue) {
+bool MapSystem::IsClientInQueue(const std::string& socialID) const {
+	for (const auto& q : playQueue) {
 		if (_stricmp(q.socialID.c_str(), socialID.c_str()) == 0)
 			return true;
 	}
@@ -346,8 +349,8 @@ bool MapSystem::MapExists(std::string_view mapName) const {
 MapSystem::IsMapInQueue
 ===============
 */
-bool MapSystem::IsMapInQueue(const std::string &mapName) const {
-	for (const auto &q : playQueue) {
+bool MapSystem::IsMapInQueue(const std::string& mapName) const {
+	for (const auto& q : playQueue) {
 		if (_stricmp(q.filename.c_str(), mapName.c_str()) == 0)
 			return true;
 	}
@@ -439,7 +442,7 @@ void LoadMapPool(gentity_t* ent) {
 LoadMapCycle
 ==================
 */
-void LoadMapCycle(gentity_t *ent) {
+void LoadMapCycle(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 
 	std::string path = "baseq2/";
@@ -454,7 +457,7 @@ void LoadMapCycle(gentity_t *ent) {
 
 
 	// Reset cycleable flags
-	for (auto &m : game.mapSystem.mapPool)
+	for (auto& m : game.mapSystem.mapPool)
 		m.isCycleable = false;
 
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -470,7 +473,7 @@ void LoadMapCycle(gentity_t *ent) {
 	int matched = 0, unmatched = 0;
 
 	while (stream >> token) {
-		for (auto &m : game.mapSystem.mapPool) {
+		for (auto& m : game.mapSystem.mapPool) {
 			if (_stricmp(token.c_str(), m.filename.c_str()) == 0) {
 				m.isCycleable = true;
 				matched++;
@@ -491,12 +494,12 @@ AutoSelectNextMap
 =========================
 */
 std::optional<MapEntry> AutoSelectNextMap() {
-	const auto &pool = game.mapSystem.mapPool;
+	const auto& pool = game.mapSystem.mapPool;
 
 	// Screenshot tool override - select next in map list (looping, based on current map)
 	if (g_autoScreenshotTool && g_autoScreenshotTool->integer > 0 && !pool.empty()) {
 		const std::string current = level.mapName.data();
-		auto it = std::find_if(pool.begin(), pool.end(), [&](const MapEntry &m) {
+		auto it = std::find_if(pool.begin(), pool.end(), [&](const MapEntry& m) {
 			return !_stricmp(m.filename.c_str(), current.c_str());
 			});
 
@@ -519,7 +522,7 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	const int cooldown = 1800;
 	int secondsSinceStart = static_cast<int>(time(nullptr) - game.serverStartTime);
 
-	auto mapValid = [&](const MapEntry &map) -> bool {
+	auto mapValid = [&](const MapEntry& map) -> bool {
 		int lastPlayed = map.lastPlayed / 1000;
 
 		if (lastPlayed > 0) {
@@ -550,9 +553,9 @@ std::optional<MapEntry> AutoSelectNextMap() {
 		return true;
 		};
 
-	std::vector<const MapEntry *> eligible;
+	std::vector<const MapEntry*> eligible;
 
-	for (const auto &map : pool) {
+	for (const auto& map : pool) {
 		if (!map.isCycleable)
 			continue;
 		if (mapValid(map))
@@ -560,14 +563,14 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	}
 
 	if (eligible.empty()) {
-		for (const auto &map : pool) {
+		for (const auto& map : pool) {
 			if (mapValid(map))
 				eligible.push_back(&map);
 		}
 	}
 
 	if (eligible.empty()) {
-		for (const auto &map : pool) {
+		for (const auto& map : pool) {
 			if (avoidCustom && map.isCustom)
 				continue;
 			if (avoidCustomTextures && map.hasCustomTextures)
@@ -581,15 +584,15 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	if (eligible.empty())
 		return std::nullopt;
 
-	std::vector<const MapEntry *> weighted;
-	for (const auto *map : eligible) {
+	std::vector<const MapEntry*> weighted;
+	for (const auto* map : eligible) {
 		weighted.push_back(map);
 		if (map->isPopular)
 			weighted.push_back(map); // 2x chance
 	}
 
 	std::shuffle(eligible.begin(), eligible.end(), game.mapRNG);
-	const MapEntry *chosen = eligible[0];
+	const MapEntry* chosen = eligible[0];
 
 	return *chosen;
 }
@@ -599,8 +602,8 @@ std::optional<MapEntry> AutoSelectNextMap() {
 MapSelectorVoteCandidates
 =========================
 */
-std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
-	std::vector<const MapEntry *> pool;
+std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
+	std::vector<const MapEntry*> pool;
 	const int playerCount = level.pop.num_playing_human_clients;
 	const bool avoidCustom = (level.pop.num_console_clients > 0);
 	const bool avoidCustomTextures = !g_maps_allow_custom_textures->integer;
@@ -609,7 +612,7 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 	bool isDuel = Game::Has(GameFlags::OneVOne);
 	bool isTDM = Teams();
 
-	for (const auto &map : game.mapSystem.mapPool) {
+	for (const auto& map : game.mapSystem.mapPool) {
 		if (!map.isCycleable)
 			continue;
 		if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
@@ -639,7 +642,7 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 
 	if (pool.size() < 2) {
 		pool.clear();
-		for (const auto &map : game.mapSystem.mapPool) {
+		for (const auto& map : game.mapSystem.mapPool) {
 			if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
 				continue;
 			if (avoidCustomTextures && map.hasCustomTextures)
@@ -662,14 +665,14 @@ std::vector<const MapEntry *> MapSelectorVoteCandidates(int maxCandidates) {
 #include <functional>
 #include <cctype>
 
-using MapFilter = std::function<bool(const MapEntry &)>;
+using MapFilter = std::function<bool(const MapEntry&)>;
 
 /*
 ==============================
 Case-insensitive substring check
 ==============================
 */
-static bool str_contains_case(const std::string &haystack, const std::string &needle) {
+static bool str_contains_case(const std::string& haystack, const std::string& needle) {
 	return std::search(
 		haystack.begin(), haystack.end(),
 		needle.begin(), needle.end(),
@@ -682,7 +685,7 @@ static bool str_contains_case(const std::string &haystack, const std::string &ne
 Quoted string and token parser
 ==============================
 */
-static std::vector<std::string> TokenizeQuery(const std::string &input) {
+static std::vector<std::string> TokenizeQuery(const std::string& input) {
 	std::vector<std::string> tokens;
 	bool inQuote = false;
 	std::string current;
@@ -693,12 +696,14 @@ static std::vector<std::string> TokenizeQuery(const std::string &input) {
 				tokens.push_back(current);
 				current.clear();
 			}
-		} else if (std::isspace(ch) && !inQuote) {
+		}
+		else if (std::isspace(ch) && !inQuote) {
 			if (!current.empty()) {
 				tokens.push_back(current);
 				current.clear();
 			}
-		} else {
+		}
+		else {
 			current += ch;
 		}
 	}
@@ -712,12 +717,12 @@ static std::vector<std::string> TokenizeQuery(const std::string &input) {
 ParseMapFilters
 ==============================
 */
-static std::vector<MapFilter> ParseMapFilters(const std::string &input) {
+static std::vector<MapFilter> ParseMapFilters(const std::string& input) {
 	auto tokens = TokenizeQuery(input);
 	std::vector<std::vector<MapFilter>> orGroups;
 	std::vector<MapFilter> currentGroup;
 
-	for (const std::string &token : tokens) {
+	for (const std::string& token : tokens) {
 		if (token == "or" || token == "OR") {
 			if (!currentGroup.empty()) {
 				orGroups.push_back(std::move(currentGroup));
@@ -731,34 +736,43 @@ static std::vector<MapFilter> ParseMapFilters(const std::string &input) {
 		MapFilter filter;
 
 		if (raw == "dm") {
-			filter = [](const MapEntry &m) { return m.mapTypeFlags & MAP_DM; };
-		} else if (raw == "ctf") {
-			filter = [](const MapEntry &m) { return m.suggestedGametype == GameType::CaptureTheFlag; };
-		} else if (raw == "sp") {
-			filter = [](const MapEntry &m) { return m.mapTypeFlags & MAP_SP; };
-		} else if (raw == "coop") {
-			filter = [](const MapEntry &m) { return m.mapTypeFlags & MAP_COOP; };
-		} else if (raw == "custom") {
-			filter = [](const MapEntry &m) { return m.isCustom; };
-		} else if (raw == "custom_textures") {
-			filter = [](const MapEntry &m) { return m.hasCustomTextures; };
-		} else if (raw == "custom_sounds") {
-			filter = [](const MapEntry &m) { return m.hasCustomSounds; };
-		} else if (!raw.empty() && raw[0] == '>') {
+			filter = [](const MapEntry& m) { return m.mapTypeFlags & MAP_DM; };
+		}
+		else if (raw == "ctf") {
+			filter = [](const MapEntry& m) { return m.suggestedGametype == GameType::CaptureTheFlag; };
+		}
+		else if (raw == "sp") {
+			filter = [](const MapEntry& m) { return m.mapTypeFlags & MAP_SP; };
+		}
+		else if (raw == "coop") {
+			filter = [](const MapEntry& m) { return m.mapTypeFlags & MAP_COOP; };
+		}
+		else if (raw == "custom") {
+			filter = [](const MapEntry& m) { return m.isCustom; };
+		}
+		else if (raw == "custom_textures") {
+			filter = [](const MapEntry& m) { return m.hasCustomTextures; };
+		}
+		else if (raw == "custom_sounds") {
+			filter = [](const MapEntry& m) { return m.hasCustomSounds; };
+		}
+		else if (!raw.empty() && raw[0] == '>') {
 			int n = atoi(raw.c_str() + 1);
-			filter = [n](const MapEntry &m) { return m.minPlayers > n; };
-		} else if (!raw.empty() && raw[0] == '<') {
+			filter = [n](const MapEntry& m) { return m.minPlayers > n; };
+		}
+		else if (!raw.empty() && raw[0] == '<') {
 			int n = atoi(raw.c_str() + 1);
-			filter = [n](const MapEntry &m) { return m.maxPlayers < n; };
-		} else {
-			filter = [raw](const MapEntry &m) {
+			filter = [n](const MapEntry& m) { return m.maxPlayers < n; };
+		}
+		else {
+			filter = [raw](const MapEntry& m) {
 				return str_contains_case(m.filename, raw) || str_contains_case(m.longName, raw);
 				};
 		}
 
 		if (isNegated) {
 			MapFilter base = filter;
-			filter = [base](const MapEntry &m) { return !base(m); };
+			filter = [base](const MapEntry& m) { return !base(m); };
 		}
 
 		currentGroup.push_back(std::move(filter));
@@ -769,10 +783,10 @@ static std::vector<MapFilter> ParseMapFilters(const std::string &input) {
 
 	// Return a single combined filter that ORs groups and ANDs within groups
 	return {
-		[orGroups](const MapEntry &m) -> bool {
-			for (const auto &group : orGroups) {
+		[orGroups](const MapEntry& m) -> bool {
+			for (const auto& group : orGroups) {
 				bool match = true;
-				for (const auto &f : group) {
+				for (const auto& f : group) {
 					if (!f(m)) {
 						match = false;
 						break;
@@ -790,8 +804,8 @@ static std::vector<MapFilter> ParseMapFilters(const std::string &input) {
 MapMatchesFilters
 ==============================
 */
-static bool MapMatchesFilters(const MapEntry &map, const std::vector<MapFilter> &filters) {
-	for (const auto &f : filters) {
+static bool MapMatchesFilters(const MapEntry& map, const std::vector<MapFilter>& filters) {
+	for (const auto& f : filters) {
 		if (!f(map)) return false;
 	}
 	return true;
@@ -802,7 +816,7 @@ static bool MapMatchesFilters(const MapEntry &map, const std::vector<MapFilter> 
 PrintMapListFiltered (caller of filters)
 ==============================
 */
-int PrintMapListFiltered(gentity_t *ent, bool cycleOnly, const std::string &filterQuery) {
+int PrintMapListFiltered(gentity_t* ent, bool cycleOnly, const std::string& filterQuery) {
 	if (!ent || !ent->client)
 		return 0;
 
@@ -812,7 +826,7 @@ int PrintMapListFiltered(gentity_t *ent, bool cycleOnly, const std::string &filt
 	const int maxLineLen = 120;
 	int longestName = 0;
 
-	for (const auto &map : game.mapSystem.mapPool) {
+	for (const auto& map : game.mapSystem.mapPool) {
 		if (cycleOnly && !map.isCycleable)
 			continue;
 		if (!filterQuery.empty() && !MapMatchesFilters(map, filters))
@@ -829,7 +843,7 @@ int PrintMapListFiltered(gentity_t *ent, bool cycleOnly, const std::string &filt
 	int colCount = 0;
 	int printedCount = 0;
 
-	for (const auto &map : game.mapSystem.mapPool) {
+	for (const auto& map : game.mapSystem.mapPool) {
 		if (cycleOnly && !map.isCycleable)
 			continue;
 		if (!filterQuery.empty() && !MapMatchesFilters(map, filters))

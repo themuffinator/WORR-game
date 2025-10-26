@@ -16,23 +16,24 @@
 
 #include "../g_local.hpp"
 
-extern bool SetTeam(gentity_t *ent, Team desired_team, bool inactive, bool force, bool silent);
-void GetFollowTarget(gentity_t *ent);
-void FreeFollower(gentity_t *ent);
-bool Vote_Menu_Active(gentity_t *ent);
+extern bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool silent);
+void GetFollowTarget(gentity_t* ent);
+void FreeFollower(gentity_t* ent);
+bool Vote_Menu_Active(gentity_t* ent);
 
-extern void OpenHostInfoMenu(gentity_t *ent);
-extern void OpenMatchInfoMenu(gentity_t *ent);
-extern void OpenPlayerMatchStatsMenu(gentity_t *ent);
-extern void OpenAdminSettingsMenu(gentity_t *ent);
-extern void OpenVoteMenu(gentity_t *ent);
+extern void OpenHostInfoMenu(gentity_t* ent);
+extern void OpenMatchInfoMenu(gentity_t* ent);
+extern void OpenPlayerMatchStatsMenu(gentity_t* ent);
+extern void OpenAdminSettingsMenu(gentity_t* ent);
+extern void OpenVoteMenu(gentity_t* ent);
 
-static void AddJoinOptions(MenuBuilder &builder, gentity_t *ent, int maxPlayers) {
+static void AddJoinOptions(MenuBuilder& builder, gentity_t* ent, int maxPlayers) {
 	uint8_t redCount = 0, blueCount = 0, freeCount = 0, queueCount = 0;
 	for (auto ec : active_clients()) {
 		if (Game::Has(GameFlags::OneVOne) && ec->client->sess.team == Team::Spectator && ec->client->sess.matchQueued) {
 			queueCount++;
-		} else {
+		}
+		else {
 			switch (ec->client->sess.team) {
 			case Team::Free:  freeCount++; break;
 			case Team::Red:   redCount++;  break;
@@ -42,26 +43,27 @@ static void AddJoinOptions(MenuBuilder &builder, gentity_t *ent, int maxPlayers)
 	}
 
 	if (Teams()) {
-		builder.add(fmt::format("Join Red ({}/{})", redCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t *e, Menu &) {
+		builder.add(fmt::format("Join Red ({}/{})", redCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t* e, Menu&) {
 			SetTeam(e, Team::Red, false, false, false);
 			});
-		builder.add(fmt::format("Join Blue ({}/{})", blueCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t *e, Menu &) {
+		builder.add(fmt::format("Join Blue ({}/{})", blueCount, maxPlayers / 2), MenuAlign::Left, [](gentity_t* e, Menu&) {
 			SetTeam(e, Team::Blue, false, false, false);
 			});
-	} else {
+	}
+	else {
 		std::string joinText;
 		if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients == 2)
 			joinText = fmt::format("Join Queue ({}/{})", queueCount, maxPlayers - 2);
 		else
 			joinText = fmt::format("Join Match ({}/{})", freeCount, Game::Has(GameFlags::OneVOne) ? 2 : maxPlayers);
 
-		builder.add(joinText, MenuAlign::Left, [](gentity_t *e, Menu &) {
+		builder.add(joinText, MenuAlign::Left, [](gentity_t* e, Menu&) {
 			SetTeam(e, Team::Free, false, false, false);
 			});
 	}
 }
 
-void OpenJoinMenu(gentity_t *ent) {
+void OpenJoinMenu(gentity_t* ent) {
 	if (!ent || !ent->client) return;
 
 	if (Vote_Menu_Active(ent)) {
@@ -78,32 +80,32 @@ void OpenJoinMenu(gentity_t *ent) {
 
 	AddJoinOptions(builder, ent, maxPlayers);
 
-	builder.add("Spectate", MenuAlign::Left, [](gentity_t *e, Menu &) {
+	builder.add("Spectate", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		SetTeam(e, Team::Spectator, false, false, false);
 		});
-	
+
 	if (g_allowVoting->integer && (ClientIsPlaying(ent->client) || (!ClientIsPlaying(ent->client) && g_allowSpecVote->integer))) {
 		builder.add("Call a Vote", MenuAlign::Left, [](gentity_t* e, Menu&) {
 			OpenCallvoteMenu(e);
 			});
 	}
 
-	builder.add("Host Info", MenuAlign::Left, [](gentity_t *e, Menu &) {
+	builder.add("Host Info", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenHostInfoMenu(e);
 		});
 
-	builder.add("Match Info", MenuAlign::Left, [](gentity_t *e, Menu &) {
+	builder.add("Match Info", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenMatchInfoMenu(e);
 		});
 
 	if (g_matchstats->integer) {
-		builder.add("Player Stats", MenuAlign::Left, [](gentity_t *e, Menu &) {
+		builder.add("Player Stats", MenuAlign::Left, [](gentity_t* e, Menu&) {
 			OpenPlayerMatchStatsMenu(e);
 			});
 	}
 
 	if (ent->client->sess.admin) {
-		builder.add("Admin", MenuAlign::Left, [](gentity_t *e, Menu &) {
+		builder.add("Admin", MenuAlign::Left, [](gentity_t* e, Menu&) {
 			OpenAdminSettingsMenu(e);
 			});
 	}

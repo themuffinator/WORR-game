@@ -1454,7 +1454,7 @@ void SP_func_rotating_ext(gentity_t* ent) {
 		ent->moveInfo.endAngles = ent->s.angles + ent->mangle;
 		ent->moveInfo.state = MoveState::Bottom;
 		ent->plat2flags = PLAT2_MOVING; // Use a spare flag to signify mangle mode
-		
+
 		float travel_time = 0.f;
 		if (ent->duration > 0) {
 			travel_time = ent->duration;
@@ -2559,7 +2559,7 @@ void SP_func_water(gentity_t* self) {
 		break;
 	}
 	self->attenuation = ATTN_STATIC;
-	
+
 	// Calculate movement extents
 	self->pos1 = self->s.origin;
 	for (int i = 0; i < 3; ++i)

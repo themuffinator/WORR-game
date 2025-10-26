@@ -13,9 +13,9 @@
 
 #include "../g_local.hpp"
 
-extern void OpenJoinMenu(gentity_t *ent);
+extern void OpenJoinMenu(gentity_t* ent);
 
-void OpenHostInfoMenu(gentity_t *ent) {
+void OpenHostInfoMenu(gentity_t* ent) {
 	MenuBuilder builder;
 	builder.add("Host Info", MenuAlign::Center)
 		.spacer()
@@ -37,7 +37,7 @@ void OpenHostInfoMenu(gentity_t *ent) {
 		builder.add(game.motd, MenuAlign::Left);
 	}
 
-	builder.spacer().add("Return", MenuAlign::Left, [](gentity_t *ent, Menu &) {
+	builder.spacer().add("Return", MenuAlign::Left, [](gentity_t* ent, Menu&) {
 		OpenJoinMenu(ent);
 		});
 

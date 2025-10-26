@@ -422,7 +422,7 @@ ClientConfig_SaveStats
 Saves real player's config and updates stats.
 ================
 */
-void ClientConfig_SaveStats(gclient_t *cl, bool wonMatch) {
+void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 	if (!cl || cl->sess.is_a_bot)
 		return;
 
@@ -445,7 +445,7 @@ ClientConfig_SaveStatsForGhost
 Saves ghost player's config and updates stats.
 ===========================
 */
-void ClientConfig_SaveStatsForGhost(const Ghosts &ghost, bool won) {
+void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won) {
 	if (!*ghost.socialID)
 		return;
 

@@ -24,7 +24,7 @@
 cgame_import_t cgi;
 cgame_export_t cglobals;
 
-static void *CG_GetExtension(const char *name) {
+static void* CG_GetExtension(const char* name) {
 	return nullptr;
 }
 
@@ -43,20 +43,20 @@ static void InitCGame() {
 
 static void ShutdownCGame() {}
 
-void CG_DrawHUD(int32_t isplit, const cg_server_data_t *data, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale, int32_t playernum, const player_state_t *ps);
+void CG_DrawHUD(int32_t isplit, const cg_server_data_t* data, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale, int32_t playernum, const player_state_t* ps);
 void CG_TouchPics();
-layout_flags_t CG_LayoutFlags(const player_state_t *ps);
+layout_flags_t CG_LayoutFlags(const player_state_t* ps);
 
-static int32_t CG_GetActiveWeaponWheelWeapon(const player_state_t *ps) {
+static int32_t CG_GetActiveWeaponWheelWeapon(const player_state_t* ps) {
 	return ps->stats[STAT_ACTIVE_WHEEL_WEAPON];
 }
 
-static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t *ps) {
+static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t* ps) {
 	return ((uint32_t)(uint16_t)ps->stats[STAT_WEAPONS_OWNED_1]) | ((uint32_t)(uint16_t)(ps->stats[STAT_WEAPONS_OWNED_2]) << 16);
 }
 
-static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t *ps, int32_t ammoID) {
-	uint16_t ammo = GetAmmoStat((uint16_t *)&ps->stats[STAT_AMMO_INFO_START], ammoID);
+static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammoID) {
+	uint16_t ammo = GetAmmoStat((uint16_t*)&ps->stats[STAT_AMMO_INFO_START], ammoID);
 
 	if (ammo == AMMO_VALUE_INFINITE)
 		return -1;
@@ -64,25 +64,25 @@ static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t *ps, int32_t ammo
 	return ammo;
 }
 
-static int16_t CG_GetPowerupWheelCount(const player_state_t *ps, int32_t powerup_id) {
-	return GetPowerupStat((uint16_t *)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
+static int16_t CG_GetPowerupWheelCount(const player_state_t* ps, int32_t powerup_id) {
+	return GetPowerupStat((uint16_t*)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
 }
 
-static int16_t CG_GetHitMarkerDamage(const player_state_t *ps) {
+static int16_t CG_GetHitMarkerDamage(const player_state_t* ps) {
 	return ps->stats[STAT_HIT_MARKER];
 }
 
-static void CG_ParseConfigString(int32_t i, const char *s) {
+static void CG_ParseConfigString(int32_t i, const char* s) {
 	if (i == CONFIG_N64_PHYSICS_MEDAL)
 		pm_config.n64Physics = !!strtoul(s, nullptr, 10);
 	else if (i == CS_AIRACCEL)
 		pm_config.airAccel = strtoul(s, nullptr, 10);
 }
 
-void CG_ParseCenterPrint(const char *str, int isplit, bool instant);
+void CG_ParseCenterPrint(const char* str, int isplit, bool instant);
 void CG_ClearNotify(int32_t isplit);
 void CG_ClearCenterprint(int32_t isplit);
-void CG_NotifyMessage(int32_t isplit, const char *msg, bool is_chat);
+void CG_NotifyMessage(int32_t isplit, const char* msg, bool is_chat);
 
 /*
 =================
@@ -105,7 +105,7 @@ Returns a pointer to the structure with all entry points
 and global variables
 =================
 */
-Q2GAME_API cgame_export_t * GetCGameAPI(cgame_import_t * import) {
+Q2GAME_API cgame_export_t* GetCGameAPI(cgame_import_t* import) {
 	cgi = *import;
 
 	cglobals.apiVersion = CGAME_API_VERSION;

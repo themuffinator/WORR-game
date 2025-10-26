@@ -77,7 +77,7 @@ StringToFilter
 Parses an IP string into filter structure.
 ===============
 */
-static bool StringToFilter(const char *s, ipFilter_t *f) {
+static bool StringToFilter(const char* s, ipFilter_t* f) {
 	if (!s || !f)
 		return false;
 
@@ -121,13 +121,13 @@ G_FilterPacket
 Determines whether a given IP address should be blocked.
 ===============
 */
-bool G_FilterPacket(const char *from) {
+bool G_FilterPacket(const char* from) {
 	if (!from)
 		return false;
 
 	std::array<uint8_t, 4> m{};
 	int segment = 0;
-	const char *p = from;
+	const char* p = from;
 
 	while (*p && segment < 4) {
 		if (*p < '0' || *p > '9') {
@@ -298,7 +298,7 @@ of the parameters
 =================
 */
 void ServerCommand() {
-	const char *cmd = gi.argv(1);
+	const char* cmd = gi.argv(1);
 
 	if (Q_strcasecmp(cmd, "test") == 0)
 		Svcmd_Test_f();

@@ -45,8 +45,8 @@ AsciiToLower
 ===============
 */
 static inline char AsciiToLower(char c) {
-    if (c >= 'A' && c <= 'Z') return static_cast<char>(c - 'A' + 'a');
-    return c;
+	if (c >= 'A' && c <= 'Z') return static_cast<char>(c - 'A' + 'a');
+	return c;
 }
 
 /*
@@ -55,11 +55,11 @@ IEquals
 ===============
 */
 static bool IEquals(std::string_view a, std::string_view b) {
-    if (a.size() != b.size()) return false;
-    for (size_t i = 0; i < a.size(); ++i) {
-        if (AsciiToLower(a[i]) != AsciiToLower(b[i])) return false;
-    }
-    return true;
+	if (a.size() != b.size()) return false;
+	for (size_t i = 0; i < a.size(); ++i) {
+		if (AsciiToLower(a[i]) != AsciiToLower(b[i])) return false;
+	}
+	return true;
 }
 
 /*
@@ -68,11 +68,11 @@ IStartsWith
 ===============
 */
 static bool IStartsWith(std::string_view text, std::string_view prefix) {
-    if (text.size() < prefix.size()) return false;
-    for (size_t i = 0; i < prefix.size(); ++i) {
-        if (AsciiToLower(text[i]) != AsciiToLower(prefix[i])) return false;
-    }
-    return true;
+	if (text.size() < prefix.size()) return false;
+	for (size_t i = 0; i < prefix.size(); ++i) {
+		if (AsciiToLower(text[i]) != AsciiToLower(prefix[i])) return false;
+	}
+	return true;
 }
 
 /*
@@ -87,9 +87,9 @@ Examples:
 ===============
 */
 static std::string_view SpawnSuffixFromClassname(std::string_view classname) {
-    constexpr std::string_view kPrefix = "info_player_";
-    if (!IStartsWith(classname, kPrefix)) return {};
-    return classname.substr(kPrefix.size());
+	constexpr std::string_view kPrefix = "info_player_";
+	if (!IStartsWith(classname, kPrefix)) return {};
+	return classname.substr(kPrefix.size());
 }
 
 /*
@@ -101,43 +101,43 @@ Returns true if registered.
 ===============
 */
 static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
-    if (suffix.empty()) return false;
+	if (suffix.empty()) return false;
 
-    // intermission is unique and not added to lists
-    if (IEquals(suffix, "intermission")) {
-        if (!level.spawn.intermission) {
-            level.spawn.intermission = ent;
-            ent->fteam = Team::Free;
-            // Intermission view handling is finalized in FinalizeIntermissionView
-        }
-        return true;
-    }
+	// intermission is unique and not added to lists
+	if (IEquals(suffix, "intermission")) {
+		if (!level.spawn.intermission) {
+			level.spawn.intermission = ent;
+			ent->fteam = Team::Free;
+			// Intermission view handling is finalized in FinalizeIntermissionView
+		}
+		return true;
+	}
 
-    // Deathmatch (FFA)
-    if (IEquals(suffix, "deathmatch")) {
-        ent->fteam = Team::Free;
-        ent->count = 1; // not an initial spawn point
-        level.spawn.ffa.push_back(ent);
-        return true;
-    }
+	// Deathmatch (FFA)
+	if (IEquals(suffix, "deathmatch")) {
+		ent->fteam = Team::Free;
+		ent->count = 1; // not an initial spawn point
+		level.spawn.ffa.push_back(ent);
+		return true;
+	}
 
-    // Team Red
-    if (IEquals(suffix, "team_red")) {
-        ent->fteam = Team::Red;
-        ent->count = 1;
-        level.spawn.red.push_back(ent);
-        return true;
-    }
+	// Team Red
+	if (IEquals(suffix, "team_red")) {
+		ent->fteam = Team::Red;
+		ent->count = 1;
+		level.spawn.red.push_back(ent);
+		return true;
+	}
 
-    // Team Blue
-    if (IEquals(suffix, "team_blue")) {
-        ent->fteam = Team::Blue;
-        ent->count = 1;
-        level.spawn.blue.push_back(ent);
-        return true;
-    }
+	// Team Blue
+	if (IEquals(suffix, "team_blue")) {
+		ent->fteam = Team::Blue;
+		ent->count = 1;
+		level.spawn.blue.push_back(ent);
+		return true;
+	}
 
-    return false;
+	return false;
 }
 
 /*
@@ -149,22 +149,22 @@ another entity, faces that target; otherwise uses the intermission's own angles.
 ===============
 */
 static void FinalizeIntermissionView() {
-    gentity_t* inter = level.spawn.intermission;
-    if (!inter) return;
+	gentity_t* inter = level.spawn.intermission;
+	if (!inter) return;
 
-    // Always anchor the intermission origin to the entity itself.
-    level.intermission.origin = inter->s.origin;
+	// Always anchor the intermission origin to the entity itself.
+	level.intermission.origin = inter->s.origin;
 
-    if (inter->target) {
-        if (gentity_t* tgt = PickTarget(inter->target)) {
-            const Vector3 dir = (tgt->s.origin - inter->s.origin).normalized();
-            level.intermission.angles = VectorToAngles(dir);
-            return;
-        }
-    }
+	if (inter->target) {
+		if (gentity_t* tgt = PickTarget(inter->target)) {
+			const Vector3 dir = (tgt->s.origin - inter->s.origin).normalized();
+			level.intermission.angles = VectorToAngles(dir);
+			return;
+		}
+	}
 
-    // Fallback: use mapper-specified angles from the intermission spot.
-    level.intermission.angles = inter->s.angles;
+	// Fallback: use mapper-specified angles from the intermission spot.
+	level.intermission.angles = inter->s.angles;
 }
 
 /*
@@ -176,19 +176,19 @@ Keeps ordering: FFA first, then Red, then Blue. Intermission remains separate.
 ===============
 */
 static void G_SpawnSpots_FlattenLegacy() {
-    level.spawnSpots.fill(nullptr);
+	level.spawnSpots.fill(nullptr);
 
-    int n = 0;
-    auto push_all = [&](const std::vector<gentity_t*>& v) {
-        for (gentity_t* e : v) {
-            if (n >= static_cast<int>(level.spawnSpots.size())) return;
-            level.spawnSpots[static_cast<size_t>(n++)] = e;
-        }
-        };
+	int n = 0;
+	auto push_all = [&](const std::vector<gentity_t*>& v) {
+		for (gentity_t* e : v) {
+			if (n >= static_cast<int>(level.spawnSpots.size())) return;
+			level.spawnSpots[static_cast<size_t>(n++)] = e;
+		}
+		};
 
-    push_all(level.spawn.ffa);
-    push_all(level.spawn.red);
-    push_all(level.spawn.blue);
+	push_all(level.spawn.ffa);
+	push_all(level.spawn.red);
+	push_all(level.spawn.blue);
 }
 
 /*
@@ -197,25 +197,25 @@ G_LocateSpawnSpots
 ===============
 */
 void G_LocateSpawnSpots() {
-    level.spawn.Clear();
+	level.spawn.Clear();
 
-    // Scan entity list once.
-    for (uint32_t i = 0; i < globals.numEntities; ++i) {
-        gentity_t* ent = &g_entities[i];
-        if (!ent || !ent->inUse || !ent->className) continue;
+	// Scan entity list once.
+	for (uint32_t i = 0; i < globals.numEntities; ++i) {
+		gentity_t* ent = &g_entities[i];
+		if (!ent || !ent->inUse || !ent->className) continue;
 
-        std::string_view cls = ent->className;
-        const std::string_view suffix = SpawnSuffixFromClassname(cls);
-        if (suffix.empty()) continue;
+		std::string_view cls = ent->className;
+		const std::string_view suffix = SpawnSuffixFromClassname(cls);
+		if (suffix.empty()) continue;
 
-        RegisterSpawn(ent, suffix);
-    }
+		RegisterSpawn(ent, suffix);
+	}
 
-    // Ensure intermission view is set if present.
-    FinalizeIntermissionView();
+	// Ensure intermission view is set if present.
+	FinalizeIntermissionView();
 
-    // Optional: keep legacy fields in sync while you migrate call sites.
-    G_SpawnSpots_FlattenLegacy();
+	// Optional: keep legacy fields in sync while you migrate call sites.
+	G_SpawnSpots_FlattenLegacy();
 }
 
 // ==============================================================================
@@ -226,7 +226,7 @@ IsProxMine
 ===============
 */
 static inline bool IsProxMine(const gentity_t* e) {
-    return e && e->className && strcmp(e->className, "prox_mine") == 0;
+	return e && e->className && strcmp(e->className, "prox_mine") == 0;
 }
 
 /*
@@ -235,7 +235,7 @@ IsTeslaMine
 ===============
 */
 static inline bool IsTeslaMine(const gentity_t* e) {
-    return e && e->className && strncmp(e->className, "tesla", 5) == 0;
+	return e && e->className && strncmp(e->className, "tesla", 5) == 0;
 }
 
 /*
@@ -244,7 +244,7 @@ IsTrap
 ===============
 */
 static inline bool IsTrap(const gentity_t* e) {
-    return e && e->className && strncmp(e->className, "food_cube_trap", 14) == 0;
+	return e && e->className && strncmp(e->className, "food_cube_trap", 14) == 0;
 }
 
 /*
@@ -254,14 +254,14 @@ Returns true if any mine or trap is within 'radius' of 'origin'
 ===============
 */
 static bool SpawnPointHasNearbyMines(const Vector3& origin, float radius) {
-    gentity_t* it = nullptr;
-    while ((it = FindRadius(it, origin, radius)) != nullptr) {
-        if (!it->className)
-            continue;
-        if (IsProxMine(it) || IsTeslaMine(it) || IsTrap(it))
-            return true;
-    }
-    return false;
+	gentity_t* it = nullptr;
+	while ((it = FindRadius(it, origin, radius)) != nullptr) {
+		if (!it->className)
+			continue;
+		if (IsProxMine(it) || IsTeslaMine(it) || IsTrap(it))
+			return true;
+	}
+	return false;
 }
 
 
@@ -279,7 +279,7 @@ Small z-lift for visibility checks.
 ===============
 */
 static inline Vector3 SpawnEye(const Vector3& p) {
-    return p + Vector3{ 0.0f, 0.0f, 16.0f };
+	return p + Vector3{ 0.0f, 0.0f, 16.0f };
 }
 
 /*
@@ -288,9 +288,9 @@ IsEnemy
 ===============
 */
 static inline bool IsEnemy(const gentity_t* a, const gentity_t* b) {
-    if (!a || !b || !a->client || !b->client) return true;
-    if (!Teams()) return true;
-    return a->client->sess.team != b->client->sess.team;
+	if (!a || !b || !a->client || !b->client) return true;
+	if (!Teams()) return true;
+	return a->client->sess.team != b->client->sess.team;
 }
 
 /*
@@ -301,25 +301,25 @@ A range std::clamp avoids expensive full-map traces; tune MAX_LOS_DIST as needed
 ===============
 */
 static bool AnyDirectEnemyLoS(const gentity_t* requester, const Vector3& spot, float maxDist) {
-    const Vector3 toCheck = SpawnEye(spot);
+	const Vector3 toCheck = SpawnEye(spot);
 
-    for (auto ec : active_clients()) {
-        if (ec->health <= 0 || !IsEnemy(requester, ec))
-            continue;
+	for (auto ec : active_clients()) {
+		if (ec->health <= 0 || !IsEnemy(requester, ec))
+			continue;
 
-        const Vector3 from = SpawnEye(ec->s.origin);
-        const Vector3 delta = toCheck - from;
-        const float dist = delta.length();
-        if (dist > maxDist)
-            continue;
+		const Vector3 from = SpawnEye(ec->s.origin);
+		const Vector3 delta = toCheck - from;
+		const float dist = delta.length();
+		if (dist > maxDist)
+			continue;
 
-        trace_t tr = gi.trace(from, PLAYER_MINS, PLAYER_MAXS, toCheck, nullptr, MASK_SOLID & ~CONTENTS_PLAYER);
-        if (tr.fraction == 1.0f) {
-            // Direct, unobstructed line-of-sight
-            return true;
-        }
-    }
-    return false;
+		trace_t tr = gi.trace(from, PLAYER_MINS, PLAYER_MAXS, toCheck, nullptr, MASK_SOLID & ~CONTENTS_PLAYER);
+		if (tr.fraction == 1.0f) {
+			// Direct, unobstructed line-of-sight
+			return true;
+		}
+	}
+	return false;
 }
 
 /*
@@ -331,49 +331,49 @@ Attempts a tiny Z nudge and a generic un-stuck fix for map quirks.
 ===============
 */
 static gentity_t* G_UnsafeSpawnPosition(Vector3 spot, bool check_players) {
-    contents_t mask = MASK_PLAYERSOLID;
-    if (!check_players) {
-        mask &= ~CONTENTS_PLAYER;
-    }
+	contents_t mask = MASK_PLAYERSOLID;
+	if (!check_players) {
+		mask &= ~CONTENTS_PLAYER;
+	}
 
-    trace_t tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
+	trace_t tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
 
-    // If embedded in non-client brush, try a tiny vertical nudge
-    if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
-        spot[2] += 1.0f;
-        tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
-    }
+	// If embedded in non-client brush, try a tiny vertical nudge
+	if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
+		spot[2] += 1.0f;
+		tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
+	}
 
-    // If still embedded in non-client geometry, try the generic un-stuck helper
-    if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
-        const StuckResult fix = G_FixStuckObject_Generic(
-            spot, PLAYER_MINS, PLAYER_MAXS,
-            [mask](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-                return gi.trace(start, mins, maxs, end, nullptr, mask);
-            }
-        );
+	// If still embedded in non-client geometry, try the generic un-stuck helper
+	if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
+		const StuckResult fix = G_FixStuckObject_Generic(
+			spot, PLAYER_MINS, PLAYER_MAXS,
+			[mask](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+				return gi.trace(start, mins, maxs, end, nullptr, mask);
+			}
+		);
 
-        if (fix == StuckResult::NoGoodPosition) {
-            return tr.ent; // could be world or brush entity; report the blocker
-        }
+		if (fix == StuckResult::NoGoodPosition) {
+			return tr.ent; // could be world or brush entity; report the blocker
+		}
 
-        tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
-        if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
-            return tr.ent;
-        }
-    }
+		tr = gi.trace(spot, PLAYER_MINS, PLAYER_MAXS, spot, nullptr, mask);
+		if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
+			return tr.ent;
+		}
+	}
 
-    // Clear? then safe
-    if (tr.fraction == 1.0f) {
-        return nullptr;
-    }
+	// Clear? then safe
+	if (tr.fraction == 1.0f) {
+		return nullptr;
+	}
 
-    // If we hit a client and we are checking players, report them
-    if (check_players && tr.ent && tr.ent->client) {
-        return tr.ent;
-    }
+	// If we hit a client and we are checking players, report them
+	if (check_players && tr.ent && tr.ent->client) {
+		return tr.ent;
+	}
 
-    return nullptr;
+	return nullptr;
 }
 
 /*
@@ -383,7 +383,7 @@ Fast occupancy/solid check using your unstuck helper for gnarly brushes.
 ===============
 */
 static bool SpotIsClearOfSolidsAndPlayers(const Vector3& p) {
-    return G_UnsafeSpawnPosition(p, /*check_players=*/true) == nullptr;
+	return G_UnsafeSpawnPosition(p, /*check_players=*/true) == nullptr;
 }
 
 /*
@@ -393,9 +393,9 @@ Telefrag/solid guard, replacing the ad-hoc AABB overlap check.
 ===============
 */
 static bool SpotIsSafe(gentity_t* spot) {
-    if (!spot) return false;
-    const Vector3 p = spot->s.origin + Vector3{ 0.0f, 0.0f, 9.0f };
-    return SpotIsClearOfSolidsAndPlayers(p);
+	if (!spot) return false;
+	const Vector3 p = spot->s.origin + Vector3{ 0.0f, 0.0f, 9.0f };
+	return SpotIsClearOfSolidsAndPlayers(p);
 }
 
 constexpr SpawnFlags SPAWNFLAG_INITIAL = 0x10000_spawnflag; // example value, adjust as needed
@@ -407,15 +407,15 @@ Keep only INITIAL-flagged spawns when present; otherwise fallback to all.
 ===============
 */
 static std::vector<gentity_t*> FilterInitialSpawns(const std::vector<gentity_t*>& spawns) {
-    std::vector<gentity_t*> flagged;
-    flagged.reserve(spawns.size());
-    for (auto* s : spawns) {
-        if (!s) continue;
-        if (s->spawnFlags.has(SPAWNFLAG_INITIAL)) {
-            flagged.push_back(s);
-        }
-    }
-    return flagged.empty() ? spawns : flagged;
+	std::vector<gentity_t*> flagged;
+	flagged.reserve(spawns.size());
+	for (auto* s : spawns) {
+		if (!s) continue;
+		if (s->spawnFlags.has(SPAWNFLAG_INITIAL)) {
+			flagged.push_back(s);
+		}
+	}
+	return flagged.empty() ? spawns : flagged;
 }
 
 /*
@@ -427,28 +427,28 @@ muffmode: excludes current client
 ================
 */
 static float PlayersRangeFromSpot(gentity_t* ent, gentity_t* spot) {
-    float	bestplayerdistance;
-    Vector3	v;
-    float	playerdistance;
+	float	bestplayerdistance;
+	Vector3	v;
+	float	playerdistance;
 
-    bestplayerdistance = 9999999;
+	bestplayerdistance = 9999999;
 
-    for (auto ec : active_clients()) {
-        if (ec->health <= 0 || ec->client->eliminated)
-            continue;
+	for (auto ec : active_clients()) {
+		if (ec->health <= 0 || ec->client->eliminated)
+			continue;
 #if 0
-        if (ent != nullptr)
-            if (ec == ent)
-                continue;
+		if (ent != nullptr)
+			if (ec == ent)
+				continue;
 #endif
-        v = spot->s.origin - ec->s.origin;
-        playerdistance = v.length();
+		v = spot->s.origin - ec->s.origin;
+		playerdistance = v.length();
 
-        if (playerdistance < bestplayerdistance)
-            bestplayerdistance = playerdistance;
-    }
+		if (playerdistance < bestplayerdistance)
+			bestplayerdistance = playerdistance;
+	}
 
-    return bestplayerdistance;
+	return bestplayerdistance;
 }
 
 /*
@@ -460,48 +460,48 @@ force_spawn bypasses the softer checks except hard solids/telefrags.
 ===============
 */
 static std::vector<gentity_t*> FilterEligibleSpawns(
-    const std::vector<gentity_t*>& spawns,
-    const Vector3& avoid_point,
-    bool force_spawn,
-    gentity_t* entForTeamLogic // may be null
+	const std::vector<gentity_t*>& spawns,
+	const Vector3& avoid_point,
+	bool force_spawn,
+	gentity_t* entForTeamLogic // may be null
 ) {
-    constexpr float MIN_AVOID_DIST = 192.0f;   // distance from avoid_point (e.g. last death)
-    constexpr float MIN_PLAYER_RADIUS = 160.0f;   // keep away from nearest player
-    constexpr float MINE_RADIUS = 196.0f;   // avoid mines/traps around spot
-    constexpr float MAX_LOS_DIST = 2048.0f;  // consider LoS threats up to this range
+	constexpr float MIN_AVOID_DIST = 192.0f;   // distance from avoid_point (e.g. last death)
+	constexpr float MIN_PLAYER_RADIUS = 160.0f;   // keep away from nearest player
+	constexpr float MINE_RADIUS = 196.0f;   // avoid mines/traps around spot
+	constexpr float MAX_LOS_DIST = 2048.0f;  // consider LoS threats up to this range
 
-    std::vector<gentity_t*> out;
-    out.reserve(spawns.size());
+	std::vector<gentity_t*> out;
+	out.reserve(spawns.size());
 
-    for (auto* s : spawns) {
-        if (!s) continue;
+	for (auto* s : spawns) {
+		if (!s) continue;
 
-        // Hard safety: never ignore actual solids/telefrags
-        if (!SpotIsSafe(s))
-            continue;
+		// Hard safety: never ignore actual solids/telefrags
+		if (!SpotIsSafe(s))
+			continue;
 
-        if (!force_spawn) {
-            // Keep away from the avoid point (e.g., last death)
-            if ((s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
-                continue;
+		if (!force_spawn) {
+			// Keep away from the avoid point (e.g., last death)
+			if ((s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
+				continue;
 
-            // No nearby mines/traps
-            if (SpawnPointHasNearbyMines(s->s.origin, MINE_RADIUS))
-                continue;
+			// No nearby mines/traps
+			if (SpawnPointHasNearbyMines(s->s.origin, MINE_RADIUS))
+				continue;
 
-            // Player proximity
-            if (PlayersRangeFromSpot(entForTeamLogic, s) < MIN_PLAYER_RADIUS)
-                continue;
+			// Player proximity
+			if (PlayersRangeFromSpot(entForTeamLogic, s) < MIN_PLAYER_RADIUS)
+				continue;
 
-            // Enemy line-of-sight
-            if (AnyDirectEnemyLoS(entForTeamLogic, s->s.origin, MAX_LOS_DIST))
-                continue;
-        }
+			// Enemy line-of-sight
+			if (AnyDirectEnemyLoS(entForTeamLogic, s->s.origin, MAX_LOS_DIST))
+				continue;
+		}
 
-        out.push_back(s);
-    }
+		out.push_back(s);
+	}
 
-    return out;
+	return out;
 }
 
 /*
@@ -511,21 +511,21 @@ Lightweight fallback filter: occupancy and minimum distance from avoid_point.
 ===============
 */
 static std::vector<gentity_t*> FilterFallbackSpawns(
-    const std::vector<gentity_t*>& spawns,
-    const Vector3& avoid_point
+	const std::vector<gentity_t*>& spawns,
+	const Vector3& avoid_point
 ) {
-    constexpr float MIN_DIST = 192.0f;
-    std::vector<gentity_t*> out;
-    out.reserve(spawns.size());
-    for (auto* s : spawns) {
-        if (!s) continue;
-        if (!SpotIsSafe(s))
-            continue;
-        if ((s->s.origin - avoid_point).length() < MIN_DIST)
-            continue;
-        out.push_back(s);
-    }
-    return out;
+	constexpr float MIN_DIST = 192.0f;
+	std::vector<gentity_t*> out;
+	out.reserve(spawns.size());
+	for (auto* s : spawns) {
+		if (!s) continue;
+		if (!SpotIsSafe(s))
+			continue;
+		if ((s->s.origin - avoid_point).length() < MIN_DIST)
+			continue;
+		out.push_back(s);
+	}
+	return out;
 }
 
 /*
@@ -535,9 +535,9 @@ PickRandomly
 */
 template <typename T>
 static T* PickRandomly(const std::vector<T*>& vec) {
-    if (vec.empty()) return nullptr;
-    std::uniform_int_distribution<size_t> dist(0, vec.size() - 1);
-    return vec[dist(game.mapRNG)];
+	if (vec.empty()) return nullptr;
+	std::uniform_int_distribution<size_t> dist(0, vec.size() - 1);
+	return vec[dist(game.mapRNG)];
 }
 
 /*
@@ -548,31 +548,31 @@ Pick random among all spots within epsilon of the best score.
 ===============
 */
 static gentity_t* SelectFromSpawnList(
-    const std::vector<gentity_t*>& spawns,
-    const std::function<float(gentity_t*)>& scoreFn
+	const std::vector<gentity_t*>& spawns,
+	const std::function<float(gentity_t*)>& scoreFn
 ) {
-    if (spawns.empty())
-        return nullptr;
+	if (spawns.empty())
+		return nullptr;
 
-    float best = scoreFn(spawns[0]);
-    for (auto* s : spawns) {
-        best = std::min(best, scoreFn(s));
-    }
+	float best = scoreFn(spawns[0]);
+	for (auto* s : spawns) {
+		best = std::min(best, scoreFn(s));
+	}
 
-    constexpr float EPS = 0.05f; // 5 percent tolerance if we use normalized scores
-    std::vector<gentity_t*> finalists;
-    finalists.reserve(spawns.size());
-    for (auto* s : spawns) {
-        const float sc = scoreFn(s);
-        // treat as tie if within epsilon of best
-        if (sc <= best + std::max(EPS, 0.01f * std::abs(best)))
-            finalists.push_back(s);
-    }
+	constexpr float EPS = 0.05f; // 5 percent tolerance if we use normalized scores
+	std::vector<gentity_t*> finalists;
+	finalists.reserve(spawns.size());
+	for (auto* s : spawns) {
+		const float sc = scoreFn(s);
+		// treat as tie if within epsilon of best
+		if (sc <= best + std::max(EPS, 0.01f * std::abs(best)))
+			finalists.push_back(s);
+	}
 
-    if (finalists.empty())
-        return nullptr;
+	if (finalists.empty())
+		return nullptr;
 
-    return PickRandomly(finalists);
+	return PickRandomly(finalists);
 }
 
 /*
@@ -585,31 +585,31 @@ Weights are intentionally conservative; tune at runtime once you graph HM_Query(
 ===============
 */
 static float CompositeDangerScore(gentity_t* s, gentity_t* ent, const Vector3& avoid_point) {
-    // Heat (0..1) from your combat heat map (nearby recent combat)
-    const float heat = HM_DangerAt(s->s.origin); // 0..1 normalized by HM_DangerAt impl
-    // Distance to nearest player (larger is safer, so invert)
-    const float nearest = std::max(1.0f, PlayersRangeFromSpot(ent, s));
-    const float nearPenalty = 1.0f / nearest; // 0..1-ish
-    // Enemy LoS risk as binary bump; soft penalty to prefer out-of-sight
-    const bool los = AnyDirectEnemyLoS(ent, s->s.origin, 2048.0f);
-    const float losPenalty = los ? 0.5f : 0.0f;
-    // Avoid-point proximity (e.g., last-death). Closer is worse.
-    const float ad = (s->s.origin - avoid_point).length();
-    const float avoidPenalty = 1.0f / std::max(1.0f, ad);
+	// Heat (0..1) from your combat heat map (nearby recent combat)
+	const float heat = HM_DangerAt(s->s.origin); // 0..1 normalized by HM_DangerAt impl
+	// Distance to nearest player (larger is safer, so invert)
+	const float nearest = std::max(1.0f, PlayersRangeFromSpot(ent, s));
+	const float nearPenalty = 1.0f / nearest; // 0..1-ish
+	// Enemy LoS risk as binary bump; soft penalty to prefer out-of-sight
+	const bool los = AnyDirectEnemyLoS(ent, s->s.origin, 2048.0f);
+	const float losPenalty = los ? 0.5f : 0.0f;
+	// Avoid-point proximity (e.g., last-death). Closer is worse.
+	const float ad = (s->s.origin - avoid_point).length();
+	const float avoidPenalty = 1.0f / std::max(1.0f, ad);
 
-    // Mines near spot increase danger
-    const bool mines = SpawnPointHasNearbyMines(s->s.origin, 196.0f);
-    const float minePenalty = mines ? 0.5f : 0.0f;
+	// Mines near spot increase danger
+	const bool mines = SpawnPointHasNearbyMines(s->s.origin, 196.0f);
+	const float minePenalty = mines ? 0.5f : 0.0f;
 
-    // Weighted sum (lower is better)
-    const float score =
-        0.50f * heat +
-        0.20f * losPenalty +
-        0.15f * nearPenalty +
-        0.10f * avoidPenalty +
-        0.05f * minePenalty;
+	// Weighted sum (lower is better)
+	const float score =
+		0.50f * heat +
+		0.20f * losPenalty +
+		0.15f * nearPenalty +
+		0.10f * avoidPenalty +
+		0.05f * minePenalty;
 
-    return score;
+	return score;
 }
 
 /*
@@ -620,27 +620,27 @@ Fixed: pass scoreFn instead of an entity to SelectFromSpawnList.
 ===============
 */
 static gentity_t* SelectTeamSpawnPoint(gentity_t* ent, Team team) {
-    const std::vector<gentity_t*>* list = nullptr;
-    switch (team) {
-    case Team::Red:  list = &level.spawn.red;  break;
-    case Team::Blue: list = &level.spawn.blue; break;
-    default:         list = &level.spawn.ffa;  break;
-    }
+	const std::vector<gentity_t*>* list = nullptr;
+	switch (team) {
+	case Team::Red:  list = &level.spawn.red;  break;
+	case Team::Blue: list = &level.spawn.blue; break;
+	default:         list = &level.spawn.ffa;  break;
+	}
 
-    auto scoreFn = [ent](gentity_t* s) {
-        return CompositeDangerScore(s, ent, ent ? ent->client->lastDeathLocation : Vector3{ 0,0,0 });
-        };
+	auto scoreFn = [ent](gentity_t* s) {
+		return CompositeDangerScore(s, ent, ent ? ent->client->lastDeathLocation : Vector3{ 0,0,0 });
+		};
 
-    if (gentity_t* spot = SelectFromSpawnList(*list, scoreFn))
-        return spot;
+	if (gentity_t* spot = SelectFromSpawnList(*list, scoreFn))
+		return spot;
 
-    if (gentity_t* spot = SelectFromSpawnList(level.spawn.ffa, scoreFn))
-        return spot;
+	if (gentity_t* spot = SelectFromSpawnList(level.spawn.ffa, scoreFn))
+		return spot;
 
-    if (gentity_t* only = G_FindByString<&gentity_t::className>(nullptr, "info_player_start"))
-        return only;
+	if (gentity_t* only = G_FindByString<&gentity_t::className>(nullptr, "info_player_start"))
+		return only;
 
-    return nullptr;
+	return nullptr;
 }
 
 // ==============================================================================
@@ -653,67 +653,67 @@ SelectDeathmatchSpawnPoint
 ===============
 */
 select_spawn_result_t SelectDeathmatchSpawnPoint(
-    gentity_t* ent,
-    Vector3 avoid_point,
-    bool force_spawn,
-    bool fallback_to_ctf_or_start,
-    bool intermission,
-    bool initial
+	gentity_t* ent,
+	Vector3 avoid_point,
+	bool force_spawn,
+	bool fallback_to_ctf_or_start,
+	bool intermission,
+	bool initial
 ) {
-    // Intermission: only pick the intermission camera spot
-    if (intermission) {
-        if (level.spawn.intermission) {
-            return { level.spawn.intermission, SelectSpawnFlags::Intermission };
-        }
-        return { nullptr, SelectSpawnFlags::Fallback };
-    }
+	// Intermission: only pick the intermission camera spot
+	if (intermission) {
+		if (level.spawn.intermission) {
+			return { level.spawn.intermission, SelectSpawnFlags::Intermission };
+		}
+		return { nullptr, SelectSpawnFlags::Fallback };
+	}
 
-    // Initial spawns: prefer INITIAL-flagged points if any exist
-    std::vector<gentity_t*> baseList = level.spawn.ffa;
-    if (initial) {
-        baseList = FilterInitialSpawns(baseList);
-    }
+	// Initial spawns: prefer INITIAL-flagged points if any exist
+	std::vector<gentity_t*> baseList = level.spawn.ffa;
+	if (initial) {
+		baseList = FilterInitialSpawns(baseList);
+	}
 
-    // Screen for eligibility
-    auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent);
+	// Screen for eligibility
+	auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent);
 
-    // If none survived and fallback is allowed, try relaxed fallback set
-    if (eligible.empty() && fallback_to_ctf_or_start) {
-        auto fb = FilterFallbackSpawns(baseList, avoid_point);
-        if (!fb.empty()) {
-            auto scoreFn = [ent, avoid_point](gentity_t* s) {
-                return CompositeDangerScore(s, ent, avoid_point);
-                };
-            if (gentity_t* pick = SelectFromSpawnList(fb, scoreFn)) {
-                return { pick, SelectSpawnFlags::Fallback };
-            }
-        }
-    }
+	// If none survived and fallback is allowed, try relaxed fallback set
+	if (eligible.empty() && fallback_to_ctf_or_start) {
+		auto fb = FilterFallbackSpawns(baseList, avoid_point);
+		if (!fb.empty()) {
+			auto scoreFn = [ent, avoid_point](gentity_t* s) {
+				return CompositeDangerScore(s, ent, avoid_point);
+				};
+			if (gentity_t* pick = SelectFromSpawnList(fb, scoreFn)) {
+				return { pick, SelectSpawnFlags::Fallback };
+			}
+		}
+	}
 
-    // If still none and teams are active, try the team lists
-    if (eligible.empty() && Teams() && fallback_to_ctf_or_start) {
-        if (gentity_t* t = SelectTeamSpawnPoint(ent, ent && ent->client ? ent->client->sess.team : Team::Free))
-            return { t, SelectSpawnFlags::Fallback };
-    }
+	// If still none and teams are active, try the team lists
+	if (eligible.empty() && Teams() && fallback_to_ctf_or_start) {
+		if (gentity_t* t = SelectTeamSpawnPoint(ent, ent && ent->client ? ent->client->sess.team : Team::Free))
+			return { t, SelectSpawnFlags::Fallback };
+	}
 
-    // Final fallback: any FFA spot that is at least not embedded
-    if (eligible.empty()) {
-        auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
-        if (!loose.empty()) {
-            return { PickRandomly(loose), SelectSpawnFlags::Fallback };
-        }
-        return { nullptr, SelectSpawnFlags::None };
-    }
+	// Final fallback: any FFA spot that is at least not embedded
+	if (eligible.empty()) {
+		auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
+		if (!loose.empty()) {
+			return { PickRandomly(loose), SelectSpawnFlags::Fallback };
+		}
+		return { nullptr, SelectSpawnFlags::None };
+	}
 
-    // Normal case: choose the lowest danger score, random within epsilon
-    auto scoreFn = [ent, avoid_point](gentity_t* s) {
-        return CompositeDangerScore(s, ent, avoid_point);
-        };
-    if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn)) {
-        return { pick, initial ? SelectSpawnFlags::Initial : SelectSpawnFlags::Normal };
-    }
+	// Normal case: choose the lowest danger score, random within epsilon
+	auto scoreFn = [ent, avoid_point](gentity_t* s) {
+		return CompositeDangerScore(s, ent, avoid_point);
+		};
+	if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn)) {
+		return { pick, initial ? SelectSpawnFlags::Initial : SelectSpawnFlags::Normal };
+	}
 
-    return { nullptr, SelectSpawnFlags::None };
+	return { nullptr, SelectSpawnFlags::None };
 }
 
 // ==============================================================================
@@ -729,71 +729,71 @@ a small safety margin) and is not too close to other players.
 ===============
 */
 static gentity_t* SelectLavaCoopSpawnPoint(gentity_t* ent) {
-    if (!ent) {
-        return nullptr;
-    }
+	if (!ent) {
+		return nullptr;
+	}
 
-    // Find highest active lava top
-    float highestTopZ = -FLT_MAX;
-    gentity_t* highestLava = nullptr;
+	// Find highest active lava top
+	float highestTopZ = -FLT_MAX;
+	gentity_t* highestLava = nullptr;
 
-    for (gentity_t* lava = nullptr; (lava = G_FindByString<&gentity_t::className>(lava, "func_water")) != nullptr; ) {
-        // Only consider "smart" volumes that actually have water contents at their center
-        if (!lava->spawnFlags.has(SPAWNFLAG_WATER_SMART))
-            continue;
+	for (gentity_t* lava = nullptr; (lava = G_FindByString<&gentity_t::className>(lava, "func_water")) != nullptr; ) {
+		// Only consider "smart" volumes that actually have water contents at their center
+		if (!lava->spawnFlags.has(SPAWNFLAG_WATER_SMART))
+			continue;
 
-        Vector3 center = lava->absMax + lava->absMin;
-        center *= 0.5f;
+		Vector3 center = lava->absMax + lava->absMin;
+		center *= 0.5f;
 
-        if ((gi.pointContents(center) & MASK_WATER) == 0)
-            continue;
+		if ((gi.pointContents(center) & MASK_WATER) == 0)
+			continue;
 
-        const float topZ = lava->absMax[2];
-        if (topZ > highestTopZ) {
-            highestTopZ = topZ;
-            highestLava = lava;
-        }
-    }
+		const float topZ = lava->absMax[2];
+		if (topZ > highestTopZ) {
+			highestTopZ = topZ;
+			highestLava = lava;
+		}
+	}
 
-    // No lava found
-    if (!highestLava) {
-        return nullptr;
-    }
+	// No lava found
+	if (!highestLava) {
+		return nullptr;
+	}
 
-    // Safety clearance above lava top (bbox margin)
-    const float lavaTopThreshold = highestTopZ + 64.0f;
+	// Safety clearance above lava top (bbox margin)
+	const float lavaTopThreshold = highestTopZ + 64.0f;
 
-    // Gather coop-lava spawn points
-    std::vector<gentity_t*> spawns;
-    spawns.reserve(64);
-    for (gentity_t* spot = nullptr; (spot = G_FindByString<&gentity_t::className>(spot, "info_player_coop_lava")) != nullptr; ) {
-        spawns.push_back(spot);
-    }
+	// Gather coop-lava spawn points
+	std::vector<gentity_t*> spawns;
+	spawns.reserve(64);
+	for (gentity_t* spot = nullptr; (spot = G_FindByString<&gentity_t::className>(spot, "info_player_coop_lava")) != nullptr; ) {
+		spawns.push_back(spot);
+	}
 
-    if (spawns.empty()) {
-        return nullptr;
-    }
+	if (spawns.empty()) {
+		return nullptr;
+	}
 
-    // Choose the lowest Z that is above lavaTopThreshold and not too close to players
-    gentity_t* best = nullptr;
-    float bestZ = FLT_MAX;
+	// Choose the lowest Z that is above lavaTopThreshold and not too close to players
+	gentity_t* best = nullptr;
+	float bestZ = FLT_MAX;
 
-    for (gentity_t* s : spawns) {
-        const float z = s->s.origin[Z];
-        if (z < lavaTopThreshold)
-            continue;
+	for (gentity_t* s : spawns) {
+		const float z = s->s.origin[Z];
+		if (z < lavaTopThreshold)
+			continue;
 
-        // Require some clearance from other players
-        if (PlayersRangeFromSpot(ent, s) <= 32.0f)
-            continue;
+		// Require some clearance from other players
+		if (PlayersRangeFromSpot(ent, s) <= 32.0f)
+			continue;
 
-        if (z < bestZ) {
-            bestZ = z;
-            best = s;
-        }
-    }
+		if (z < bestZ) {
+			bestZ = z;
+			best = s;
+		}
+	}
 
-    return best;
+	return best;
 }
 
 /*
@@ -804,101 +804,101 @@ Prefers safe coop starts; falls back to SP start, then FFA list.
 ===============
 */
 static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
-    if (!ent) return nullptr;
+	if (!ent) return nullptr;
 
-    // Prefer map-provided lava-safe coop spawns when available.
-    if (gentity_t* lava = SelectLavaCoopSpawnPoint(ent)) // optional; present in this file
-        return lava;
+	// Prefer map-provided lava-safe coop spawns when available.
+	if (gentity_t* lava = SelectLavaCoopSpawnPoint(ent)) // optional; present in this file
+		return lava;
 
-    // Gather coop starts
-    std::vector<gentity_t*> coopSpots;
-    for (gentity_t* s = nullptr; (s = G_FindByString<&gentity_t::className>(s, "info_player_coop")) != nullptr; ) {
-        if (s->inUse)
-            coopSpots.push_back(s);
-    }
+	// Gather coop starts
+	std::vector<gentity_t*> coopSpots;
+	for (gentity_t* s = nullptr; (s = G_FindByString<&gentity_t::className>(s, "info_player_coop")) != nullptr; ) {
+		if (s->inUse)
+			coopSpots.push_back(s);
+	}
 
-    // Fallback: classic single-player start
-    if (coopSpots.empty()) {
-        if (gentity_t* start = G_FindByString<&gentity_t::className>(nullptr, "info_player_start"))
-            return SpotIsSafe(start) ? start : nullptr;
-    }
+	// Fallback: classic single-player start
+	if (coopSpots.empty()) {
+		if (gentity_t* start = G_FindByString<&gentity_t::className>(nullptr, "info_player_start"))
+			return SpotIsSafe(start) ? start : nullptr;
+	}
 
-    // If still nothing, consider FFA list to keep players flowing
-    if (coopSpots.empty() && !level.spawn.ffa.empty())
-        coopSpots = level.spawn.ffa;
+	// If still nothing, consider FFA list to keep players flowing
+	if (coopSpots.empty() && !level.spawn.ffa.empty())
+		coopSpots = level.spawn.ffa;
 
-    if (coopSpots.empty())
-        return nullptr;
+	if (coopSpots.empty())
+		return nullptr;
 
-    // Safety-screen the set
-    const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
-    auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent);
-    if (eligible.empty())
-        eligible = FilterFallbackSpawns(coopSpots, avoid_point);
+	// Safety-screen the set
+	const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
+	auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent);
+	if (eligible.empty())
+		eligible = FilterFallbackSpawns(coopSpots, avoid_point);
 
-    if (eligible.empty()) {
-        // Deterministic last-ditch so we never hard-fail coop
-        const int clientNum = static_cast<int>(ent - g_entities);
-        return coopSpots[static_cast<size_t>(clientNum % static_cast<int>(coopSpots.size()))];
-    }
+	if (eligible.empty()) {
+		// Deterministic last-ditch so we never hard-fail coop
+		const int clientNum = static_cast<int>(ent - g_entities);
+		return coopSpots[static_cast<size_t>(clientNum % static_cast<int>(coopSpots.size()))];
+	}
 
-    // Score by heat + LOS + proximity + avoid_point + mines
-    auto scoreFn = [ent, avoid_point](gentity_t* s) {
-        return CompositeDangerScore(s, ent, avoid_point);
-        };
-    if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn))
-        return pick;
+	// Score by heat + LOS + proximity + avoid_point + mines
+	auto scoreFn = [ent, avoid_point](gentity_t* s) {
+		return CompositeDangerScore(s, ent, avoid_point);
+		};
+	if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn))
+		return pick;
 
-    return nullptr;
+	return nullptr;
 }
 
 static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
-    // if transitioning from another level with a landmark seamless transition
-    // just set the location here
-    if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
-        return false;
-    }
+	// if transitioning from another level with a landmark seamless transition
+	// just set the location here
+	if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
+		return false;
+	}
 
-    gentity_t* landmark = PickTarget(ent->client->landmark_name);
-    if (!landmark) {
-        return false;
-    }
+	gentity_t* landmark = PickTarget(ent->client->landmark_name);
+	if (!landmark) {
+		return false;
+	}
 
-    Vector3 oldOrigin = origin;
-    Vector3 spot_origin = origin;
-    origin = ent->client->landmark_rel_pos;
+	Vector3 oldOrigin = origin;
+	Vector3 spot_origin = origin;
+	origin = ent->client->landmark_rel_pos;
 
-    // rotate our relative landmark into our new landmark's frame of reference
-    origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
-    origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
-    origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
+	// rotate our relative landmark into our new landmark's frame of reference
+	origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
+	origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
+	origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
 
-    origin += landmark->s.origin;
+	origin += landmark->s.origin;
 
-    angles = ent->client->oldViewAngles + landmark->s.angles;
+	angles = ent->client->oldViewAngles + landmark->s.angles;
 
-    if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
-        origin[Z] = spot_origin[2];
+	if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
+		origin[Z] = spot_origin[2];
 
-    // sometimes, landmark spawns can cause slight inconsistencies in collision;
-    // we'll do a bit of tracing to make sure the bbox is clear
-    if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-        return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
-        }) == StuckResult::NoGoodPosition) {
-        origin = oldOrigin;
-        return false;
-    }
+	// sometimes, landmark spawns can cause slight inconsistencies in collision;
+	// we'll do a bit of tracing to make sure the bbox is clear
+	if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+		return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
+		}) == StuckResult::NoGoodPosition) {
+		origin = oldOrigin;
+		return false;
+	}
 
-    ent->s.origin = origin;
+	ent->s.origin = origin;
 
-    // rotate the velocity that we grabbed from the map
-    if (ent->velocity) {
-        ent->velocity = RotatePointAroundVector({ 1, 0, 0 }, ent->velocity, landmark->s.angles[PITCH]);
-        ent->velocity = RotatePointAroundVector({ 0, 1, 0 }, ent->velocity, landmark->s.angles[ROLL]);
-        ent->velocity = RotatePointAroundVector({ 0, 0, 1 }, ent->velocity, landmark->s.angles[YAW]);
-    }
+	// rotate the velocity that we grabbed from the map
+	if (ent->velocity) {
+		ent->velocity = RotatePointAroundVector({ 1, 0, 0 }, ent->velocity, landmark->s.angles[PITCH]);
+		ent->velocity = RotatePointAroundVector({ 0, 1, 0 }, ent->velocity, landmark->s.angles[ROLL]);
+		ent->velocity = RotatePointAroundVector({ 0, 0, 1 }, ent->velocity, landmark->s.angles[YAW]);
+	}
 
-    return true;
+	return true;
 }
 
 /*
@@ -910,34 +910,34 @@ Falls back to any start if needed.
 ===============
 */
 static gentity_t* SelectSingleSpawnPoint(gentity_t* ent) {
-    gentity_t* spot = nullptr;
+	gentity_t* spot = nullptr;
 
-    // First pass: exact targetname match if game.spawnPoint is set
-    while ((spot = G_FindByString<&gentity_t::className>(spot, "info_player_start")) != nullptr) {
-        if (!game.spawnPoint[0] && !spot->targetName)
-            break;
+	// First pass: exact targetname match if game.spawnPoint is set
+	while ((spot = G_FindByString<&gentity_t::className>(spot, "info_player_start")) != nullptr) {
+		if (!game.spawnPoint[0] && !spot->targetName)
+			break;
 
-        if (!game.spawnPoint[0] || !spot->targetName)
-            continue;
+		if (!game.spawnPoint[0] || !spot->targetName)
+			continue;
 
-        if (Q_strcasecmp(game.spawnPoint.data(), spot->targetName) == 0)
-            break;
-    }
+		if (Q_strcasecmp(game.spawnPoint.data(), spot->targetName) == 0)
+			break;
+	}
 
-    if (!spot) {
-        // Second pass: any start with no targetName
-        while ((spot = G_FindByString<&gentity_t::className>(spot, "info_player_start")) != nullptr) {
-            if (!spot->targetName)
-                return spot;
-        }
-    }
+	if (!spot) {
+		// Second pass: any start with no targetName
+		while ((spot = G_FindByString<&gentity_t::className>(spot, "info_player_start")) != nullptr) {
+			if (!spot->targetName)
+				return spot;
+		}
+	}
 
-    // Final fallback: any start at all
-    if (!spot) {
-        return G_FindByString<&gentity_t::className>(spot, "info_player_start");
-    }
+	// Final fallback: any start at all
+	if (!spot) {
+		return G_FindByString<&gentity_t::className>(spot, "info_player_start");
+	}
 
-    return spot;
+	return spot;
 }
 
 // ==============================================================================
@@ -950,92 +950,92 @@ Chooses a player start, deathmatch start, coop start, etc
 ===============
 */
 bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool force_spawn, bool& landmark) {
-    landmark = false;
+	landmark = false;
 
-    gentity_t* spot = nullptr;
+	gentity_t* spot = nullptr;
 
-    // Deathmatch
-    if (deathmatch->integer) {
-        // Team spawns first when in team modes
-        if (Teams()) {
-            spot = SelectTeamSpawnPoint(ent, ent->client ? ent->client->sess.team : Team::Free);
-        }
+	// Deathmatch
+	if (deathmatch->integer) {
+		// Team spawns first when in team modes
+		if (Teams()) {
+			spot = SelectTeamSpawnPoint(ent, ent->client ? ent->client->sess.team : Team::Free);
+		}
 
-        // FFA spawns if no team spot was chosen
-        if (!spot && ent) {
-            const select_spawn_result_t result = SelectDeathmatchSpawnPoint(
-                ent,
-                ent->client ? ent->client->lastDeathLocation : Vector3{ 0, 0, 0 },
-                force_spawn,
-                true,
-                (!ent->client || !ClientIsPlaying(ent->client)) || (ent->client && ent->client->eliminated),
-                false
-            );
+		// FFA spawns if no team spot was chosen
+		if (!spot && ent) {
+			const select_spawn_result_t result = SelectDeathmatchSpawnPoint(
+				ent,
+				ent->client ? ent->client->lastDeathLocation : Vector3{ 0, 0, 0 },
+				force_spawn,
+				true,
+				(!ent->client || !ClientIsPlaying(ent->client)) || (ent->client && ent->client->eliminated),
+				false
+			);
 
-            if (!result.spot) {
-                gi.Com_Error("No valid spawn points found.");
-            }
+			if (!result.spot) {
+				gi.Com_Error("No valid spawn points found.");
+			}
 
-            spot = result.spot;
-        }
+			spot = result.spot;
+		}
 
-        if (!spot) {
-            return false;
-        }
+		if (!spot) {
+			return false;
+		}
 
-        // Place slightly above pad if allowed
-        const float zlift = match_allowSpawnPads->integer ? 9.0f : 1.0f;
-        origin = spot->s.origin + Vector3{ 0.0f, 0.0f, zlift };
-        angles = spot->s.angles;
+		// Place slightly above pad if allowed
+		const float zlift = match_allowSpawnPads->integer ? 9.0f : 1.0f;
+		origin = spot->s.origin + Vector3{ 0.0f, 0.0f, zlift };
+		angles = spot->s.angles;
 
-        // Ensure no roll; optionally zero pitch if desired
-        angles[ROLL] = 0.0f;
-        // if (ent && ent->client && ClientIsPlaying(ent->client)) angles[PITCH] = 0.0f;
+		// Ensure no roll; optionally zero pitch if desired
+		angles[ROLL] = 0.0f;
+		// if (ent && ent->client && ClientIsPlaying(ent->client)) angles[PITCH] = 0.0f;
 
-        return true;
-    }
+		return true;
+	}
 
-    // Coop
-    if (coop->integer) {
-        // Prefer open spots first
-        spot = SelectCoopSpawnPoint(ent);
-        if (!spot) {
-            spot = SelectCoopSpawnPoint(ent);
-        }
+	// Coop
+	if (coop->integer) {
+		// Prefer open spots first
+		spot = SelectCoopSpawnPoint(ent);
+		if (!spot) {
+			spot = SelectCoopSpawnPoint(ent);
+		}
 
-        // No open spot yet: during intermission, spawn at intermission camera
-        if (!spot) {
-            if (level.intermission.time) {
-                origin = level.intermission.origin;
-                angles = level.intermission.angles;
-                return true;
-            }
-            return false;
-        }
-    }
-    // Single player
-    else {
-        spot = SelectSingleSpawnPoint(ent);
+		// No open spot yet: during intermission, spawn at intermission camera
+		if (!spot) {
+			if (level.intermission.time) {
+				origin = level.intermission.origin;
+				angles = level.intermission.angles;
+				return true;
+			}
+			return false;
+		}
+	}
+	// Single player
+	else {
+		spot = SelectSingleSpawnPoint(ent);
 
-        // In SP, hard fallback to 0,0,0 if a spot cannot be found
-        if (!spot) {
-            gi.Com_PrintFmt("Couldn't find spawn point {}\n", game.spawnPoint);
-            origin = { 0.0f, 0.0f, 0.0f };
-            angles = { 0.0f, 0.0f, 0.0f };
-            return true;
-        }
-    }
+		// In SP, hard fallback to 0,0,0 if a spot cannot be found
+		if (!spot) {
+			gi.Com_PrintFmt("Couldn't find spawn point {}\n", game.spawnPoint);
+			origin = { 0.0f, 0.0f, 0.0f };
+			angles = { 0.0f, 0.0f, 0.0f };
+			return true;
+		}
+	}
 
-    // Common placement (Coop/SP)
-    origin = spot->s.origin;
-    angles = spot->s.angles;
+	// Common placement (Coop/SP)
+	origin = spot->s.origin;
+	angles = spot->s.angles;
 
-    // Landmark support
-    if (TryLandmarkSpawn(ent, origin, angles)) {
-        landmark = true;
-    }
+	// Landmark support
+	if (TryLandmarkSpawn(ent, origin, angles)) {
+		landmark = true;
+	}
 
-    return true;
+	return true;
 }
 
 /*
@@ -1045,9 +1045,9 @@ No FindIntermissionPoint call; uses level.intermission set during G_LocateSpawnS
 ===============
 */
 static gentity_t* SelectSpectatorSpawnPoint(Vector3 origin, Vector3 angles) {
-    origin = level.intermission.origin;
-    angles = level.intermission.angles;
-    return level.spawn.intermission;
+	origin = level.intermission.origin;
+	angles = level.intermission.angles;
+	return level.spawn.intermission;
 }
 
 // ==============================================================================
@@ -1055,25 +1055,25 @@ static gentity_t* SelectSpectatorSpawnPoint(Vector3 origin, Vector3 angles) {
 // ==============================================================================
 
 static inline void PutClientOnSpawnPoint(gentity_t* ent, const Vector3& spawnOrigin, const Vector3& spawnAngles) {
-    gclient_t* cl = ent->client;
+	gclient_t* cl = ent->client;
 
-    cl->ps.pmove.origin = spawnOrigin;
+	cl->ps.pmove.origin = spawnOrigin;
 
-    ent->s.origin = spawnOrigin;
-    if (!cl->coopRespawn.useSquad)
-        ent->s.origin[Z] += 1; // make sure off ground
-    ent->s.oldOrigin = ent->s.origin;
+	ent->s.origin = spawnOrigin;
+	if (!cl->coopRespawn.useSquad)
+		ent->s.origin[Z] += 1; // make sure off ground
+	ent->s.oldOrigin = ent->s.origin;
 
-    // set the delta angle
-    cl->ps.pmove.deltaAngles = spawnAngles - cl->resp.cmdAngles;
+	// set the delta angle
+	cl->ps.pmove.deltaAngles = spawnAngles - cl->resp.cmdAngles;
 
-    ent->s.angles = spawnAngles;
-    //ent->s.angles[PITCH] /= 3;		//muff: why??
+	ent->s.angles = spawnAngles;
+	//ent->s.angles[PITCH] /= 3;		//muff: why??
 
-    cl->ps.viewAngles = ent->s.angles;
-    cl->vAngle = ent->s.angles;
+	cl->ps.viewAngles = ent->s.angles;
+	cl->vAngle = ent->s.angles;
 
-    AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
+	AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
 }
 
 /*
@@ -1082,24 +1082,24 @@ MoveClientToFreeCam
 ============
 */
 void MoveClientToFreeCam(gentity_t* ent) {
-    ent->moveType = MoveType::FreeCam;
-    ent->solid = SOLID_NOT;
-    ent->svFlags |= SVF_NOCLIENT;
-    ent->client->ps.gunIndex = 0;
-    ent->client->ps.gunSkin = 0;
+	ent->moveType = MoveType::FreeCam;
+	ent->solid = SOLID_NOT;
+	ent->svFlags |= SVF_NOCLIENT;
+	ent->client->ps.gunIndex = 0;
+	ent->client->ps.gunSkin = 0;
 
-    ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
+	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
 
-    ent->takeDamage = false;
-    ent->s.modelIndex = 0;
-    ent->s.modelIndex2 = 0;
-    ent->s.modelIndex3 = 0;
-    ent->s.effects = EF_NONE;
-    ent->client->ps.damageBlend[3] = ent->client->ps.screenBlend[3] = 0;
-    ent->client->ps.rdFlags = RDF_NONE;
-    ent->s.sound = 0;
+	ent->takeDamage = false;
+	ent->s.modelIndex = 0;
+	ent->s.modelIndex2 = 0;
+	ent->s.modelIndex3 = 0;
+	ent->s.effects = EF_NONE;
+	ent->client->ps.damageBlend[3] = ent->client->ps.screenBlend[3] = 0;
+	ent->client->ps.rdFlags = RDF_NONE;
+	ent->s.sound = 0;
 
-    gi.linkEntity(ent);
+	gi.linkEntity(ent);
 }
 
 /*
@@ -1113,309 +1113,311 @@ a deathmatch.
 ============
 */
 void ClientSpawn(gentity_t* ent) {
-    int						index = ent - g_entities - 1;
-    Vector3					spawnOrigin, spawnAngles;
-    gclient_t               *cl = ent->client;
-    client_persistant_t		savedPers;
-    client_respawn_t		savedResp;
-    client_session_t		savedSess;
+	int						index = ent - g_entities - 1;
+	Vector3					spawnOrigin, spawnAngles;
+	gclient_t* cl = ent->client;
+	client_persistant_t		savedPers;
+	client_respawn_t		savedResp;
+	client_session_t		savedSess;
 
-    if (!cl)
-        return;
+	if (!cl)
+		return;
 
-    cl->coopRespawnState = CoopRespawn::None;
+	cl->coopRespawnState = CoopRespawn::None;
 
-    if (Game::Has(GameFlags::Rounds | GameFlags::Elimination) && level.matchState == MatchState::In_Progress && Game::IsNot(GameType::Horde))
-        if (level.roundState == RoundState::In_Progress || level.roundState == RoundState::Ended)
-            cl->eliminated = true;
-        else cl->eliminated = false;
-    bool eliminated = ent->client->eliminated;
-    int lives = 0;
-    if (G_LimitedLivesActive()) {
-        if (cl->pers.limitedLivesPersist) {
-            lives = cl->pers.limitedLivesStash;
-        } else {
-            lives = G_LimitedLivesMax();
-        }
-    }
+	if (Game::Has(GameFlags::Rounds | GameFlags::Elimination) && level.matchState == MatchState::In_Progress && Game::IsNot(GameType::Horde))
+		if (level.roundState == RoundState::In_Progress || level.roundState == RoundState::Ended)
+			cl->eliminated = true;
+		else cl->eliminated = false;
+	bool eliminated = ent->client->eliminated;
+	int lives = 0;
+	if (G_LimitedLivesActive()) {
+		if (cl->pers.limitedLivesPersist) {
+			lives = cl->pers.limitedLivesStash;
+		}
+		else {
+			lives = G_LimitedLivesMax();
+		}
+	}
 
-    // clear velocity now, since landmark may change it
-    ent->velocity = {};
+	// clear velocity now, since landmark may change it
+	ent->velocity = {};
 
-    if (cl->landmark_name != nullptr)
-        ent->velocity = cl->oldVelocity;
+	if (cl->landmark_name != nullptr)
+		ent->velocity = cl->oldVelocity;
 
-    // find a spawn point
-    // do it before setting health back up, so farthest
-    // ranging doesn't count this client
-    bool valid_spawn = false;
-    bool force_spawn = cl->awaitingRespawn && level.time > cl->respawn_timeout;
-    bool is_landmark = false;
+	// find a spawn point
+	// do it before setting health back up, so farthest
+	// ranging doesn't count this client
+	bool valid_spawn = false;
+	bool force_spawn = cl->awaitingRespawn && level.time > cl->respawn_timeout;
+	bool is_landmark = false;
 
-    InitPlayerTeam(ent);
-    cl->ps.teamID = static_cast<int>(cl->sess.team);
+	InitPlayerTeam(ent);
+	cl->ps.teamID = static_cast<int>(cl->sess.team);
 
-    if (!ClientIsPlaying(cl) || eliminated)
-        ent->flags |= FL_NOTARGET;
-    else
-        ent->flags &= ~FL_NOTARGET;
+	if (!ClientIsPlaying(cl) || eliminated)
+		ent->flags |= FL_NOTARGET;
+	else
+		ent->flags &= ~FL_NOTARGET;
 
-    if (cl->coopRespawn.useSquad) {
-        spawnOrigin = cl->coopRespawn.squadOrigin;
-        spawnAngles = cl->coopRespawn.squadAngles;
-        valid_spawn = true;
-    }
-    else
-        valid_spawn = SelectSpawnPoint(ent, spawnOrigin, spawnAngles, force_spawn, is_landmark);
+	if (cl->coopRespawn.useSquad) {
+		spawnOrigin = cl->coopRespawn.squadOrigin;
+		spawnAngles = cl->coopRespawn.squadAngles;
+		valid_spawn = true;
+	}
+	else
+		valid_spawn = SelectSpawnPoint(ent, spawnOrigin, spawnAngles, force_spawn, is_landmark);
 
-    // [Paril-KEX] if we didn't get a valid spawn, hold us in
-    // limbo for a while until we do get one
-    if (!valid_spawn) {
-        // only do this once per spawn
-        if (!cl->awaitingRespawn) {
-            char userInfo[MAX_INFO_STRING];
-            memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
-            ClientUserinfoChanged(ent, userInfo);
+	// [Paril-KEX] if we didn't get a valid spawn, hold us in
+	// limbo for a while until we do get one
+	if (!valid_spawn) {
+		// only do this once per spawn
+		if (!cl->awaitingRespawn) {
+			char userInfo[MAX_INFO_STRING];
+			memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+			ClientUserinfoChanged(ent, userInfo);
 
-            cl->respawn_timeout = level.time + 3_sec;
-        }
+			cl->respawn_timeout = level.time + 3_sec;
+		}
 
-        // find a spot to place us
-        //SetIntermissionPoint();
-        FindIntermissionPoint();
+		// find a spot to place us
+		//SetIntermissionPoint();
+		FindIntermissionPoint();
 
-        ent->s.origin = level.intermission.origin;
-        ent->client->ps.pmove.origin = level.intermission.origin;
-        ent->client->ps.viewAngles = level.intermission.angles;
+		ent->s.origin = level.intermission.origin;
+		ent->client->ps.pmove.origin = level.intermission.origin;
+		ent->client->ps.viewAngles = level.intermission.angles;
 
-        cl->awaitingRespawn = true;
-        cl->ps.pmove.pmType = PM_FREEZE;
-        cl->ps.rdFlags = RDF_NONE;
-        ent->deadFlag = false;
+		cl->awaitingRespawn = true;
+		cl->ps.pmove.pmType = PM_FREEZE;
+		cl->ps.rdFlags = RDF_NONE;
+		ent->deadFlag = false;
 
-        MoveClientToFreeCam(ent);
-        gi.linkEntity(ent);
+		MoveClientToFreeCam(ent);
+		gi.linkEntity(ent);
 
-        return;
-    }
+		return;
+	}
 
-    cl->resp.ctf_state++;
+	cl->resp.ctf_state++;
 
-    bool was_waiting_for_respawn = cl->awaitingRespawn;
+	bool was_waiting_for_respawn = cl->awaitingRespawn;
 
-    if (cl->awaitingRespawn)
-        ent->svFlags &= ~SVF_NOCLIENT;
+	if (cl->awaitingRespawn)
+		ent->svFlags &= ~SVF_NOCLIENT;
 
-    cl->awaitingRespawn = false;
-    cl->respawn_timeout = 0_ms;
+	cl->awaitingRespawn = false;
+	cl->respawn_timeout = 0_ms;
 
-    // deathmatch wipes most client data every spawn
-    if (deathmatch->integer) {
-        cl->pers.health = 0;
-        savedResp = cl->resp;
-        savedSess = cl->sess;
-    }
-    else {
-        // [Kex] Maintain user info in singleplayer to keep the player skin. 
-        char userInfo[MAX_INFO_STRING];
-        memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+	// deathmatch wipes most client data every spawn
+	if (deathmatch->integer) {
+		cl->pers.health = 0;
+		savedResp = cl->resp;
+		savedSess = cl->sess;
+	}
+	else {
+		// [Kex] Maintain user info in singleplayer to keep the player skin. 
+		char userInfo[MAX_INFO_STRING];
+		memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
 
-        if (coop->integer) {
-            savedResp = cl->resp;
-            savedSess = cl->sess;
+		if (coop->integer) {
+			savedResp = cl->resp;
+			savedSess = cl->sess;
 
-            if (!P_UseCoopInstancedItems()) {
-                savedResp.coopRespawn.game_help1changed = cl->pers.game_help1changed;
-                savedResp.coopRespawn.game_help2changed = cl->pers.game_help2changed;
-                savedResp.coopRespawn.helpchanged = cl->pers.helpchanged;
-                cl->pers = savedResp.coopRespawn;
-            }
-            else {
-                // fix weapon
-                if (!cl->pers.weapon)
-                    cl->pers.weapon = cl->pers.lastWeapon;
-            }
-        }
+			if (!P_UseCoopInstancedItems()) {
+				savedResp.coopRespawn.game_help1changed = cl->pers.game_help1changed;
+				savedResp.coopRespawn.game_help2changed = cl->pers.game_help2changed;
+				savedResp.coopRespawn.helpchanged = cl->pers.helpchanged;
+				cl->pers = savedResp.coopRespawn;
+			}
+			else {
+				// fix weapon
+				if (!cl->pers.weapon)
+					cl->pers.weapon = cl->pers.lastWeapon;
+			}
+		}
 
-        ClientUserinfoChanged(ent, userInfo);
+		ClientUserinfoChanged(ent, userInfo);
 
-        if (coop->integer) {
-            if (savedResp.score > cl->pers.score)
-                cl->pers.score = savedResp.score;
-        }
-        else {
-            savedResp = client_respawn_t{};
-            savedSess = client_session_t{};
-            cl->sess.team = Team::Free;
-            cl->ps.teamID = static_cast<int>(cl->sess.team);
-        }
-    }
+		if (coop->integer) {
+			if (savedResp.score > cl->pers.score)
+				cl->pers.score = savedResp.score;
+		}
+		else {
+			savedResp = client_respawn_t{};
+			savedSess = client_session_t{};
+			cl->sess.team = Team::Free;
+			cl->ps.teamID = static_cast<int>(cl->sess.team);
+		}
+	}
 
-    // clear everything but the persistant data
-    savedPers = cl->pers;
-    *cl = gclient_t{};
-    cl->pers = savedPers;
-    cl->resp = savedResp;
-    cl->sess = savedSess;
+	// clear everything but the persistant data
+	savedPers = cl->pers;
+	*cl = gclient_t{};
+	cl->pers = savedPers;
+	cl->resp = savedResp;
+	cl->sess = savedSess;
 
-    // on a new, fresh spawn (always in DM, clear inventory
-    // or new spawns in SP/coop)
-    if (cl->pers.health <= 0)
-        InitClientPersistant(ent, cl);
+	// on a new, fresh spawn (always in DM, clear inventory
+	// or new spawns in SP/coop)
+	if (cl->pers.health <= 0)
+		InitClientPersistant(ent, cl);
 
-    // fix level switch issue
-    ent->client->pers.connected = true;
+	// fix level switch issue
+	ent->client->pers.connected = true;
 
-    // slow time will be unset here
-    globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
+	// slow time will be unset here
+	globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
 
-    // copy some data from the client to the entity
-    FetchClientEntData(ent);
+	// copy some data from the client to the entity
+	FetchClientEntData(ent);
 
-    // clear entity values
-    ent->groundEntity = nullptr;
-    ent->client = &game.clients[index];
-    ent->takeDamage = true;
-    ent->moveType = MoveType::Walk;
-    ent->viewHeight = DEFAULT_VIEWHEIGHT;
-    ent->inUse = true;
-    ent->className = "player";
-    ent->mass = 200;
-    ent->solid = SOLID_BBOX;
-    ent->deadFlag = false;
-    ent->airFinished = level.time + 12_sec;
-    ent->clipMask = MASK_PLAYERSOLID;
-    ent->model = "players/male/tris.md2";
-    ent->die = player_die;
-    ent->waterLevel = WATER_NONE;
-    ent->waterType = CONTENTS_NONE;
-    ent->flags &= ~(FL_NO_KNOCKBACK | FL_ALIVE_KNOCKBACK_ONLY | FL_NO_DAMAGE_EFFECTS | FL_SAM_RAIMI);
-    ent->svFlags &= ~SVF_DEADMONSTER;
-    ent->svFlags |= SVF_PLAYER;
-    ent->client->pers.last_spawn_time = level.time;
-    ent->client->timeResidual = level.time + 1_sec;
+	// clear entity values
+	ent->groundEntity = nullptr;
+	ent->client = &game.clients[index];
+	ent->takeDamage = true;
+	ent->moveType = MoveType::Walk;
+	ent->viewHeight = DEFAULT_VIEWHEIGHT;
+	ent->inUse = true;
+	ent->className = "player";
+	ent->mass = 200;
+	ent->solid = SOLID_BBOX;
+	ent->deadFlag = false;
+	ent->airFinished = level.time + 12_sec;
+	ent->clipMask = MASK_PLAYERSOLID;
+	ent->model = "players/male/tris.md2";
+	ent->die = player_die;
+	ent->waterLevel = WATER_NONE;
+	ent->waterType = CONTENTS_NONE;
+	ent->flags &= ~(FL_NO_KNOCKBACK | FL_ALIVE_KNOCKBACK_ONLY | FL_NO_DAMAGE_EFFECTS | FL_SAM_RAIMI);
+	ent->svFlags &= ~SVF_DEADMONSTER;
+	ent->svFlags |= SVF_PLAYER;
+	ent->client->pers.last_spawn_time = level.time;
+	ent->client->timeResidual = level.time + 1_sec;
 
-    ent->mins = PLAYER_MINS;
-    ent->maxs = PLAYER_MAXS;
+	ent->mins = PLAYER_MINS;
+	ent->maxs = PLAYER_MAXS;
 
-    ent->client->pers.lives = lives;
-    if (G_LimitedLivesActive()) {
-        cl->pers.limitedLivesStash = lives;
-        cl->pers.limitedLivesPersist = true;
-    } else {
-        cl->pers.limitedLivesStash = 0;
-        cl->pers.limitedLivesPersist = false;
-    }
-    if (G_LimitedLivesInCoop())
-        ent->client->resp.coopRespawn.lives = lives;
+	ent->client->pers.lives = lives;
+	if (G_LimitedLivesActive()) {
+		cl->pers.limitedLivesStash = lives;
+		cl->pers.limitedLivesPersist = true;
+	}
+	else {
+		cl->pers.limitedLivesStash = 0;
+		cl->pers.limitedLivesPersist = false;
+	}
+	if (G_LimitedLivesInCoop())
+		ent->client->resp.coopRespawn.lives = lives;
 
-    // clear playerstate values
-    memset(&ent->client->ps, 0, sizeof(cl->ps));
+	// clear playerstate values
+	memset(&ent->client->ps, 0, sizeof(cl->ps));
 
-    char val[MAX_INFO_VALUE];
-    gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));
-    ent->client->ps.fov = std::clamp((float)strtoul(val, nullptr, 10), 1.f, 160.f);
+	char val[MAX_INFO_VALUE];
+	gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));
+	ent->client->ps.fov = std::clamp((float)strtoul(val, nullptr, 10), 1.f, 160.f);
 
-    ent->client->ps.pmove.viewHeight = ent->viewHeight;
+	ent->client->ps.pmove.viewHeight = ent->viewHeight;
 
-    if (!G_ShouldPlayersCollide(false))
-        ent->clipMask &= ~CONTENTS_PLAYER;
+	if (!G_ShouldPlayersCollide(false))
+		ent->clipMask &= ~CONTENTS_PLAYER;
 
-    if (cl->pers.weapon)
-        cl->ps.gunIndex = gi.modelIndex(cl->pers.weapon->viewModel);
-    else
-        cl->ps.gunIndex = 0;
-    cl->ps.gunSkin = 0;
+	if (cl->pers.weapon)
+		cl->ps.gunIndex = gi.modelIndex(cl->pers.weapon->viewModel);
+	else
+		cl->ps.gunIndex = 0;
+	cl->ps.gunSkin = 0;
 
-    // clear entity state values
-    ent->s.effects = EF_NONE;
-    ent->s.modelIndex = MODELINDEX_PLAYER;	// will use the skin specified model
-    ent->s.modelIndex2 = MODELINDEX_PLAYER; // custom gun model
-    // sknum is player num and weapon number
-    // weapon number will be added in changeweapon
-    P_AssignClientSkinNum(ent);
+	// clear entity state values
+	ent->s.effects = EF_NONE;
+	ent->s.modelIndex = MODELINDEX_PLAYER;	// will use the skin specified model
+	ent->s.modelIndex2 = MODELINDEX_PLAYER; // custom gun model
+	// sknum is player num and weapon number
+	// weapon number will be added in changeweapon
+	P_AssignClientSkinNum(ent);
 
-    CalculateRanks();
+	CalculateRanks();
 
-    ent->s.frame = 0;
+	ent->s.frame = 0;
 
-    PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
+	PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
 
-    // [Paril-KEX] set up world fog & send it instantly
-    ent->client->pers.wanted_fog = {
-        world->fog.density,
-        world->fog.color[0],
-        world->fog.color[1],
-        world->fog.color[2],
-        world->fog.sky_factor
-    };
-    ent->client->pers.wanted_heightfog = {
-        { world->heightfog.start_color[0], world->heightfog.start_color[1], world->heightfog.start_color[2], world->heightfog.start_dist },
-        { world->heightfog.end_color[0], world->heightfog.end_color[1], world->heightfog.end_color[2], world->heightfog.end_dist },
-        world->heightfog.falloff,
-        world->heightfog.density
-    };
-    P_ForceFogTransition(ent, true);
+	// [Paril-KEX] set up world fog & send it instantly
+	ent->client->pers.wanted_fog = {
+		world->fog.density,
+		world->fog.color[0],
+		world->fog.color[1],
+		world->fog.color[2],
+		world->fog.sky_factor
+	};
+	ent->client->pers.wanted_heightfog = {
+		{ world->heightfog.start_color[0], world->heightfog.start_color[1], world->heightfog.start_color[2], world->heightfog.start_dist },
+		{ world->heightfog.end_color[0], world->heightfog.end_color[1], world->heightfog.end_color[2], world->heightfog.end_dist },
+		world->heightfog.falloff,
+		world->heightfog.density
+	};
+	P_ForceFogTransition(ent, true);
 
-    // spawn as spectator
-    if (!ClientIsPlaying(cl) || eliminated) {
-        FreeFollower(ent);
+	// spawn as spectator
+	if (!ClientIsPlaying(cl) || eliminated) {
+		FreeFollower(ent);
 
-        MoveClientToFreeCam(ent);
-        ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
-        if (!ent->client->initialMenu.shown)
-            ent->client->initialMenu.delay = level.time + 10_hz;
-        ent->client->eliminated = eliminated;
-        gi.linkEntity(ent);
-        return;
-    }
-    ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
+		MoveClientToFreeCam(ent);
+		ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 0;
+		if (!ent->client->initialMenu.shown)
+			ent->client->initialMenu.delay = level.time + 10_hz;
+		ent->client->eliminated = eliminated;
+		gi.linkEntity(ent);
+		return;
+	}
+	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
 
-    // [Paril-KEX] a bit of a hack, but landmark spawns can sometimes cause
-    // intersecting spawns, so we'll do a sanity check here...
-    if (ent->client->coopRespawn.spawnBegin) {
-        if (coop->integer) {
-            gentity_t* collision = G_UnsafeSpawnPosition(ent->s.origin, true);
+	// [Paril-KEX] a bit of a hack, but landmark spawns can sometimes cause
+	// intersecting spawns, so we'll do a sanity check here...
+	if (ent->client->coopRespawn.spawnBegin) {
+		if (coop->integer) {
+			gentity_t* collision = G_UnsafeSpawnPosition(ent->s.origin, true);
 
-            if (collision) {
-                gi.linkEntity(ent);
+			if (collision) {
+				gi.linkEntity(ent);
 
-                if (collision->client) {
-                    // we spawned in somebody else, so we're going to change their spawn position
-                    bool lm = false;
-                    SelectSpawnPoint(collision, spawnOrigin, spawnAngles, true, lm);
-                    PutClientOnSpawnPoint(collision, spawnOrigin, spawnAngles);
-                }
-                // else, no choice but to accept where ever we spawned :(
-            }
-        }
+				if (collision->client) {
+					// we spawned in somebody else, so we're going to change their spawn position
+					bool lm = false;
+					SelectSpawnPoint(collision, spawnOrigin, spawnAngles, true, lm);
+					PutClientOnSpawnPoint(collision, spawnOrigin, spawnAngles);
+				}
+				// else, no choice but to accept where ever we spawned :(
+			}
+		}
 
-        // give us one (1) free fall ticket even if
-        // we didn't spawn from landmark
-        ent->client->landmark_free_fall = true;
-    }
+		// give us one (1) free fall ticket even if
+		// we didn't spawn from landmark
+		ent->client->landmark_free_fall = true;
+	}
 
-    gi.linkEntity(ent);
+	gi.linkEntity(ent);
 
-    if (!KillBox(ent, true, ModID::Telefrag_Spawn)) { // could't spawn in?
-    }
+	if (!KillBox(ent, true, ModID::Telefrag_Spawn)) { // could't spawn in?
+	}
 
-    // my tribute to cash's level-specific hacks. I hope I live
-    // up to his trailblazing cheese.
-    if (Q_strcasecmp(level.mapName.data(), "rboss") == 0) {
-        // if you get on to rboss in single player or coop, ensure
-        // the player has the nuke key. (not in DM)
-        if (!deathmatch->integer)
-            cl->pers.inventory[IT_KEY_NUKE] = 1;
-    }
+	// my tribute to cash's level-specific hacks. I hope I live
+	// up to his trailblazing cheese.
+	if (Q_strcasecmp(level.mapName.data(), "rboss") == 0) {
+		// if you get on to rboss in single player or coop, ensure
+		// the player has the nuke key. (not in DM)
+		if (!deathmatch->integer)
+			cl->pers.inventory[IT_KEY_NUKE] = 1;
+	}
 
-    // force the current weapon up
-    if (Game::Has(GameFlags::Arena) && cl->pers.inventory[IT_WEAPON_RLAUNCHER])
-        cl->weapon.pending = &itemList[IT_WEAPON_RLAUNCHER];
-    else
-        cl->weapon.pending = cl->pers.weapon;
-    Change_Weapon(ent);
+	// force the current weapon up
+	if (Game::Has(GameFlags::Arena) && cl->pers.inventory[IT_WEAPON_RLAUNCHER])
+		cl->weapon.pending = &itemList[IT_WEAPON_RLAUNCHER];
+	else
+		cl->weapon.pending = cl->pers.weapon;
+	Change_Weapon(ent);
 
-    if (was_waiting_for_respawn)
-        G_PostRespawn(ent);
+	if (was_waiting_for_respawn)
+		G_PostRespawn(ent);
 }

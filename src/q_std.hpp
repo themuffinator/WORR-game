@@ -78,12 +78,12 @@ template<typename... Args>
 
 // fmt::join replacement
 template<typename T>
-std::string join_strings(const T &cont, const char *separator) {
+std::string join_strings(const T& cont, const char* separator) {
 	if (cont.empty())
 		return "";
 
 	return std::accumulate(++cont.begin(), cont.end(), *cont.begin(),
-		[separator](auto &&a, auto &&b) -> auto & {
+		[separator](auto&& a, auto&& b) -> auto& {
 			a += separator;
 			a += b;
 			return a;
@@ -135,7 +135,7 @@ G_AddBlend
 Adds a new blend color to the existing blend.
 =============
 */
-inline void G_AddBlend(float r, float g, float b, float a, std::array<float, 4> &v_blend) {
+inline void G_AddBlend(float r, float g, float b, float a, std::array<float, 4>& v_blend) {
 	if (a <= 0.0f || a > 1.0f)
 		return;
 
@@ -187,21 +187,21 @@ LerpAngle
 
 //=============================================
 
-char *COM_ParseEx(const char **data_p, const char *seps, char *buffer = nullptr, size_t buffer_size = 0);
+char* COM_ParseEx(const char** data_p, const char* seps, char* buffer = nullptr, size_t buffer_size = 0);
 
 // data is an in/out parm, returns a parsed out token
-inline char *COM_Parse(const char **data_p, char *buffer = nullptr, size_t buffer_size = 0) {
+inline char* COM_Parse(const char** data_p, char* buffer = nullptr, size_t buffer_size = 0) {
 	return COM_ParseEx(data_p, "\r\n\t ", buffer, buffer_size);
 }
 
 //=============================================
 
 // portable case insensitive compare
-[[nodiscard]] int Q_strcasecmp(const char *s1, const char *s2);
-[[nodiscard]] int Q_strncasecmp(const char *s1, const char *s2, size_t n);
+[[nodiscard]] int Q_strcasecmp(const char* s1, const char* s2);
+[[nodiscard]] int Q_strncasecmp(const char* s1, const char* s2, size_t n);
 
 // BSD string utils - haleyjd
-size_t Q_strlcpy(char *dst, const char *src, size_t siz);
-size_t Q_strlcat(char *dst, const char *src, size_t siz);
+size_t Q_strlcpy(char* dst, const char* src, size_t siz);
+size_t Q_strlcat(char* dst, const char* src, size_t siz);
 
 // EOF

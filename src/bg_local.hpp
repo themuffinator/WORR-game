@@ -34,10 +34,10 @@ struct pm_config_t {
 
 extern pm_config_t pm_config;
 
-void Pmove(PMove *pmove);
-using pm_trace_func_t = trace_t(const Vector3 &start, const Vector3 &mins, const Vector3 &maxs, const Vector3 &end);
+void Pmove(PMove* pmove);
+using pm_trace_func_t = trace_t(const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end);
 using pm_trace_t = std::function<pm_trace_func_t>;
-void PM_StepSlideMove_Generic(Vector3 &origin, Vector3 &velocity, float frametime, const Vector3 &mins, const Vector3 &maxs, touch_list_t &touch, bool has_time, pm_trace_t trace);
+void PM_StepSlideMove_Generic(Vector3& origin, Vector3& velocity, float frametime, const Vector3& mins, const Vector3& maxs, touch_list_t& touch, bool has_time, pm_trace_t trace);
 
 enum class StuckResult {
 	GoodPosition,
@@ -45,9 +45,9 @@ enum class StuckResult {
 	NoGoodPosition
 };
 
-using stuck_object_trace_fn_t = trace_t(const Vector3 &, const Vector3 &, const Vector3 &, const Vector3 &);
+using stuck_object_trace_fn_t = trace_t(const Vector3&, const Vector3&, const Vector3&, const Vector3&);
 
-StuckResult G_FixStuckObject_Generic(Vector3 &origin, const Vector3 &own_mins, const Vector3 &own_maxs, std::function<stuck_object_trace_fn_t> trace);
+StuckResult G_FixStuckObject_Generic(Vector3& origin, const Vector3& own_mins, const Vector3& own_maxs, std::function<stuck_object_trace_fn_t> trace);
 
 // state for coop respawning; used to select which
 // message to print for the player this is set on.
@@ -152,22 +152,22 @@ constexpr size_t num_of_type_for_bits(size_t num_bits) {
 }
 
 template<size_t bits_per_value>
-constexpr void set_compressed_integer(uint16_t *start, uint8_t id, uint16_t count) {
+constexpr void set_compressed_integer(uint16_t* start, uint8_t id, uint16_t count) {
 	uint16_t bit_offset = bits_per_value * id;
 	uint16_t byte = bit_offset / 8;
 	uint16_t bit_shift = bit_offset % 8;
 	uint16_t mask = (bit_v<bits_per_value> -1) << bit_shift;
-	uint16_t *base = (uint16_t *)((uint8_t *)start + byte);
+	uint16_t* base = (uint16_t*)((uint8_t*)start + byte);
 	*base = (*base & ~mask) | ((count << bit_shift) & mask);
 }
 
 template<size_t bits_per_value>
-constexpr uint16_t get_compressed_integer(uint16_t *start, uint8_t id) {
+constexpr uint16_t get_compressed_integer(uint16_t* start, uint8_t id) {
 	uint16_t bit_offset = bits_per_value * id;
 	uint16_t byte = bit_offset / 8;
 	uint16_t bit_shift = bit_offset % 8;
 	uint16_t mask = (bit_v<bits_per_value> -1) << bit_shift;
-	uint16_t *base = (uint16_t *)((uint8_t *)start + byte);
+	uint16_t* base = (uint16_t*)((uint8_t*)start + byte);
 	return (*base & mask) >> bit_shift;
 }
 
@@ -176,11 +176,11 @@ constexpr size_t NUM_AMMO_STATS = num_of_type_for_bits<uint16_t>(NUM_BITS_FOR_AM
 // if this value is set on an STAT_AMMO_INFO_xxx, don't render ammo
 constexpr uint16_t AMMO_VALUE_INFINITE = bit_v<NUM_BITS_FOR_AMMO> -1;
 
-constexpr void SetAmmoStat(uint16_t *start, uint8_t ammoID, uint16_t count) {
+constexpr void SetAmmoStat(uint16_t* start, uint8_t ammoID, uint16_t count) {
 	set_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID, count);
 }
 
-constexpr uint16_t GetAmmoStat(uint16_t *start, uint8_t ammoID) {
+constexpr uint16_t GetAmmoStat(uint16_t* start, uint8_t ammoID) {
 	return get_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID);
 }
 
@@ -190,11 +190,11 @@ constexpr uint16_t GetAmmoStat(uint16_t *start, uint8_t ammoID) {
 constexpr size_t NUM_BITS_PER_POWERUP = 2;
 constexpr size_t NUM_POWERUP_STATS = num_of_type_for_bits<uint16_t>(NUM_BITS_PER_POWERUP * POWERUP_MAX);
 
-constexpr void SetPowerupStat(uint16_t *start, uint8_t powerup_id, uint16_t count) {
+constexpr void SetPowerupStat(uint16_t* start, uint8_t powerup_id, uint16_t count) {
 	set_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id, count);
 }
 
-constexpr uint16_t GetPowerupStat(uint16_t *start, uint8_t powerup_id) {
+constexpr uint16_t GetPowerupStat(uint16_t* start, uint8_t powerup_id) {
 	return get_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id);
 }
 

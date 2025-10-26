@@ -36,97 +36,98 @@ template<> struct is_bitmask_enum<CommandFlag> : std::true_type {};
 
 class CommandArgs {
 private:
-        int _argc;
-        std::vector<std::string> _manualArgs;
-        bool _useManualArgs = false;
+	int _argc;
+	std::vector<std::string> _manualArgs;
+	bool _useManualArgs = false;
 
-        template<typename It>
-        void setManualArgs(It begin, It end) {
-                _manualArgs.clear();
-                for (auto it = begin; it != end; ++it) {
-                        _manualArgs.emplace_back(*it);
-                }
-                _argc = static_cast<int>(_manualArgs.size());
-                _useManualArgs = true;
-        }
+	template<typename It>
+	void setManualArgs(It begin, It end) {
+		_manualArgs.clear();
+		for (auto it = begin; it != end; ++it) {
+			_manualArgs.emplace_back(*it);
+		}
+		_argc = static_cast<int>(_manualArgs.size());
+		_useManualArgs = true;
+	}
 
 public:
-        CommandArgs() : _argc(gi.argc()) {}
+	CommandArgs() : _argc(gi.argc()) {}
 
-        CommandArgs(std::initializer_list<std::string_view> args) {
-                setManualArgs(args.begin(), args.end());
-        }
+	CommandArgs(std::initializer_list<std::string_view> args) {
+		setManualArgs(args.begin(), args.end());
+	}
 
-        explicit CommandArgs(std::vector<std::string> args)
-                : _argc(static_cast<int>(args.size())),
-                _manualArgs(std::move(args)),
-                _useManualArgs(true) {}
+	explicit CommandArgs(std::vector<std::string> args)
+		: _argc(static_cast<int>(args.size())),
+		_manualArgs(std::move(args)),
+		_useManualArgs(true) {
+	}
 
-        int count() const { return _argc; }
+	int count() const { return _argc; }
 
-        std::string_view getString(int index) const {
-                if (index < 0 || index >= _argc) return "";
-                if (_useManualArgs) {
-                        return _manualArgs[index];
-                }
-                return gi.argv(index);
-        }
+	std::string_view getString(int index) const {
+		if (index < 0 || index >= _argc) return "";
+		if (_useManualArgs) {
+			return _manualArgs[index];
+		}
+		return gi.argv(index);
+	}
 
-        std::string joinFrom(int index) const {
-                if (index < 0 || index >= _argc) {
-                        return {};
-                }
+	std::string joinFrom(int index) const {
+		if (index < 0 || index >= _argc) {
+			return {};
+		}
 
-                std::string result;
-                auto append = [&result](std::string_view part) {
-                        if (part.empty()) {
-                                return;
-                        }
-                        if (!result.empty()) {
-                                result.push_back(' ');
-                        }
-                        result.append(part.data(), part.size());
-                };
+		std::string result;
+		auto append = [&result](std::string_view part) {
+			if (part.empty()) {
+				return;
+			}
+			if (!result.empty()) {
+				result.push_back(' ');
+			}
+			result.append(part.data(), part.size());
+			};
 
-                if (_useManualArgs) {
-                        for (int i = index; i < _argc; ++i) {
-                                append(_manualArgs[i]);
-                        }
-                }
-                else {
-                        for (int i = index; i < _argc; ++i) {
-                                append(gi.argv(i));
-                        }
-                }
+		if (_useManualArgs) {
+			for (int i = index; i < _argc; ++i) {
+				append(_manualArgs[i]);
+			}
+		}
+		else {
+			for (int i = index; i < _argc; ++i) {
+				append(gi.argv(i));
+			}
+		}
 
-                return result;
-        }
+		return result;
+	}
 
-        std::optional<int> getInt(int index) const {
-                return ParseInt(getString(index));
-        }
+	std::optional<int> getInt(int index) const {
+		return ParseInt(getString(index));
+	}
 
-        static std::optional<int> ParseInt(std::string_view str) {
-                int value;
-                auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
-                if (ec == std::errc() && ptr == str.data() + str.size()) {
-                        return value;
-                }
-                return std::nullopt;
-        }
+	static std::optional<int> ParseInt(std::string_view str) {
+		int value;
+		auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+		if (ec == std::errc() && ptr == str.data() + str.size()) {
+			return value;
+		}
+		return std::nullopt;
+	}
 
-        std::optional<float> getFloat(int index) const {
-                return ParseFloat(getString(index));
-        }
+	std::optional<float> getFloat(int index) const {
+		return ParseFloat(getString(index));
+	}
 
-        static std::optional<float> ParseFloat(std::string_view str) {
-                float value;
-                auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
-                if (ec == std::errc() && ptr == str.data() + str.size()) {
-                        return value;
-                }
-                return std::nullopt;
-        }
+	static std::optional<float> ParseFloat(std::string_view str) {
+		float value;
+		auto [ptr, ec] = std::from_chars(str.data(), str.data() + str.size(), value);
+		if (ec == std::errc() && ptr == str.data() + str.size()) {
+			return value;
+		}
+		return std::nullopt;
+	}
 };
 
 struct Command {

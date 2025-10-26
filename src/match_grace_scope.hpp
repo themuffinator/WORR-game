@@ -7,25 +7,26 @@
 template<typename TimeT>
 class EndmatchGraceScope {
 public:
-        EndmatchGraceScope(TimeT &timer, TimeT zeroValue)
-                : timer(timer)
-                , zeroValue(zeroValue) {}
+	EndmatchGraceScope(TimeT& timer, TimeT zeroValue)
+		: timer(timer)
+		, zeroValue(zeroValue) {
+	}
 
-        void MarkConditionActive() {
-                active = true;
-        }
+	void MarkConditionActive() {
+		active = true;
+	}
 
-        [[nodiscard]] bool ConditionWasActive() const {
-                return active;
-        }
+	[[nodiscard]] bool ConditionWasActive() const {
+		return active;
+	}
 
-        ~EndmatchGraceScope() {
-                if (!active && timer)
-                        timer = zeroValue;
-        }
+	~EndmatchGraceScope() {
+		if (!active && timer)
+			timer = zeroValue;
+	}
 
 private:
-        TimeT &timer;
-        TimeT zeroValue;
-        bool active = false;
+	TimeT& timer;
+	TimeT zeroValue;
+	bool active = false;
 };

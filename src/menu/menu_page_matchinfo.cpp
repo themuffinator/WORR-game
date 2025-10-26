@@ -13,9 +13,9 @@
 
 #include "../g_local.hpp"
 
-extern void OpenJoinMenu(gentity_t *ent);
+extern void OpenJoinMenu(gentity_t* ent);
 
-void OpenMatchInfoMenu(gentity_t *ent) {
+void OpenMatchInfoMenu(gentity_t* ent) {
 	MenuBuilder builder;
 	builder.add("Match Info", MenuAlign::Center)
 		.spacer()
@@ -36,7 +36,7 @@ void OpenMatchInfoMenu(gentity_t *ent) {
 	if (timeLimit->value > 0)
 		builder.add(fmt::format("time limit: {}", TimeString(timeLimit->value * 60000, false, false)), MenuAlign::Left);
 
-	builder.spacer().add("Return", MenuAlign::Left, [](gentity_t *ent, Menu &) {
+	builder.spacer().add("Return", MenuAlign::Left, [](gentity_t* ent, Menu&) {
 		OpenJoinMenu(ent);
 		});
 

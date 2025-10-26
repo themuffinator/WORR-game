@@ -23,11 +23,11 @@
 
 g_fmt_data_t g_fmt_data;
 
-static bool COM_IsSeparator(char c, const char *seps) {
+static bool COM_IsSeparator(char c, const char* seps) {
 	if (!c)
 		return true;
 
-	for (const char *sep = seps; *sep; sep++)
+	for (const char* sep = seps; *sep; sep++)
 		if (*sep == c)
 			return true;
 
@@ -41,7 +41,7 @@ COM_ParseEx
 Parse a token out of a string
 ==============
 */
-char *COM_ParseEx(const char **data_p, const char *seps, char *buffer, size_t buffer_size) {
+char* COM_ParseEx(const char** data_p, const char* seps, char* buffer, size_t buffer_size) {
 	static char com_token[MAX_TOKEN_CHARS];
 
 	if (!buffer) {
@@ -51,7 +51,7 @@ char *COM_ParseEx(const char **data_p, const char *seps, char *buffer, size_t bu
 
 	int			c;
 	int			len;
-	const char *data;
+	const char* data;
 
 	data = *data_p;
 	len = 0;
@@ -127,7 +127,7 @@ skipwhite:
 // NB: these funcs are duplicated in the engine; this define gates us for
 // static compilation.
 #if defined(KEX_Q2GAME_DYNAMIC)
-int Q_strcasecmp(const char *s1, const char *s2) {
+int Q_strcasecmp(const char* s1, const char* s2) {
 	int c1, c2;
 
 	do {
@@ -147,7 +147,7 @@ int Q_strcasecmp(const char *s1, const char *s2) {
 	return 0; // strings are equal
 }
 
-int Q_strncasecmp(const char *s1, const char *s2, size_t n) {
+int Q_strncasecmp(const char* s1, const char* s2, size_t n) {
 	int c1, c2;
 
 	do {
@@ -209,9 +209,9 @@ int Q_strncasecmp(const char *s1, const char *s2, size_t n) {
   * will be copied.  Always NUL terminates (unless siz == 0).
   * Returns strlen(src); if retval >= siz, truncation occurred.
   */
-size_t Q_strlcpy(char *dst, const char *src, size_t siz) {
-	char *d = dst;
-	const char *s = src;
+size_t Q_strlcpy(char* dst, const char* src, size_t siz) {
+	char* d = dst;
+	const char* s = src;
 	size_t n = siz;
 
 	/* Copy as many bytes as will fit */
@@ -239,9 +239,9 @@ size_t Q_strlcpy(char *dst, const char *src, size_t siz) {
  * will be copied.  Always NUL terminates (unless siz == 0).
  * Returns strlen(src); if retval >= siz, truncation occurred.
  */
-size_t Q_strlcat(char *dst, const char *src, size_t siz) {
-	char *d = dst;
-	const char *s = src;
+size_t Q_strlcat(char* dst, const char* src, size_t siz) {
+	char* d = dst;
+	const char* s = src;
 	size_t n = siz;
 	size_t dlen;
 

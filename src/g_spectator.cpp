@@ -21,7 +21,7 @@
 
 #include "g_local.hpp"
 
-void FreeFollower(gentity_t *ent) {
+void FreeFollower(gentity_t* ent) {
 	if (!ent)
 		return;
 
@@ -43,7 +43,7 @@ void FreeFollower(gentity_t *ent) {
 	ent->client->ps.rdFlags = RDF_NONE;
 }
 
-void FreeClientFollowers(gentity_t *ent) {
+void FreeClientFollowers(gentity_t* ent) {
 	if (!ent)
 		return;
 
@@ -60,11 +60,11 @@ void FreeClientFollowers(gentity_t *ent) {
 ClientUpdateFollowers
 ========================
 */
-void ClientUpdateFollowers(gentity_t *ent) {
+void ClientUpdateFollowers(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
 
-	gentity_t *targ = ent->client->follow.target;
+	gentity_t* targ = ent->client->follow.target;
 
 	// Is our follow target invalid or gone?
 	if (!targ || !targ->inUse || !targ->client || !ClientIsPlaying(targ->client) || targ->client->eliminated) {
@@ -83,8 +83,8 @@ void ClientUpdateFollowers(gentity_t *ent) {
 		targ->svFlags |= SVF_INSTANCED;
 
 		// Sync full view state
-		auto &ps = ent->client->ps;
-		const auto &tps = targ->client->ps;
+		auto& ps = ent->client->ps;
+		const auto& tps = targ->client->ps;
 
 		ps.viewAngles = tps.viewAngles;
 		ps.viewOffset = tps.viewOffset;
@@ -118,7 +118,8 @@ void ClientUpdateFollowers(gentity_t *ent) {
 		// Optional trace (preserve in case used later)
 		trace = gi.traceLine(targ->s.origin, targ->s.origin, targ, MASK_SOLID);
 		cameraPos = trace.endPos;
-	} else {
+	}
+	else {
 		// Vanilla chasecam
 		targ->svFlags &= ~SVF_INSTANCED;
 
@@ -181,7 +182,8 @@ void ClientUpdateFollowers(gentity_t *ent) {
 		ent->client->ps.viewAngles[ROLL] = 40;
 		ent->client->ps.viewAngles[PITCH] = -15;
 		ent->client->ps.viewAngles[YAW] = targ->client->killerYaw;
-	} else {
+	}
+	else {
 		ent->client->ps.viewAngles = targ->client->vAngle;
 		ent->client->vAngle = targ->client->vAngle;
 		AngleVectors(ent->client->vAngle, ent->client->vForward, nullptr, nullptr);
@@ -201,7 +203,7 @@ SanitizeString
 Remove case and control characters
 ==================
 */
-static void SanitizeString(const char *in, char *out) {
+static void SanitizeString(const char* in, char* out) {
 	while (*in) {
 		if (*in < ' ') {
 			in++;
@@ -223,12 +225,12 @@ Returns a player number for either a number or name string
 Returns -1 if invalid
 ==================
 */
-static int ClientNumberFromString(gentity_t *to, char *s) {
-	gclient_t	*cl;
+static int ClientNumberFromString(gentity_t* to, char* s) {
+	gclient_t* cl;
 	uint32_t	idnum;
 	char		s2[MAX_STRING_CHARS];
 	char		n2[MAX_STRING_CHARS];
-	
+
 	// numeric values are just slot numbers
 	if (s[0] >= '0' && s[0] <= '9') {
 		idnum = atoi(s);
@@ -260,9 +262,9 @@ static int ClientNumberFromString(gentity_t *to, char *s) {
 	return -1;
 }
 
-void FollowNext(gentity_t *ent) {
+void FollowNext(gentity_t* ent) {
 	ptrdiff_t i;
-	gentity_t *e;
+	gentity_t* e;
 
 	if (!ent->client->follow.target)
 		return;
@@ -285,9 +287,9 @@ void FollowNext(gentity_t *ent) {
 	ent->client->follow.update = true;
 }
 
-void FollowPrev(gentity_t *ent) {
+void FollowPrev(gentity_t* ent) {
 	int		 i;
-	gentity_t *e;
+	gentity_t* e;
 
 	if (!ent->client->follow.target)
 		return;
@@ -310,7 +312,7 @@ void FollowPrev(gentity_t *ent) {
 	ent->client->follow.update = true;
 }
 
-void GetFollowTarget(gentity_t *ent) {
+void GetFollowTarget(gentity_t* ent) {
 	for (auto ec : active_clients()) {
 		if (ec->inUse && ClientIsPlaying(ec->client) && !ec->client->eliminated) {
 			if (ent->client->eliminated && ent->client->sess.team != ec->client->sess.team)

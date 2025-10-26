@@ -22,7 +22,7 @@
 TrimToWidth
 ===============
 */
-static std::string TrimToWidth(const std::string &text) {
+static std::string TrimToWidth(const std::string& text) {
 	if (text.size() > MAX_MENU_WIDTH)
 		return text.substr(0, static_cast<size_t>(MAX_MENU_WIDTH - 3)) + "...";
 	return text;
@@ -33,7 +33,7 @@ static std::string TrimToWidth(const std::string &text) {
 MenuSystem::Open
 ===============
 */
-void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
+void MenuSystem::Open(gentity_t* ent, std::unique_ptr<Menu> menu) {
 	if (!ent || !ent->client)
 		return;
 
@@ -42,35 +42,35 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
 
 	const int total = static_cast<int>(menu->entries.size());
 
-        for (int i = 0; i < total; ++i) {
-                menu->entries[i].text = TrimToWidth(menu->entries[i].text);
-                menu->entries[i].scrollable = (i > 0 && i < total - 1);
-        }
+	for (int i = 0; i < total; ++i) {
+		menu->entries[i].text = TrimToWidth(menu->entries[i].text);
+		menu->entries[i].scrollable = (i > 0 && i < total - 1);
+	}
 
-        // Select the first entry with a valid onSelect
-        menu->current = -1;
-        for (size_t i = 0; i < menu->entries.size(); ++i) {
-                if (menu->entries[i].onSelect) {
-                        menu->current = static_cast<int>(i);
-                        break;
-                }
-        }
+	// Select the first entry with a valid onSelect
+	menu->current = -1;
+	for (size_t i = 0; i < menu->entries.size(); ++i) {
+		if (menu->entries[i].onSelect) {
+			menu->current = static_cast<int>(i);
+			break;
+		}
+	}
 
-        menu->scrollOffset = 0;
-        menu->EnsureCurrentVisible();
+	menu->scrollOffset = 0;
+	menu->EnsureCurrentVisible();
 
-        auto &menuState = ent->client->menu;
-        ent->client->menu.current = std::move(menu);
+	auto& menuState = ent->client->menu;
+	ent->client->menu.current = std::move(menu);
 
-        menuState.previousStatusBar = ent->client->ps.stats[STAT_SHOW_STATUSBAR];
-        menuState.restoreStatusBar = true;
-        ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
+	menuState.previousStatusBar = ent->client->ps.stats[STAT_SHOW_STATUSBAR];
+	menuState.restoreStatusBar = true;
+	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
 
-        // These two are required to render layouts!
-        ent->client->showScores = true;   // <- must be true!
+	// These two are required to render layouts!
+	ent->client->showScores = true;   // <- must be true!
 
-        menuState.updateTime = level.time;
-        menuState.doUpdate = true;
+	menuState.updateTime = level.time;
+	menuState.doUpdate = true;
 }
 
 /*
@@ -78,24 +78,24 @@ void MenuSystem::Open(gentity_t *ent, std::unique_ptr<Menu> menu) {
 MenuSystem::Close
 ===============
 */
-void MenuSystem::Close(gentity_t *ent) {
-        if (!ent || !ent->client)
-                return;
+void MenuSystem::Close(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
 
-        auto &menuState = ent->client->menu;
+	auto& menuState = ent->client->menu;
 
-        if (menuState.current) {
-                menuState.current.reset();
-                menuState.current = nullptr;
-        }
+	if (menuState.current) {
+		menuState.current.reset();
+		menuState.current = nullptr;
+	}
 
-        if (menuState.restoreStatusBar) {
-                ent->client->ps.stats[STAT_SHOW_STATUSBAR] = menuState.previousStatusBar;
-                menuState.restoreStatusBar = false;
-                menuState.previousStatusBar = 0;
-        }
+	if (menuState.restoreStatusBar) {
+		ent->client->ps.stats[STAT_SHOW_STATUSBAR] = menuState.previousStatusBar;
+		menuState.restoreStatusBar = false;
+		menuState.previousStatusBar = 0;
+	}
 
-        //ent->client->showScores = false;
+	//ent->client->showScores = false;
 }
 
 /*
@@ -103,7 +103,7 @@ void MenuSystem::Close(gentity_t *ent) {
 MenuSystem::Update
 ===============
 */
-void MenuSystem::Update(gentity_t *ent) {
+void MenuSystem::Update(gentity_t* ent) {
 	if (!ent || !ent->client || !ent->client->menu.current) {
 		//gi.Com_Print("MenuSystem::Update skipped (nullptr)\n");
 		return;
@@ -122,7 +122,7 @@ MenuSystem::DirtyAll
 ===============
 */
 void MenuSystem::DirtyAll() {
-	for (gentity_t *player : active_clients()) {
+	for (gentity_t* player : active_clients()) {
 		if (player->client->menu.current) {
 			player->client->menu.doUpdate = true;
 			player->client->menu.updateTime = level.time;

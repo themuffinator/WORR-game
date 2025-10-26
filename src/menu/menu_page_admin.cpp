@@ -24,9 +24,9 @@ struct AdminSettings {
 	bool match_lock = false;
 };
 
-extern void OpenJoinMenu(gentity_t *ent);
+extern void OpenJoinMenu(gentity_t* ent);
 
-void OpenAdminSettingsMenu(gentity_t *ent) {
+void OpenAdminSettingsMenu(gentity_t* ent) {
 	auto settings = std::make_shared<AdminSettings>();
 	static std::vector<std::string> rulesetNames = { "Casual", "Standard", "Competitive" };
 	static int rulesetIndex = 1; // start at "Standard"
@@ -76,21 +76,21 @@ void OpenAdminSettingsMenu(gentity_t *ent) {
 	}
 
 	builder.spacer().spacer().spacer().spacer().spacer().spacer().spacer()
-		.add("Return", MenuAlign::Left, [](gentity_t *ent, Menu &) {
+		.add("Return", MenuAlign::Left, [](gentity_t* ent, Menu&) {
 		OpenJoinMenu(ent);
 			})
 		.context(settings)
-				.update([settings](gentity_t *ent, const Menu &m) {
-					auto &menu = const_cast<Menu &>(m);
-					int i = 2;
-					menu.entries[i++].text = fmt::format("time limit: {:2} mins", settings->timeLimit);
-					menu.entries[i++].text = fmt::format("weapons stay: {}", settings->weaponsstay ? "Yes" : "No");
-					menu.entries[i++].text = fmt::format("instant items: {}", settings->instantItems ? "Yes" : "No");
-					menu.entries[i++].text = fmt::format("powerup drops: {}", settings->pu_drop ? "Yes" : "No");
-					menu.entries[i++].text = fmt::format("instant weapon switch: {}", settings->instantweap ? "Yes" : "No");
-					menu.entries[i++].text = fmt::format("match lock: {}", settings->match_lock ? "Yes" : "No");
-					menu.entries[i++].text = fmt::format("ruleset: {}", rulesetNames[rulesetIndex]);
-					});
+		.update([settings](gentity_t* ent, const Menu& m) {
+		auto& menu = const_cast<Menu&>(m);
+		int i = 2;
+		menu.entries[i++].text = fmt::format("time limit: {:2} mins", settings->timeLimit);
+		menu.entries[i++].text = fmt::format("weapons stay: {}", settings->weaponsstay ? "Yes" : "No");
+		menu.entries[i++].text = fmt::format("instant items: {}", settings->instantItems ? "Yes" : "No");
+		menu.entries[i++].text = fmt::format("powerup drops: {}", settings->pu_drop ? "Yes" : "No");
+		menu.entries[i++].text = fmt::format("instant weapon switch: {}", settings->instantweap ? "Yes" : "No");
+		menu.entries[i++].text = fmt::format("match lock: {}", settings->match_lock ? "Yes" : "No");
+		menu.entries[i++].text = fmt::format("ruleset: {}", rulesetNames[rulesetIndex]);
+			});
 
-			MenuSystem::Open(ent, builder.build());
+	MenuSystem::Open(ent, builder.build());
 }

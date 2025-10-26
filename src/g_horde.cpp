@@ -17,9 +17,9 @@
 
 #include "g_local.hpp"
 
-static gentity_t *FindClosestPlayerToPoint(const Vector3 &point) {
+static gentity_t* FindClosestPlayerToPoint(const Vector3& point) {
 	float best_player_distance = 999999.0f;
-	gentity_t *closest = nullptr;
+	gentity_t* closest = nullptr;
 
 	for (auto ec : active_clients()) {
 		if (ec->health <= 0 || ec->client->eliminated) {
@@ -40,21 +40,21 @@ static gentity_t *FindClosestPlayerToPoint(const Vector3 &point) {
 
 struct weighted_item_t;
 
-using weight_adjust_func_t = void (*)(const weighted_item_t &item, float &weight);
+using weight_adjust_func_t = void (*)(const weighted_item_t& item, float& weight);
 
-void adjust_weight_health(const weighted_item_t &item, float &weight);
-void adjust_weight_weapon(const weighted_item_t &item, float &weight);
-void adjust_weight_ammo(const weighted_item_t &item, float &weight);
-void adjust_weight_armor(const weighted_item_t &item, float &weight);
+void adjust_weight_health(const weighted_item_t& item, float& weight);
+void adjust_weight_weapon(const weighted_item_t& item, float& weight);
+void adjust_weight_ammo(const weighted_item_t& item, float& weight);
+void adjust_weight_armor(const weighted_item_t& item, float& weight);
 
 constexpr struct weighted_item_t {
-	const char *className;
+	const char* className;
 	int32_t min_level = -1;
 	int32_t max_level = -1;
 	float weight = 1.0f;
 	float lvl_w_adjust = 0.0f;
 	BitFlags<MonsterFlags> flags = MonsterFlags::None;
-	item_id_t item[4] = {IT_NULL};
+	item_id_t item[4] = { IT_NULL };
 	weight_adjust_func_t adjust_weight = nullptr;
 } items[] = {
 	{"item_health_small"},
@@ -78,13 +78,13 @@ constexpr struct weighted_item_t {
 	{"ammo_grenades", 2, -1, 1.25f, 0.0f, MonsterFlags::None, {IT_NULL}, adjust_weight_ammo},
 };
 
-void adjust_weight_health(const weighted_item_t & /*item*/, float & /*weight*/) {}
+void adjust_weight_health(const weighted_item_t& /*item*/, float& /*weight*/) {}
 
-void adjust_weight_weapon(const weighted_item_t & /*item*/, float & /*weight*/) {}
+void adjust_weight_weapon(const weighted_item_t& /*item*/, float& /*weight*/) {}
 
-void adjust_weight_ammo(const weighted_item_t & /*item*/, float & /*weight*/) {}
+void adjust_weight_ammo(const weighted_item_t& /*item*/, float& /*weight*/) {}
 
-void adjust_weight_armor(const weighted_item_t & /*item*/, float & /*weight*/) {}
+void adjust_weight_armor(const weighted_item_t& /*item*/, float& /*weight*/) {}
 
 //	className,						min_level, max_level, weight, lvl_w_adjust, flags, items
 // className, min_level, max_level, weight, lvl_w_adjust, flags, item_drops
@@ -169,16 +169,16 @@ constexpr weighted_item_t monsters[] = {
 };
 
 struct picked_item_t {
-	const weighted_item_t *item;
+	const weighted_item_t* item;
 	float weight;
 };
 
-static Item *Horde_PickItem() {
+static Item* Horde_PickItem() {
 	static std::array<picked_item_t, std::size(items)> picked_items;
 	size_t num_picked_items = 0;
 	float total_weight = 0.0f;
 
-	for (const auto &item : items) {
+	for (const auto& item : items) {
 		if (item.min_level != -1 && level.roundNumber < item.min_level) {
 			continue;
 		}
@@ -197,7 +197,7 @@ static Item *Horde_PickItem() {
 		}
 
 		total_weight += weight;
-		picked_items[num_picked_items++] = {&item, total_weight};
+		picked_items[num_picked_items++] = { &item, total_weight };
 	}
 
 	if (total_weight == 0.0f) {
@@ -215,12 +215,12 @@ static Item *Horde_PickItem() {
 	return nullptr;
 }
 
-static const char *Horde_PickMonster() {
+static const char* Horde_PickMonster() {
 	static std::array<picked_item_t, std::size(monsters)> picked_monsters;
 	size_t num_picked_monsters = 0;
 	float total_weight = 0.0f;
 
-	for (const auto &monster : monsters) {
+	for (const auto& monster : monsters) {
 		if (monster.min_level != -1 && level.roundNumber < monster.min_level) {
 			continue;
 		}
@@ -239,7 +239,7 @@ static const char *Horde_PickMonster() {
 		}
 
 		total_weight += weight;
-		picked_monsters[num_picked_monsters++] = {&monster, total_weight};
+		picked_monsters[num_picked_monsters++] = { &monster, total_weight };
 	}
 
 	if (total_weight == 0.0f) {
@@ -277,7 +277,7 @@ void Horde_RunSpawning() {
 	}
 
 	if (level.horde_monster_spawn_time <= level.time) {
-		gentity_t *e = Spawn();
+		gentity_t* e = Spawn();
 		e->className = Horde_PickMonster();
 		const select_spawn_result_t result = SelectDeathmatchSpawnPoint(nullptr, vec3_origin, false, true, false, false);
 
@@ -302,7 +302,8 @@ void Horde_RunSpawning() {
 					level.horde_all_spawned = true;
 				}
 			}
-		} else {
+		}
+		else {
 			level.horde_monster_spawn_time = warmup ? level.time + 5_sec : level.time + 1_sec;
 		}
 	}

@@ -14,25 +14,25 @@
 static std::unordered_map<std::string, Command, StringViewHash, std::equal_to<>> s_clientCommands;
 
 namespace {
-        static inline char AsciiToLower(char c) {
-                if (c >= 'A' && c <= 'Z') {
-                        return static_cast<char>(c - 'A' + 'a');
-                }
-                return c;
-        }
+	static inline char AsciiToLower(char c) {
+		if (c >= 'A' && c <= 'Z') {
+			return static_cast<char>(c - 'A' + 'a');
+		}
+		return c;
+	}
 
-        static std::string NormalizeCommandKey(std::string_view name) {
-                std::string key(name);
-                for (char& ch : key) {
-                        ch = AsciiToLower(ch);
-                }
-                return key;
-        }
+	static std::string NormalizeCommandKey(std::string_view name) {
+		std::string key(name);
+		for (char& ch : key) {
+			ch = AsciiToLower(ch);
+		}
+		return key;
+	}
 }
 
 // Definition of the global registration function.
 void RegisterCommand(std::string_view name, void (*function)(gentity_t*, const CommandArgs&), BitFlags<CommandFlag> flags, bool floodExempt) {
-        s_clientCommands[NormalizeCommandKey(name)] = { function, flags, floodExempt };
+	s_clientCommands[NormalizeCommandKey(name)] = { function, flags, floodExempt };
 }
 
 // Forward declarations for the registration functions in other files.
@@ -212,7 +212,7 @@ void ClientCommand(gentity_t* ent) {
 	}
 
 	// Fast lookup in the heterogeneous s_clientCommands map
-        auto it = s_clientCommands.find(NormalizeCommandKey(commandName));
+	auto it = s_clientCommands.find(NormalizeCommandKey(commandName));
 	if (it == s_clientCommands.end()) {
 		// Dynamic cvar fallback (parity with legacy behavior)
 		// Example: "replace_gun 0" or "disable_powerups 1"

@@ -35,10 +35,10 @@ const std::unordered_map<std::string, Weapon> weaponAbbreviationMap = []() {
 		map[weaponAbbreviations[i]] = static_cast<Weapon>(i);
 	}
 	return map;
-}();
+	}();
 
 // Function to get the weapon index from an abbreviation
-static Weapon getWeaponIndex(const std::string &abbreviation) {
+static Weapon getWeaponIndex(const std::string& abbreviation) {
 	auto it = weaponAbbreviationMap.find(abbreviation);
 	if (it != weaponAbbreviationMap.end()) {
 		return it->second; // Found abbreviation, return the Weapon
@@ -52,8 +52,8 @@ static inline double GetAveragePickupDelay(uint32_t pickupCount, double totalDel
 	return totalDelay / pickupCount;
 }
 
-static inline ModID getModIdByName(const std::string &modName) {
-	for (const auto &m : modr) {
+static inline ModID getModIdByName(const std::string& modName) {
+	for (const auto& m : modr) {
 		if (m.name == modName)
 			return m.mod;
 	}
@@ -103,12 +103,12 @@ struct PlayerStats {
 	std::array<uint32_t, static_cast<size_t>(PlayerMedal::Total)> awards = {};
 
 	PlayerStats() {
-		for (const auto &weapon : weaponAbbreviations) {
+		for (const auto& weapon : weaponAbbreviations) {
 			totalShotsPerWeapon[weapon] = 0;
 			totalHitsPerWeapon[weapon] = 0;
 			accuracyPerWeapon[weapon] = 0.0;
 		}
-		for (const auto &mod : modr) {
+		for (const auto& mod : modr) {
 			modTotalKills[mod.mod] = 0;
 			modTotalDeaths[mod.mod] = 0;
 			modTotalKDR[mod.mod] = 0;
@@ -119,11 +119,12 @@ struct PlayerStats {
 
 	// Method to calculate weapon accuracy
 	void calculateWeaponAccuracy() {
-		for (const auto &weapon : weaponAbbreviations) {
+		for (const auto& weapon : weaponAbbreviations) {
 			if (totalShotsPerWeapon[weapon] > 0) {
 				accuracyPerWeapon[weapon] =
 					(static_cast<double>(totalHitsPerWeapon[weapon]) / totalShotsPerWeapon[weapon]) * 100.0;
-			} else {
+			}
+			else {
 				accuracyPerWeapon[weapon] = 0.0;
 			}
 		}
@@ -133,9 +134,11 @@ struct PlayerStats {
 	void calculateKDR() {
 		if (totalDeaths > 0) {
 			totalKDR = static_cast<double>(totalKills) / totalDeaths;
-		} else if (totalKills > 0) {
+		}
+		else if (totalKills > 0) {
 			totalKDR = static_cast<double>(totalKills);  // Infinite KDR represented as kills
-		} else {
+		}
+		else {
 			totalKDR = 0.0;  // No kills, no deaths
 		}
 	}
@@ -278,7 +281,7 @@ struct MatchStats {
 		time_t t = static_cast<time_t>(msec / 1000);
 		if (!t || t <= 0) return "n/a";
 
-		std::tm *tm = std::gmtime(&t);
+		std::tm* tm = std::gmtime(&t);
 		if (!tm) return "invalid";
 
 		char buf[64];
@@ -359,7 +362,7 @@ static void MatchStats_WriteJson(const MatchStats& matchStats, const std::string
 Html_WriteHeader
 =============
 */
-static inline void Html_WriteHeader(std::ofstream &html, const MatchStats &matchStats) {
+static inline void Html_WriteHeader(std::ofstream& html, const MatchStats& matchStats) {
 	html << R"(<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
 <title>Match Summary - )" << matchStats.matchID << R"(</title>
@@ -479,7 +482,7 @@ static inline void Html_WriteHeader(std::ofstream &html, const MatchStats &match
 Html_WriteTopInfo
 =============
 */
-static inline void Html_WriteTopInfo(std::ofstream &html, const MatchStats &matchStats) {
+static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matchStats) {
 	html << "<div class=\"top-info\">\n"
 		<< "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << matchStats.serverName << "</p>\n"
@@ -520,23 +523,25 @@ static inline void Html_WriteTopInfo(std::ofstream &html, const MatchStats &matc
 Html_WriteWinnerSummary
 =============
 */
-static inline void Html_WriteWinnerSummary(std::ofstream &html, const MatchStats &matchStats) {
+static inline void Html_WriteWinnerSummary(std::ofstream& html, const MatchStats& matchStats) {
 	std::string winner;
 	std::string winnerClass;
 
 	if (!matchStats.teams.empty()) {
-		auto &t0 = matchStats.teams[0];
-		auto &t1 = matchStats.teams[1];
+		auto& t0 = matchStats.teams[0];
+		auto& t1 = matchStats.teams[1];
 		if (t0.score > t1.score) {
 			winner = t0.teamName;
 			winnerClass = (winner == "Red") ? "red" : "blue";
-		} else {
+		}
+		else {
 			winner = t1.teamName;
 			winnerClass = (winner == "Red") ? "red" : "blue";
 		}
-	} else if (!matchStats.players.empty()) {
-		const auto *best = &matchStats.players.front();
-		for (auto &p : matchStats.players)
+	}
+	else if (!matchStats.players.empty()) {
+		const auto* best = &matchStats.players.front();
+		for (auto& p : matchStats.players)
 			if (p.totalScore > best->totalScore) best = &p;
 		winner = best->playerName;
 	}
@@ -643,9 +648,9 @@ static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats
 Html_WriteTeamScores
 =============
 */
-static inline void Html_WriteTeamScores(std::ofstream &html,
-	const std::vector<const PlayerStats *> &redPlayersOrig,
-	const std::vector<const PlayerStats *> &bluePlayersOrig,
+static inline void Html_WriteTeamScores(std::ofstream& html,
+	const std::vector<const PlayerStats*>& redPlayersOrig,
+	const std::vector<const PlayerStats*>& bluePlayersOrig,
 	int redScore, int blueScore,
 	double matchDuration,
 	int maxGlobalScore) {
@@ -656,17 +661,17 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 		<< "<span class=\"blue\">" << blueScore << "</span>\n"
 		<< "</div>\n";
 
-	std::vector<const PlayerStats *> redPlayers = redPlayersOrig;
-	std::vector<const PlayerStats *> bluePlayers = bluePlayersOrig;
+	std::vector<const PlayerStats*> redPlayers = redPlayersOrig;
+	std::vector<const PlayerStats*> bluePlayers = bluePlayersOrig;
 
-	std::sort(redPlayers.begin(), redPlayers.end(), [](const PlayerStats *a, const PlayerStats *b) {
+	std::sort(redPlayers.begin(), redPlayers.end(), [](const PlayerStats* a, const PlayerStats* b) {
 		return a->totalScore > b->totalScore;
 		});
-	std::sort(bluePlayers.begin(), bluePlayers.end(), [](const PlayerStats *a, const PlayerStats *b) {
+	std::sort(bluePlayers.begin(), bluePlayers.end(), [](const PlayerStats* a, const PlayerStats* b) {
 		return a->totalScore > b->totalScore;
 		});
 
-	auto writeOneTeam = [&](const std::vector<const PlayerStats *> &teamPlayers, const std::string &color, const std::string &teamName, bool isWinner) {
+	auto writeOneTeam = [&](const std::vector<const PlayerStats*>& teamPlayers, const std::string& color, const std::string& teamName, bool isWinner) {
 		html << "<div class=\"section team-" << color << "\">\n"
 			<< "<h2>" << teamName;
 		if (isWinner) html << " (Winner)";
@@ -682,7 +687,7 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 			<< "<th class=\"" << color << "\">Score</th>"
 			<< "</tr>\n";
 
-		for (auto *p : teamPlayers) {
+		for (auto* p : teamPlayers) {
 			html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>";
 
 			double pctTime = (matchDuration > 0.0) ? (double(p->playTimeMsec) / matchDuration) * 100.0 : 0.0;
@@ -727,9 +732,9 @@ static inline void Html_WriteTeamScores(std::ofstream &html,
 Html_WriteTeamsComparison
 =============
 */
-static inline void Html_WriteTeamsComparison(std::ofstream &html,
-	const std::vector<const PlayerStats *> &redPlayers,
-	const std::vector<const PlayerStats *> &bluePlayers,
+static inline void Html_WriteTeamsComparison(std::ofstream& html,
+	const std::vector<const PlayerStats*>& redPlayers,
+	const std::vector<const PlayerStats*>& bluePlayers,
 	double matchDuration) {
 	html << "<div class=\"section\">\n<h2>Team Comparison</h2>\n<table>\n";
 
@@ -739,9 +744,9 @@ static inline void Html_WriteTeamsComparison(std::ofstream &html,
 		<< "<th title=\"Blue Team\">Blue</th>"
 		<< "</tr>\n";
 
-	auto calcTeamStats = [](const std::vector<const PlayerStats *> &players, double matchMinutes) -> std::tuple<double, double, double> {
+	auto calcTeamStats = [](const std::vector<const PlayerStats*>& players, double matchMinutes) -> std::tuple<double, double, double> {
 		int kills = 0, deaths = 0, dmgDealt = 0, dmgTaken = 0;
-		for (auto *p : players) {
+		for (auto* p : players) {
 			kills += p->totalKills;
 			deaths += p->totalDeaths;
 			dmgDealt += p->totalDmgDealt;
@@ -758,7 +763,7 @@ static inline void Html_WriteTeamsComparison(std::ofstream &html,
 	auto [redKDR, redKPM, redDMR] = calcTeamStats(redPlayers, matchMinutes);
 	auto [blueKDR, blueKPM, blueDMR] = calcTeamStats(bluePlayers, matchMinutes);
 
-	auto writeRow = [&](const char *name, const char *tip, double redVal, double blueVal, const char *redTip, const char *blueTip) {
+	auto writeRow = [&](const char* name, const char* tip, double redVal, double blueVal, const char* redTip, const char* blueTip) {
 		html << "<tr><td title=\"" << tip << "\">" << name << "</td>"
 			<< "<td title=\"" << redTip << "\">" << std::fixed << std::setprecision(2) << redVal << "</td>"
 			<< "<td title=\"" << blueTip << "\">" << std::fixed << std::setprecision(2) << blueVal << "</td></tr>\n";
@@ -784,23 +789,23 @@ static inline void Html_WriteTeamsComparison(std::ofstream &html,
 Html_WriteTopPlayers
 =============
 */
-static inline void Html_WriteTopPlayers(std::ofstream &html, const MatchStats &matchStats, std::vector<const PlayerStats *> allPlayers) {
+static inline void Html_WriteTopPlayers(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
 	html << "<div class=\"section\">\n<h2>Top Players</h2>\n";
 
-	auto getPlayerColor = [&](const PlayerStats *p) -> const char * {
+	auto getPlayerColor = [&](const PlayerStats* p) -> const char* {
 		if (!Teams()) return "green";
-		for (const auto &tp : matchStats.teams[0].players)
+		for (const auto& tp : matchStats.teams[0].players)
 			if (&tp == p) return "red";
-		for (const auto &tp : matchStats.teams[1].players)
+		for (const auto& tp : matchStats.teams[1].players)
 			if (&tp == p) return "blue";
 		return "green"; // fallback
 		};
 
-	auto writeList = [&](const char *title, auto valueFn) {
-		std::vector<std::pair<const PlayerStats *, double>> list;
+	auto writeList = [&](const char* title, auto valueFn) {
+		std::vector<std::pair<const PlayerStats*, double>> list;
 		double maxVal = 0.0;
 
-		for (auto *p : allPlayers) {
+		for (auto* p : allPlayers) {
 			double val = valueFn(p);
 			if (val > 0.0) {
 				list.push_back({ p, val });
@@ -811,14 +816,14 @@ static inline void Html_WriteTopPlayers(std::ofstream &html, const MatchStats &m
 		if (list.empty())
 			return;
 
-		std::sort(list.begin(), list.end(), [](auto &a, auto &b) { return a.second > b.second; });
+		std::sort(list.begin(), list.end(), [](auto& a, auto& b) { return a.second > b.second; });
 
 		html << "<h3>" << title << "</h3>\n<table>\n<tr><th>Player</th><th>" << title << "</th></tr>\n";
 
 		for (size_t i = 0; i < std::min<size_t>(10, list.size()); ++i) {
-			const auto *p = list[i].first;
+			const auto* p = list[i].first;
 			double val = list[i].second;
-			const char *color = getPlayerColor(p);
+			const char* color = getPlayerColor(p);
 
 			double pct = (maxVal > 0.0) ? (val / maxVal) * 100.0 : 0.0;
 			if (pct < 1.0) pct = 1.0; // enforce minimum
@@ -833,17 +838,17 @@ static inline void Html_WriteTopPlayers(std::ofstream &html, const MatchStats &m
 		};
 
 	// Write 3 separate lists
-	writeList("KDR", [](const PlayerStats *p) -> double {
+	writeList("KDR", [](const PlayerStats* p) -> double {
 		if (p->totalKills == 0 && p->totalDeaths == 0) return 0.0;
 		return (p->totalDeaths > 0) ? (double(p->totalKills) / p->totalDeaths) : double(p->totalKills);
 		});
 
-	writeList("KPM", [](const PlayerStats *p) -> double {
+	writeList("KPM", [](const PlayerStats* p) -> double {
 		if (p->playTimeMsec <= 0) return 0.0;
 		return (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0f);
 		});
 
-	writeList("DMR", [](const PlayerStats *p) -> double {
+	writeList("DMR", [](const PlayerStats* p) -> double {
 		if (p->totalDmgDealt == 0 && p->totalDmgReceived == 0) return 0.0;
 		return (p->totalDmgReceived > 0) ? (double(p->totalDmgDealt) / p->totalDmgReceived) : double(p->totalDmgDealt);
 		});
@@ -856,23 +861,23 @@ static inline void Html_WriteTopPlayers(std::ofstream &html, const MatchStats &m
 Html_WriteItemPickups
 =============
 */
-static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &matchStats, const std::vector<const PlayerStats *> &allPlayers) {
+static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& allPlayers) {
 	if (allPlayers.empty())
 		return;
 
 	std::unordered_map<std::string, uint32_t> itemTotals;
 	std::unordered_map<std::string, double> itemDelays;
 
-	auto getPickup = [](const PlayerStats *p, HighValueItems item) -> uint32_t {
+	auto getPickup = [](const PlayerStats* p, HighValueItems item) -> uint32_t {
 		return (item > HighValueItems::None && item < HighValueItems::Total) ? p->pickupCounts[static_cast<int>(item)] : 0u;
 		};
 
-	auto getDelay = [](const PlayerStats *p, HighValueItems item) -> double {
+	auto getDelay = [](const PlayerStats* p, HighValueItems item) -> double {
 		return (item > HighValueItems::None && item < HighValueItems::Total) ? p->pickupDelays[static_cast<int>(item)] : 0.0;
 		};
 
 	// Aggregate totals
-	for (auto *p : allPlayers) {
+	for (auto* p : allPlayers) {
 		for (int i = static_cast<size_t>(HighValueItems::None) + 1; i < static_cast<size_t>(HighValueItems::Total); ++i) {
 			HighValueItems item = static_cast<HighValueItems>(i);
 			itemTotals[HighValueItemNames[i]] += getPickup(p, item);
@@ -882,11 +887,11 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 
 	// Only items that were actually picked up
 	std::vector<std::string> sortedItems;
-	for (const auto &it : itemTotals) {
+	for (const auto& it : itemTotals) {
 		if (it.second > 0)
 			sortedItems.push_back(it.first);
 	}
-	std::sort(sortedItems.begin(), sortedItems.end(), [&](const std::string &a, const std::string &b) {
+	std::sort(sortedItems.begin(), sortedItems.end(), [&](const std::string& a, const std::string& b) {
 		return itemTotals[a] > itemTotals[b];
 		});
 
@@ -900,14 +905,14 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 	// --- Players Table ---
 	html << "<div class=\"flex-item\">\n";
 	html << "<table>\n<tr><th>Player</th>";
-	for (const auto &name : sortedItems) {
+	for (const auto& name : sortedItems) {
 		html << "<th>" << name << "</th>";
 	}
 	html << "</tr>\n";
 
-	for (auto *p : allPlayers) {
+	for (auto* p : allPlayers) {
 		bool hasPickup = false;
-		for (const auto &name : sortedItems) {
+		for (const auto& name : sortedItems) {
 			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
 				if (HighValueItemNames[i] == name && getPickup(p, static_cast<HighValueItems>(i)) > 0) {
 					hasPickup = true;
@@ -921,15 +926,15 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 
 		std::string color = "green";
 		if (Teams()) {
-			for (const auto &rp : matchStats.teams[0].players)
+			for (const auto& rp : matchStats.teams[0].players)
 				if (&rp == p) { color = "red"; break; }
-			for (const auto &bp : matchStats.teams[1].players)
+			for (const auto& bp : matchStats.teams[1].players)
 				if (&bp == p) { color = "blue"; break; }
 		}
 
 		html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>";
 
-		for (const auto &name : sortedItems) {
+		for (const auto& name : sortedItems) {
 			int idx = -1;
 			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
 				if (HighValueItemNames[i] == name) {
@@ -948,20 +953,22 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 			if (pickups > 0) {
 				int avgSecs = static_cast<int>((delay / pickups) + 0.5);
 				html << "<td>" << pickups << " (" << FormatDuration(avgSecs) << ")</td>";
-			} else {
+			}
+			else {
 				html << "<td>-</td>";
 			}
 		}
 
 		html << "<tr><td><b>Totals</b></td>";
 
-		for (const auto &name : sortedItems) {
+		for (const auto& name : sortedItems) {
 			auto total = itemTotals[name];
 			auto totalDelay = itemDelays[name];
 			if (total > 0) {
 				int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
 				html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
-			} else {
+			}
+			else {
 				html << "<td>-</td>";
 			}
 		}
@@ -976,17 +983,18 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 		uint32_t redTotal = 0, blueTotal = 0;
 		double redDelay = 0.0, blueDelay = 0.0;
 
-		for (auto *p : allPlayers) {
+		for (auto* p : allPlayers) {
 			bool isRed = false;
-			for (const auto &rp : matchStats.teams[0].players)
+			for (const auto& rp : matchStats.teams[0].players)
 				if (&rp == p) { isRed = true; break; }
-			for (const auto &bp : matchStats.teams[1].players)
+			for (const auto& bp : matchStats.teams[1].players)
 				if (&bp == p) { isRed = false; break; }
 			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
 				if (isRed) {
 					redTotal += getPickup(p, static_cast<HighValueItems>(i));
 					redDelay += getDelay(p, static_cast<HighValueItems>(i));
-				} else {
+				}
+				else {
 					blueTotal += getPickup(p, static_cast<HighValueItems>(i));
 					blueDelay += getDelay(p, static_cast<HighValueItems>(i));
 				}
@@ -1014,42 +1022,44 @@ static inline void Html_WriteItemPickups(std::ofstream &html, const MatchStats &
 Html_WriteTopMeansOfDeath
 =============
 */
-static inline void Html_WriteTopMeansOfDeath(std::ofstream &html, const MatchStats &matchStats, const std::vector<const PlayerStats *> &redPlayers, const std::vector<const PlayerStats *> &bluePlayers) {
+static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& redPlayers, const std::vector<const PlayerStats*>& bluePlayers) {
 	html << "<div class=\"section\">\n<h2>Deaths by Type</h2>\n<table>\n";
 
 	if (Teams()) {
 		html << "<tr><th>MOD</th><th>Red</th><th>Blue</th><th>Total</th></tr>\n";
-	} else {
+	}
+	else {
 		html << "<tr><th>MOD</th><th>Total</th></tr>\n";
 	}
 
 	// Build the MOD list
 	std::vector<std::string> mods;
-	for (auto &kv : matchStats.totalDeathsByMOD) {
+	for (auto& kv : matchStats.totalDeathsByMOD) {
 		if (kv.second > 0)
 			mods.push_back(kv.first);
 	}
 
-	std::sort(mods.begin(), mods.end(), [&](const std::string &a, const std::string &b) {
+	std::sort(mods.begin(), mods.end(), [&](const std::string& a, const std::string& b) {
 		return matchStats.totalDeathsByMOD.at(a) > matchStats.totalDeathsByMOD.at(b);
 		});
 
-	for (auto &modName : mods) {
+	for (auto& modName : mods) {
 		int total = matchStats.totalDeathsByMOD.at(modName);
 
 		if (!Teams()) {
 			// Solo mode
 			html << "<tr><td>" << modName << "</td><td>" << total << "</td></tr>\n";
-		} else {
+		}
+		else {
 			// Team mode: split
 			int redDeaths = 0, blueDeaths = 0;
 
-			for (auto *p : redPlayers) {
+			for (auto* p : redPlayers) {
 				auto it = p->modTotalDeaths.find(getModIdByName(modName));
 				if (it != p->modTotalDeaths.end())
 					redDeaths += it->second;
 			}
-			for (auto *p : bluePlayers) {
+			for (auto* p : bluePlayers) {
 				auto it = p->modTotalDeaths.find(getModIdByName(modName));
 				if (it != p->modTotalDeaths.end())
 					blueDeaths += it->second;
@@ -1067,7 +1077,7 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream &html, const MatchSta
 Html_WriteEventLog
 =============
 */
-static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &matchStats, const std::vector<const PlayerStats *> &allPlayers) {
+static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& allPlayers) {
 	if (level.match.eventLog.empty())
 		return;
 
@@ -1076,20 +1086,21 @@ static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &mat
 	// === Precompute name replacements ===
 	std::unordered_map<std::string, std::string> nameToHtml;
 
-	for (const auto *p : allPlayers) {
+	for (const auto* p : allPlayers) {
 		std::string name = p->playerName;
 		std::string color = "green";
 
 		if (Teams()) {
-			for (const auto &tp : matchStats.teams[0].players)
+			for (const auto& tp : matchStats.teams[0].players)
 				if (&tp == p) { color = "red"; break; }
-			for (const auto &tp : matchStats.teams[1].players)
+			for (const auto& tp : matchStats.teams[1].players)
 				if (&tp == p) { color = "blue"; break; }
 		}
 
 		if (Teams()) {
 			nameToHtml[name] = "<span class=\"player-name " + color + "\"><b>" + name + "</b></span>";
-		} else {
+		}
+		else {
 			nameToHtml[name] = "<b>" + name + "</b>";
 		}
 	}
@@ -1097,7 +1108,7 @@ static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &mat
 	// === Render event log ===
 	html << "<div class=\"section\">\n<h2>Event Log</h2>\n<table>\n<tr><th>Time</th><th>Event</th></tr>\n";
 
-	for (auto &e : level.match.eventLog) {
+	for (auto& e : level.match.eventLog) {
 		int secs = static_cast<int>(e.time.seconds());
 		double pctTime = (matchDuration > 0.0) ? (double(secs) / matchDuration) * 100.0 : 0.0;
 		if (pctTime < 1.0) pctTime = 1.0;
@@ -1106,7 +1117,7 @@ static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &mat
 		std::string evStr = e.eventStr;
 
 		// Replace player names
-		for (auto &kv : nameToHtml) {
+		for (auto& kv : nameToHtml) {
 			size_t pos = evStr.find(kv.first);
 			if (pos != std::string::npos) {
 				evStr.replace(pos, kv.first.length(), kv.second);
@@ -1139,8 +1150,8 @@ static inline void Html_WriteEventLog(std::ofstream &html, const MatchStats &mat
 Html_WriteIndividualPlayerSections
 =============
 */
-static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const MatchStats &matchStats, std::vector<const PlayerStats *> allPlayers) {
-	for (const PlayerStats *p : allPlayers) {
+static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
+	for (const PlayerStats* p : allPlayers) {
 		html << "<div class=\"section\">";
 		const std::string fullID = p->socialID;
 		const std::string steamPref = "Steamworks-";
@@ -1154,7 +1165,8 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 			profileURL = "https://steamcommunity.com/profiles/" + id;
 
 			// GOG branch
-		} else if (fullID.rfind(gogPref, 0) == 0) {
+		}
+		else if (fullID.rfind(gogPref, 0) == 0) {
 			// strip "GOG-" -> leftover is the user's GOG slug
 			auto slug = fullID.substr(gogPref.size());
 			profileURL = "https://www.gog.com/u/" + slug;
@@ -1164,7 +1176,8 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 		html << "  <h2 id=\"player-" << fullID << "\">Player: " << p->playerName << " (";
 		if (!profileURL.empty()) {
 			html << "<a href=\"" << profileURL << "\">" << fullID << "</a>";
-		} else {
+		}
+		else {
 			html << fullID;
 		}
 		html << ")</h2>";
@@ -1179,7 +1192,8 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 				<< " | Suicides: " << p->totalSuicides
 				<< " | Score: " << p->totalScore
 				<< "</p>";
-		} else {
+		}
+		else {
 			html << "  <p>"
 				<< "Kills: " << p->totalKills
 				<< " | SpawnKills: " << p->totalSpawnKills
@@ -1192,13 +1206,13 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 		// Top Victims by this player
 		{
 			std::unordered_map<std::string, int> victimCounts;
-			for (const auto &e : level.match.deathLog) {
+			for (const auto& e : level.match.deathLog) {
 				if (e.attacker.id == p->socialID) {
 					victimCounts[e.victim.name]++;
 				}
 			}
 			std::vector<std::pair<std::string, int>> victims(victimCounts.begin(), victimCounts.end());
-			std::sort(victims.begin(), victims.end(), [](auto &a, auto &b) { return a.second > b.second; });
+			std::sort(victims.begin(), victims.end(), [](auto& a, auto& b) { return a.second > b.second; });
 			html << "  <h3>Top Victims by " << p->playerName << "</h3>"
 				<< "  <table><tr><th>Player</th><th>Kills</th></tr>";
 			for (size_t i = 0; i < std::min<size_t>(10, victims.size()); ++i) {
@@ -1211,13 +1225,13 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 		// Top Killers of this player
 		{
 			std::unordered_map<std::string, int> killerCounts;
-			for (const auto &e : level.match.deathLog) {
+			for (const auto& e : level.match.deathLog) {
 				if (e.victim.id == p->socialID) {
 					killerCounts[e.attacker.name]++;
 				}
 			}
 			std::vector<std::pair<std::string, int>> killers(killerCounts.begin(), killerCounts.end());
-			std::sort(killers.begin(), killers.end(), [](auto &a, auto &b) { return a.second > b.second; });
+			std::sort(killers.begin(), killers.end(), [](auto& a, auto& b) { return a.second > b.second; });
 			html << "  <h3>Top Killers of " << p->playerName << "</h3>"
 				<< "  <table><tr><th>Player</th><th>Deaths</th></tr>";
 			for (size_t i = 0; i < std::min<size_t>(10, killers.size()); ++i) {
@@ -1232,15 +1246,15 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 			<< "  <table><tr><th>Weapon</th><th>Shots</th><th>Hits</th><th>Acc (%)</th></tr>";
 		{
 			std::vector<std::string> used;
-			for (auto &kv : p->totalShotsPerWeapon) {
+			for (auto& kv : p->totalShotsPerWeapon) {
 				if (kv.second > 0 || p->totalHitsPerWeapon.at(kv.first) > 0) {
 					used.push_back(kv.first);
 				}
 			}
-			std::sort(used.begin(), used.end(), [&](const std::string &a, const std::string &b) {
+			std::sort(used.begin(), used.end(), [&](const std::string& a, const std::string& b) {
 				return p->accuracyPerWeapon.at(a) > p->accuracyPerWeapon.at(b);
 				});
-			for (auto &w : used) {
+			for (auto& w : used) {
 				html << "    <tr>"
 					<< "<td>" << w << "</td>"
 					<< "<td>" << p->totalShotsPerWeapon.at(w) << "</td>"
@@ -1257,15 +1271,15 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 		{
 			struct Row { std::string mod; int k, d; double kdr; int dd, dr; };
 			std::vector<Row> rows;
-			for (auto &mr : modr) {
+			for (auto& mr : modr) {
 				int kills = p->modTotalKills.at(mr.mod);
 				int deaths = p->modTotalDeaths.at(mr.mod);
 				if (!kills && !deaths) continue;
 				double ratio = deaths > 0 ? double(kills) / deaths : (kills > 0 ? double(kills) : 0.0);
 				rows.push_back({ mr.name,kills,deaths,ratio,p->modTotalDmgD.at(mr.mod),p->modTotalDmgR.at(mr.mod) });
 			}
-			std::sort(rows.begin(), rows.end(), [](auto &a, auto &b) { return a.kdr > b.kdr; });
-			for (auto &r : rows) {
+			std::sort(rows.begin(), rows.end(), [](auto& a, auto& b) { return a.kdr > b.kdr; });
+			for (auto& r : rows) {
 				html << "    <tr><td>" << r.mod
 					<< "</td><td>" << r.k
 					<< "</td><td>" << r.d
@@ -1286,10 +1300,10 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 				if (p->awards[i] > 0) aw.emplace_back(awardNames[i], p->awards[i]);
 			}
 			if (!aw.empty()) {
-				std::sort(aw.begin(), aw.end(), [](auto &a, auto &b) {return a.second > b.second; });
+				std::sort(aw.begin(), aw.end(), [](auto& a, auto& b) {return a.second > b.second; });
 				html << "  <h3>Awards</h3>"
 					<< "  <table><tr><th>Award</th><th>Count</th></tr>";
-				for (auto &e : aw) {
+				for (auto& e : aw) {
 					html << "    <tr><td>" << e.first
 						<< "</td><td>" << e.second << "</td></tr>";
 				}
@@ -1306,7 +1320,7 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream &html, const
 Html_WriteFooter
 =============
 */
-static inline void Html_WriteFooter(std::ofstream &html, const std::string &htmlPath) {
+static inline void Html_WriteFooter(std::ofstream& html, const std::string& htmlPath) {
 	html << "<div class=\"footer\">Compiled by " << GAMEMOD_TITLE << " " << GAMEMOD_VERSION << "</div>\n";
 	html << "</body></html>\n";
 	html.close();
@@ -1317,7 +1331,7 @@ static inline void Html_WriteFooter(std::ofstream &html, const std::string &html
 MatchStats_WriteHtml
 =============
 */
-static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string &htmlPath) {
+static void MatchStats_WriteHtml(const MatchStats& matchStats, const std::string& htmlPath) {
 	std::ofstream html(htmlPath);
 	if (!html.is_open()) {
 		gi.Com_PrintFmt("Failed to open HTML file: {}\n", htmlPath.c_str());
@@ -1325,26 +1339,26 @@ static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string
 	}
 
 	// Gather players
-	std::vector<const PlayerStats *> allPlayers;
-	std::vector<const PlayerStats *> redPlayers;
-	std::vector<const PlayerStats *> bluePlayers;
+	std::vector<const PlayerStats*> allPlayers;
+	std::vector<const PlayerStats*> redPlayers;
+	std::vector<const PlayerStats*> bluePlayers;
 
 	int redScore = 0, blueScore = 0;
 	int maxGlobalScore = 0;
 
 	// solo players
-	for (const auto &p : matchStats.players) {
+	for (const auto& p : matchStats.players) {
 		allPlayers.push_back(&p);
 		maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
 	}
 
 	// team players
 	for (size_t i = 0; i < matchStats.teams.size(); ++i) {
-		const auto &team = matchStats.teams[i];
+		const auto& team = matchStats.teams[i];
 		if (i == 0) redScore = team.score;
 		if (i == 1) blueScore = team.score;
 
-		for (const auto &p : team.players) {
+		for (const auto& p : team.players) {
 			allPlayers.push_back(&p);
 			maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
 			if (i == 0)
@@ -1366,7 +1380,8 @@ static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string
 	if (Teams()) {
 		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
 		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchStats.durationMS);
-	} else {
+	}
+	else {
 		Html_WriteOverallScores(html, matchStats, allPlayers);
 	}
 
@@ -1386,14 +1401,14 @@ static void MatchStats_WriteHtml(const MatchStats &matchStats, const std::string
 MatchStats_WriteAll
 =============
 */
-static void SendIndividualMiniStats(const MatchStats &matchStats) {
+static void SendIndividualMiniStats(const MatchStats& matchStats) {
 	for (auto ec : active_players()) {
 		if (!ec || !ec->client)
 			continue;
 
-                const char *rawName = ec->client->sess.netName;
-                if (!rawName) {
-                        gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
+		const char* rawName = ec->client->sess.netName;
+		if (!rawName) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing netName\n", ec->s.number);
 			continue;
 		}
 
@@ -1403,16 +1418,16 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 			continue;
 		}
 
-		const PlayerStats *matchedStats = nullptr;
+		const PlayerStats* matchedStats = nullptr;
 
-		auto matchesName = [&](const PlayerStats &stats) {
+		auto matchesName = [&](const PlayerStats& stats) {
 			if (stats.playerName.empty())
 				return false;
 
 			return _stricmp(stats.playerName.c_str(), name.data()) == 0;
-		};
+			};
 
-		for (const PlayerStats &p : matchStats.players) {
+		for (const PlayerStats& p : matchStats.players) {
 			if (!matchesName(p))
 				continue;
 
@@ -1421,8 +1436,8 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 		}
 
 		if (!matchedStats) {
-			for (const TeamStats &team : matchStats.teams) {
-				for (const PlayerStats &teamPlayer : team.players) {
+			for (const TeamStats& team : matchStats.teams) {
+				for (const PlayerStats& teamPlayer : team.players) {
 					if (!matchesName(teamPlayer))
 						continue;
 
@@ -1438,7 +1453,7 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 		if (!matchedStats)
 			continue;
 
-		const PlayerStats &p = *matchedStats;
+		const PlayerStats& p = *matchedStats;
 
 		std::string msg;
 		msg += ":: Match Summary ::\n";
@@ -1459,11 +1474,11 @@ static void SendIndividualMiniStats(const MatchStats &matchStats) {
 MatchStats_WriteAll
 =============
 */
-static void MatchStats_WriteAll(MatchStats &matchStats, const std::string &baseFilePath) {
+static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseFilePath) {
 	MatchStats_WriteJson(matchStats, baseFilePath + ".json");
 	MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
 	SendIndividualMiniStats(matchStats);
-	
+
 	level.match.deathLog.clear();
 	level.match.eventLog.clear();
 	matchStats.players.clear();
@@ -1491,7 +1506,7 @@ void MatchStats_End() {
 		return;
 	}
 
-		try {
+	try {
 		matchStats.matchID = level.matchID;
 		matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
 		matchStats.ruleSet = rs_long_name[game.ruleset];
@@ -1510,8 +1525,8 @@ void MatchStats_End() {
 			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
 			: 0.0;
 
-		auto process_player = [&](gentity_t *ec) {
-			auto *cl = ec->client;
+		auto process_player = [&](gentity_t* ec) {
+			auto* cl = ec->client;
 			PlayerStats p;
 
 			p.socialID = cl->sess.socialID;
@@ -1521,21 +1536,21 @@ void MatchStats_End() {
 			p.totalKills = cl->pers.match.totalKills;
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
-                        p.totalDeaths = cl->pers.match.totalDeaths;
-                        p.totalSuicides = cl->pers.match.totalSuicides;
-                        p.calculateKDR();
+			p.totalDeaths = cl->pers.match.totalDeaths;
+			p.totalSuicides = cl->pers.match.totalSuicides;
+			p.calculateKDR();
 			p.totalScore = cl->resp.score;
 			p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
 			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
 			p.totalDmgReceived = cl->pers.match.totalDmgReceived;
-			
+
 			p.playTimeMsec = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
 			if (p.playTimeMsec > 0)
-				p.killsPerMinute = (p.totalKills * 60.0) / (p.playTimeMsec/1000.0f);
+				p.killsPerMinute = (p.totalKills * 60.0) / (p.playTimeMsec / 1000.0f);
 
 			// Weapon stats
-			for (const auto &weapon : weaponAbbreviations) {
+			for (const auto& weapon : weaponAbbreviations) {
 				Weapon index = getWeaponIndex(weapon);
 				if (index < Weapon::None || index >= Weapon::Total)
 					continue;
@@ -1560,7 +1575,7 @@ void MatchStats_End() {
 			}
 
 			// MOD stats
-			for (const auto &mod : modr) {
+			for (const auto& mod : modr) {
 				int kills = cl->pers.match.modTotalKills[static_cast<int>(mod.mod)];
 				int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
 				if (kills > 0 || deaths > 0) {
@@ -1587,14 +1602,16 @@ void MatchStats_End() {
 			case Team::Red:
 				if (level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)]) {
 					won = true;
-				} else {
+				}
+				else {
 					won = false;
 				}
 				break;
 			case Team::Blue:
 				if (level.teamScores[static_cast<int>(Team::Blue)] > level.teamScores[static_cast<int>(Team::Red)]) {
 					won = true;
-				} else {
+				}
+				else {
 					won = false;
 				}
 				break;
@@ -1602,7 +1619,7 @@ void MatchStats_End() {
 				won = (cl == &game.clients[level.sortedClients[0]]);
 				break;
 			}
-			
+
 			// Save persistent stats
 			ClientConfig_SaveStats(cl, won);
 
@@ -1623,89 +1640,91 @@ void MatchStats_End() {
 
 			matchStats.teams.push_back(redTeam);
 			matchStats.teams.push_back(blueTeam);
-		} else {
+		}
+		else {
 			for (auto ec : active_players()) {
 				matchStats.players.push_back(process_player(ec));
 			}
 		}
 
-                std::unordered_set<std::string> accountedPlayerIDs;
-                auto accumulateModTotals = [&](const std::vector<PlayerStats> &playersVec) {
-                        for (const auto &p : playersVec) {
-                                accountedPlayerIDs.insert(p.socialID);
+		std::unordered_set<std::string> accountedPlayerIDs;
+		auto accumulateModTotals = [&](const std::vector<PlayerStats>& playersVec) {
+			for (const auto& p : playersVec) {
+				accountedPlayerIDs.insert(p.socialID);
 
-                                for (const auto &[modId, kills] : p.modTotalKills) {
-                                        if (kills <= 0)
-                                                continue;
+				for (const auto& [modId, kills] : p.modTotalKills) {
+					if (kills <= 0)
+						continue;
 
-                                        const auto &modName = modr[static_cast<int>(modId)].name;
-                                        matchStats.totalKillsByMOD[modName] += kills;
-                                }
+					const auto& modName = modr[static_cast<int>(modId)].name;
+					matchStats.totalKillsByMOD[modName] += kills;
+				}
 
-                                for (const auto &[modId, deaths] : p.modTotalDeaths) {
-                                        if (deaths <= 0)
-                                                continue;
+				for (const auto& [modId, deaths] : p.modTotalDeaths) {
+					if (deaths <= 0)
+						continue;
 
-                                        const auto &modName = modr[static_cast<int>(modId)].name;
-                                        matchStats.totalDeathsByMOD[modName] += deaths;
-                                }
-                        }
-                };
+					const auto& modName = modr[static_cast<int>(modId)].name;
+					matchStats.totalDeathsByMOD[modName] += deaths;
+				}
+			}
+			};
 
-                accumulateModTotals(matchStats.players);
-                for (const auto &team : matchStats.teams) {
-                        accumulateModTotals(team.players);
-                }
+		accumulateModTotals(matchStats.players);
+		for (const auto& team : matchStats.teams) {
+			accumulateModTotals(team.players);
+		}
 
-                auto isAccounted = [&](const std::string &id) {
-                        return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
-                };
+		auto isAccounted = [&](const std::string& id) {
+			return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
+			};
 
-                for (const auto &e : level.match.deathLog) {
-                        const auto &modName = modr[static_cast<int>(e.mod.id)].name;
-                        const bool attackerAccounted = isAccounted(e.attacker.id);
-                        const bool victimAccounted = isAccounted(e.victim.id);
-                        const bool environmentKill = e.attacker.id.empty() || e.attacker.id == "0";
-                        const bool suicide = !environmentKill && !e.attacker.id.empty() && e.attacker.id == e.victim.id;
+		for (const auto& e : level.match.deathLog) {
+			const auto& modName = modr[static_cast<int>(e.mod.id)].name;
+			const bool attackerAccounted = isAccounted(e.attacker.id);
+			const bool victimAccounted = isAccounted(e.victim.id);
+			const bool environmentKill = e.attacker.id.empty() || e.attacker.id == "0";
+			const bool suicide = !environmentKill && !e.attacker.id.empty() && e.attacker.id == e.victim.id;
 
-                        if (!victimAccounted) {
-                                matchStats.totalDeathsByMOD[modName]++;
-                        }
+			if (!victimAccounted) {
+				matchStats.totalDeathsByMOD[modName]++;
+			}
 
-                        if (!attackerAccounted && !environmentKill && !suicide) {
-                                matchStats.totalKillsByMOD[modName]++;
-                        }
-                }
+			if (!attackerAccounted && !environmentKill && !suicide) {
+				matchStats.totalKillsByMOD[modName]++;
+			}
+		}
 
-                for (auto &[modName, kills] : matchStats.totalKillsByMOD) {
-                        int deaths = matchStats.totalDeathsByMOD[modName];
-                        matchStats.totalKDRByMOD[modName] = deaths > 0
-                                ? (double)kills / deaths
-                                : (double)kills;
-                }
+		for (auto& [modName, kills] : matchStats.totalKillsByMOD) {
+			int deaths = matchStats.totalDeathsByMOD[modName];
+			matchStats.totalKDRByMOD[modName] = deaths > 0
+				? (double)kills / deaths
+				: (double)kills;
+		}
 
-                int aggregatedKillSum = 0;
-                for (const auto &[modName, kills] : matchStats.totalKillsByMOD) {
-                        aggregatedKillSum += kills;
-                }
+		int aggregatedKillSum = 0;
+		for (const auto& [modName, kills] : matchStats.totalKillsByMOD) {
+			aggregatedKillSum += kills;
+		}
 
-                int aggregatedDeathSum = 0;
-                for (const auto &[modName, deaths] : matchStats.totalDeathsByMOD) {
-                        aggregatedDeathSum += deaths;
-                }
+		int aggregatedDeathSum = 0;
+		for (const auto& [modName, deaths] : matchStats.totalDeathsByMOD) {
+			aggregatedDeathSum += deaths;
+		}
 
-                if (aggregatedKillSum != level.match.totalKills) {
-                        gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, level.match.totalKills);
-                }
+		if (aggregatedKillSum != level.match.totalKills) {
+			gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, level.match.totalKills);
+		}
 
-                if (aggregatedDeathSum != level.match.totalDeaths) {
-                        gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, level.match.totalDeaths);
-                }
+		if (aggregatedDeathSum != level.match.totalDeaths) {
+			gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, level.match.totalDeaths);
+		}
 
-                MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
-        } catch (const std::exception &e) {
-                gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
-        }
+		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
+	}
+	catch (const std::exception& e) {
+		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+	}
 }
 
 /*
@@ -1728,7 +1747,7 @@ void MatchStats_Init() {
 
 	matchStats.matchID = level.matchID;
 	//matchStats.startTime = level.matchStartRealTime.seconds();	// std::time(nullptr);
-	
+
 	gi.LocBroadcast_Print(PRINT_TTS, "Match start for ID: {}\n", level.matchID.c_str());
 
 	G_LogEvent("MATCH START");

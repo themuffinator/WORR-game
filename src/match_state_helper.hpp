@@ -9,32 +9,32 @@
 // enormous game headers.
 template<typename Context>
 struct MatchStateTransition {
-        using StateType = decltype(std::declval<Context>().matchState);
-        using TimeType = decltype(std::declval<Context>().matchStateTimer);
-        using WarmupType = decltype(std::declval<Context>().warmupState);
+	using StateType = decltype(std::declval<Context>().matchState);
+	using TimeType = decltype(std::declval<Context>().matchStateTimer);
+	using WarmupType = decltype(std::declval<Context>().warmupState);
 
-        StateType state{};
-        TimeType timer{};
-        std::optional<WarmupType> warmup{};
-        std::optional<TimeType> warmupNotice{};
-        std::optional<bool> prepareToFight{};
+	StateType state{};
+	TimeType timer{};
+	std::optional<WarmupType> warmup{};
+	std::optional<TimeType> warmupNotice{};
+	std::optional<bool> prepareToFight{};
 };
 
 // Applies the supplied transition to the provided context, updating only the
 // fields that are explicitly specified. This mirrors the behaviour in
 // g_match_state.cpp but is testable in isolation.
 template<typename Context>
-void ApplyMatchState(Context &context, const MatchStateTransition<Context> &transition) {
-        context.matchState = transition.state;
-        context.matchStateTimer = transition.timer;
+void ApplyMatchState(Context& context, const MatchStateTransition<Context>& transition) {
+	context.matchState = transition.state;
+	context.matchStateTimer = transition.timer;
 
-        if (transition.warmup)
-                context.warmupState = *transition.warmup;
+	if (transition.warmup)
+		context.warmupState = *transition.warmup;
 
-        if (transition.warmupNotice)
-                context.warmupNoticeTime = *transition.warmupNotice;
+	if (transition.warmupNotice)
+		context.warmupNoticeTime = *transition.warmupNotice;
 
-        if (transition.prepareToFight)
-                context.prepare_to_fight = *transition.prepareToFight;
+	if (transition.prepareToFight)
+		context.prepare_to_fight = *transition.prepareToFight;
 }
 

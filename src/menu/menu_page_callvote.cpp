@@ -31,39 +31,39 @@ Helpers
 */
 
 static inline bool VoteEnabled(std::string_view name) {
-        if (!g_allowVoting || !g_allowVoting->integer) {
-                return false;
-        }
-        for (const auto& def : Commands::GetRegisteredVoteDefinitions()) {
-                if (def.name == name) {
-                        if (!def.visibleInMenu) {
-                                return false;
-                        }
-                        return (g_vote_flags->integer & def.flag) != 0;
-                }
-        }
-        return false;
+	if (!g_allowVoting || !g_allowVoting->integer) {
+		return false;
+	}
+	for (const auto& def : Commands::GetRegisteredVoteDefinitions()) {
+		if (def.name == name) {
+			if (!def.visibleInMenu) {
+				return false;
+			}
+			return (g_vote_flags->integer & def.flag) != 0;
+		}
+	}
+	return false;
 }
 
 static void NotifyVoteLaunch(gentity_t* ent, const Commands::VoteLaunchResult& result) {
-        if (!result.success && !result.message.empty()) {
-                std::string message = result.message;
-                if (message.back() != '\n') {
-                        message.append("\n");
-                }
-                gi.Client_Print(ent, PRINT_HIGH, message.c_str());
-        }
+	if (!result.success && !result.message.empty()) {
+		std::string message = result.message;
+		if (message.back() != '\n') {
+			message.append("\n");
+		}
+		gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+	}
 }
 
 static bool TryLaunchMenuVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
-        Commands::VoteLaunchResult outcome = Commands::TryLaunchVote(ent, voteName, voteArg);
-        if (outcome.success) {
-                MenuSystem::Close(ent);
-                return true;
-        }
+	Commands::VoteLaunchResult outcome = Commands::TryLaunchVote(ent, voteName, voteArg);
+	if (outcome.success) {
+		MenuSystem::Close(ent);
+		return true;
+	}
 
-        NotifyVoteLaunch(ent, outcome);
-        return false;
+	NotifyVoteLaunch(ent, outcome);
+	return false;
 }
 
 /*
@@ -73,8 +73,8 @@ Map flags state
 */
 
 struct MapVoteState {
-        uint16_t enableFlags = 0; // bitset matching MyMapOverride mini-flags
-        uint16_t disableFlags = 0;
+	uint16_t enableFlags = 0; // bitset matching MyMapOverride mini-flags
+	uint16_t disableFlags = 0;
 };
 static MapVoteState g_mapVote; // maintained while inside callvote menu
 
@@ -103,43 +103,43 @@ static inline void MapFlags_Clear() {
 }
 
 static inline void MapFlags_ToggleTri(uint16_t mask) {
-        // default -> enable -> disable -> default
-        const bool en = (g_mapVote.enableFlags & mask) != 0;
-        const bool dis = (g_mapVote.disableFlags & mask) != 0;
+	// default -> enable -> disable -> default
+	const bool en = (g_mapVote.enableFlags & mask) != 0;
+	const bool dis = (g_mapVote.disableFlags & mask) != 0;
 
-        if (!en && !dis) {
-                g_mapVote.enableFlags |= mask;
-        }
-        else if (en) {
-                g_mapVote.enableFlags &= ~mask;
-                g_mapVote.disableFlags |= mask;
-        }
-        else {
-                g_mapVote.disableFlags &= ~mask;
-        }
+	if (!en && !dis) {
+		g_mapVote.enableFlags |= mask;
+	}
+	else if (en) {
+		g_mapVote.enableFlags &= ~mask;
+		g_mapVote.disableFlags |= mask;
+	}
+	else {
+		g_mapVote.disableFlags &= ~mask;
+	}
 }
 
 static std::string MapFlags_Summary() {
-        std::string out;
-        for (const auto& f : kMapFlags) {
-                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
-                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
-                if (en) { out += "+"; out += f.code; out += " "; }
-                if (dis) { out += "-"; out += f.code; out += " "; }
-        }
+	std::string out;
+	for (const auto& f : kMapFlags) {
+		const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+		const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+		if (en) { out += "+"; out += f.code; out += " "; }
+		if (dis) { out += "-"; out += f.code; out += " "; }
+	}
 	if (out.empty()) out = "Default";
 	else if (out.back() == ' ') out.pop_back();
 	return out;
 }
 
 static std::string BuildMapVoteArg(const std::string& mapname) {
-        std::string arg = mapname;
-        for (const auto& f : kMapFlags) {
-                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
-                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
-                if (en) { arg += " +"; arg += f.code; }
-                if (dis) { arg += " -"; arg += f.code; }
-        }
+	std::string arg = mapname;
+	for (const auto& f : kMapFlags) {
+		const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+		const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+		if (en) { arg += " +"; arg += f.code; }
+		if (dis) { arg += " -"; arg += f.code; }
+	}
 	return arg;
 }
 
@@ -182,14 +182,14 @@ static void OpenCallvoteMap(gentity_t* ent) {
 
 	builder.spacer();
 
-        for (const auto& entry : game.mapSystem.mapPool) {
-                const std::string& displayName = entry.longName.empty() ? entry.filename : entry.longName;
+	for (const auto& entry : game.mapSystem.mapPool) {
+		const std::string& displayName = entry.longName.empty() ? entry.filename : entry.longName;
 
-                builder.add(displayName, MenuAlign::Left, [mapname = entry.filename](gentity_t* e, Menu&) {
-                        const std::string fullArg = BuildMapVoteArg(mapname);
-                        TryLaunchMenuVote(e, "map", fullArg);
-                        });
-        }
+		builder.add(displayName, MenuAlign::Left, [mapname = entry.filename](gentity_t* e, Menu&) {
+			const std::string fullArg = BuildMapVoteArg(mapname);
+			TryLaunchMenuVote(e, "map", fullArg);
+			});
+	}
 
 	AddReturnToCallvoteMenu(builder);
 	MenuSystem::Open(ent, builder.build());
@@ -204,15 +204,15 @@ static void OpenCallvoteMapFlags(gentity_t* ent) {
 	MenuBuilder builder;
 	builder.add("Map Flags", MenuAlign::Center).spacer();
 
-        for (const auto& f : kMapFlags) {
-                const bool en = (g_mapVote.enableFlags & f.bit) != 0;
-                const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
-                const char* state = (!en && !dis) ? "Default" : (en ? "Enabled" : "Disabled");
-                builder.add(std::string(f.label) + " [" + state + "]", MenuAlign::Left, [mask = f.bit](gentity_t* e, Menu&) {
-                        MapFlags_ToggleTri(mask);
-                        OpenCallvoteMapFlags(e);
-                        });
-        }
+	for (const auto& f : kMapFlags) {
+		const bool en = (g_mapVote.enableFlags & f.bit) != 0;
+		const bool dis = (g_mapVote.disableFlags & f.bit) != 0;
+		const char* state = (!en && !dis) ? "Default" : (en ? "Enabled" : "Disabled");
+		builder.add(std::string(f.label) + " [" + state + "]", MenuAlign::Left, [mask = f.bit](gentity_t* e, Menu&) {
+			MapFlags_ToggleTri(mask);
+			OpenCallvoteMapFlags(e);
+			});
+	}
 
 	builder.spacer().add("Back", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenCallvoteMap(e);
@@ -242,10 +242,10 @@ static void OpenCallvoteGametype(gentity_t* ent) {
 		std::string shortName = std::string(mode.short_name);
 
 		// Add an entry with the gametype's full name. The action calls the vote.
-                builder.add(std::string(mode.long_name), MenuAlign::Left,
-                        [shortName](gentity_t* e, Menu&) {
-                                TryLaunchMenuVote(e, "gametype", shortName);
-                        });
+		builder.add(std::string(mode.long_name), MenuAlign::Left,
+			[shortName](gentity_t* e, Menu&) {
+				TryLaunchMenuVote(e, "gametype", shortName);
+			});
 	}
 
 	AddReturnToCallvoteMenu(builder);
@@ -265,9 +265,9 @@ static void OpenCallvoteRuleset(gentity_t* ent) {
 		std::string_view shortName = rs_short_name[i][0];
 		const char* longName = rs_long_name[i];
 
-                builder.add(longName, MenuAlign::Left, [shortName](gentity_t* e, Menu&) {
-                        TryLaunchMenuVote(e, "ruleset", shortName);
-                        });
+		builder.add(longName, MenuAlign::Left, [shortName](gentity_t* e, Menu&) {
+			TryLaunchMenuVote(e, "ruleset", shortName);
+			});
 	}
 
 	AddReturnToCallvoteMenu(builder);
@@ -288,16 +288,16 @@ static void OpenCallvoteTimelimit(gentity_t* ent) {
 	builder.add(G_Fmt("Current: {}", cur ? TimeString(cur * 60000, false, false) : "Disabled").data(), MenuAlign::Left);
 
 	// Disable
-        builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                TryLaunchMenuVote(e, "timelimit", "0");
-                });
+	builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
+		TryLaunchMenuVote(e, "timelimit", "0");
+		});
 
 	// Common presets (minutes)
 	static const int kTimes[] = { 5, 10, 15, 20, 30, 45, 60, 90, 120 };
 	for (int m : kTimes) {
-                builder.add(G_Fmt("Set {} {}", m, m == 1 ? "minute" : "minutes").data(), MenuAlign::Left, [m](gentity_t* e, Menu&) {
-                        TryLaunchMenuVote(e, "timelimit", std::to_string(m));
-                        });
+		builder.add(G_Fmt("Set {} {}", m, m == 1 ? "minute" : "minutes").data(), MenuAlign::Left, [m](gentity_t* e, Menu&) {
+			TryLaunchMenuVote(e, "timelimit", std::to_string(m));
+			});
 	}
 
 	AddReturnToCallvoteMenu(builder);
@@ -320,17 +320,17 @@ static void OpenCallvoteScorelimit(gentity_t* ent) {
 	builder.add(G_Fmt("Current: {} {}", cur ? cur : 0, cur ? metric : "(Disabled)").data(), MenuAlign::Left);
 
 	// Disable
-        builder.add("Disable", MenuAlign::Left, [metric](gentity_t* e, Menu&) {
-                (void)metric;
-                TryLaunchMenuVote(e, "scorelimit", "0");
-                });
+	builder.add("Disable", MenuAlign::Left, [metric](gentity_t* e, Menu&) {
+		(void)metric;
+		TryLaunchMenuVote(e, "scorelimit", "0");
+		});
 
 	// Presets
 	static const int kScores[] = { 5, 10, 15, 20, 25, 30, 50, 100 };
 	for (int s : kScores) {
-                builder.add(G_Fmt("Set {} {}", s, metric).data(), MenuAlign::Left, [s](gentity_t* e, Menu&) {
-                        TryLaunchMenuVote(e, "scorelimit", std::to_string(s));
-                        });
+		builder.add(G_Fmt("Set {} {}", s, metric).data(), MenuAlign::Left, [s](gentity_t* e, Menu&) {
+			TryLaunchMenuVote(e, "scorelimit", std::to_string(s));
+			});
 	}
 
 	AddReturnToCallvoteMenu(builder);
@@ -349,13 +349,13 @@ static void OpenCallvoteUnlagged(gentity_t* ent) {
 	const bool cur = g_lagCompensation && g_lagCompensation->integer;
 	builder.add(G_Fmt("Current: {}", cur ? "ENABLED" : "DISABLED").data(), MenuAlign::Left);
 
-        builder.add("Enable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                TryLaunchMenuVote(e, "unlagged", "1");
-                });
+	builder.add("Enable", MenuAlign::Left, [](gentity_t* e, Menu&) {
+		TryLaunchMenuVote(e, "unlagged", "1");
+		});
 
-        builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                TryLaunchMenuVote(e, "unlagged", "0");
-                });
+	builder.add("Disable", MenuAlign::Left, [](gentity_t* e, Menu&) {
+		TryLaunchMenuVote(e, "unlagged", "0");
+		});
 
 	AddReturnToCallvoteMenu(builder);
 	MenuSystem::Open(ent, builder.build());
@@ -373,11 +373,11 @@ static void OpenCallvoteRandom(gentity_t* ent) {
 	constexpr int kMin = 2;
 	constexpr int kMax = 100;
 
-        for (int i = kMin; i <= kMax; i += 5) {
-                builder.add(G_Fmt("1-{}", i).data(), MenuAlign::Left, [i](gentity_t* e, Menu&) {
-                        TryLaunchMenuVote(e, "random", std::to_string(i));
-                        });
-        }
+	for (int i = kMin; i <= kMax; i += 5) {
+		builder.add(G_Fmt("1-{}", i).data(), MenuAlign::Left, [i](gentity_t* e, Menu&) {
+			TryLaunchMenuVote(e, "random", std::to_string(i));
+			});
+	}
 
 	AddReturnToCallvoteMenu(builder);
 	MenuSystem::Open(ent, builder.build());
@@ -398,9 +398,9 @@ static void OpenCallvoteArena(gentity_t* ent) {
 		if (arenaNum == level.arenaActive)
 			continue;
 
-                builder.add(G_Fmt("Arena {}", arenaNum).data(), MenuAlign::Left, [arenaNum](gentity_t* e, Menu&) {
-                        TryLaunchMenuVote(e, "arena", std::to_string(arenaNum));
-                        });
+		builder.add(G_Fmt("Arena {}", arenaNum).data(), MenuAlign::Left, [arenaNum](gentity_t* e, Menu&) {
+			TryLaunchMenuVote(e, "arena", std::to_string(arenaNum));
+			});
 		++optionsAdded;
 	}
 
@@ -417,7 +417,7 @@ OpenSimpleCallvote
 ===============
 */
 static void OpenSimpleCallvote(const std::string& voteName, gentity_t* ent) {
-        TryLaunchMenuVote(ent, voteName, "");
+	TryLaunchMenuVote(ent, voteName, "");
 }
 
 /*
@@ -440,11 +440,11 @@ void OpenCallvoteMenu(gentity_t* ent) {
 	}
 
 	// Next Map
-        if (VoteEnabled("nextmap")) {
-                builder.add("Next Map", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                        OpenSimpleCallvote("nextmap", e);
-                        });
-        }
+	if (VoteEnabled("nextmap")) {
+		builder.add("Next Map", MenuAlign::Left, [](gentity_t* e, Menu&) {
+			OpenSimpleCallvote("nextmap", e);
+			});
+	}
 
 	// Restart
 	if (VoteEnabled("restart")) {
@@ -468,11 +468,11 @@ void OpenCallvoteMenu(gentity_t* ent) {
 	}
 
 	// Timelimit
-        if (VoteEnabled("timelimit")) {
-                builder.add("Timelimit", MenuAlign::Left, [](gentity_t* e, Menu&) {
-                        OpenCallvoteTimelimit(e);
-                        });
-        }
+	if (VoteEnabled("timelimit")) {
+		builder.add("Timelimit", MenuAlign::Left, [](gentity_t* e, Menu&) {
+			OpenCallvoteTimelimit(e);
+			});
+	}
 
 	// Scorelimit
 	if (VoteEnabled("scorelimit")) {

@@ -74,7 +74,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other);
 void CTF_DropFlag(gentity_t* ent, Item* item);
 
 // clang-format off
-std::array<Item, IT_TOTAL> itemList = {{
+std::array<Item, IT_TOTAL> itemList = { {
 	{ },	// leave index 0 alone
 
 	//
@@ -2938,5 +2938,5 @@ model="models/items/keys/data_cd/tris.md2"
 			/* precaches */ "misc/help_marker.wav",
 			/* sortID */ -2
 		},
-}};
+} };
 // clang-format on

@@ -37,7 +37,7 @@ static void SortClientsByTeamAndScore(
 	memset(totalScore, 0, sizeof(int) * 2);
 
 	for (uint32_t i = 0; i < game.maxClients; ++i) {
-		gentity_t *cl_ent = g_entities + 1 + i;
+		gentity_t* cl_ent = g_entities + 1 + i;
 		if (!cl_ent->inUse)
 			continue;
 
@@ -94,7 +94,7 @@ Displays standard header and footer for all scoreboard types.
 Includes map name, gametype, score limit, match time, victor string, and optional footer tip.
 ===============
 */
-static void AddScoreboardHeaderAndFooter(std::string &layout, gentity_t *viewer, bool includeFooter = true) {
+static void AddScoreboardHeaderAndFooter(std::string& layout, gentity_t* viewer, bool includeFooter = true) {
 	// Header: map and gametype
 	fmt::format_to(std::back_inserter(layout),
 		"xv 0 yv -40 cstring2 \"{} on '{}'\" "
@@ -151,15 +151,15 @@ Draws queued players, passive spectators, or both.
 Used by all scoreboard modes.
 ===============
 */
-static void AddSpectatorList(std::string &layout, int startY, SpectatorListMode mode) {
+static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode mode) {
 	uint32_t y = startY;
 	uint8_t lineIndex = 0;
 	bool wroteQueued = false;
 	bool wroteSpecs = false;
 
 	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
-		gentity_t *cl_ent = &g_entities[i + 1];
-		gclient_t *cl = &game.clients[i];
+		gentity_t* cl_ent = &g_entities[i + 1];
+		gclient_t* cl = &game.clients[i];
 
 		if (!cl_ent->inUse || !cl->pers.connected || cl_ent->solid != SOLID_NOT)
 			continue;
@@ -216,19 +216,19 @@ Can be used by all scoreboard types.
 ===============
 */
 static void AddPlayerEntry(
-	std::string &layout,
-	gentity_t *cl_ent,
+	std::string& layout,
+	gentity_t* cl_ent,
 	int x, int y,
 	PlayerEntryMode mode,
-	gentity_t *viewer,
-	gentity_t *killer,
+	gentity_t* viewer,
+	gentity_t* killer,
 	bool isReady,
-	const char *flagIcon
+	const char* flagIcon
 ) {
 	if (!cl_ent || !cl_ent->inUse || !cl_ent->client)
 		return;
 
-	gclient_t *cl = cl_ent->client;
+	gclient_t* cl = cl_ent->client;
 	int clientNum = cl_ent->s.number - 1;
 
 	std::string entry;
@@ -236,14 +236,16 @@ static void AddPlayerEntry(
 	// === Tag icon ===
 	if (mode == PlayerEntryMode::FFA || mode == PlayerEntryMode::Duel) {
 		if (cl_ent == viewer || Game::Is(GameType::RedRover)) {
-			const char *tag = (cl->sess.team == Team::Red) ? "/tags/ctf_red" :
+			const char* tag = (cl->sess.team == Team::Red) ? "/tags/ctf_red" :
 				(cl->sess.team == Team::Blue) ? "/tags/ctf_blue" :
 				"/tags/default";
 			fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn {} ", x, y, tag);
-		} else if (cl_ent == killer) {
+		}
+		else if (cl_ent == killer) {
 			fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn /tags/bloody ", x, y);
 		}
-	} else if (mode == PlayerEntryMode::Team && flagIcon) {
+	}
+	else if (mode == PlayerEntryMode::Team && flagIcon) {
 		fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn {} ", x, y, flagIcon);
 	}
 
@@ -256,8 +258,9 @@ static void AddPlayerEntry(
 	// === Ready or eliminated marker ===
 	if (isReady) {
 		fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn wheel/p_compass_selected ", x + 16, y + 16);
-	} else if (Game::Has(GameFlags::Rounds) && mode == PlayerEntryMode::Team && !cl->eliminated && level.matchState == MatchState::In_Progress) {
-		const char *teamIcon = (cl->sess.team == Team::Red) ? "sbfctf1" : "sbfctf2";
+	}
+	else if (Game::Has(GameFlags::Rounds) && mode == PlayerEntryMode::Team && !cl->eliminated && level.matchState == MatchState::In_Progress) {
+		const char* teamIcon = (cl->sess.team == Team::Red) ? "sbfctf1" : "sbfctf2";
 		fmt::format_to(std::back_inserter(entry), "xv {} yv {} picn {} ", x + 16, y, teamIcon);
 	}
 
@@ -268,35 +271,35 @@ static void AddPlayerEntry(
 	entry.clear();
 
 	// === Score/ping line ===
-        fmt::format_to(std::back_inserter(entry),
-                "client {} {} {} {} {} {} ",
-                x, y, clientNum, cl->resp.score, std::min(cl->ping, 999), 0);
+	fmt::format_to(std::back_inserter(entry),
+		"client {} {} {} {} {} {} ",
+		x, y, clientNum, cl->resp.score, std::min(cl->ping, 999), 0);
 
-        if (layout.size() + entry.size() >= MAX_STRING_CHARS)
-                return;
-        layout += entry;
+	if (layout.size() + entry.size() >= MAX_STRING_CHARS)
+		return;
+	layout += entry;
 
-        if (Game::Is(GameType::FreezeTag)) {
-                std::string extra;
+	if (Game::Is(GameType::FreezeTag)) {
+		std::string extra;
 
-                if (cl->eliminated && !cl->resp.thawer) {
-                        fmt::format_to(std::back_inserter(extra),
-                                "xv {} yv {} string \"FROZEN\" ",
-                                x + 96, y);
-                }
+		if (cl->eliminated && !cl->resp.thawer) {
+			fmt::format_to(std::back_inserter(extra),
+				"xv {} yv {} string \"FROZEN\" ",
+				x + 96, y);
+		}
 
-                if (cl->resp.thawed > 0) {
-                        fmt::format_to(std::back_inserter(extra),
-                                "xv {} yv {} string \"TH:{}\" ",
-                                x + 96, y + 8, cl->resp.thawed);
-                }
+		if (cl->resp.thawed > 0) {
+			fmt::format_to(std::back_inserter(extra),
+				"xv {} yv {} string \"TH:{}\" ",
+				x + 96, y + 8, cl->resp.thawed);
+		}
 
-                if (!extra.empty()) {
-                        if (layout.size() + extra.size() >= MAX_STRING_CHARS)
-                                return;
-                        layout += extra;
-                }
-        }
+		if (!extra.empty()) {
+			if (layout.size() + extra.size() >= MAX_STRING_CHARS)
+				return;
+			layout += extra;
+		}
+	}
 }
 
 /*
@@ -304,7 +307,7 @@ static void AddPlayerEntry(
 AddTeamScoreOverlay
 ===============
 */
-static void AddTeamScoreOverlay(std::string &layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
+static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
 	if (Game::Is(GameType::CaptureTheFlag)) {
 		fmt::format_to(std::back_inserter(layout),
 			"if 25 xv -32 yv 8 pic 25 endif "
@@ -318,7 +321,8 @@ static void AddTeamScoreOverlay(std::string &layout, const uint8_t total[2], con
 			"xv 200 yv 42 string \"SC\" "
 			"xv 228 yv 42 picn ping ",
 			total[0], teamsize, total[1], teamsize);
-	} else if (Game::Has(GameFlags::Rounds)) {
+	}
+	else if (Game::Has(GameFlags::Rounds)) {
 		fmt::format_to(std::back_inserter(layout),
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv 0 yv 28 string \"{}/{}/{}\" "
@@ -332,7 +336,8 @@ static void AddTeamScoreOverlay(std::string &layout, const uint8_t total[2], con
 			"xv 228 yv 42 picn ping ",
 			totalLiving[0], total[0], teamsize,
 			totalLiving[1], total[1], teamsize);
-	} else {
+	}
+	else {
 		fmt::format_to(std::back_inserter(layout),
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv -123 yv 28 cstring \"{}/{}\" "
@@ -355,22 +360,22 @@ AddTeamPlayerEntries
 Returns the last shown index for the team.
 ===============
 */
-static uint8_t AddTeamPlayerEntries(std::string &layout, int teamIndex, const uint8_t *sorted, uint8_t total, gentity_t * /* killer */) {
+static uint8_t AddTeamPlayerEntries(std::string& layout, int teamIndex, const uint8_t* sorted, uint8_t total, gentity_t* /* killer */) {
 	uint8_t lastShown = 0;
 
 	for (uint8_t i = 0; i < total; ++i) {
 		uint32_t clientNum = sorted[i];
 		if (clientNum < 0 || clientNum >= game.maxClients) continue;
 
-		gentity_t *cl_ent = &g_entities[clientNum + 1];
-		gclient_t *cl = &game.clients[clientNum];
+		gentity_t* cl_ent = &g_entities[clientNum + 1];
+		gclient_t* cl = &game.clients[clientNum];
 
 		int y = 52 + i * 8;
 		int x = (teamIndex == 0) ? -40 : 200;
 		bool isReady = (level.matchState == MatchState::Warmup_ReadyUp &&
 			(cl->pers.readyStatus || cl->sess.is_a_bot));
 
-		const char *flagIcon = nullptr;
+		const char* flagIcon = nullptr;
 		if (teamIndex == 0 && cl->pers.inventory[IT_FLAG_BLUE])  flagIcon = "sbfctf2";
 		if (teamIndex == 1 && cl->pers.inventory[IT_FLAG_RED])   flagIcon = "sbfctf1";
 
@@ -389,14 +394,14 @@ static uint8_t AddTeamPlayerEntries(std::string &layout, int teamIndex, const ui
 AddSpectatorEntries
 ===============
 */
-static void AddSpectatorEntries(std::string &layout, uint8_t lastRed, uint8_t lastBlue) {
+static void AddSpectatorEntries(std::string& layout, uint8_t lastRed, uint8_t lastBlue) {
 	uint32_t j = ((std::max(lastRed, lastBlue) + 3) * 8) + 42;
 	uint32_t n = 0, lineIndex = 0;
 	bool wroteQueued = false, wroteSpecs = false;
 
 	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
-		gentity_t *cl_ent = &g_entities[i + 1];
-		gclient_t *cl = &game.clients[i];
+		gentity_t* cl_ent = &g_entities[i + 1];
+		gclient_t* cl = &game.clients[i];
 
 		if (!cl_ent->inUse || cl_ent->solid != SOLID_NOT || ClientIsPlaying(cl))
 			continue;
@@ -428,8 +433,8 @@ static void AddSpectatorEntries(std::string &layout, uint8_t lastRed, uint8_t la
 		j += 8;
 
 	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
-		gentity_t *cl_ent = &g_entities[i + 1];
-		gclient_t *cl = &game.clients[i];
+		gentity_t* cl_ent = &g_entities[i + 1];
+		gclient_t* cl = &game.clients[i];
 
 		if (!cl_ent->inUse || cl_ent->solid != SOLID_NOT || ClientIsPlaying(cl) || cl->sess.matchQueued)
 			continue;
@@ -457,7 +462,7 @@ static void AddSpectatorEntries(std::string &layout, uint8_t lastRed, uint8_t la
 AddTeamSummaryLine
 ===============
 */
-static void AddTeamSummaryLine(std::string &layout, const uint8_t total[2], const uint8_t lastShown[2]) {
+static void AddTeamSummaryLine(std::string& layout, const uint8_t total[2], const uint8_t lastShown[2]) {
 	if (total[0] > lastShown[0] + 1) {
 		int y = 42 + (lastShown[0] + 1) * 8;
 		fmt::format_to(std::back_inserter(layout),
@@ -475,7 +480,7 @@ static void AddTeamSummaryLine(std::string &layout, const uint8_t total[2], cons
 TeamsScoreboardMessage
 ===============
 */
-void TeamsScoreboardMessage(gentity_t *ent, gentity_t *killer) {
+void TeamsScoreboardMessage(gentity_t* ent, gentity_t* killer) {
 	std::string layout;
 	uint8_t sorted[2][MAX_CLIENTS] = {};
 	int8_t sortedScores[2][MAX_CLIENTS] = {};
@@ -508,7 +513,7 @@ void TeamsScoreboardMessage(gentity_t *ent, gentity_t *killer) {
 DuelScoreboardMessage
 ===============
 */
-static void DuelScoreboardMessage(gentity_t *ent, gentity_t *killer) {
+static void DuelScoreboardMessage(gentity_t* ent, gentity_t* killer) {
 	std::string layout;
 	AddScoreboardHeaderAndFooter(layout, ent);
 	AddSpectatorList(layout, 58, SpectatorListMode::Both);
@@ -522,7 +527,7 @@ static void DuelScoreboardMessage(gentity_t *ent, gentity_t *killer) {
 DeathmatchScoreboardMessage
 ===============
 */
-void DeathmatchScoreboardMessage(gentity_t *ent, gentity_t *killer) {
+void DeathmatchScoreboardMessage(gentity_t* ent, gentity_t* killer) {
 	if (Teams() && Game::IsNot(GameType::RedRover)) {
 		TeamsScoreboardMessage(ent, ent->enemy);
 		return;
@@ -531,7 +536,7 @@ void DeathmatchScoreboardMessage(gentity_t *ent, gentity_t *killer) {
 		DuelScoreboardMessage(ent, ent->enemy);
 		return;
 	}
-	
+
 	uint8_t total = std::min<uint8_t>(level.pop.num_playing_clients, 16);
 	std::string layout;
 
@@ -540,8 +545,8 @@ void DeathmatchScoreboardMessage(gentity_t *ent, gentity_t *killer) {
 		if (clientNum < 0 || clientNum >= game.maxClients)
 			continue;
 
-		gclient_t *cl = &game.clients[clientNum];
-		gentity_t *cl_ent = &g_entities[clientNum + 1];
+		gclient_t* cl = &game.clients[clientNum];
+		gentity_t* cl_ent = &g_entities[clientNum + 1];
 
 		if (!ClientIsPlaying(cl))
 			continue;
@@ -564,8 +569,8 @@ Displays the scoreboard instead of the help screen.
 Note that it isn't that hard to overflow the 1400 byte message limit!
 ===============
 */
-void MultiplayerScoreboard(gentity_t *ent) {
-	gentity_t *target = ent->client->follow.target ? ent->client->follow.target : ent;
+void MultiplayerScoreboard(gentity_t* ent) {
+	gentity_t* target = ent->client->follow.target ? ent->client->follow.target : ent;
 
 	DeathmatchScoreboardMessage(target, target->enemy);
 

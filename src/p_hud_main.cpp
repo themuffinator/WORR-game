@@ -34,7 +34,7 @@ INTERMISSION
 MoveClientToIntermission
 ===============
 */
-void MoveClientToIntermission(gentity_t *ent) {
+void MoveClientToIntermission(gentity_t* ent) {
 	if (ent->svFlags & SVF_NOCLIENT) {
 		ent->s.event = EV_OTHER_TELEPORT;
 	}
@@ -116,7 +116,7 @@ SortLevelEntries
 */
 static void SortLevelEntries() {
 	std::sort(game.levelEntries.begin(), game.levelEntries.end(),
-		[](const LevelEntry &a, const LevelEntry &b) {
+		[](const LevelEntry& a, const LevelEntry& b) {
 			int32_t a_order = a.visit_order
 				? a.visit_order
 				: (!a.longMapName.empty() ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
@@ -135,7 +135,7 @@ Appends a single End-of-Unit stats row to the layout.
 If isTotalsRow is true, it renders the total row.
 ===============
 */
-static void BuildEOUTableRow(std::stringstream &layout, int y, const LevelEntry &entry, bool isTotalsRow = false) {
+static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry& entry, bool isTotalsRow = false) {
 	layout << G_Fmt("yv {} ", y).data();
 
 	if (!isTotalsRow && entry.longMapName.empty()) {
@@ -143,7 +143,7 @@ static void BuildEOUTableRow(std::stringstream &layout, int y, const LevelEntry 
 		return;
 	}
 
-	const char *name = isTotalsRow ? "Totals" : entry.longMapName.data();
+	const char* name = isTotalsRow ? "Totals" : entry.longMapName.data();
 
 	layout << G_Fmt("table_row 4 \"{}\" ", name).data()
 		<< G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
@@ -162,7 +162,7 @@ static void BuildEOUTableRow(std::stringstream &layout, int y, const LevelEntry 
 AddEOUTotalsRow
 ===============
 */
-static void AddEOUTotalsRow(std::stringstream &layout, int y, const LevelEntry &totals) {
+static void AddEOUTotalsRow(std::stringstream& layout, int y, const LevelEntry& totals) {
 	y += 8;
 	layout << "table_row 0 ";  // Spacer row
 	BuildEOUTableRow(layout, y, totals, true);
@@ -173,7 +173,7 @@ static void AddEOUTotalsRow(std::stringstream &layout, int y, const LevelEntry &
 BroadcastEOULayout
 ===============
 */
-static void BroadcastEOULayout(const std::stringstream &layout) {
+static void BroadcastEOULayout(const std::stringstream& layout) {
 	// Finalize table rendering
 	std::string out = layout.str();
 	out += "xv 160 yt 0 draw_table ";
@@ -188,7 +188,7 @@ static void BroadcastEOULayout(const std::stringstream &layout) {
 	gi.WriteString(out.c_str());
 	gi.multicast(vec3_origin, MULTICAST_ALL, true);
 
-	for (gentity_t *player : active_clients()) {
+	for (gentity_t* player : active_clients()) {
 		player->client->showEOU = true;
 	}
 }
@@ -209,7 +209,7 @@ void EndOfUnitMessage() {
 	LevelEntry totals{};
 	int32_t numRows = 0;
 
-	for (auto &entry : game.levelEntries) {
+	for (auto& entry : game.levelEntries) {
 		if (entry.mapName.empty())
 			break;
 
@@ -264,16 +264,17 @@ void ReportMatchDetails(bool is_end) {
 		gi.WriteByte(2);
 		gi.WriteString(g_redTeamName->string[0] ? g_redTeamName->string : "RED TEAM");
 		gi.WriteString(g_blueTeamName->string[0] ? g_blueTeamName->string : "BLUE TEAM");
-	} else {
+	}
+	else {
 		// sort players by score, then match everybody to
 		// the current highest score downwards until we run out of players.
-		static std::array<gentity_t *, MAX_CLIENTS> sorted_players;
+		static std::array<gentity_t*, MAX_CLIENTS> sorted_players;
 		size_t num_active_players = 0;
 
 		for (auto player : active_clients())
 			sorted_players[num_active_players++] = player;
 
-		std::sort(sorted_players.begin(), sorted_players.begin() + num_active_players, [](const gentity_t *a, const gentity_t *b) { return b->client->resp.score < a->client->resp.score; });
+		std::sort(sorted_players.begin(), sorted_players.begin() + num_active_players, [](const gentity_t* a, const gentity_t* b) { return b->client->resp.score < a->client->resp.score; });
 
 		int32_t current_score = INT_MIN;
 		int32_t current_rank = 0;
@@ -396,26 +397,29 @@ Sets HUD stats used in cooperative gameplay and other
 limited-lives modes. This runs even if the player is spectating.
 ===============
 */
-void SetCoopStats(gentity_t *ent) {
+void SetCoopStats(gentity_t* ent) {
 	// Show lives (if enabled)
-        if (G_LimitedLivesActive()) {
-                ent->client->ps.stats[STAT_LIVES] = ent->client->pers.lives + 1;
-        } else {
-                ent->client->ps.stats[STAT_LIVES] = 0;
+	if (G_LimitedLivesActive()) {
+		ent->client->ps.stats[STAT_LIVES] = ent->client->pers.lives + 1;
+	}
+	else {
+		ent->client->ps.stats[STAT_LIVES] = 0;
 	}
 
 	// Monster count (if horde)
 	if (level.matchState == MatchState::In_Progress) {
 		if (Game::Is(GameType::Horde)) {
 			ent->client->ps.stats[STAT_MONSTER_COUNT] = level.campaign.totalMonsters - level.campaign.killedMonsters;
-		} else {
+		}
+		else {
 			ent->client->ps.stats[STAT_MONSTER_COUNT] = 0;
 		}
 
 		// Round number (if rounds mode)
 		if (Game::Has(GameFlags::Rounds)) {
 			ent->client->ps.stats[STAT_ROUND_NUMBER] = level.roundNumber;
-		} else {
+		}
+		else {
 			ent->client->ps.stats[STAT_ROUND_NUMBER] = 0;
 		}
 	}
@@ -424,7 +428,8 @@ void SetCoopStats(gentity_t *ent) {
 	if (static_cast<int>(ent->client->coopRespawnState)) {
 		ent->client->ps.stats[STAT_COOP_RESPAWN] =
 			CONFIG_COOP_RESPAWN_STRING + (static_cast<int>(ent->client->coopRespawnState) - static_cast<int>(CoopRespawn::InCombat));
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_COOP_RESPAWN] = 0;
 	}
 }
@@ -439,24 +444,24 @@ Used to drive time-based or count-based powerups like quad, invis, silencer, etc
 */
 struct powerup_info_t {
 	item_id_t item;
-	std::function<GameTime &(gclient_t &)> time_accessor;
-	std::function<int32_t &(gclient_t &)> count_accessor;
+	std::function<GameTime& (gclient_t&)> time_accessor;
+	std::function<int32_t& (gclient_t&)> count_accessor;
 };
 
 static const powerup_info_t powerup_table[] = {
-	{ IT_POWERUP_QUAD,        [](gclient_t &c) -> GameTime & { return c.powerupTime.quadDamage; },      nullptr },
-	{ IT_POWERUP_DOUBLE,      [](gclient_t &c) -> GameTime & { return c.powerupTime.doubleDamage; },    nullptr },
-	{ IT_POWERUP_BATTLESUIT,  [](gclient_t &c) -> GameTime & { return c.powerupTime.battleSuit; },      nullptr },
-	{ IT_POWERUP_HASTE,       [](gclient_t &c) -> GameTime & { return c.powerupTime.haste; },           nullptr },
-	{ IT_POWERUP_INVISIBILITY,[](gclient_t &c) -> GameTime & { return c.powerupTime.invisibility; },    nullptr },
-	{ IT_POWERUP_REGEN,       [](gclient_t &c) -> GameTime & { return c.powerupTime.regeneration; },    nullptr },
-	{ IT_POWERUP_ENVIROSUIT,  [](gclient_t &c) -> GameTime & { return c.powerupTime.enviroSuit; },      nullptr },
-	{ IT_POWERUP_EMPATHY_SHIELD,[](gclient_t &c) -> GameTime & { return c.powerupTime.empathyShield; },	nullptr },
-	{ IT_POWERUP_ANTIGRAV_BELT,[](gclient_t &c) -> GameTime & { return c.powerupTime.antiGravBelt; },	nullptr },
-	{ IT_POWERUP_SPAWN_PROTECTION,[](gclient_t &c) -> GameTime & { return c.powerupTime.spawnProtection; },nullptr },
-	{ IT_POWERUP_REBREATHER,  [](gclient_t &c) -> GameTime & { return c.powerupTime.rebreather; },      nullptr },
-	{ IT_IR_GOGGLES,          [](gclient_t &c) -> GameTime & { return c.powerupTime.irGoggles; },		nullptr },
-	{ IT_POWERUP_SILENCER,    nullptr,                         [](gclient_t &c) -> int32_t & { return reinterpret_cast<int32_t &>(c.powerupTime.silencerShots); } }
+	{ IT_POWERUP_QUAD,        [](gclient_t& c) -> GameTime& { return c.powerupTime.quadDamage; },      nullptr },
+	{ IT_POWERUP_DOUBLE,      [](gclient_t& c) -> GameTime& { return c.powerupTime.doubleDamage; },    nullptr },
+	{ IT_POWERUP_BATTLESUIT,  [](gclient_t& c) -> GameTime& { return c.powerupTime.battleSuit; },      nullptr },
+	{ IT_POWERUP_HASTE,       [](gclient_t& c) -> GameTime& { return c.powerupTime.haste; },           nullptr },
+	{ IT_POWERUP_INVISIBILITY,[](gclient_t& c) -> GameTime& { return c.powerupTime.invisibility; },    nullptr },
+	{ IT_POWERUP_REGEN,       [](gclient_t& c) -> GameTime& { return c.powerupTime.regeneration; },    nullptr },
+	{ IT_POWERUP_ENVIROSUIT,  [](gclient_t& c) -> GameTime& { return c.powerupTime.enviroSuit; },      nullptr },
+	{ IT_POWERUP_EMPATHY_SHIELD,[](gclient_t& c) -> GameTime& { return c.powerupTime.empathyShield; },	nullptr },
+	{ IT_POWERUP_ANTIGRAV_BELT,[](gclient_t& c) -> GameTime& { return c.powerupTime.antiGravBelt; },	nullptr },
+	{ IT_POWERUP_SPAWN_PROTECTION,[](gclient_t& c) -> GameTime& { return c.powerupTime.spawnProtection; },nullptr },
+	{ IT_POWERUP_REBREATHER,  [](gclient_t& c) -> GameTime& { return c.powerupTime.rebreather; },      nullptr },
+	{ IT_IR_GOGGLES,          [](gclient_t& c) -> GameTime& { return c.powerupTime.irGoggles; },		nullptr },
+	{ IT_POWERUP_SILENCER,    nullptr,                         [](gclient_t& c) -> int32_t& { return reinterpret_cast<int32_t&>(c.powerupTime.silencerShots); } }
 };
 
 /*
@@ -467,7 +472,7 @@ Sets crosshair target ID and team color for the HUD.
 Only runs periodically and respects invisibility and team rules.
 ===============
 */
-static void SetCrosshairIDView(gentity_t *ent) {
+static void SetCrosshairIDView(gentity_t* ent) {
 	if (level.time - ent->client->resp.lastIDTime < 250_ms)
 		return;
 
@@ -511,11 +516,11 @@ static void SetCrosshairIDView(gentity_t *ent) {
 	Vector3 fwd;
 	AngleVectors(ent->client->vAngle, fwd, nullptr, nullptr);
 
-	gentity_t *best = nullptr;
+	gentity_t* best = nullptr;
 	float bestDot = 0.0f;
 
 	for (uint32_t i = 1; i <= game.maxClients; ++i) {
-		gentity_t *who = &g_entities[i];
+		gentity_t* who = &g_entities[i];
 		if (!who->inUse || who->solid == SOLID_NOT)
 			continue;
 
@@ -552,7 +557,7 @@ CTF_SetStats
 Sets red/blue flag status icons and scores for the HUD.
 ===============
 */
-static void CTF_SetStats(gentity_t *ent, bool blink) {
+static void CTF_SetStats(gentity_t* ent, bool blink) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
@@ -560,7 +565,7 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 	int p2 = ii_teams_blue_default;
 
 	// RED FLAG
-	gentity_t *redFlag = G_FindByString<&gentity_t::className>(nullptr, ITEM_CTF_FLAG_RED);
+	gentity_t* redFlag = G_FindByString<&gentity_t::className>(nullptr, ITEM_CTF_FLAG_RED);
 	if (redFlag) {
 		if (redFlag->solid == SOLID_NOT) {
 			p1 = ii_ctf_red_dropped;
@@ -581,13 +586,14 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 						gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 				}
 			}
-		} else if (redFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
+		}
+		else if (redFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			p1 = ii_ctf_red_dropped;
 		}
 	}
 
 	// BLUE FLAG
-	gentity_t *blueFlag = G_FindByString<&gentity_t::className>(nullptr, ITEM_CTF_FLAG_BLUE);
+	gentity_t* blueFlag = G_FindByString<&gentity_t::className>(nullptr, ITEM_CTF_FLAG_BLUE);
 	if (blueFlag) {
 		if (blueFlag->solid == SOLID_NOT) {
 			p2 = ii_ctf_blue_dropped;
@@ -608,7 +614,8 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 						gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 				}
 			}
-		} else if (blueFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
+		}
+		else if (blueFlag->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			p2 = ii_ctf_blue_dropped;
 		}
 	}
@@ -620,7 +627,8 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 	if (level.ctf_last_flag_capture && level.time - level.ctf_last_flag_capture < 5_sec) {
 		if (level.ctf_last_capture_team == Team::Red) {
 			ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = blink ? p1 : 0;
-		} else {
+		}
+		else {
 			ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = blink ? p2 : 0;
 		}
 	}
@@ -637,7 +645,8 @@ static void CTF_SetStats(gentity_t *ent, bool blink) {
 	if (ent->client->sess.team == Team::Red &&
 		ent->client->pers.inventory[IT_FLAG_BLUE] && blink) {
 		ent->client->ps.stats[STAT_CTF_FLAG_PIC] = ii_teams_blue_default;
-	} else if (ent->client->sess.team == Team::Blue &&
+	}
+	else if (ent->client->sess.team == Team::Blue &&
 		ent->client->pers.inventory[IT_FLAG_RED] && blink) {
 		ent->client->ps.stats[STAT_CTF_FLAG_PIC] = ii_teams_red_default;
 	}
@@ -669,7 +678,8 @@ static void SetMiniScoreStats(gentity_t* ent) {
 		else {
 			ent->client->ps.stats[STAT_MEDAL] = 0;
 		}
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_MEDAL] = 0;
 	}
 
@@ -688,7 +698,7 @@ static void SetMiniScoreStats(gentity_t* ent) {
 			if (num < 0 || num == own)
 				continue;
 
-			gclient_t *cl = &game.clients[num];
+			gclient_t* cl = &game.clients[num];
 			if (!cl->pers.connected || !ClientIsPlaying(cl))
 				continue;
 
@@ -804,10 +814,11 @@ static void SetMiniScoreStats(gentity_t* ent) {
 SetHealthStats
 ===============
 */
-static void SetHealthStats(gentity_t *ent) {
+static void SetHealthStats(gentity_t* ent) {
 	if (ent->s.renderFX & RF_USE_DISGUISE) {
 		ent->client->ps.stats[STAT_HEALTH_ICON] = level.campaign.disguiseIcon;
-	} else {
+	}
+	else {
 		switch (ent->client->sess.team) {
 		case Team::Red:
 			ent->client->ps.stats[STAT_HEALTH_ICON] = ii_teams_red_default;
@@ -829,7 +840,7 @@ static void SetHealthStats(gentity_t *ent) {
 SetWeaponStats
 ===============
 */
-static void SetWeaponStats(gentity_t *ent) {
+static void SetWeaponStats(gentity_t* ent) {
 	uint32_t weaponBits = 0;
 
 	for (int invIndex = IT_WEAPON_GRAPPLE; invIndex <= IT_WEAPON_DISRUPTOR; ++invIndex) {
@@ -841,7 +852,7 @@ static void SetWeaponStats(gentity_t *ent) {
 	ent->client->ps.stats[STAT_WEAPONS_OWNED_1] = weaponBits & 0xFFFF;
 	ent->client->ps.stats[STAT_WEAPONS_OWNED_2] = (weaponBits >> 16);
 
-	const Item *weapon = ent->client->weapon.pending ? ent->client->weapon.pending : ent->client->pers.weapon;
+	const Item* weapon = ent->client->weapon.pending ? ent->client->weapon.pending : ent->client->pers.weapon;
 	ent->client->ps.stats[STAT_ACTIVE_WHEEL_WEAPON] = weapon ? weapon->weaponWheelIndex : -1;
 	ent->client->ps.stats[STAT_ACTIVE_WEAPON] = ent->client->pers.weapon ? ent->client->pers.weapon->weaponWheelIndex : -1;
 }
@@ -851,14 +862,14 @@ static void SetWeaponStats(gentity_t *ent) {
 SetAmmoStats
 ===============
 */
-static void SetAmmoStats(gentity_t *ent) {
+static void SetAmmoStats(gentity_t* ent) {
 	ent->client->ps.stats[STAT_AMMO_ICON] = 0;
 	ent->client->ps.stats[STAT_AMMO] = 0;
 
-	const Item *weapon = ent->client->pers.weapon;
+	const Item* weapon = ent->client->pers.weapon;
 
 	if (weapon && weapon->ammo) {
-		Item *ammoItem = GetItemByIndex(weapon->ammo);
+		Item* ammoItem = GetItemByIndex(weapon->ammo);
 		if (!InfiniteAmmoOn(ammoItem)) {
 			ent->client->ps.stats[STAT_AMMO_ICON] = gi.imageIndex(ammoItem->icon);
 			ent->client->ps.stats[STAT_AMMO] = ent->client->pers.inventory[weapon->ammo];
@@ -868,7 +879,7 @@ static void SetAmmoStats(gentity_t *ent) {
 	memset(&ent->client->ps.stats[STAT_AMMO_INFO_START], 0, sizeof(uint16_t) * NUM_AMMO_STATS);
 
 	for (unsigned int ammoIndex = static_cast<int>(AmmoID::Bullets); ammoIndex < static_cast<int>(AmmoID::_Total); ++ammoIndex) {
-		Item *ammo = GetItemByAmmo((AmmoID)ammoIndex);
+		Item* ammo = GetItemByAmmo((AmmoID)ammoIndex);
 		if (!ammo)
 			continue;
 
@@ -876,7 +887,7 @@ static void SetAmmoStats(gentity_t *ent) {
 			? AMMO_VALUE_INFINITE
 			: std::clamp(ent->client->pers.inventory[ammo->id], 0, AMMO_VALUE_INFINITE - 1);
 
-		SetAmmoStat((uint16_t *)&ent->client->ps.stats[STAT_AMMO_INFO_START], ammo->ammoWheelIndex, val);
+		SetAmmoStat((uint16_t*)&ent->client->ps.stats[STAT_AMMO_INFO_START], ammo->ammoWheelIndex, val);
 	}
 }
 
@@ -885,7 +896,7 @@ static void SetAmmoStats(gentity_t *ent) {
 SetArmorStats
 ===============
 */
-static void SetArmorStats(gentity_t *ent) {
+static void SetArmorStats(gentity_t* ent) {
 	int cells = 0;
 	item_id_t armorIndex = ArmorIndex(ent);
 	item_id_t powerArmorType = PowerArmorType(ent);
@@ -897,14 +908,16 @@ static void SetArmorStats(gentity_t *ent) {
 		(!armorIndex || (level.time.milliseconds() % 3000) < 1500);
 
 	if (flashPowerArmor) {
-		const char *icon = (powerArmorType == IT_POWER_SHIELD) ? "i_powershield" : "i_powerscreen";
+		const char* icon = (powerArmorType == IT_POWER_SHIELD) ? "i_powershield" : "i_powerscreen";
 		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageIndex(icon);
 		ent->client->ps.stats[STAT_ARMOR] = cells;
-	} else if (armorIndex) {
-		const Item *armor = GetItemByIndex(armorIndex);
+	}
+	else if (armorIndex) {
+		const Item* armor = GetItemByIndex(armorIndex);
 		ent->client->ps.stats[STAT_ARMOR_ICON] = gi.imageIndex(armor->icon);
 		ent->client->ps.stats[STAT_ARMOR] = ent->client->pers.inventory[armorIndex];
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_ARMOR_ICON] = 0;
 		ent->client->ps.stats[STAT_ARMOR] = 0;
 	}
@@ -918,17 +931,17 @@ Updates the player's stat array with current powerup statuses.
 This includes equipped powerups, active timed effects, and any owned sphere.
 =================
 */
-static void SetPowerupStats(gentity_t *ent) {
-	auto &client = *ent->client;
-	auto &stats = client.ps.stats;
-	auto &inventory = client.pers.inventory;
+static void SetPowerupStats(gentity_t* ent) {
+	auto& client = *ent->client;
+	auto& stats = client.ps.stats;
+	auto& inventory = client.pers.inventory;
 
 	// Clear all powerup stats
 	std::fill_n(&stats[STAT_POWERUP_INFO_START], NUM_POWERUP_STATS, 0);
 
 	// Evaluate static or equipped powerups
 	for (unsigned int powerupIndex = POWERUP_SCREEN; powerupIndex < POWERUP_MAX; ++powerupIndex) {
-		const Item *item = GetItemByPowerup(static_cast<powerup_t>(powerupIndex));
+		const Item* item = GetItemByPowerup(static_cast<powerup_t>(powerupIndex));
 		if (!item)
 			continue;
 
@@ -953,7 +966,7 @@ static void SetPowerupStats(gentity_t *ent) {
 			break;
 		}
 
-		SetPowerupStat(reinterpret_cast<uint16_t *>(&stats[STAT_POWERUP_INFO_START]), item->powerupWheelIndex, val);
+		SetPowerupStat(reinterpret_cast<uint16_t*>(&stats[STAT_POWERUP_INFO_START]), item->powerupWheelIndex, val);
 	}
 
 	// Reset icon and timer initially
@@ -967,9 +980,11 @@ static void SetPowerupStats(gentity_t *ent) {
 
 		if (flags.has(SF_SPHERE_DEFENDER)) {
 			iconIndex = gi.imageIndex("p_defender");
-		} else if (flags.has(SF_SPHERE_HUNTER)) {
+		}
+		else if (flags.has(SF_SPHERE_HUNTER)) {
 			iconIndex = gi.imageIndex("p_hunter");
-		} else if (flags.has(SF_SPHERE_VENGEANCE)) {
+		}
+		else if (flags.has(SF_SPHERE_VENGEANCE)) {
 			iconIndex = gi.imageIndex("p_vengeance");
 		}
 
@@ -979,11 +994,11 @@ static void SetPowerupStats(gentity_t *ent) {
 	}
 
 	// Otherwise, scan for the most relevant active powerup from powerup_table
-	const powerup_info_t *best = nullptr;
+	const powerup_info_t* best = nullptr;
 
-	for (const auto &powerup : powerup_table) {
-		const GameTime *t = powerup.time_accessor ? &powerup.time_accessor(client) : nullptr;
-		const int32_t *c = powerup.count_accessor ? &powerup.count_accessor(client) : nullptr;
+	for (const auto& powerup : powerup_table) {
+		const GameTime* t = powerup.time_accessor ? &powerup.time_accessor(client) : nullptr;
+		const int32_t* c = powerup.count_accessor ? &powerup.count_accessor(client) : nullptr;
 
 		if (t && *t <= level.time)
 			continue;
@@ -1023,13 +1038,14 @@ static void SetPowerupStats(gentity_t *ent) {
 SetSelectedItemStats
 ===============
 */
-static void SetSelectedItemStats(gentity_t *ent) {
+static void SetSelectedItemStats(gentity_t* ent) {
 	const item_id_t selected = ent->client->pers.selectedItem;
 	ent->client->ps.stats[STAT_SELECTED_ITEM] = selected;
 
 	if (selected == IT_NULL) {
 		ent->client->ps.stats[STAT_SELECTED_ICON] = 0;
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_SELECTED_ICON] = gi.imageIndex(itemList[selected].icon);
 
 		if (ent->client->pers.selected_item_time < level.time) {
@@ -1043,7 +1059,7 @@ static void SetSelectedItemStats(gentity_t *ent) {
 SetLayoutStats
 ===============
 */
-static void SetLayoutStats(gentity_t *ent) {
+static void SetLayoutStats(gentity_t* ent) {
 	ent->client->ps.stats[STAT_LAYOUTS] = 0;
 
 	if (deathmatch->integer) {
@@ -1052,7 +1068,8 @@ static void SetLayoutStats(gentity_t *ent) {
 
 		if (ent->client->showInventory && ent->client->pers.health > 0)
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_INVENTORY;
-	} else {
+	}
+	else {
 		if (ent->client->showScores || ent->client->showHelp || ent->client->showEOU)
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_LAYOUT;
 
@@ -1082,7 +1099,8 @@ static void SetLayoutStats(gentity_t *ent) {
 			ent->client->ps.stats[STAT_LAYOUTS] &= ~LAYOUTS_HIDE_CROSSHAIR;
 		else
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_CROSSHAIR;
-	} else {
+	}
+	else {
 		if (level.campaign.story_active)
 			ent->client->ps.stats[STAT_LAYOUTS] |= LAYOUTS_HIDE_CROSSHAIR;
 		else
@@ -1095,7 +1113,7 @@ static void SetLayoutStats(gentity_t *ent) {
 SetKeyStats
 ===============
 */
-static void SetKeyStats(gentity_t *ent) {
+static void SetKeyStats(gentity_t* ent) {
 	ent->client->ps.stats[STAT_KEY_A] = 0;
 	ent->client->ps.stats[STAT_KEY_B] = 0;
 	ent->client->ps.stats[STAT_KEY_C] = 0;
@@ -1103,7 +1121,7 @@ static void SetKeyStats(gentity_t *ent) {
 	std::array<item_id_t, IT_TOTAL> keysHeld{};
 	size_t numKeys = 0;
 
-	for (const auto &item : itemList) {
+	for (const auto& item : itemList) {
 		if ((item.flags & IF_KEY) && ent->client->pers.inventory[item.id]) {
 			keysHeld[numKeys++] = item.id;
 		}
@@ -1125,16 +1143,18 @@ static void SetKeyStats(gentity_t *ent) {
 SetHelpIconStats
 ===============
 */
-static void SetHelpIconStats(gentity_t *ent, bool minHud) {
+static void SetHelpIconStats(gentity_t* ent, bool minHud) {
 	if (ent->client->pers.helpchanged >= 1 &&
 		ent->client->pers.helpchanged <= 2 &&
 		(level.time.milliseconds() % 1000) < 500) {
 		ent->client->ps.stats[STAT_HELPICON] = gi.imageIndex("i_help");
-	} else if ((ent->client->pers.hand == Handedness::Center) && ent->client->pers.weapon) {
+	}
+	else if ((ent->client->pers.hand == Handedness::Center) && ent->client->pers.weapon) {
 		if (!minHud || (minHud && ent->client->pers.weapon->id == IT_WEAPON_GRAPPLE)) {
 			ent->client->ps.stats[STAT_HELPICON] = gi.imageIndex(ent->client->pers.weapon->icon);
 		}
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_HELPICON] = 0;
 	}
 }
@@ -1144,10 +1164,10 @@ static void SetHelpIconStats(gentity_t *ent, bool minHud) {
 SetHealthBarStats
 ===============
 */
-static void SetHealthBarStats(gentity_t *ent) {
+static void SetHealthBarStats(gentity_t* ent) {
 	for (size_t i = 0; i < MAX_HEALTH_BARS; ++i) {
-		byte *hb = reinterpret_cast<byte *>(&ent->client->ps.stats[STAT_HEALTH_BARS]) + i;
-		auto *e = level.campaign.health_bar_entities[i];
+		byte* hb = reinterpret_cast<byte*>(&ent->client->ps.stats[STAT_HEALTH_BARS]) + i;
+		auto* e = level.campaign.health_bar_entities[i];
 
 		if (!e) {
 			*hb = 0;
@@ -1175,7 +1195,8 @@ static void SetHealthBarStats(gentity_t *ent) {
 			if (e->delay) {
 				e->timeStamp = level.time + GameTime::from_sec(e->delay);
 				*hb = 0b10000000;
-			} else {
+			}
+			else {
 				level.campaign.health_bar_entities[i] = nullptr;
 				*hb = 0;
 			}
@@ -1198,7 +1219,7 @@ static void SetHealthBarStats(gentity_t *ent) {
 SetTechStats
 ===============
 */
-static void SetTechStats(gentity_t *ent) {
+static void SetTechStats(gentity_t* ent) {
 	ent->client->ps.stats[STAT_TECH] = 0;
 
 	for (size_t i = 0; i < q_countof(tech_ids); ++i) {
@@ -1214,7 +1235,7 @@ static void SetTechStats(gentity_t *ent) {
 SetMatchTimerStats
 ===============
 */
-static void SetMatchTimerStats(gentity_t *ent) {
+static void SetMatchTimerStats(gentity_t* ent) {
 	static int lastTimeEncoded = 0;
 
 	const GameTime matchTime =
@@ -1230,8 +1251,8 @@ static void SetMatchTimerStats(gentity_t *ent) {
 
 	ent->client->last_match_timer_update = encoded;
 
-	const char *s1 = "";
-	const char *s2 = "";
+	const char* s1 = "";
+	const char* s2 = "";
 
 	switch (level.matchState) {
 	case MatchState::Initial_Delay:
@@ -1257,16 +1278,20 @@ static void SetMatchTimerStats(gentity_t *ent) {
 		if (level.timeoutActive > 0_ms) {
 			int t2 = level.timeoutActive.milliseconds();
 			s1 = G_Fmt("TIMEOUT! ({})", TimeString(t2, false, false)).data();
-		} else if (milliseconds < 0 && milliseconds >= -4000) {
+		}
+		else if (milliseconds < 0 && milliseconds >= -4000) {
 			s1 = "OVERTIME!";
-		} else if (Game::Has(GameFlags::Rounds)) {
+		}
+		else if (Game::Has(GameFlags::Rounds)) {
 			if (level.roundState == RoundState::Countdown) {
 				s1 = "COUNTDOWN";
-			} else if (level.roundState == RoundState::In_Progress) {
+			}
+			else if (level.roundState == RoundState::In_Progress) {
 				int t2 = (level.roundStateTimer - level.time).milliseconds();
 				s1 = G_Fmt("{} ({})", TimeString(milliseconds, false, false), TimeString(t2, false, false)).data();
 			}
-		} else {
+		}
+		else {
 			if (!level.intermission.queued && (milliseconds < -1000 || milliseconds > 1000)) {
 				s1 = TimeString(milliseconds, false, false);
 			}
@@ -1303,7 +1328,7 @@ SetStats
 Central function to set all client HUD stats.
 ===============
 */
-void SetStats(gentity_t *ent) {
+void SetStats(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
 
@@ -1334,46 +1359,50 @@ void SetStats(gentity_t *ent) {
 	// Update crosshair ID
 	if (ent->client->sess.pc.show_id && !CooperativeModeOn()) {
 		SetCrosshairIDView(ent);
-	} else {
+	}
+	else {
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW] = 0;
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW_COLOR] = 0;
 	}
 
-        const bool freezeActive = Game::Is(GameType::FreezeTag);
-        bool       frozen = false;
+	const bool freezeActive = Game::Is(GameType::FreezeTag);
+	bool       frozen = false;
 
-        if (deathmatch->integer) {
-                int countdown = level.countdownTimerCheck.seconds<int>();
+	if (deathmatch->integer) {
+		int countdown = level.countdownTimerCheck.seconds<int>();
 
-                if (freezeActive && ent->client->eliminated && !ent->client->resp.thawer) {
-                        frozen = true;
+		if (freezeActive && ent->client->eliminated && !ent->client->resp.thawer) {
+			frozen = true;
 
-                        if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
-                                countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
-                        } else {
-                                countdown = 0;
-                        }
-                }
+			if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
+				countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
+			}
+			else {
+				countdown = 0;
+			}
+		}
 
-                ent->client->ps.stats[STAT_COUNTDOWN] = countdown;
+		ent->client->ps.stats[STAT_COUNTDOWN] = countdown;
 
-                if (ent->client->sess.pc.show_timer)
-                        SetMatchTimerStats(ent);
-        } else {
-                ent->client->ps.stats[STAT_COUNTDOWN] = 0;
-        }
+		if (ent->client->sess.pc.show_timer)
+			SetMatchTimerStats(ent);
+	}
+	else {
+		ent->client->ps.stats[STAT_COUNTDOWN] = 0;
+	}
 
-        if (freezeActive && frozen) {
-                ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
-                gi.configString(CONFIG_MATCH_STATE2, "Frozen - waiting for thaw");
-        } else {
-                ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
-        }
+	if (freezeActive && frozen) {
+		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+		gi.configString(CONFIG_MATCH_STATE2, "Frozen - waiting for thaw");
+	}
+	else {
+		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
+	}
 
-        // Medal time blocking FOLLOWING tag
-        if (ent->client->pers.medalTime + 3_sec > level.time)
-                //todo
-                ent->client->ps.stats[STAT_FOLLOWING] = 0;
+	// Medal time blocking FOLLOWING tag
+	if (ent->client->pers.medalTime + 3_sec > level.time)
+		//todo
+		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 	else
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 }
@@ -1385,8 +1414,8 @@ CheckFollowStats
 Ensures that any spectators chasing this player get updated HUD stats.
 ===============
 */
-void CheckFollowStats(gentity_t *ent) {
-	for (gentity_t *viewer : active_clients()) {
+void CheckFollowStats(gentity_t* ent) {
+	for (gentity_t* viewer : active_clients()) {
 		if (viewer->client->follow.target != ent)
 			continue;
 
@@ -1403,8 +1432,8 @@ Sets HUD stats for a spectator.
 Includes chase mode and passive spectator support.
 ===============
 */
-void SetSpectatorStats(gentity_t *ent) {
-	gclient_t *cl = ent->client;
+void SetSpectatorStats(gentity_t* ent) {
+	gclient_t* cl = ent->client;
 
 	if (!cl->follow.target) {
 		SetStats(ent);
@@ -1422,7 +1451,8 @@ void SetSpectatorStats(gentity_t *ent) {
 	if (cl->follow.target && cl->follow.target->inUse) {
 		cl->ps.stats[STAT_FOLLOWING] = CONFIG_CHASE_PLAYER_NAME + (cl->follow.target - g_entities) - 1;
 		cl->ps.stats[STAT_SPECTATOR] = 0;
-	} else {
+	}
+	else {
 		cl->ps.stats[STAT_FOLLOWING] = 0;
 		cl->ps.stats[STAT_SPECTATOR] = 1;
 	}

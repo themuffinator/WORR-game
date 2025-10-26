@@ -61,7 +61,7 @@ Searches beginning at the entity after from, or the beginning if nullptr
 nullptr will be returned if the end of the list is reached.
 =============
 */
-gentity_t *FindEntity(gentity_t *from, std::function<bool(gentity_t *e)> matcher) {
+gentity_t* FindEntity(gentity_t* from, std::function<bool(gentity_t* e)> matcher) {
 	if (!from)
 		from = g_entities;
 	else
@@ -86,7 +86,7 @@ Returns entities that have origins within a spherical area
 FindRadius (origin, radius)
 =================
 */
-gentity_t *FindRadius(gentity_t *from, const Vector3 &org, float rad) {
+gentity_t* FindRadius(gentity_t* from, const Vector3& org, float rad) {
 	Vector3 eorg{};
 	int	   j;
 
@@ -123,9 +123,9 @@ nullptr will be returned if the end of the list is reached.
 */
 constexpr size_t MAXCHOICES = 8;
 
-gentity_t *PickTarget(const char *targetName) {
-	gentity_t *choice[MAXCHOICES]{};
-	gentity_t	*ent = nullptr;
+gentity_t* PickTarget(const char* targetName) {
+	gentity_t* choice[MAXCHOICES]{};
+	gentity_t* ent = nullptr;
 	int		num_choices = 0;
 
 	if (!targetName) {
@@ -150,12 +150,12 @@ gentity_t *PickTarget(const char *targetName) {
 	return choice[irandom(num_choices)];
 }
 
-static THINK(Think_Delay) (gentity_t *ent) -> void {
+static THINK(Think_Delay) (gentity_t* ent) -> void {
 	UseTargets(ent, ent->activator);
 	FreeEntity(ent);
 }
 
-void PrintActivationMessage(gentity_t *ent, gentity_t *activator, bool coop_global) {
+void PrintActivationMessage(gentity_t* ent, gentity_t* activator, bool coop_global) {
 	//
 	// print the message
 	//
@@ -175,7 +175,7 @@ void PrintActivationMessage(gentity_t *ent, gentity_t *activator, bool coop_glob
 	}
 }
 
-void BroadcastFriendlyMessage(Team team, const char *msg) {
+void BroadcastFriendlyMessage(Team team, const char* msg) {
 	for (auto ce : active_clients()) {
 		if (!ClientIsPlaying(ce->client) || (Teams() && ce->client->sess.team == team)) {
 			gi.LocClient_Print(ce, PRINT_HIGH, G_Fmt("{}{}", ce->client->sess.team != Team::Spectator ? "[TEAM]: " : "", msg).data());
@@ -183,7 +183,7 @@ void BroadcastFriendlyMessage(Team team, const char *msg) {
 	}
 }
 
-void BroadcastTeamMessage(Team team, print_type_t level, const char *msg) {
+void BroadcastTeamMessage(Team team, print_type_t level, const char* msg) {
 	for (auto ce : active_clients()) {
 		if (ce->client->sess.team != team)
 			continue;
@@ -193,7 +193,7 @@ void BroadcastTeamMessage(Team team, print_type_t level, const char *msg) {
 	}
 }
 
-void G_MonsterKilled(gentity_t *self);
+void G_MonsterKilled(gentity_t* self);
 
 /*
 ==============================
@@ -211,8 +211,8 @@ match (string)self.target and call their .use function
 
 ==============================
 */
-void UseTargets(gentity_t *ent, gentity_t *activator) {
-	gentity_t *t;
+void UseTargets(gentity_t* ent, gentity_t* activator) {
+	gentity_t* t;
 
 	if (!ent)
 		return;
@@ -252,7 +252,7 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 			if (t->teamMaster) {
 				// if this entity is part of a chain, cleanly remove it
 				if (t->flags & FL_TEAMSLAVE) {
-					for (gentity_t *master = t->teamMaster; master; master = master->teamChain) {
+					for (gentity_t* master = t->teamMaster; master; master = master->teamChain) {
 						if (master->teamChain == t) {
 							master->teamChain = t->teamChain;
 							break;
@@ -263,13 +263,13 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 				else if (t->flags & FL_TEAMMASTER) {
 					t->teamMaster->flags &= ~FL_TEAMMASTER;
 
-					gentity_t *new_master = t->teamMaster->teamChain;
+					gentity_t* new_master = t->teamMaster->teamChain;
 
 					if (new_master) {
 						new_master->flags |= FL_TEAMMASTER;
 						new_master->flags &= ~FL_TEAMSLAVE;
 
-						for (gentity_t *m = new_master; m; m = m->teamChain)
+						for (gentity_t* m = new_master; m; m = m->teamChain)
 							m->teamMaster = new_master;
 					}
 				}
@@ -304,7 +304,8 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 
 			if (t == ent) {
 				gi.Com_PrintFmt("{}: WARNING: gentity_t used itself.\n", __FUNCTION__);
-			} else {
+			}
+			else {
 				if (t->use)
 					t->use(t, ent, activator);
 			}
@@ -321,17 +322,19 @@ void UseTargets(gentity_t *ent, gentity_t *activator) {
 SetMoveDir
 ===============
 */
-void SetMoveDir(Vector3 &angles, Vector3 &moveDir) {
-	static Vector3 VEC_UP		= { 0, -1, 0 };
-	static Vector3 MOVEDIR_UP	= { 0, 0, 1 };
-	static Vector3 VEC_DOWN		= { 0, -2, 0 };
-	static Vector3 MOVEDIR_DOWN	= { 0, 0, -1 };
+void SetMoveDir(Vector3& angles, Vector3& moveDir) {
+	static Vector3 VEC_UP = { 0, -1, 0 };
+	static Vector3 MOVEDIR_UP = { 0, 0, 1 };
+	static Vector3 VEC_DOWN = { 0, -2, 0 };
+	static Vector3 MOVEDIR_DOWN = { 0, 0, -1 };
 
 	if (angles == VEC_UP) {
 		moveDir = MOVEDIR_UP;
-	} else if (angles == VEC_DOWN) {
+	}
+	else if (angles == VEC_DOWN) {
 		moveDir = MOVEDIR_DOWN;
-	} else {
+	}
+	else {
 		AngleVectors(angles, moveDir, nullptr, nullptr);
 	}
 
@@ -343,16 +346,16 @@ void SetMoveDir(Vector3 &angles, Vector3 &moveDir) {
 CopyString
 ===============
 */
-char *CopyString(const char *in, int32_t tag) {
+char* CopyString(const char* in, int32_t tag) {
 	if (!in)
 		return nullptr;
 	const size_t amt = strlen(in) + 1;
-	char *const out = static_cast<char *>(gi.TagMalloc(amt, tag));
+	char* const out = static_cast<char*>(gi.TagMalloc(amt, tag));
 	Q_strlcpy(out, in, amt);
 	return out;
 }
 
-void InitGEntity(gentity_t *e) {
+void InitGEntity(gentity_t* e) {
 	// FIXME -
 	//   this fixes a bug somewhere that is setting "nextThink" for an entity that has
 	//   already been released. nextThink is being set to FRAME_TIME_S after level.time,
@@ -381,8 +384,8 @@ instead of being removed and recreated, which can cause interpolated
 angles and bad trails.
 =================
 */
-gentity_t *Spawn() {
-	gentity_t *e = &g_entities[static_cast<size_t>(game.maxClients) + 1];
+gentity_t* Spawn() {
+	gentity_t* e = &g_entities[static_cast<size_t>(game.maxClients) + 1];
 	size_t i;
 
 	for (i = static_cast<size_t>(game.maxClients + 1); i < globals.numEntities; i++, e++) {
@@ -410,7 +413,7 @@ FreeEntity
 Marks the entity as free
 =================
 */
-THINK(FreeEntity) (gentity_t *ed) -> void {
+THINK(FreeEntity) (gentity_t* ed) -> void {
 	// already freed
 	if (!ed->inUse)
 		return;
@@ -443,17 +446,17 @@ TouchTriggers
 ============
 */
 
-static BoxEntitiesResult_t TouchTriggers_BoxFilter(gentity_t *hit, void *) {
+static BoxEntitiesResult_t TouchTriggers_BoxFilter(gentity_t* hit, void*) {
 	if (!hit->touch)
 		return BoxEntitiesResult_t::Skip;
 
 	return BoxEntitiesResult_t::Keep;
 }
 
-void TouchTriggers(gentity_t *ent) {
+void TouchTriggers(gentity_t* ent) {
 	int				num;
-	static gentity_t	*touch[MAX_ENTITIES];
-	gentity_t			*hit;
+	static gentity_t* touch[MAX_ENTITIES];
+	gentity_t* hit;
 
 	if (ent->client && ent->client->eliminated);
 	else
@@ -481,9 +484,9 @@ void TouchTriggers(gentity_t *ent) {
 
 // [Paril-KEX] scan for projectiles between our movement positions
 // to see if we need to collide against them
-void G_TouchProjectiles(gentity_t *ent, Vector3 previous_origin) {
+void G_TouchProjectiles(gentity_t* ent, Vector3 previous_origin) {
 	struct skipped_projectile {
-		gentity_t *projectile;
+		gentity_t* projectile;
 		int32_t		spawn_count;
 	};
 	// a bit ugly, but we'll store projectiles we are ignoring here.
@@ -509,7 +512,7 @@ void G_TouchProjectiles(gentity_t *ent, Vector3 previous_origin) {
 		G_Impact(ent, tr);
 	}
 
-	for (auto &skip : skipped)
+	for (auto& skip : skipped)
 		if (skip.projectile->inUse && skip.projectile->spawn_count == skip.spawn_count)
 			skip.projectile->svFlags |= SVF_PROJECTILE;
 
@@ -533,14 +536,14 @@ of ent.
 =================
 */
 
-static BoxEntitiesResult_t KillBox_BoxFilter(gentity_t *hit, void *) {
+static BoxEntitiesResult_t KillBox_BoxFilter(gentity_t* hit, void*) {
 	if (!hit->solid || !hit->takeDamage || hit->solid == SOLID_TRIGGER)
 		return BoxEntitiesResult_t::Skip;
 
 	return BoxEntitiesResult_t::Keep;
 }
 
-bool KillBox(gentity_t *ent, bool from_spawning, ModID mod, bool bsp_clipping) {
+bool KillBox(gentity_t* ent, bool from_spawning, ModID mod, bool bsp_clipping) {
 	// don't telefrag as spectator or noclip player...
 	if (ent->moveType == MoveType::NoClip || ent->moveType == MoveType::FreeCam)
 		return true;
@@ -552,8 +555,8 @@ bool KillBox(gentity_t *ent, bool from_spawning, ModID mod, bool bsp_clipping) {
 		mask &= ~CONTENTS_PLAYER;
 
 	int		 i, num;
-	static gentity_t *touch[MAX_ENTITIES];
-	gentity_t *hit;
+	static gentity_t* touch[MAX_ENTITIES];
+	gentity_t* hit;
 
 	num = gi.BoxEntities(ent->absMin, ent->absMax, touch, MAX_ENTITIES, AREA_SOLID, KillBox_BoxFilter, nullptr);
 
@@ -591,7 +594,7 @@ bool KillBox(gentity_t *ent, bool from_spawning, ModID mod, bool bsp_clipping) {
 
 /*--------------------------------------------------------------------------*/
 
-const char *Teams_TeamName(Team team) {
+const char* Teams_TeamName(Team team) {
 	switch (team) {
 	case Team::Red:
 		return "RED";
@@ -605,7 +608,7 @@ const char *Teams_TeamName(Team team) {
 	return "NONE";
 }
 
-const char *Teams_OtherTeamName(Team team) {
+const char* Teams_OtherTeamName(Team team) {
 	switch (team) {
 	case Team::Red:
 		return "BLUE";
@@ -630,7 +633,7 @@ Team Teams_OtherTeam(Team team) {
 CleanSkinName
 =================
 */
-static std::string CleanSkinName(const std::string &in) {
+static std::string CleanSkinName(const std::string& in) {
 	std::string out;
 	for (char c : in) {
 		if (isalnum(c) || c == '_' || c == '-') {
@@ -646,10 +649,10 @@ AssignPlayerSkin
 =================
 */
 
-constexpr const char *TEAM_RED_SKIN = "ctf_r";
-constexpr const char *TEAM_BLUE_SKIN = "ctf_b";
+constexpr const char* TEAM_RED_SKIN = "ctf_r";
+constexpr const char* TEAM_BLUE_SKIN = "ctf_b";
 
-void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
+void AssignPlayerSkin(gentity_t* ent, const std::string& skin) {
 	if (!ent || !ent->client)
 		return;
 
@@ -664,11 +667,12 @@ void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
 	std::string modelPath;
 	if (slashPos != std::string_view::npos) {
 		modelPath = std::string(baseSkin.substr(0, slashPos + 1));
-	} else {
+	}
+	else {
 		modelPath = "male/";
 	}
 
-	const char *teamColor = nullptr;
+	const char* teamColor = nullptr;
 	switch (ent->client->sess.team) {
 	case Team::Red:
 		teamColor = "red";
@@ -684,7 +688,8 @@ void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
 	std::string finalSkin;
 	if (teamColor) {
 		finalSkin = G_Fmt("{}\\{}{}\\default", ent->client->sess.netName, modelPath, teamColor);
-	} else {
+	}
+	else {
 		finalSkin = G_Fmt("{}\\{}\\default", ent->client->sess.netName, cleanSkin);
 	}
 
@@ -696,7 +701,7 @@ void AssignPlayerSkin(gentity_t *ent, const std::string &skin) {
 G_AdjustPlayerScore
 ===================
 */
-void G_AdjustPlayerScore(gclient_t *cl, int32_t offset, bool adjust_team, int32_t team_offset) {
+void G_AdjustPlayerScore(gclient_t* cl, int32_t offset, bool adjust_team, int32_t team_offset) {
 	if (!cl) return;
 
 	if (ScoringIsDisabled())
@@ -732,7 +737,7 @@ void G_AdjustPlayerScore(gclient_t *cl, int32_t offset, bool adjust_team, int32_
 Horde_AdjustPlayerScore
 ===================
 */
-void Horde_AdjustPlayerScore(gclient_t *cl, int32_t offset) {
+void Horde_AdjustPlayerScore(gclient_t* cl, int32_t offset) {
 	if (Game::IsNot(GameType::Horde)) return;
 	if (!cl || !cl->pers.connected) return;
 
@@ -747,7 +752,7 @@ void Horde_AdjustPlayerScore(gclient_t *cl, int32_t offset) {
 G_SetPlayerScore
 ===================
 */
-void G_SetPlayerScore(gclient_t *cl, int32_t value) {
+void G_SetPlayerScore(gclient_t* cl, int32_t value) {
 	if (!cl) return;
 
 	if (ScoringIsDisabled())
@@ -803,20 +808,20 @@ void G_SetTeamScore(Team team, int32_t value) {
 PlaceString
 ===================
 */
-const char *PlaceString(int rank) {
+const char* PlaceString(int rank) {
 	static char str[64];
 
-	const char *prefix = "";
+	const char* prefix = "";
 	if (rank & RANK_TIED_FLAG) {
 		rank &= ~RANK_TIED_FLAG;
 		prefix = "Tied for ";
 	}
 
-	static constexpr const char *const suffixTable[10] = {
+	static constexpr const char* const suffixTable[10] = {
 		"th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"
 	};
 
-	const char *suffix = "th";
+	const char* suffix = "th";
 	int mod100 = rank % 100;
 
 	if (mod100 < 11 || mod100 > 13) {
@@ -849,7 +854,7 @@ bool ItemSpawnsEnabled() {
 LocBuildBoxPoints
 =================
 */
-static void LocBuildBoxPoints(Vector3(&p)[8], const Vector3 &org, const Vector3 &mins, const Vector3 &maxs) {
+static void LocBuildBoxPoints(Vector3(&p)[8], const Vector3& org, const Vector3& mins, const Vector3& maxs) {
 	// Bottom
 	p[0] = org + mins;
 	p[1] = p[0]; p[1][0] += (maxs[0] - mins[0]);
@@ -867,7 +872,7 @@ static void LocBuildBoxPoints(Vector3(&p)[8], const Vector3 &org, const Vector3 
 LocCanSee
 =================
 */
-bool LocCanSee(gentity_t *targetEnt, gentity_t *sourceEnt) {
+bool LocCanSee(gentity_t* targetEnt, gentity_t* sourceEnt) {
 	if (!targetEnt || !sourceEnt)
 		return false;
 
@@ -904,7 +909,7 @@ bool Teams() {
 TimeString
 =================
 */
-const char *TimeString(int msec, bool showMilliseconds, bool state) {
+const char* TimeString(int msec, bool showMilliseconds, bool state) {
 	static char timeString[32];
 
 	if (state) {
@@ -926,15 +931,18 @@ const char *TimeString(int msec, bool showMilliseconds, bool state) {
 		if (hours > 0) {
 			snprintf(timeString, sizeof(timeString), "%s%d:%02d:%02d.%03d",
 				(msec < 0 ? "-" : ""), hours, mins, seconds, milliseconds);
-		} else {
+		}
+		else {
 			snprintf(timeString, sizeof(timeString), "%s%02d:%02d.%03d",
 				(msec < 0 ? "-" : ""), mins, seconds, milliseconds);
 		}
-	} else {
+	}
+	else {
 		if (hours > 0) {
 			snprintf(timeString, sizeof(timeString), "%s%d:%02d:%02d",
 				(msec < 0 ? "-" : ""), hours, mins, seconds);
-		} else {
+		}
+		else {
 			snprintf(timeString, sizeof(timeString), "%s%02d:%02d",
 				(msec < 0 ? "-" : ""), mins, seconds);
 		}
@@ -949,9 +957,9 @@ const char *TimeString(int msec, bool showMilliseconds, bool state) {
 StringToTeamNum
 =================
 */
-Team StringToTeamNum(const char *in) {
+Team StringToTeamNum(const char* in) {
 	struct {
-		const char *name;
+		const char* name;
 		Team team;
 	} mappings[] = {
 		{ "spectator", Team::Spectator },
@@ -970,7 +978,7 @@ Team StringToTeamNum(const char *in) {
 		gi.Com_Print("StringToTeamNum: Team::None returned early.\n");
 		return Team::None;
 	}
-	for (const auto &map : mappings) {
+	for (const auto& map : mappings) {
 		if (!Q_strcasecmp(in, map.name)) {
 			if (map.team == Team::None) {
 				return PickTeam(-1); // 'auto' special case
@@ -1149,7 +1157,7 @@ void BroadcastReadyReminderMessage() {
 TeleporterVelocity
 =================
 */
-void TeleporterVelocity(gentity_t *ent, gvec3_t angles) {
+void TeleporterVelocity(gentity_t* ent, gvec3_t angles) {
 	float len = ent->velocity.length();
 	ent->velocity[2] = 0;
 	AngleVectors(angles, ent->velocity, NULL, NULL);
@@ -1164,7 +1172,7 @@ void TeleporterVelocity(gentity_t *ent, gvec3_t angles) {
 TeleportPlayer
 =================
 */
-void TeleportPlayer(gentity_t *player, Vector3 origin, Vector3 angles) {
+void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
 	Weapon_Grapple_DoReset(player->client);
 
 	// unlink to make sure it can't possibly interfere with KillBox
@@ -1194,7 +1202,7 @@ void TeleportPlayer(gentity_t *player, Vector3 origin, Vector3 angles) {
 
 	// [Paril-KEX] move sphere, if we own it
 	if (player->client->ownedSphere) {
-		gentity_t *sphere = player->client->ownedSphere;
+		gentity_t* sphere = player->client->ownedSphere;
 		sphere->s.origin = player->s.origin;
 		sphere->s.origin[Z] = player->absMax[2];
 		sphere->s.angles[YAW] = player->s.angles[YAW];
@@ -1207,7 +1215,7 @@ void TeleportPlayer(gentity_t *player, Vector3 origin, Vector3 angles) {
 TeleportPlayerToRandomSpawnPoint
 =================
 */
-void TeleportPlayerToRandomSpawnPoint(gentity_t *ent, bool fx) {
+void TeleportPlayerToRandomSpawnPoint(gentity_t* ent, bool fx) {
 	bool	valid_spawn = false;
 	Vector3	spawn_origin, spawn_angles;
 	bool	is_landmark = false;
@@ -1228,37 +1236,37 @@ CooperativeModeOn
 =================
 */
 bool CooperativeModeOn() {
-        return coop->integer || Game::Is(GameType::Horde);
+	return coop->integer || Game::Is(GameType::Horde);
 }
 
 bool G_LimitedLivesInCoop() {
-        return CooperativeModeOn() && g_coop_enable_lives->integer;
+	return CooperativeModeOn() && g_coop_enable_lives->integer;
 }
 
 bool G_LimitedLivesInLMS() {
-        return Game::Is(GameType::LastManStanding) || Game::Is(GameType::LastTeamStanding);
+	return Game::Is(GameType::LastManStanding) || Game::Is(GameType::LastTeamStanding);
 }
 
 bool G_LimitedLivesActive() {
-        return G_LimitedLivesInCoop() || G_LimitedLivesInLMS();
+	return G_LimitedLivesInCoop() || G_LimitedLivesInLMS();
 }
 
 int G_LimitedLivesMax() {
-        if (G_LimitedLivesInCoop()) {
-                int lives = g_coop_num_lives->integer;
-                if (lives < 0)
-                        lives = 0;
-                return lives + 1;
-        }
+	if (G_LimitedLivesInCoop()) {
+		int lives = g_coop_num_lives->integer;
+		if (lives < 0)
+			lives = 0;
+		return lives + 1;
+	}
 
-        if (G_LimitedLivesInLMS()) {
-                int lives = g_lms_num_lives->integer;
-                if (lives < 0)
-                        lives = 0;
-                return lives + 1;
-        }
+	if (G_LimitedLivesInLMS()) {
+		int lives = g_lms_num_lives->integer;
+		if (lives < 0)
+			lives = 0;
+		return lives + 1;
+	}
 
-        return 0;
+	return 0;
 }
 
 /*
@@ -1266,7 +1274,7 @@ int G_LimitedLivesMax() {
 ClientEntFromString
 =================
 */
-gentity_t *ClientEntFromString(const char *in) {
+gentity_t* ClientEntFromString(const char* in) {
 	// check by nick first
 	for (auto ec : active_clients())
 		if (!strcmp(in, ec->client->sess.netName))
@@ -1313,7 +1321,7 @@ ruleset_t RS_IndexFromString(const char* in) {
 AnnouncerSound
 ===============
 */
-void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
+void AnnouncerSound(gentity_t* announcer, std::string_view soundKey) {
 	if (soundKey.empty()) return;
 
 	const std::string path = G_Fmt("vo/{}.wav", soundKey).data();
@@ -1338,13 +1346,14 @@ void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
 		return;
 	}
 
-	for (auto *targetEnt : active_clients()) {
-		auto *cl = targetEnt->client;
+	for (auto* targetEnt : active_clients()) {
+		auto* cl = targetEnt->client;
 		bool hear = false;
 
 		if (!ClientIsPlaying(cl)) {
 			hear = (cl->follow.target == announcer);
-		} else {
+		}
+		else {
 			hear = (targetEnt == announcer && !cl->sess.is_a_bot);
 		}
 
@@ -1367,7 +1376,7 @@ void AnnouncerSound(gentity_t *announcer, std::string_view soundKey) {
 CreateSpawnPad
 ===============
 */
-void CreateSpawnPad(gentity_t *ent) {
+void CreateSpawnPad(gentity_t* ent) {
 	if (level.no_dm_spawnpads || level.arenaTotal)
 		return;
 
@@ -1398,7 +1407,7 @@ void CreateSpawnPad(gentity_t *ent) {
 LogAccuracyHit
 ===============
 */
-bool LogAccuracyHit(gentity_t *target, gentity_t *attacker) {
+bool LogAccuracyHit(gentity_t* target, gentity_t* attacker) {
 	if (!target->takeDamage)
 		return false;
 
@@ -1407,7 +1416,7 @@ bool LogAccuracyHit(gentity_t *target, gentity_t *attacker) {
 
 	if (!attacker->client)
 		return false;
-	
+
 	if (deathmatch->integer && !target->client)
 		return false;
 
@@ -1427,7 +1436,7 @@ G_LogEvent
 */
 void G_LogEvent(std::string str) {
 	MatchEvent ev;
-	
+
 	if (level.matchState < MatchState::Countdown) {
 		return;
 	}
@@ -1438,12 +1447,13 @@ void G_LogEvent(std::string str) {
 	if (!level.match.eventLog.capacity()) {
 		level.match.eventLog.reserve(2048);
 	}
-	
+
 	ev.time = level.time - level.levelStartTime;
 	ev.eventStr = str;
 	try {
 		level.match.eventLog.push_back(std::move(ev));
-	} catch (const std::exception &e) {
+	}
+	catch (const std::exception& e) {
 		gi.Com_ErrorFmt("eventLog push_back failed: {}", e.what());
 	}
 }
@@ -1455,8 +1465,8 @@ GT_SetLongName
 */
 void GT_SetLongName() {
 	struct {
-		cvar_t *cvar;
-		const char *prefix;
+		cvar_t* cvar;
+		const char* prefix;
 	} suffixModes[] = {
 		{ g_instaGib,        "Insta" },
 		{ g_vampiric_damage, "Vampiric" },
@@ -1465,14 +1475,15 @@ void GT_SetLongName() {
 		{ g_quadhog,         "Quad Hog" },
 	};
 
-	const char *prefix = nullptr;
-	const char *base = nullptr;
+	const char* prefix = nullptr;
+	const char* base = nullptr;
 	bool useShort = false;
 
 	if (!deathmatch->integer) {
 		base = coop->integer ? "Co-op" : "Single Player";
-	} else {
-		for (const auto &mod : suffixModes) {
+	}
+	else {
+		for (const auto& mod : suffixModes) {
 			if (mod.cvar && mod.cvar->integer) {
 				prefix = mod.prefix;
 				useShort = true;
@@ -1483,7 +1494,8 @@ void GT_SetLongName() {
 		if (g_gametype->integer >= 0 && g_gametype->integer < static_cast<int>(GameType::Total)) {
 			base = useShort ? Game::GetCurrentInfo().short_name_upper.data()
 				: Game::GetCurrentInfo().long_name.data();
-		} else {
+		}
+		else {
 			base = "Unknown";
 		}
 	}
@@ -1493,12 +1505,15 @@ void GT_SetLongName() {
 	if (prefix && base) {
 		if (std::strcmp(base, "FFA") == 0 && std::strcmp(prefix, "Insta") == 0) {
 			longName = "InstaGib";
-		} else {
+		}
+		else {
 			longName = fmt::format("{}-{}", prefix, base);
 		}
-	} else if (base) {
+	}
+	else if (base) {
 		longName = base;
-	} else {
+	}
+	else {
 		longName = "Unknown Gametype";
 	}
 
@@ -1516,7 +1531,7 @@ Detect changes in individual player rank
 */
 static void HandleLeadChanges() {
 	for (auto ec : active_players()) {
-		gclient_t *cl = ec->client;
+		gclient_t* cl = ec->client;
 		int newRank = cl->pers.currentRank;
 		int previousRank = cl->pers.previousRank;
 
@@ -1543,7 +1558,8 @@ static void HandleLeadChanges() {
 					spec->client->follow.queuedTime = level.time;
 				}
 			}
-		} else if (previousRank == 0) {
+		}
+		else if (previousRank == 0) {
 			// Lost lead
 			AnnouncerSound(ec, "lead_lost");
 		}
@@ -1575,7 +1591,8 @@ static void HandleTeamLeadChanges() {
 		if (previousRank == 2 && newRank != 2) {
 			// A team just took the lead
 			AnnouncerSound(world, newRank == 0 ? "red_leads" : "blue_leads");
-		} else if (previousRank != 2 && newRank == 2) {
+		}
+		else if (previousRank != 2 && newRank == 2) {
 			// Now tied
 			AnnouncerSound(world, "teams_tied");
 		}
@@ -1605,7 +1622,7 @@ void CalculateRanks() {
 
 	// Phase 1: Gather active clients
 	for (auto ec : active_clients()) {
-		gclient_t *cl = ec->client;
+		gclient_t* cl = ec->client;
 		int clientNum = cl - game.clients;
 
 		level.sortedClients[level.pop.num_connected_clients++] = clientNum;
@@ -1638,7 +1655,8 @@ void CalculateRanks() {
 					level.pop.num_living_red++;
 				else if (cl->eliminated)
 					level.pop.num_eliminated_red++;
-			} else {
+			}
+			else {
 				level.pop.num_playing_blue++;
 				if (cl->pers.health > 0)
 					level.pop.num_living_blue++;
@@ -1668,8 +1686,8 @@ void CalculateRanks() {
 
 	// Sort validated list
 	std::sort(sorted.begin(), sorted.begin() + sortedCount, [](int a, int b) {
-		gclient_t *ca = &game.clients[a];
-		gclient_t *cb = &game.clients[b];
+		gclient_t* ca = &game.clients[a];
+		gclient_t* cb = &game.clients[b];
 
 		if (!ca->pers.connected) return false;
 		if (!cb->pers.connected) return true;
@@ -1707,7 +1725,7 @@ void CalculateRanks() {
 	// Phase 3: Assign ranks
 	if (teams && Game::IsNot(GameType::RedRover)) {
 		for (size_t i = 0; i < level.pop.num_connected_clients; ++i) {
-			gclient_t *cl = &game.clients[level.sortedClients[i]];
+			gclient_t* cl = &game.clients[level.sortedClients[i]];
 
 			if (level.teamScores[static_cast<int>(Team::Red)] == level.teamScores[static_cast<int>(Team::Blue)])
 				cl->pers.currentRank = 2; // tied
@@ -1716,18 +1734,20 @@ void CalculateRanks() {
 			else
 				cl->pers.currentRank = 1; // blue leads
 		}
-	} else {
+	}
+	else {
 		int lastScore = -99999;
 		int currentRank = 0;
 
 		for (size_t i = 0; i < level.pop.num_playing_clients; ++i) {
-			gclient_t *cl = &game.clients[level.sortedClients[i]];
+			gclient_t* cl = &game.clients[level.sortedClients[i]];
 			cl->pers.previousRank = cl->pers.currentRank;
 
 			if (cl->resp.score != lastScore) {
 				currentRank = i;
 				cl->pers.currentRank = currentRank;
-			} else {
+			}
+			else {
 				cl->pers.currentRank = currentRank | RANK_TIED_FLAG;
 				if (i > 0) {
 					game.clients[level.sortedClients[i - 1]].pers.currentRank = currentRank | RANK_TIED_FLAG;
@@ -1765,7 +1785,8 @@ void CalculateRanks() {
 	if (level.matchState == MatchState::In_Progress) {
 		if (!teams && game.clients[level.sortedClients[0]].resp.score > 0) {
 			HandleLeadChanges();
-		} else if (teams && Game::Has(GameFlags::Frags)) {
+		}
+		else if (teams && Game::Has(GameFlags::Frags)) {
 			HandleTeamLeadChanges();
 		}
 	}
@@ -1779,7 +1800,7 @@ TimeStamp
 =============
 */
 std::string TimeStamp() {
-	struct tm *ltime;
+	struct tm* ltime;
 	time_t gmtime;
 
 	time(&gmtime);
@@ -1796,7 +1817,7 @@ FileTimeStamp
 =============
 */
 std::string FileTimeStamp() {
-	struct tm *ltime;
+	struct tm* ltime;
 	time_t gmtime;
 
 	time(&gmtime);
@@ -1813,7 +1834,7 @@ DateStamp
 =============
 */
 std::string DateStamp() {
-	struct tm *ltime;
+	struct tm* ltime;
 	time_t gmtime;
 
 
@@ -1851,7 +1872,7 @@ GetWeaponIndexByAbbrev
 Returns Weapon::None if not found.
 =============
 */
-Weapon GetWeaponIndexByAbbrev(const std::string &abbr) {
+Weapon GetWeaponIndexByAbbrev(const std::string& abbr) {
 	std::string query = abbr;
 	std::transform(query.begin(), query.end(), query.begin(), ::toupper);
 
@@ -1893,7 +1914,7 @@ double GetRealTimeSeconds() {
 Vote_Menu_Active
 =============
 */
-bool Vote_Menu_Active(gentity_t *ent) {
+bool Vote_Menu_Active(gentity_t* ent) {
 	if (level.vote.time <= 0_sec)
 		return false;
 
@@ -1902,7 +1923,7 @@ bool Vote_Menu_Active(gentity_t *ent) {
 
 	if (ent->client->pers.voted)
 		return false;
-	
+
 	if (!g_allowSpecVote->integer && !ClientIsPlaying(ent->client))
 		return false;
 

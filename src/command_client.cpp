@@ -249,13 +249,13 @@ namespace Commands {
 			return;
 		}
 
-                std::string itemQuery = args.joinFrom(1);
-                std::string_view arg1 = args.getString(1);
+		std::string itemQuery = args.joinFrom(1);
+		std::string_view arg1 = args.getString(1);
 
-                if (itemQuery.empty()) {
-                        PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
-                        return;
-                }
+		if (itemQuery.empty()) {
+			PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
+			return;
+		}
 
 		Item* it = nullptr;
 
@@ -285,22 +285,22 @@ namespace Commands {
 				}
 			}
 		}
-                else {
-                        it = FindItem(arg1.data());
+		else {
+			it = FindItem(arg1.data());
 
-                        if (!it) {
-                                if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
-                                        if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
-                                                it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
-                                        }
-                                }
-                        }
-                }
+			if (!it) {
+				if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
+					if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
+						it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
+					}
+				}
+			}
+		}
 
-                if (!it) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
-                        return;
-                }
+		if (!it) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
+			return;
+		}
 
 		if (!it->drop) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
@@ -920,28 +920,28 @@ namespace Commands {
 	}
 
 	void Use(gentity_t* ent, const CommandArgs& args) {
-                std::string itemQuery = args.joinFrom(1);
-                std::string_view itemName = args.getString(1);
-                if (itemQuery.empty()) {
-                        PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
-                        return;
-                }
+		std::string itemQuery = args.joinFrom(1);
+		std::string_view itemName = args.getString(1);
+		if (itemQuery.empty()) {
+			PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
+			return;
+		}
 
-                Item* it = nullptr;
-                if (itemName == "holdable") {
-                        // Logic to find the current holdable item
-                        if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
-                        else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
-                        // ... and so on for other holdables
-                }
-                else {
-                        it = FindItem(itemQuery.c_str());
-                }
+		Item* it = nullptr;
+		if (itemName == "holdable") {
+			// Logic to find the current holdable item
+			if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
+			else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
+			// ... and so on for other holdables
+		}
+		else {
+			it = FindItem(itemQuery.c_str());
+		}
 
-                if (!it) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemQuery.c_str());
-                        return;
-                }
+		if (!it) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemQuery.c_str());
+			return;
+		}
 		if (!it->use) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
 			return;

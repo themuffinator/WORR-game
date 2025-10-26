@@ -1286,9 +1286,9 @@ GibPlayer
 ==================
 */
 static void GibPlayer(gentity_t* self, int damage) {
-        if (self->flags & FL_NOGIB) {
-                return;
-        }
+	if (self->flags & FL_NOGIB) {
+		return;
+	}
 
 	// 1) udeath sound
 	gi.sound(self,
@@ -1382,168 +1382,168 @@ static void GibPlayer(gentity_t* self, int damage) {
 }
 
 static inline bool FreezeTag_IsActive() {
-        return Game::Is(GameType::FreezeTag) && !level.intermission.time;
+	return Game::Is(GameType::FreezeTag) && !level.intermission.time;
 }
 
 static inline bool FreezeTag_IsFrozen(const gentity_t* ent) {
-        return FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated;
+	return FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated;
 }
 
 static GameTime FreezeTag_Duration() {
-        if (!g_frozen_time)
-                return 0_ms;
+	if (!g_frozen_time)
+		return 0_ms;
 
-        return GameTime::from_sec(std::max(0.0f, g_frozen_time->value));
+	return GameTime::from_sec(std::max(0.0f, g_frozen_time->value));
 }
 
 static void FreezeTag_ResetState(gclient_t* cl) {
-        if (!cl)
-                return;
+	if (!cl)
+		return;
 
-        cl->freeze.frozenTime = 0_ms;
-        cl->freeze.thawTime = 0_ms;
-        cl->resp.thawer = nullptr;
+	cl->freeze.frozenTime = 0_ms;
+	cl->freeze.thawTime = 0_ms;
+	cl->resp.thawer = nullptr;
 }
 
 static void FreezeTag_StartFrozenState(gentity_t* ent) {
-        if (!ent || !ent->client)
-                return;
+	if (!ent || !ent->client)
+		return;
 
-        gclient_t* cl = ent->client;
+	gclient_t* cl = ent->client;
 
-        cl->eliminated = true;
-        cl->resp.thawer = nullptr;
-        cl->freeze.frozenTime = level.time;
+	cl->eliminated = true;
+	cl->resp.thawer = nullptr;
+	cl->freeze.frozenTime = level.time;
 
-        const GameTime thawDuration = FreezeTag_Duration();
+	const GameTime thawDuration = FreezeTag_Duration();
 
-        if (thawDuration > 0_ms) {
-                cl->freeze.thawTime = level.time + thawDuration;
-                cl->respawnMinTime = cl->freeze.thawTime;
-                cl->respawnMaxTime = cl->freeze.thawTime;
-        }
-        else {
-                cl->freeze.thawTime = 0_ms;
-                const GameTime hold = level.time + 86400_sec;
-                cl->respawnMinTime = hold;
-                cl->respawnMaxTime = hold;
-        }
+	if (thawDuration > 0_ms) {
+		cl->freeze.thawTime = level.time + thawDuration;
+		cl->respawnMinTime = cl->freeze.thawTime;
+		cl->respawnMaxTime = cl->freeze.thawTime;
+	}
+	else {
+		cl->freeze.thawTime = 0_ms;
+		const GameTime hold = level.time + 86400_sec;
+		cl->respawnMinTime = hold;
+		cl->respawnMaxTime = hold;
+	}
 }
 
 static bool FreezeTag_CanThawTarget(gentity_t* thawer, gentity_t* frozen) {
-        if (!FreezeTag_IsActive())
-                return false;
+	if (!FreezeTag_IsActive())
+		return false;
 
-        if (!thawer || !thawer->client || !frozen || !frozen->client)
-                return false;
+	if (!thawer || !thawer->client || !frozen || !frozen->client)
+		return false;
 
-        if (!ClientIsPlaying(thawer->client) || thawer->client->eliminated)
-                return false;
+	if (!ClientIsPlaying(thawer->client) || thawer->client->eliminated)
+		return false;
 
-        if (!ClientIsPlaying(frozen->client) || !frozen->client->eliminated)
-                return false;
+	if (!ClientIsPlaying(frozen->client) || !frozen->client->eliminated)
+		return false;
 
-        if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
-                return false;
+	if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
+		return false;
 
-        if (frozen->client->resp.thawer)
-                return false;
+	if (frozen->client->resp.thawer)
+		return false;
 
-        return true;
+	return true;
 }
 
 static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
-        if (!FreezeTag_IsActive() || !thawer || !thawer->client)
-                return nullptr;
+	if (!FreezeTag_IsActive() || !thawer || !thawer->client)
+		return nullptr;
 
-        constexpr float THAW_RANGE = 96.0f;
+	constexpr float THAW_RANGE = 96.0f;
 
-        Vector3 forward;
-        AngleVectors(thawer->client->vAngle, forward, nullptr, nullptr);
+	Vector3 forward;
+	AngleVectors(thawer->client->vAngle, forward, nullptr, nullptr);
 
-        Vector3 eyeOrigin = thawer->s.origin + thawer->client->ps.viewOffset +
-                Vector3{ 0, 0, static_cast<float>(thawer->client->ps.pmove.viewHeight) };
+	Vector3 eyeOrigin = thawer->s.origin + thawer->client->ps.viewOffset +
+		Vector3{ 0, 0, static_cast<float>(thawer->client->ps.pmove.viewHeight) };
 
-        trace_t tr = gi.traceLine(eyeOrigin, eyeOrigin + forward * THAW_RANGE, thawer, MASK_SHOT);
-        if (tr.ent && FreezeTag_CanThawTarget(thawer, tr.ent))
-                return tr.ent;
+	trace_t tr = gi.traceLine(eyeOrigin, eyeOrigin + forward * THAW_RANGE, thawer, MASK_SHOT);
+	if (tr.ent && FreezeTag_CanThawTarget(thawer, tr.ent))
+		return tr.ent;
 
-        gentity_t* best = nullptr;
-        float       bestDot = 0.0f;
+	gentity_t* best = nullptr;
+	float       bestDot = 0.0f;
 
-        for (gentity_t* candidate : active_clients()) {
-                if (!FreezeTag_CanThawTarget(thawer, candidate))
-                        continue;
+	for (gentity_t* candidate : active_clients()) {
+		if (!FreezeTag_CanThawTarget(thawer, candidate))
+			continue;
 
-                Vector3 toTarget = candidate->s.origin - thawer->s.origin;
-                const float distance = toTarget.length();
-                if (distance > THAW_RANGE)
-                        continue;
+		Vector3 toTarget = candidate->s.origin - thawer->s.origin;
+		const float distance = toTarget.length();
+		if (distance > THAW_RANGE)
+			continue;
 
-                Vector3 dir = toTarget.normalized();
-                const float dot = dir.dot(forward);
-                if (dot < 0.35f)
-                        continue;
+		Vector3 dir = toTarget.normalized();
+		const float dot = dir.dot(forward);
+		if (dot < 0.35f)
+			continue;
 
-                if (gi.traceLine(eyeOrigin, candidate->s.origin, thawer, MASK_SHOT).fraction != 1.0f)
-                        continue;
+		if (gi.traceLine(eyeOrigin, candidate->s.origin, thawer, MASK_SHOT).fraction != 1.0f)
+			continue;
 
-                if (!best || dot > bestDot) {
-                        best = candidate;
-                        bestDot = dot;
-                }
-        }
+		if (!best || dot > bestDot) {
+			best = candidate;
+			bestDot = dot;
+		}
+	}
 
-        return best;
+	return best;
 }
 
 static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
-        if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
-                return;
+	if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
+		return;
 
-        gclient_t* fcl = frozen->client;
+	gclient_t* fcl = frozen->client;
 
-        if (thawer == frozen)
-                thawer = nullptr;
+	if (thawer == frozen)
+		thawer = nullptr;
 
-        fcl->resp.thawer = thawer;
+	fcl->resp.thawer = thawer;
 
-        if (thawer && thawer->client && awardScore) {
-                ++thawer->client->resp.thawed;
-                G_AdjustPlayerScore(thawer->client, 1, false, 0);
-                gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
-        }
+	if (thawer && thawer->client && awardScore) {
+		++thawer->client->resp.thawed;
+		G_AdjustPlayerScore(thawer->client, 1, false, 0);
+		gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
+	}
 
-        if (thawer && thawer->client) {
-                gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
-        }
-        else if (autoThaw) {
-                gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
-        }
+	if (thawer && thawer->client) {
+		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
+	}
+	else if (autoThaw) {
+		gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
+	}
 
-        MeansOfDeath thawMod{ ModID::Thaw, false };
-        frozen->lastMOD = thawMod;
+	MeansOfDeath thawMod{ ModID::Thaw, false };
+	frozen->lastMOD = thawMod;
 
-        if (frozen->health > frozen->gibHealth)
-                frozen->health = frozen->gibHealth - 1;
+	if (frozen->health > frozen->gibHealth)
+		frozen->health = frozen->gibHealth - 1;
 
-        GibPlayer(frozen, 400);
-        ThrowClientHead(frozen, 400);
+	GibPlayer(frozen, 400);
+	ThrowClientHead(frozen, 400);
 
-        fcl->freeze.thawTime = 0_ms;
-        fcl->freeze.frozenTime = 0_ms;
-        fcl->eliminated = false;
-        fcl->respawnMinTime = level.time;
-        fcl->respawnMaxTime = level.time;
+	fcl->freeze.thawTime = 0_ms;
+	fcl->freeze.frozenTime = 0_ms;
+	fcl->eliminated = false;
+	fcl->respawnMinTime = level.time;
+	fcl->respawnMaxTime = level.time;
 
-        ClientRespawn(frozen);
+	ClientRespawn(frozen);
 }
 
 void FreezeTag_ForceRespawn(gentity_t* ent) {
-        if (!FreezeTag_IsFrozen(ent))
-                return;
+	if (!FreezeTag_IsFrozen(ent))
+		return;
 
-        FreezeTag_ThawPlayer(nullptr, ent, false, true);
+	FreezeTag_ThawPlayer(nullptr, ent, false, true);
 }
 
 /*
@@ -1734,63 +1734,64 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 		}
 	}
 
-        if (!self->deadFlag) {
-                if (G_LimitedLivesInCoop()) {
-                        if (self->client->pers.lives > 0) {
-                                self->client->pers.lives--;
-                                self->client->pers.limitedLivesStash = self->client->pers.lives;
-                                self->client->pers.limitedLivesPersist = true;
-                                if (self->client->resp.coopRespawn.lives > 0)
-                                        self->client->resp.coopRespawn.lives--;
-                        }
+	if (!self->deadFlag) {
+		if (G_LimitedLivesInCoop()) {
+			if (self->client->pers.lives > 0) {
+				self->client->pers.lives--;
+				self->client->pers.limitedLivesStash = self->client->pers.lives;
+				self->client->pers.limitedLivesPersist = true;
+				if (self->client->resp.coopRespawn.lives > 0)
+					self->client->resp.coopRespawn.lives--;
+			}
 
-                        bool allPlayersDead = true;
+			bool allPlayersDead = true;
 
-                        for (auto player : active_clients())
-                                if (player->health > 0 || (!level.campaign.deadly_kill_box && player->client->pers.lives > 0)) {
-                                        allPlayersDead = false;
-                                        break;
-                                }
+			for (auto player : active_clients())
+				if (player->health > 0 || (!level.campaign.deadly_kill_box && player->client->pers.lives > 0)) {
+					allPlayersDead = false;
+					break;
+				}
 
-                        if (allPlayersDead) {
-                                level.campaign.coopLevelRestartTime = level.time + 5_sec;
+			if (allPlayersDead) {
+				level.campaign.coopLevelRestartTime = level.time + 5_sec;
 
-                                for (auto player : active_clients())
-                                        gi.LocCenter_Print(player, "$g_coop_lose");
-                        }
+				for (auto player : active_clients())
+					gi.LocCenter_Print(player, "$g_coop_lose");
+			}
 
-                        if (!level.campaign.coopLevelRestartTime)
-                                self->client->respawnMaxTime = level.time + 3_sec;
-                } else if (G_LimitedLivesInLMS()) {
-                        if (self->client->pers.lives > 0) {
-                                self->client->pers.lives--;
-                                self->client->pers.limitedLivesStash = self->client->pers.lives;
-                                self->client->pers.limitedLivesPersist = true;
+			if (!level.campaign.coopLevelRestartTime)
+				self->client->respawnMaxTime = level.time + 3_sec;
+		}
+		else if (G_LimitedLivesInLMS()) {
+			if (self->client->pers.lives > 0) {
+				self->client->pers.lives--;
+				self->client->pers.limitedLivesStash = self->client->pers.lives;
+				self->client->pers.limitedLivesPersist = true;
 
-                                if (self->client->pers.lives > 0)
-                                        self->client->coopRespawnState = CoopRespawn::None;
-                        }
+				if (self->client->pers.lives > 0)
+					self->client->coopRespawnState = CoopRespawn::None;
+			}
 
-                        if (self->client->pers.lives == 0) {
-                                self->client->eliminated = true;
-                                self->client->coopRespawnState = CoopRespawn::NoLives;
-                                CalculateRanks();
-                        }
-                }
-        }
+			if (self->client->pers.lives == 0) {
+				self->client->eliminated = true;
+				self->client->coopRespawnState = CoopRespawn::NoLives;
+				CalculateRanks();
+			}
+		}
+	}
 
-        if (FreezeTag_IsActive()) {
-                FreezeTag_StartFrozenState(self);
-        }
-        else {
-                FreezeTag_ResetState(self->client);
-        }
+	if (FreezeTag_IsActive()) {
+		FreezeTag_StartFrozenState(self);
+	}
+	else {
+		FreezeTag_ResetState(self->client);
+	}
 
-        G_LogDeathEvent(self, attacker, mod);
+	G_LogDeathEvent(self, attacker, mod);
 
-        self->deadFlag = true;
+	self->deadFlag = true;
 
-        gi.linkEntity(self);
+	gi.linkEntity(self);
 }
 
 //=======================================================================
@@ -2071,12 +2072,12 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 		client->pers.lastWeapon = client->pers.weapon;
 	}
 
-        client->pers.limitedLivesPersist = false;
-        client->pers.limitedLivesStash = 0;
-        if (G_LimitedLivesActive()) {
-                client->pers.lives = G_LimitedLivesMax();
-                client->pers.limitedLivesStash = client->pers.lives;
-        }
+	client->pers.limitedLivesPersist = false;
+	client->pers.limitedLivesStash = 0;
+	if (G_LimitedLivesActive()) {
+		client->pers.lives = G_LimitedLivesMax();
+		client->pers.limitedLivesStash = client->pers.lives;
+	}
 
 	if (ent->client->pers.autoshield >= AUTO_SHIELD_AUTO)
 		ent->flags |= FL_WANTS_POWER_ARMOR;
@@ -2268,19 +2269,19 @@ void G_PostRespawn(gentity_t* self) {
 }
 
 void ClientRespawn(gentity_t* ent) {
-        if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
-                const bool gibbed = ent->health <= ent->gibHealth;
-                if (!ent->client->resp.thawer && !gibbed)
-                        return;
+	if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
+		const bool gibbed = ent->health <= ent->gibHealth;
+		if (!ent->client->resp.thawer && !gibbed)
+			return;
 
-                ent->client->eliminated = false;
-        }
+		ent->client->eliminated = false;
+	}
 
-        if (deathmatch->integer || coop->integer) {
-                // spectators don't leave bodies
-                if (ClientIsPlaying(ent->client))
-                        CopyToBodyQue(ent);
-                ent->svFlags &= ~SVF_NOCLIENT;
+	if (deathmatch->integer || coop->integer) {
+		// spectators don't leave bodies
+		if (ClientIsPlaying(ent->client))
+			CopyToBodyQue(ent);
+		ent->svFlags &= ~SVF_NOCLIENT;
 
 		if (Game::Is(GameType::RedRover) && level.matchState == MatchState::In_Progress) {
 			ent->client->sess.team = Teams_OtherTeam(ent->client->sess.team);
@@ -2288,16 +2289,16 @@ void ClientRespawn(gentity_t* ent) {
 			AssignPlayerSkin(ent, ent->client->sess.skinName);
 		}
 
-                ClientSpawn(ent);
-                G_PostRespawn(ent);
+		ClientSpawn(ent);
+		G_PostRespawn(ent);
 
-                if (FreezeTag_IsActive())
-                        FreezeTag_ResetState(ent->client);
-                return;
-        }
+		if (FreezeTag_IsActive())
+			FreezeTag_ResetState(ent->client);
+		return;
+	}
 
-        // restart the entire server
-        gi.AddCommandString("menu_loadgame\n");
+	// restart the entire server
+	gi.AddCommandString("menu_loadgame\n");
 }
 
 //==============================================================
@@ -2621,9 +2622,9 @@ static void G_SetLevelEntry() {
 		if (g_coop_enable_lives->integer) {
 			for (auto ec : active_clients()) {
 				const int max_lives = g_coop_num_lives->integer + 1;
-                                ec->client->pers.lives = std::min(max_lives, ec->client->pers.lives + 1);
-                                ec->client->pers.limitedLivesStash = ec->client->pers.lives;
-                                ec->client->pers.limitedLivesPersist = true;
+				ec->client->pers.lives = std::min(max_lives, ec->client->pers.lives + 1);
+				ec->client->pers.limitedLivesStash = ec->client->pers.lives;
+				ec->client->pers.limitedLivesPersist = true;
 			}
 		}
 	}
@@ -2771,20 +2772,20 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	if (!ent || !ent->client)
 		return false;
 
-        gclient_t* cl = ent->client;
-        const bool wasInitialised = cl->sess.initialised;
-        const Team old_team = cl->sess.team;
-        const bool wasPlaying = ClientIsPlaying(cl);
-        const bool duel = Game::Has(GameFlags::OneVOne);
-        const int clientNum = static_cast<int>(cl - game.clients);
+	gclient_t* cl = ent->client;
+	const bool wasInitialised = cl->sess.initialised;
+	const Team old_team = cl->sess.team;
+	const bool wasPlaying = ClientIsPlaying(cl);
+	const bool duel = Game::Has(GameFlags::OneVOne);
+	const int clientNum = static_cast<int>(cl - game.clients);
 
-        if (!force && cl->resp.teamDelayTime > level.time) {
-                gi.LocClient_Print(ent, PRINT_HIGH, ".You must wait before switching teams again.\n");
-                return false;
-        }
+	if (!force && cl->resp.teamDelayTime > level.time) {
+		gi.LocClient_Print(ent, PRINT_HIGH, ".You must wait before switching teams again.\n");
+		return false;
+	}
 
-        Team target = desired_team;
-        bool requestQueue = duel && desired_team == Team::None;
+	Team target = desired_team;
+	bool requestQueue = duel && desired_team == Team::None;
 
 	if (!deathmatch->integer) {
 		target = (desired_team == Team::Spectator) ? Team::Spectator : Team::Free;
@@ -2807,52 +2808,52 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	bool joinPlaying = (target != Team::Spectator);
 	const bool matchLocked = match_lock->integer && level.matchState >= MatchState::Countdown;
 
-        if (joinPlaying && !requestQueue && !force) {
-                if (matchLocked && !wasPlaying) {
-                        if (duel) {
-                                target = Team::Spectator;
-                                joinPlaying = false;
-                                requestQueue = true;
+	if (joinPlaying && !requestQueue && !force) {
+		if (matchLocked && !wasPlaying) {
+			if (duel) {
+				target = Team::Spectator;
+				joinPlaying = false;
+				requestQueue = true;
 			}
 			else {
 				if (!silent)
 					gi.LocClient_Print(ent, PRINT_HIGH, "The match is locked.\n");
 				return false;
 			}
-                }
-        }
+		}
+	}
 
-        if (joinPlaying) {
-                const TeamJoinCapacityAction capacityAction = EvaluateTeamJoinCapacity(
-                        joinPlaying,
-                        requestQueue,
-                        force,
-                        wasPlaying,
-                        duel,
-                        !cl->sess.is_a_bot,
-                        level.pop.num_playing_human_clients,
-                        maxplayers->integer);
+	if (joinPlaying) {
+		const TeamJoinCapacityAction capacityAction = EvaluateTeamJoinCapacity(
+			joinPlaying,
+			requestQueue,
+			force,
+			wasPlaying,
+			duel,
+			!cl->sess.is_a_bot,
+			level.pop.num_playing_human_clients,
+			maxplayers->integer);
 
-                switch (capacityAction) {
-                case TeamJoinCapacityAction::Allow:
-                        break;
-                case TeamJoinCapacityAction::QueueForDuel:
-                        target = Team::Spectator;
-                        joinPlaying = false;
-                        requestQueue = true;
-                        break;
-                case TeamJoinCapacityAction::Deny:
-                        if (!silent)
-                                gi.LocClient_Print(ent, PRINT_HIGH, "Server is full.\n");
-                        return false;
-                }
-        }
+		switch (capacityAction) {
+		case TeamJoinCapacityAction::Allow:
+			break;
+		case TeamJoinCapacityAction::QueueForDuel:
+			target = Team::Spectator;
+			joinPlaying = false;
+			requestQueue = true;
+			break;
+		case TeamJoinCapacityAction::Deny:
+			if (!silent)
+				gi.LocClient_Print(ent, PRINT_HIGH, "Server is full.\n");
+			return false;
+		}
+	}
 
-        if (joinPlaying && !requestQueue && duel && !force && !wasPlaying) {
-                int playingClients = 0;
-                for (auto ec : active_clients()) {
-                        if (ec && ec->client && ClientIsPlaying(ec->client))
-                                ++playingClients;
+	if (joinPlaying && !requestQueue && duel && !force && !wasPlaying) {
+		int playingClients = 0;
+		for (auto ec : active_clients()) {
+			if (ec && ec->client && ClientIsPlaying(ec->client))
+				++playingClients;
 		}
 		if (playingClients >= 2) {
 			target = Team::Spectator;
@@ -2890,14 +2891,14 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inactiveStatus = spectatorInactive;
 		cl->sess.inactivityWarning = false;
 		cl->sess.inactivityTime = 0_sec;
-                cl->sess.inGame = false;
-                cl->sess.initialised = true;
-                cl->pers.readyStatus = false;
-                if (G_LimitedLivesActive()) {
-                        cl->pers.limitedLivesStash = cl->pers.lives;
-                        cl->pers.limitedLivesPersist = true;
-                }
-                cl->pers.spawned = false;
+		cl->sess.inGame = false;
+		cl->sess.initialised = true;
+		cl->pers.readyStatus = false;
+		if (G_LimitedLivesActive()) {
+			cl->pers.limitedLivesStash = cl->pers.lives;
+			cl->pers.limitedLivesPersist = true;
+		}
+		cl->pers.spawned = false;
 
 		cl->buttons = BUTTON_NONE;
 		cl->oldButtons = BUTTON_NONE;
@@ -2961,14 +2962,14 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		ClientRespawn(ent);
 	}
 
-        BroadcastTeamChange(ent, old_team, spectatorInactive, silent);
-        CalculateRanks();
-        ClientUpdateFollowers(ent);
+	BroadcastTeamChange(ent, old_team, spectatorInactive, silent);
+	CalculateRanks();
+	ClientUpdateFollowers(ent);
 
-        if (!force && wasInitialised && changedTeam)
-                cl->resp.teamDelayTime = level.time + 5_sec;
+	if (!force && wasInitialised && changedTeam)
+		cl->resp.teamDelayTime = level.time + 5_sec;
 
-        return true;
+	return true;
 }
 
 
@@ -2982,7 +2983,7 @@ to be placed into the game.  This will happen every level load.
 ============
 */
 void ClientBegin(gentity_t* ent) {
-	gclient_t *cl = game.clients + (ent - g_entities - 1);
+	gclient_t* cl = game.clients + (ent - g_entities - 1);
 	cl->awaitingRespawn = false;
 	cl->respawn_timeout = 0_ms;
 
@@ -3602,10 +3603,10 @@ void ClientDisconnect(gentity_t* ent) {
 	ent->inUse = false;
 	ent->sv.init = false;
 	ent->className = "disconnected";
-        ent->client->pers.connected = false;
-        ent->client->pers.limitedLivesPersist = false;
-        ent->client->pers.limitedLivesStash = 0;
-        ent->client->pers.spawned = false;
+	ent->client->pers.connected = false;
+	ent->client->pers.limitedLivesPersist = false;
+	ent->client->pers.limitedLivesStash = 0;
+	ent->client->pers.spawned = false;
 	ent->timeStamp = level.time + 1_sec;
 
 	if (ent->client->pers.spawned)
@@ -3963,22 +3964,22 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	// [Paril-KEX] pass buttons through even if we are in intermission or
 	// chasing.
 	cl->oldButtons = cl->buttons;
-        cl->buttons = ucmd->buttons;
-        cl->latchedButtons |= cl->buttons & ~cl->oldButtons;
-        cl->cmd = *ucmd;
+	cl->buttons = ucmd->buttons;
+	cl->latchedButtons |= cl->buttons & ~cl->oldButtons;
+	cl->cmd = *ucmd;
 
-        if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
-                if (gentity_t* target = FreezeTag_FindFrozenTarget(ent))
-                        FreezeTag_ThawPlayer(ent, target, true, false);
+	if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
+		if (gentity_t* target = FreezeTag_FindFrozenTarget(ent))
+			FreezeTag_ThawPlayer(ent, target, true, false);
 
-                cl->latchedButtons &= ~BUTTON_USE;
-        }
+		cl->latchedButtons &= ~BUTTON_USE;
+	}
 
-        if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
-                if (!ClientIsPlaying(cl) && (!cl->sess.initialised || cl->sess.inactiveStatus)) {
-                        if (ent == host) {
-                                if (!g_autoScreenshotTool->integer) {
-                                        if (g_owner_push_scores->integer)
+	if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
+		if (!ClientIsPlaying(cl) && (!cl->sess.initialised || cl->sess.inactiveStatus)) {
+			if (ent == host) {
+				if (!g_autoScreenshotTool->integer) {
+					if (g_owner_push_scores->integer)
 						Commands::Score(ent, CommandArgs{});
 					else OpenJoinMenu(ent);
 				}
@@ -4296,7 +4297,7 @@ static inline bool G_MonstersSearchingFor(gentity_t* player) {
 		// they're not targeting us, so who cares
 		else if (player != nullptr && ent->enemy != player)
 			continue;
-		
+
 		// they lost sight of us
 		if ((ent->monsterInfo.aiFlags & AI_LOST_SIGHT) && level.time > ent->monsterInfo.trailTime + 5_sec)
 			continue;
@@ -4443,96 +4444,96 @@ enum respawn_state_t {
 // note that this is only called if they are allowed to respawn (not
 // restarting the level due to all being dead)
 static bool G_LimitedLivesRespawn(gentity_t* ent) {
-        if (CooperativeModeOn()) {
-                const bool limitedLives = G_LimitedLivesInCoop();
-                const bool allowSquadRespawn = coop->integer && g_coop_squad_respawn->integer;
+	if (CooperativeModeOn()) {
+		const bool limitedLives = G_LimitedLivesInCoop();
+		const bool allowSquadRespawn = coop->integer && g_coop_squad_respawn->integer;
 
-                if (!allowSquadRespawn && !limitedLives)
-                        return false;
+		if (!allowSquadRespawn && !limitedLives)
+			return false;
 
-                respawn_state_t state = RESPAWN_NONE;
+		respawn_state_t state = RESPAWN_NONE;
 
-                if (limitedLives && ent->client->pers.lives == 0) {
-                        state = RESPAWN_SPECTATE;
-                        ent->client->coopRespawnState = CoopRespawn::NoLives;
-                }
+		if (limitedLives && ent->client->pers.lives == 0) {
+			state = RESPAWN_SPECTATE;
+			ent->client->coopRespawnState = CoopRespawn::NoLives;
+		}
 
-                if (state == RESPAWN_NONE) {
-                        if (allowSquadRespawn) {
-                                bool allDead = true;
+		if (state == RESPAWN_NONE) {
+			if (allowSquadRespawn) {
+				bool allDead = true;
 
-                                for (auto player : active_clients()) {
-                                        if (player->health > 0) {
-                                                allDead = false;
-                                                break;
-                                        }
-                                }
+				for (auto player : active_clients()) {
+					if (player->health > 0) {
+						allDead = false;
+						break;
+					}
+				}
 
-                                if (allDead)
-                                        state = RESPAWN_START;
-                                else {
-                                        auto [good_player, good_spot] = G_FindSquadRespawnTarget();
+				if (allDead)
+					state = RESPAWN_START;
+				else {
+					auto [good_player, good_spot] = G_FindSquadRespawnTarget();
 
-                                        if (good_player) {
-                                                state = RESPAWN_SQUAD;
+					if (good_player) {
+						state = RESPAWN_SQUAD;
 
-                                                ent->client->coopRespawn.squadOrigin = good_spot;
-                                                ent->client->coopRespawn.squadAngles = good_player->s.angles;
-                                                ent->client->coopRespawn.squadAngles[ROLL] = 0;
+						ent->client->coopRespawn.squadOrigin = good_spot;
+						ent->client->coopRespawn.squadAngles = good_player->s.angles;
+						ent->client->coopRespawn.squadAngles[ROLL] = 0;
 
-                                                ent->client->coopRespawn.useSquad = true;
-                                        }
-                                        else {
-                                                state = RESPAWN_SPECTATE;
-                                        }
-                                }
-                        }
-                        else
-                                state = RESPAWN_START;
-                }
+						ent->client->coopRespawn.useSquad = true;
+					}
+					else {
+						state = RESPAWN_SPECTATE;
+					}
+				}
+			}
+			else
+				state = RESPAWN_START;
+		}
 
-                if (state == RESPAWN_SQUAD || state == RESPAWN_START) {
-                        if (P_UseCoopInstancedItems())
-                                ent->client->pers.health = ent->client->pers.maxHealth = ent->maxHealth;
+		if (state == RESPAWN_SQUAD || state == RESPAWN_START) {
+			if (P_UseCoopInstancedItems())
+				ent->client->pers.health = ent->client->pers.maxHealth = ent->maxHealth;
 
-                        ClientRespawn(ent);
+			ClientRespawn(ent);
 
-                        ent->client->latchedButtons = BUTTON_NONE;
-                        ent->client->coopRespawn.useSquad = false;
-                }
-                else if (state == RESPAWN_SPECTATE) {
-                        if (!static_cast<int>(ent->client->coopRespawnState))
-                                ent->client->coopRespawnState = CoopRespawn::Waiting;
+			ent->client->latchedButtons = BUTTON_NONE;
+			ent->client->coopRespawn.useSquad = false;
+		}
+		else if (state == RESPAWN_SPECTATE) {
+			if (!static_cast<int>(ent->client->coopRespawnState))
+				ent->client->coopRespawnState = CoopRespawn::Waiting;
 
-                        if (ClientIsPlaying(ent->client)) {
-                                CopyToBodyQue(ent);
-                                ent->client->sess.team = Team::Spectator;
-                                MoveClientToFreeCam(ent);
-                                gi.linkEntity(ent);
-                                GetFollowTarget(ent);
-                        }
-                }
+			if (ClientIsPlaying(ent->client)) {
+				CopyToBodyQue(ent);
+				ent->client->sess.team = Team::Spectator;
+				MoveClientToFreeCam(ent);
+				gi.linkEntity(ent);
+				GetFollowTarget(ent);
+			}
+		}
 
-                return true;
-        }
+		return true;
+	}
 
-        if (G_LimitedLivesInLMS()) {
-                if (ent->client->pers.lives == 0) {
-                        ent->client->eliminated = true;
-                        ent->client->coopRespawnState = CoopRespawn::NoLives;
-                        if (ClientIsPlaying(ent->client)) {
-                                CopyToBodyQue(ent);
-                                MoveClientToFreeCam(ent);
-                                gi.linkEntity(ent);
-                                GetFollowTarget(ent);
-                        }
-                        return true;
-                }
-                ent->client->coopRespawnState = CoopRespawn::None;
-                return false;
-        }
+	if (G_LimitedLivesInLMS()) {
+		if (ent->client->pers.lives == 0) {
+			ent->client->eliminated = true;
+			ent->client->coopRespawnState = CoopRespawn::NoLives;
+			if (ClientIsPlaying(ent->client)) {
+				CopyToBodyQue(ent);
+				MoveClientToFreeCam(ent);
+				gi.linkEntity(ent);
+				GetFollowTarget(ent);
+			}
+			return true;
+		}
+		ent->client->coopRespawnState = CoopRespawn::None;
+		return false;
+	}
 
-        return false;
+	return false;
 }
 
 /*
@@ -4553,20 +4554,20 @@ void ClientBeginServerFrame(gentity_t* ent) {
 	if (level.intermission.time)
 		return;
 
-        client = ent->client;
+	client = ent->client;
 
-        if (FreezeTag_IsActive() && client->eliminated && !client->resp.thawer) {
-                if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
-                        FreezeTag_ThawPlayer(nullptr, ent, false, true);
-                        return;
-                }
-        }
+	if (FreezeTag_IsActive() && client->eliminated && !client->resp.thawer) {
+		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+			FreezeTag_ThawPlayer(nullptr, ent, false, true);
+			return;
+		}
+	}
 
-        if (client->awaitingRespawn) {
-                if ((level.time.milliseconds() % 500) == 0)
-                        ClientSpawn(ent);
-                return;
-        }
+	if (client->awaitingRespawn) {
+		if ((level.time.milliseconds() % 500) == 0)
+			ClientSpawn(ent);
+		return;
+	}
 
 	if ((ent->svFlags & SVF_BOT) != 0) {
 		Bot_BeginFrame(ent);
@@ -4596,7 +4597,7 @@ void ClientBeginServerFrame(gentity_t* ent) {
 		else if (level.time > client->respawnMaxTime && !level.campaign.coopLevelRestartTime) {
 			// don't respawn if level is waiting to restart
 			// check for coop handling
-                        if (!G_LimitedLivesRespawn(ent)) {
+			if (!G_LimitedLivesRespawn(ent)) {
 				// in deathmatch, only wait for attack button
 				if ((client->latchedButtons & (deathmatch->integer ? BUTTON_ATTACK : -1)) ||
 					(deathmatch->integer && match_doForceRespawn->integer)) {

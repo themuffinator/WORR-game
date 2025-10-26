@@ -25,7 +25,7 @@ using nullptr_t = std::nullptr_t;
 struct Vector3 {
 	float x = 0, y = 0, z = 0;
 
-	[[nodiscard]] constexpr const float &operator[](size_t i) const {
+	[[nodiscard]] constexpr const float& operator[](size_t i) const {
 		if (i == 0)
 			return x;
 		else if (i == 1)
@@ -35,7 +35,7 @@ struct Vector3 {
 		throw std::out_of_range("i");
 	}
 
-	[[nodiscard]] constexpr float &operator[](size_t i) {
+	[[nodiscard]] constexpr float& operator[](size_t i) {
 		if (i == 0)
 			return x;
 		else if (i == 1)
@@ -46,16 +46,16 @@ struct Vector3 {
 	}
 
 	// comparison
-	[[nodiscard]] constexpr bool equals(const Vector3 &v) const {
+	[[nodiscard]] constexpr bool equals(const Vector3& v) const {
 		return x == v.x && y == v.y && z == v.z;
 	}
-	[[nodiscard]] inline bool equals(const Vector3 &v, const float &epsilon) const {
+	[[nodiscard]] inline bool equals(const Vector3& v, const float& epsilon) const {
 		return std::fabs(x - v.x) <= epsilon && std::fabs(y - v.y) <= epsilon && std::fabs(z - v.z) <= epsilon;
 	}
-	[[nodiscard]] constexpr bool operator==(const Vector3 &v) const {
+	[[nodiscard]] constexpr bool operator==(const Vector3& v) const {
 		return equals(v);
 	}
-	[[nodiscard]] constexpr bool operator!=(const Vector3 &v) const {
+	[[nodiscard]] constexpr bool operator!=(const Vector3& v) const {
 		return !(*this == v);
 	}
 	[[nodiscard]] constexpr explicit operator bool() const {
@@ -63,58 +63,58 @@ struct Vector3 {
 	}
 
 	// dot
-	[[nodiscard]] constexpr float dot(const Vector3 &v) const {
+	[[nodiscard]] constexpr float dot(const Vector3& v) const {
 		return (x * v.x) + (y * v.y) + (z * v.z);
 	}
-	[[nodiscard]] constexpr Vector3 scaled(const Vector3 &v) const {
+	[[nodiscard]] constexpr Vector3 scaled(const Vector3& v) const {
 		return { x * v.x, y * v.y, z * v.z };
 	}
-	constexpr Vector3 &scale(const Vector3 &v) {
+	constexpr Vector3& scale(const Vector3& v) {
 		*this = this->scaled(v);
 		return *this;
 	}
 
 	// basic operators
-	[[nodiscard]] constexpr Vector3 operator-(const Vector3 &v) const {
+	[[nodiscard]] constexpr Vector3 operator-(const Vector3& v) const {
 		return { x - v.x, y - v.y, z - v.z };
 	}
-	[[nodiscard]] constexpr Vector3 operator+(const Vector3 &v) const {
+	[[nodiscard]] constexpr Vector3 operator+(const Vector3& v) const {
 		return { x + v.x, y + v.y, z + v.z };
 	}
-	[[nodiscard]] constexpr Vector3 operator/(const Vector3 &v) const {
+	[[nodiscard]] constexpr Vector3 operator/(const Vector3& v) const {
 		return { x / v.x, y / v.y, z / v.z };
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
-	[[nodiscard]] constexpr Vector3 operator/(const T &v) const {
+	[[nodiscard]] constexpr Vector3 operator/(const T& v) const {
 		return { static_cast<float>(x / v), static_cast<float>(y / v), static_cast<float>(z / v) };
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
-	[[nodiscard]] constexpr Vector3 operator*(const T &v) const {
+	[[nodiscard]] constexpr Vector3 operator*(const T& v) const {
 		return { static_cast<float>(x * v), static_cast<float>(y * v), static_cast<float>(z * v) };
 	}
 	[[nodiscard]] constexpr Vector3 operator-() const {
 		return { -x, -y, -z };
 	}
 
-	constexpr Vector3 &operator-=(const Vector3 &v) {
+	constexpr Vector3& operator-=(const Vector3& v) {
 		*this = *this - v;
 		return *this;
 	}
-	constexpr Vector3 &operator+=(const Vector3 &v) {
+	constexpr Vector3& operator+=(const Vector3& v) {
 		*this = *this + v;
 		return *this;
 	}
-	constexpr Vector3 &operator/=(const Vector3 &v) {
+	constexpr Vector3& operator/=(const Vector3& v) {
 		*this = *this / v;
 		return *this;
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
-	constexpr Vector3 &operator/=(const T &v) {
+	constexpr Vector3& operator/=(const T& v) {
 		*this = *this / v;
 		return *this;
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
-	constexpr Vector3 &operator*=(const T &v) {
+	constexpr Vector3& operator*=(const T& v) {
 		*this = *this * v;
 		return *this;
 	}
@@ -130,7 +130,7 @@ struct Vector3 {
 		float len = length();
 		return len ? (*this * (1.f / len)) : *this;
 	}
-	[[nodiscard]] inline Vector3 normalized(float &len) const {
+	[[nodiscard]] inline Vector3 normalized(float& len) const {
 		len = length();
 		return len ? (*this * (1.f / len)) : *this;
 	}
@@ -142,7 +142,7 @@ struct Vector3 {
 
 		return len;
 	}
-	[[nodiscard]] constexpr Vector3 cross(const Vector3 &v) const {
+	[[nodiscard]] constexpr Vector3 cross(const Vector3& v) const {
 		return {
 			y * v.z - z * v.y,
 			z * v.x - x * v.z,
@@ -153,7 +153,7 @@ struct Vector3 {
 
 constexpr Vector3 vec3_origin{};
 
-inline void AngleVectors(const Vector3 &angles, Vector3 *forward, Vector3 *right, Vector3 *up) {
+inline void AngleVectors(const Vector3& angles, Vector3* forward, Vector3* right, Vector3* up) {
 	float angle = angles[YAW] * (PIf * 2 / 360);
 	float sy = std::sinf(angle);
 	float cy = cosf(angle);
@@ -186,38 +186,38 @@ struct angle_vectors_t {
 };
 
 // for destructuring
-inline angle_vectors_t AngleVectors(const Vector3 &angles) {
+inline angle_vectors_t AngleVectors(const Vector3& angles) {
 	angle_vectors_t v{};
 	AngleVectors(angles, &v.forward, &v.right, &v.up);
 	return v;
 }
 
 // silly wrappers to allow old C code to work
-inline void AngleVectors(const Vector3 &angles, Vector3 &forward, Vector3 &right, Vector3 &up) {
+inline void AngleVectors(const Vector3& angles, Vector3& forward, Vector3& right, Vector3& up) {
 	AngleVectors(angles, &forward, &right, &up);
 }
-inline void AngleVectors(const Vector3 &angles, Vector3 &forward, Vector3 &right, nullptr_t) {
+inline void AngleVectors(const Vector3& angles, Vector3& forward, Vector3& right, nullptr_t) {
 	AngleVectors(angles, &forward, &right, nullptr);
 }
-inline void AngleVectors(const Vector3 &angles, Vector3 &forward, nullptr_t, Vector3 &up) {
+inline void AngleVectors(const Vector3& angles, Vector3& forward, nullptr_t, Vector3& up) {
 	AngleVectors(angles, &forward, nullptr, &up);
 }
-inline void AngleVectors(const Vector3 &angles, Vector3 &forward, nullptr_t, nullptr_t) {
+inline void AngleVectors(const Vector3& angles, Vector3& forward, nullptr_t, nullptr_t) {
 	AngleVectors(angles, &forward, nullptr, nullptr);
 }
-inline void AngleVectors(const Vector3 &angles, nullptr_t, nullptr_t, Vector3 &up) {
+inline void AngleVectors(const Vector3& angles, nullptr_t, nullptr_t, Vector3& up) {
 	AngleVectors(angles, nullptr, nullptr, &up);
 }
-inline void AngleVectors(const Vector3 &angles, nullptr_t, Vector3 &right, nullptr_t) {
+inline void AngleVectors(const Vector3& angles, nullptr_t, Vector3& right, nullptr_t) {
 	AngleVectors(angles, nullptr, &right, nullptr);
 }
 
-inline void ClearBounds(Vector3 &mins, Vector3 &maxs) {
+inline void ClearBounds(Vector3& mins, Vector3& maxs) {
 	mins[0] = mins[1] = mins[2] = std::numeric_limits<float>::infinity();
 	maxs[0] = maxs[1] = maxs[2] = -std::numeric_limits<float>::infinity();
 }
 
-inline void AddPointToBounds(const Vector3 &v, Vector3 &mins, Vector3 &maxs) {
+inline void AddPointToBounds(const Vector3& v, Vector3& mins, Vector3& maxs) {
 	for (int i = 0; i < 3; i++) {
 		float val = v[i];
 		if (val < mins[i])
@@ -227,7 +227,7 @@ inline void AddPointToBounds(const Vector3 &v, Vector3 &mins, Vector3 &maxs) {
 	}
 }
 
-[[nodiscard]] constexpr Vector3 ProjectPointOnPlane(const Vector3 &p, const Vector3 &normal) {
+[[nodiscard]] constexpr Vector3 ProjectPointOnPlane(const Vector3& p, const Vector3& normal) {
 	float inv_denom = 1.0f / normal.dot(normal);
 	float d = normal.dot(p) * inv_denom;
 	return p - ((normal * inv_denom) * d);
@@ -236,7 +236,7 @@ inline void AddPointToBounds(const Vector3 &v, Vector3 &mins, Vector3 &maxs) {
 /*
 ** assumes "src" is normalized
 */
-[[nodiscard]] inline Vector3 PerpendicularVector(const Vector3 &src) {
+[[nodiscard]] inline Vector3 PerpendicularVector(const Vector3& src) {
 	int	   pos;
 	int	   i;
 	float  minelem = 1.0F;
@@ -267,7 +267,7 @@ using mat3_t = std::array<std::array<float, 3>, 3>;
 R_ConcatRotations
 ================
 */
-[[nodiscard]] constexpr mat3_t R_ConcatRotations(const mat3_t &in1, const mat3_t &in2) {
+[[nodiscard]] constexpr mat3_t R_ConcatRotations(const mat3_t& in1, const mat3_t& in2) {
 	return {
 		std::array<float, 3> {
 			in1[0][0] * in2[0][0] + in1[0][1] * in2[1][0] + in1[0][2] * in2[2][0],
@@ -287,7 +287,7 @@ R_ConcatRotations
 	};
 }
 
-[[nodiscard]] inline Vector3 RotatePointAroundVector(const Vector3 &dir, const Vector3 &point, float degrees) {
+[[nodiscard]] inline Vector3 RotatePointAroundVector(const Vector3& dir, const Vector3& point, float degrees) {
 	mat3_t	m{};
 	mat3_t  im;
 	mat3_t  zrot;
@@ -356,14 +356,15 @@ R_ConcatRotations
 	};
 }
 
-[[nodiscard]] inline float distance_between_boxes(const Vector3 &absminsa, const Vector3 &absmaxsa, const Vector3 &absminsb, const Vector3 &absmaxsb) {
+[[nodiscard]] inline float distance_between_boxes(const Vector3& absminsa, const Vector3& absmaxsa, const Vector3& absminsb, const Vector3& absmaxsb) {
 	float len = 0;
 
 	for (size_t i = 0; i < 3; i++) {
 		if (absmaxsa[i] < absminsb[i]) {
 			float d = absmaxsa[i] - absminsb[i];
 			len += d * d;
-		} else if (absminsa[i] > absmaxsb[i]) {
+		}
+		else if (absminsa[i] > absmaxsb[i]) {
 			float d = absminsa[i] - absmaxsb[i];
 			len += d * d;
 		}
@@ -372,7 +373,7 @@ R_ConcatRotations
 	return sqrt(len);
 }
 
-[[nodiscard]] constexpr bool boxes_intersect(const Vector3 &amins, const Vector3 &amaxs, const Vector3 &bmins, const Vector3 &bmaxs) {
+[[nodiscard]] constexpr bool boxes_intersect(const Vector3& amins, const Vector3& amaxs, const Vector3& bmins, const Vector3& bmaxs) {
 	return amins.x <= bmaxs.x &&
 		amaxs.x >= bmins.x &&
 		amins.y <= bmaxs.y &&
@@ -390,7 +391,7 @@ Slide off of the impacting object
 */
 constexpr float STOP_EPSILON = 0.1f;
 
-[[nodiscard]] constexpr Vector3 ClipVelocity(const Vector3 &in, const Vector3 &normal, float overbounce) {
+[[nodiscard]] constexpr Vector3 ClipVelocity(const Vector3& in, const Vector3& normal, float overbounce) {
 	float dot = in.dot(normal);
 	Vector3 out = in + (normal * (-2 * dot));
 	out *= overbounce - 1.f;
@@ -401,7 +402,7 @@ constexpr float STOP_EPSILON = 0.1f;
 	return out;
 }
 
-[[nodiscard]] constexpr Vector3 SlideClipVelocity(const Vector3 &in, const Vector3 &normal, float overbounce) {
+[[nodiscard]] constexpr Vector3 SlideClipVelocity(const Vector3& in, const Vector3& normal, float overbounce) {
 	float backoff = in.dot(normal) * overbounce;
 	Vector3 out = in - (normal * backoff);
 
@@ -412,7 +413,7 @@ constexpr float STOP_EPSILON = 0.1f;
 	return out;
 }
 
-[[nodiscard]] inline float vectoyaw(const Vector3 &vec) {
+[[nodiscard]] inline float vectoyaw(const Vector3& vec) {
 	// PMM - fixed to correct for pitch of 0
 	if (vec[PITCH] == 0) {
 		if (vec[YAW] == 0)
@@ -431,7 +432,7 @@ constexpr float STOP_EPSILON = 0.1f;
 	return yaw;
 }
 
-[[nodiscard]] inline Vector3 VectorToAngles(const Vector3 &vec) {
+[[nodiscard]] inline Vector3 VectorToAngles(const Vector3& vec) {
 	float forward;
 	float yaw, pitch;
 
@@ -462,22 +463,23 @@ constexpr float STOP_EPSILON = 0.1f;
 	return { -pitch, yaw, 0 };
 }
 
-[[nodiscard]] constexpr Vector3 G_ProjectSource(const Vector3 &point, const Vector3 &distance, const Vector3 &forward, const Vector3 &right) {
+[[nodiscard]] constexpr Vector3 G_ProjectSource(const Vector3& point, const Vector3& distance, const Vector3& forward, const Vector3& right) {
 	return point + (forward * distance[0]) + (right * distance[1]) + Vector3{ 0.f, 0.f, distance[2] };
 }
 
-[[nodiscard]] constexpr Vector3 G_ProjectSource2(const Vector3 &point, const Vector3 &distance, const Vector3 &forward, const Vector3 &right, const Vector3 &up) {
+[[nodiscard]] constexpr Vector3 G_ProjectSource2(const Vector3& point, const Vector3& distance, const Vector3& forward, const Vector3& right, const Vector3& up) {
 	return point + (forward * distance[0]) + (right * distance[1]) + (up * distance[2]);
 }
 
-[[nodiscard]] inline Vector3 slerp(const Vector3 &from, const Vector3 &to, float t) {
+[[nodiscard]] inline Vector3 slerp(const Vector3& from, const Vector3& to, float t) {
 	float dot = from.dot(to);
 	float aFactor;
 	float bFactor;
 	if (std::fabs(dot) > 0.9995f) {
 		aFactor = 1.0f - t;
 		bFactor = t;
-	} else {
+	}
+	else {
 		float ang = acos(dot);
 		float sinOmega = sin(ang);
 		float sinAOmega = sin((1.0f - t) * ang);
@@ -492,7 +494,7 @@ constexpr float STOP_EPSILON = 0.1f;
 template<>
 struct fmt::formatter<Vector3> : fmt::formatter<float> {
 	template<typename FormatContext>
-	auto format(const Vector3 &p, FormatContext &ctx) const -> decltype(ctx.out()) {
+	auto format(const Vector3& p, FormatContext& ctx) const -> decltype(ctx.out()) {
 		auto out = fmt::formatter<float>::format(p.x, ctx);
 		out = fmt::format_to(out, " ");
 		ctx.advance_to(out);
