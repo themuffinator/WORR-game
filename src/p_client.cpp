@@ -3412,8 +3412,11 @@ ClientCheckPermissions
 ================
 */
 static void ClientCheckPermissions(gentity_t* ent, const char* socialID) {
-        if (!socialID || !*socialID)
+        if (!socialID || !*socialID) {
+                ent->client->sess.banned = false;
+                ent->client->sess.admin = false;
                 return;
+        }
 
         std::string id(socialID);
 
