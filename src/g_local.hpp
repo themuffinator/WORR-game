@@ -2050,7 +2050,7 @@ struct ClientMatchStats {
 
 struct Ghosts {
 	char				netName[MAX_NETNAME];			// ent->client->pers.netName
-	char				socialID[MAX_INFO_VALUE]{};		// ent->client->socialID
+	char				socialID[MAX_INFO_VALUE]{};		// ent->client->sess.socialID
 	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
 	std::array<int16_t, static_cast<int>(AmmoID::_Total)> ammoMax = {};			// ent->client->pers.ammoMax
 	ClientMatchStats match{};						// ent->client->sess.match
@@ -4022,7 +4022,6 @@ static constexpr int MAX_AWARD_QUEUE = 8;
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
 	char			userInfo[MAX_INFO_STRING];
-	char			socialID[MAX_INFO_VALUE];
 	char			netName[MAX_NETNAME];
 	Handedness	hand = Handedness::Right;
 	WeaponAutoSwitch	autoswitch = WeaponAutoSwitch::Never;
