@@ -52,7 +52,7 @@ void OpenVoteMenu(gentity_t* ent) {
 			if (i > 0 && i <= menu.entries.size())
 				menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t* e, Menu&) {
 				level.vote.countYes++;
-				e->client->pers.voted = 1;
+				e->client->resp.voted = 1;
 				gi.Client_Print(e, PRINT_HIGH, "Vote cast.\n");
 				MenuSystem::Close(e);
 				};
@@ -62,7 +62,7 @@ void OpenVoteMenu(gentity_t* ent) {
 			if (i > 0 && i <= menu.entries.size())
 				menu.entries[static_cast<int>(i) - 1].onSelect = [](gentity_t* e, Menu&) {
 				level.vote.countNo++;
-				e->client->pers.voted = -1;
+				e->client->resp.voted = -1;
 				gi.Client_Print(e, PRINT_HIGH, "Vote cast.\n");
 				MenuSystem::Close(e);
 				};

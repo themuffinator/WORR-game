@@ -47,27 +47,27 @@ static inline void deathmatch_spawn_flags(gentity_t* self) {
 }
 
 static void BroadcastReadyStatus(gentity_t* ent) {
-	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
+	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->resp.readyStatus ? "" : "NOT ");
 }
 
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
 	if (!ReadyConditions(ent, false)) return;
 
-	client_persistant_t* pers = &ent->client->pers;
+        client_respawn_t* resp = &ent->client->resp;
 
-	if (toggle) {
-		pers->readyStatus = !pers->readyStatus;
-	}
-	else {
-		if (pers->readyStatus == state) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT ");
-			return;
-		}
-		else {
-			pers->readyStatus = state;
-		}
-	}
-	BroadcastReadyStatus(ent);
+        if (toggle) {
+                resp->readyStatus = !resp->readyStatus;
+        }
+        else {
+                if (resp->readyStatus == state) {
+                        gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT ");
+                        return;
+                }
+                else {
+                        resp->readyStatus = state;
+                }
+        }
+        BroadcastReadyStatus(ent);
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -202,10 +202,10 @@ void PushAward(gentity_t* ent, PlayerMedal medal) {
 	auto idx = static_cast<std::size_t>(medal);
 	auto& info = medalTable[idx];
 
-	cl.pers.medalTime = level.time;
-	cl.pers.medalType = medal;
+	cl.resp.medalTime = level.time;
+	cl.resp.medalType = medal;
 
-	auto& count = cl.pers.match.medalCount[idx];
+	auto& count = cl.resp.match.medalCount[idx];
 	++count;
 
 	std::string_view key = (count == 1 && !info.soundKeyFirst.empty())
@@ -216,7 +216,7 @@ void PushAward(gentity_t* ent, PlayerMedal medal) {
 		const std::string path = G_Fmt("vo/{}.wav", key).data();
 		const int soundIdx = gi.soundIndex(path.c_str());
 
-		auto& queue = cl.pers.awardQueue;
+		auto& queue = cl.resp.awardQueue;
 		if (queue.queueSize < MAX_QUEUED_AWARDS) {
 			queue.soundIndex[queue.queueSize++] = soundIdx;
 
@@ -277,7 +277,7 @@ void P_SaveGhostSlot(gentity_t* ent) {
 	// Store inventory and stats
 	slot->inventory = cl->pers.inventory;
 	slot->ammoMax = cl->pers.ammoMax;
-	slot->match = cl->pers.match;
+	slot->match = cl->resp.match;
 	slot->weapon = cl->pers.weapon;
 	slot->lastWeapon = cl->pers.lastWeapon;
 	slot->team = cl->sess.team;
@@ -312,7 +312,7 @@ void P_RestoreFromGhostSlot(gentity_t* ent) {
 		// Restore inventory and stats
 		cl->pers.inventory = g.inventory;
 		cl->pers.ammoMax = g.ammoMax;
-		cl->pers.match = g.match;
+		cl->resp.match = g.match;
 		cl->pers.weapon = g.weapon;
 		cl->pers.lastWeapon = g.lastWeapon;
 		cl->sess.team = g.team;
@@ -884,7 +884,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 				else {
 					if (attacker->client->sess.pc.show_fragmessages)
 						gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}\n{} place with {}", Game::Is(GameType::FreezeTag) ? "froze" : "fragged",
-							victim->client->sess.netName, PlaceString(attacker->client->pers.currentRank + 1), attacker->client->resp.score);
+							victim->client->sess.netName, PlaceString(attacker->client->resp.currentRank + 1), attacker->client->resp.score);
 				}
 			}
 			if (attacker->client->sess.pc.killbeep_num > 0 && attacker->client->sess.pc.killbeep_num < 5) {
@@ -1193,14 +1193,14 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 	auto  now = level.time;
 	auto& glob = level.match;
 	auto* vcl = victim->client;
-	auto& vSess = vcl->pers.match;
+	auto& vSess = vcl->resp.match;
 	bool  isSuicide = (attacker == victim);
 	bool  validKill = (attacker && attacker->client && !isSuicide && !mod.friendly_fire);
 
 	// -- handle a valid non-suicide kill --
 	if (validKill) {
 		auto* acl = attacker->client;
-		auto& aSess = acl->pers.match;
+		auto& aSess = acl->resp.match;
 
 		if (glob.totalKills == 0) {
 			PushAward(attacker, PlayerMedal::First_Frag);
@@ -1218,13 +1218,13 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 		++glob.modKills[static_cast<int>(mod.id)];
 		if (now - victim->client->respawnMaxTime < 1_sec) {
 			++glob.totalSpawnKills;
-			++acl->pers.match.totalSpawnKills;
+			++acl->resp.match.totalSpawnKills;
 		}
 
 
 		if (OnSameTeam(attacker, victim)) {
 			++glob.totalTeamKills;
-			++acl->pers.match.totalTeamKills;
+			++acl->resp.match.totalTeamKills;
 		}
 
 		if (acl->pers.lastFragTime && acl->pers.lastFragTime + 2_sec > now) {
@@ -1867,11 +1867,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 	client->pers.health = 100;
 	client->pers.maxHealth = 100;
 
-	client->pers.medalTime = 0_sec;
-	client->pers.medalType = PlayerMedal::None;
-	std::fill(client->pers.match.medalCount.begin(), client->pers.match.medalCount.end(), 0);
-
-	// don't give us weapons if we shouldn't have any
+        // don't give us weapons if we shouldn't have any
 	if (ClientIsPlaying(client)) {
 		// in coop, if there's already a player in the game and we're new,
 		// steal their loadout. this would fix a potential softlock where a new
@@ -2893,7 +2889,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inactivityTime = 0_sec;
 		cl->sess.inGame = false;
 		cl->sess.initialised = true;
-		cl->pers.readyStatus = false;
+		cl->resp.readyStatus = false;
 		if (G_LimitedLivesActive()) {
 			cl->pers.limitedLivesStash = cl->pers.lives;
 			cl->pers.limitedLivesPersist = true;
@@ -2922,7 +2918,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->respawnMinTime = 0_ms;
 		cl->respawnMaxTime = level.time;
 		cl->respawn_timeout = 0_ms;
-		cl->pers.teamState = {};
+		cl->resp.teamState = {};
 
 		FreeFollower(ent);
 		MoveClientToFreeCam(ent);
@@ -2937,7 +2933,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.inGame = true;
 		cl->sess.initialised = true;
 		cl->sess.teamJoinTime = level.time;
-		cl->pers.readyStatus = false;
+		cl->resp.readyStatus = false;
 
 		GameTime timeout = GameTime::from_sec(g_inactivity->integer);
 		if (timeout && timeout < 15_sec)

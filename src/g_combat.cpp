@@ -992,20 +992,20 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 
 		// arena damage scoring: +1 score per 100 dmg dealt to enemies
 		if (Game::Has(GameFlags::Arena) && !OnSameTeam(targ, attacker)) {
-			attacker->client->pers.dmg_scorer += statTake + powerArmorSave + armorSave;
+			attacker->client->resp.dmg_scorer += statTake + powerArmorSave + armorSave;
 
-			while (attacker->client->pers.dmg_scorer >= 100) {
-				attacker->client->pers.dmg_scorer -= 100;
+			while (attacker->client->resp.dmg_scorer >= 100) {
+				attacker->client->resp.dmg_scorer -= 100;
 				G_AdjustPlayerScore(attacker->client, 1, false, 0);
 			}
 		}
 
 		// team damage accumulation/warning
 		if (OnSameTeam(targ, attacker)) {
-			attacker->client->pers.dmg_team += statTake + powerArmorSave + armorSave;
+			attacker->client->resp.dmg_team += statTake + powerArmorSave + armorSave;
 
-			while (attacker->client->pers.dmg_team >= 100) {
-				attacker->client->pers.dmg_team -= 100;
+			while (attacker->client->resp.dmg_team >= 100) {
+				attacker->client->resp.dmg_team -= 100;
 				gi.LocClient_Print(attacker, PRINT_CENTER,
 					"You are on {} Team,\nstop attacking your team mates!\n",
 					Teams_TeamName(attacker->client->sess.team));
@@ -1017,12 +1017,12 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 			attacker->client->ps.stats[STAT_HIT_MARKER] += statTake + powerArmorSave + armorSave;
 		}
 
-		attacker->client->pers.match.totalDmgDealt += statTake + powerArmorSave + armorSave;
-		attacker->client->pers.match.modTotalDmgD[static_cast<int>(mod.id)] += statTake + powerArmorSave + armorSave;
+		attacker->client->resp.match.totalDmgDealt += statTake + powerArmorSave + armorSave;
+		attacker->client->resp.match.modTotalDmgD[static_cast<int>(mod.id)] += statTake + powerArmorSave + armorSave;
 
 		if (!inflictor || (inflictor && !inflictor->skip)) {
-			attacker->client->pers.match.totalHits++;
-			attacker->client->pers.match.totalHitsPerWeapon[static_cast<int>(modr[static_cast<int>(mod.id)].weapon)]++;
+			attacker->client->resp.match.totalHits++;
+			attacker->client->resp.match.totalHitsPerWeapon[static_cast<int>(modr[static_cast<int>(mod.id)].weapon)]++;
 
 			// skip MG/CG inflictor skip toggle to keep continuous fire sane
 			if (inflictor && mod.id != ModID::Machinegun && mod.id != ModID::Chaingun)
@@ -1030,8 +1030,8 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 		}
 
 		if (targCl) {
-			targCl->pers.match.totalDmgReceived += statTake + powerArmorSave + armorSave;
-			targCl->pers.match.modTotalDmgR[static_cast<int>(mod.id)] += statTake + powerArmorSave + armorSave;
+			targCl->resp.match.totalDmgReceived += statTake + powerArmorSave + armorSave;
+			targCl->resp.match.modTotalDmgR[static_cast<int>(mod.id)] += statTake + powerArmorSave + armorSave;
 		}
 	}
 

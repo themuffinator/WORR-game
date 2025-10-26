@@ -1299,8 +1299,8 @@ static void Weapon_HandGrenade_Fire(gentity_t* ent, bool held) {
 
 	fire_handgrenade(ent, start, dir, damage, speed, timer, radius, held);
 
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::HandGrenades)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::HandGrenades)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -1571,8 +1571,8 @@ static void Weapon_GrenadeLauncher_Fire(gentity_t* ent) {
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::GrenadeLauncher)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::GrenadeLauncher)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -1642,8 +1642,8 @@ static void Weapon_RocketLauncher_Fire(gentity_t* ent) {
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::RocketLauncher)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::RocketLauncher)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2013,8 +2013,8 @@ static void Weapon_Blaster_Fire(gentity_t* ent, const Vector3& g_offset, int dam
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Blaster)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Blaster)]++;
 }
 
 static void Weapon_Blaster_DoFire(gentity_t* ent) {
@@ -2095,8 +2095,8 @@ static void Weapon_HyperBlaster_Fire(gentity_t* ent) {
 		Weapon_Blaster_Fire(ent, offset, damage, true, effect);
 		Weapon_PowerupSound(ent);
 
-		client->pers.match.totalShots++;
-		client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::HyperBlaster)]++;
+		client->resp.match.totalShots++;
+		client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::HyperBlaster)]++;
 		RemoveAmmo(ent, 1);
 
 		// Play attack animation
@@ -2195,8 +2195,8 @@ static void Weapon_Machinegun_Fire(gentity_t* ent) {
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	client.pers.match.totalShots++;
-	client.pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Machinegun)]++;
+	client.resp.match.totalShots++;
+	client.resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Machinegun)]++;
 	RemoveAmmo(ent, 1);
 
 	// Attack animation
@@ -2333,8 +2333,8 @@ static void Weapon_Chaingun_Fire(gentity_t* ent) {
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	client.pers.match.totalShots += shots;
-	client.pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Chaingun)] += shots;
+	client.resp.match.totalShots += shots;
+	client.resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Chaingun)] += shots;
 
 	RemoveAmmo(ent, shots);
 }
@@ -2387,8 +2387,8 @@ static void Weapon_Shotgun_Fire(gentity_t* ent) {
 	// Weapon noise and stats
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots += pelletCount;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Shotgun)] += pelletCount;
+	ent->client->resp.match.totalShots += pelletCount;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Shotgun)] += pelletCount;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2457,8 +2457,8 @@ static void Weapon_SuperShotgun_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats and ammo
-	ent->client->pers.match.totalShots += DEFAULT_SSHOTGUN_COUNT;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::SuperShotgun)] += DEFAULT_SSHOTGUN_COUNT;
+	ent->client->resp.match.totalShots += DEFAULT_SSHOTGUN_COUNT;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::SuperShotgun)] += DEFAULT_SSHOTGUN_COUNT;
 	RemoveAmmo(ent, 2);
 }
 
@@ -2504,8 +2504,8 @@ static void Weapon_Railgun_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats and ammo tracking
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Railgun)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Railgun)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2571,8 +2571,8 @@ static void Weapon_BFG_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats and ammo
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::BFG10K)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::BFG10K)]++;
 	RemoveAmmo(ent, ammoNeeded);
 }
 
@@ -2618,8 +2618,8 @@ static void Weapon_ProxLauncher_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats and ammo
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::ProxLauncher)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::ProxLauncher)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2662,8 +2662,8 @@ static void Weapon_Tesla_Fire(gentity_t* ent, bool held) {
 	fire_tesla(ent, start, dir, damageMultiplier, static_cast<int>(speed));
 
 	// Stats and ammo
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::TeslaMine)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::TeslaMine)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2864,8 +2864,8 @@ static void Weapon_Disruptor_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Disruptor)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Disruptor)]++;
 	RemoveAmmo(ent, 1);
 }
 
@@ -2939,8 +2939,8 @@ static void Weapon_ETF_Rifle_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats tracking
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::ETFRifle)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::ETFRifle)]++;
 	RemoveAmmo(ent, 1);
 
 	// Animation
@@ -3043,8 +3043,8 @@ static void Weapon_PlasmaBeam_Fire(gentity_t* ent) {
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
 	// Stats tracking
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::PlasmaBeam)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::PlasmaBeam)]++;
 	RemoveAmmo(ent, RS(RS_Q1) ? 2 : 1);
 
 	// Animation
@@ -3141,8 +3141,8 @@ static void Weapon_Thunderbolt_Fire(gentity_t* ent) {
 #endif
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Thunderbolt)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Thunderbolt)]++;
 	RemoveAmmo(ent, RS(RS_Q1) ? 2 : 1);
 
 	ent->client->anim.priority = ANIM_ATTACK;
@@ -3232,8 +3232,8 @@ static void Weapon_IonRipper_Fire(gentity_t* ent) {
 
 	G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 
-	ent->client->pers.match.totalShots += kProjectileCount;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::IonRipper)] += kProjectileCount;
+	ent->client->resp.match.totalShots += kProjectileCount;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::IonRipper)] += kProjectileCount;
 
 	RemoveAmmo(ent, ammoNeeded);
 }
@@ -3301,8 +3301,8 @@ static void Weapon_Phalanx_Fire(gentity_t* ent) {
 	gi.multicast(ent->s.origin, MULTICAST_PVS, false);
 
 	if (isRightBarrel) {
-		ent->client->pers.match.totalShots += 2;
-		ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Phalanx)] += 2;
+		ent->client->resp.match.totalShots += 2;
+		ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Phalanx)] += 2;
 		RemoveAmmo(ent, 1);
 	}
 	else {
@@ -3361,8 +3361,8 @@ static void Weapon_Trap_Fire(gentity_t* ent, bool held) {
 	fire_trap(ent, start, dir, static_cast<int>(speed));
 
 	// Track usage stats
-	ent->client->pers.match.totalShots++;
-	ent->client->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Trap)]++;
+	ent->client->resp.match.totalShots++;
+	ent->client->resp.match.totalShotsPerWeapon[static_cast<uint8_t>(Weapon::Trap)]++;
 	RemoveAmmo(ent, 1);
 }
 

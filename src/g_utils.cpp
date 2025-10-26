@@ -1145,7 +1145,7 @@ void BroadcastReadyReminderMessage() {
 			continue;
 		if (ec->client->sess.is_a_bot)
 			continue;
-		if (ec->client->pers.readyStatus)
+		if (ec->client->resp.readyStatus)
 			continue;
 		//gi.LocCenter_Print(ec, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\nYou are NOT ready.");
 		gi.LocCenter_Print(ec, "%bind:+wheel2:$map_item_wheel%Use Compass to Ready.\n.MATCH IS IN WARMUP\nYou are NOT ready.");
@@ -1532,8 +1532,8 @@ Detect changes in individual player rank
 static void HandleLeadChanges() {
 	for (auto ec : active_players()) {
 		gclient_t* cl = ec->client;
-		int newRank = cl->pers.currentRank;
-		int previousRank = cl->pers.previousRank;
+		int newRank = cl->resp.currentRank;
+		int previousRank = cl->resp.previousRank;
 
 		bool newTied = (newRank & RANK_TIED_FLAG);
 		bool oldTied = (previousRank & RANK_TIED_FLAG);
@@ -1728,11 +1728,11 @@ void CalculateRanks() {
 			gclient_t* cl = &game.clients[level.sortedClients[i]];
 
 			if (level.teamScores[static_cast<int>(Team::Red)] == level.teamScores[static_cast<int>(Team::Blue)])
-				cl->pers.currentRank = 2; // tied
+				cl->resp.currentRank = 2; // tied
 			else if (level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)])
-				cl->pers.currentRank = 0; // red leads
+				cl->resp.currentRank = 0; // red leads
 			else
-				cl->pers.currentRank = 1; // blue leads
+				cl->resp.currentRank = 1; // blue leads
 		}
 	}
 	else {
@@ -1741,16 +1741,16 @@ void CalculateRanks() {
 
 		for (size_t i = 0; i < level.pop.num_playing_clients; ++i) {
 			gclient_t* cl = &game.clients[level.sortedClients[i]];
-			cl->pers.previousRank = cl->pers.currentRank;
+			cl->resp.previousRank = cl->resp.currentRank;
 
 			if (cl->resp.score != lastScore) {
 				currentRank = i;
-				cl->pers.currentRank = currentRank;
+				cl->resp.currentRank = currentRank;
 			}
 			else {
-				cl->pers.currentRank = currentRank | RANK_TIED_FLAG;
+				cl->resp.currentRank = currentRank | RANK_TIED_FLAG;
 				if (i > 0) {
-					game.clients[level.sortedClients[i - 1]].pers.currentRank = currentRank | RANK_TIED_FLAG;
+					game.clients[level.sortedClients[i - 1]].resp.currentRank = currentRank | RANK_TIED_FLAG;
 				}
 			}
 
@@ -1921,7 +1921,7 @@ bool Vote_Menu_Active(gentity_t* ent) {
 	if (!level.vote.client)
 		return false;
 
-	if (ent->client->pers.voted)
+	if (ent->client->resp.voted)
 		return false;
 
 	if (!g_allowSpecVote->integer && !ClientIsPlaying(ent->client))

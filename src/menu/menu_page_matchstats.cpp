@@ -23,7 +23,7 @@ void OpenPlayerMatchStatsMenu(gentity_t* ent) {
 		if (!ent || !ent->client || !g_matchstats->integer) return;
 
 		auto& menu = const_cast<Menu&>(m);
-		auto& st = ent->client->pers.match;
+		auto& st = ent->client->resp.match;
 		int i = 0;
 
 		menu.entries[i++].text = "Player Stats for Match";

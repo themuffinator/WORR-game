@@ -495,9 +495,9 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 			// flag, he's just scored a capture!
 
 			if (other->client->pers.inventory[enemy_flag_item]) {
-				if (other->client->pers.teamState.flag_pickup_time) {
+				if (other->client->resp.teamState.flag_pickup_time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
-						Teams_TeamName(team), other->client->sess.netName, TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
+						Teams_TeamName(team), other->client->sess.netName, TimeString((level.time - other->client->resp.teamState.flag_pickup_time).milliseconds(), true, false));
 				}
 				else {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! (captured by {})\n",
@@ -569,7 +569,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 	// hey, its not our flag, pick it up
 	if (!(ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED)) {
-		other->client->pers.teamState.flag_pickup_time = level.time;
+		other->client->resp.teamState.flag_pickup_time = level.time;
 	}
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
 		other->client->sess.netName, Teams_TeamName(team));
@@ -662,7 +662,7 @@ void CTF_DeadDropFlag(gentity_t* self) {
 			self->client->sess.netName, Teams_TeamName(Team::Blue));
 	}
 
-	self->client->pers.teamState.flag_pickup_time = 0_ms;
+	self->client->resp.teamState.flag_pickup_time = 0_ms;
 
 	if (dropped) {
 		dropped->think = CTF_DropFlagThink;
@@ -680,7 +680,7 @@ void CTF_DropFlag(gentity_t* ent, Item* item) {
 	if (!Game::Has(GameFlags::CTF))
 		return;
 
-	ent->client->pers.teamState.flag_pickup_time = 0_ms;
+	ent->client->resp.teamState.flag_pickup_time = 0_ms;
 
 	if (brandom())
 		gi.LocClient_Print(ent, PRINT_HIGH, "$g_lusers_drop_flags");
