@@ -275,18 +275,6 @@ static inline void SetScaledItemBounds(gentity_t* e, float baseHalf = 15.0f) {
 	e->maxs = { hx,  hy,  hz };
 }
 
-static inline void SetDroppedItemBounds(gentity_t* e, float scale = 1.0f) {
-	if (!e)
-		return;
-
-	const float s = std::max(0.001f, scale);
-	const Vector3 mins = { -15.0f * s, -15.0f * s, 0.0f };
-	const Vector3 maxs = { 15.0f * s,  15.0f * s, 30.0f * s };
-
-	e->mins = mins;
-	e->maxs = maxs;
-}
-
 /*
 =============
 HighValuePickupCounter
@@ -3573,6 +3561,18 @@ TOUCH(Touch_Item) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*o
 			}
 		}
 	}
+}
+
+static inline void SetDroppedItemBounds(gentity_t* e, float scale = 1.0f) {
+	if (!e)
+		return;
+
+	const float s = std::max(0.001f, scale);
+	const Vector3 mins = { -15.0f * s, -15.0f * s, 0.0f };
+	const Vector3 maxs = { 15.0f * s,  15.0f * s, 30.0f * s };
+
+	e->mins = mins;
+	e->maxs = maxs;
 }
 
 /*
