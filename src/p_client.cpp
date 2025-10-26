@@ -3111,20 +3111,22 @@ void ClientUserinfoChanged(gentity_t* ent, const char* userInfo) {
 	// set skin
 	if (!gi.Info_ValueForKey(userInfo, "skin", val, sizeof(val)))
 		Q_strlcpy(val, "male/grunt", sizeof(val));
-	//if (Q_strncasecmp(ent->client->sess.skinName, val, sizeof(ent->client->sess.skinName))) {
-		//Q_strlcpy(ent->client->sess.skinName, ClientSkinOverride(val), sizeof(ent->client->sess.skinName));
-		//ent->client->sess.skinName = ClientSkinOverride(val);
-	//}
+
+	const char* sanitizedSkin = ClientSkinOverride(val);
+	if (Q_strncasecmp(ent->client->sess.skinName, sanitizedSkin, sizeof(ent->client->sess.skinName)))
+		Q_strlcpy(ent->client->sess.skinName, sanitizedSkin, sizeof(ent->client->sess.skinName));
+
 	std::string iconPath = G_Fmt("/players/{}_i", ent->client->sess.skinName).data();
 	ent->client->sess.skinIconIndex = gi.imageIndex(iconPath.c_str());
 
 	int playernum = ent - g_entities - 1;
 
 	// combine name and skin into a configstring
+	const std::string sessionSkin = ent->client->sess.skinName;
 	if (Teams())
-		AssignPlayerSkin(ent, val);
+		AssignPlayerSkin(ent, sessionSkin);
 	else {
-		gi.configString(CS_PLAYERSKINS + playernum, G_Fmt("{}\\{}", ent->client->sess.netName, val).data());
+		gi.configString(CS_PLAYERSKINS + playernum, G_Fmt("{}\\{}", ent->client->sess.netName, sessionSkin).data());
 	}
 
 	//  set player name field (used in id_state view)

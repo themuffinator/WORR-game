@@ -4072,9 +4072,6 @@ struct client_persistant_t {
 	int32_t			dmg_scorer = 0;		// for clan arena scoring from damage dealt
 	int32_t			dmg_team = 0;		// for team damage checks and warnings
 
-	int				skinIconIndex = 0;
-	char			skin[MAX_INFO_VALUE];
-
 	int32_t			vote_count = 0;			// to prevent people from constantly calling votes
 
 	int32_t			healthBonus = 0;
