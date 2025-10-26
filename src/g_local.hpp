@@ -4019,6 +4019,500 @@ constexpr int32_t AUTO_SHIELD_AUTO = 0;
 
 static constexpr int MAX_AWARD_QUEUE = 8;
 
+constexpr GameTime INVISIBILITY_TIME = 2_sec;
+
+constexpr size_t MAX_DAMAGE_INDICATORS = 4;
+
+struct damage_indicator_t {
+        Vector3 from = vec3_origin;
+        int32_t health = 0;
+        int32_t armor = 0;
+        int32_t power = 0;
+};
+
+constexpr GameTime LADDER_SOUND_TIME = 300_ms;
+constexpr GameTime COOP_DAMAGE_RESPAWN_TIME = 2000_ms;
+constexpr GameTime COOP_DAMAGE_FIRING_TIME = 2500_ms;
+
+struct saved_spawn_t;
+
+struct gclient_t {
+        player_state_t         ps{};
+        int32_t                ping = 0;
+
+        client_persistant_t    pers{};
+        client_respawn_t       resp{};
+        client_session_t       sess{};
+        pmove_state_t          old_pmove{};
+
+        bool                   showScores = false;
+        bool                   showEOU = false;
+        bool                   showInventory = false;
+        bool                   showHelp = false;
+
+        button_t               buttons = BUTTON_NONE;
+        button_t               oldButtons = BUTTON_NONE;
+        button_t               latchedButtons = BUTTON_NONE;
+        usercmd_t              cmd{};
+
+        int32_t                areaNum = 0;
+        svflags_t              svFlags = SVF_NONE;
+
+        struct WeaponControl {
+                GameTime fireFinished = 0_ms;
+                GameTime thinkTime = 0_ms;
+                bool     fireBuffered = false;
+                bool     thunk = false;
+                Item*    pending = nullptr;
+        } weapon;
+
+        WeaponState            weaponState = WeaponState::Ready;
+
+        struct DamageFrame {
+                int32_t armor = 0;
+                int32_t powerArmor = 0;
+                int32_t blood = 0;
+                int32_t knockback = 0;
+                Vector3 origin = vec3_origin;
+        } damage;
+
+        std::array<damage_indicator_t, MAX_DAMAGE_INDICATORS> damageIndicators{};
+        uint8_t                numDamageIndicators = 0;
+
+        float                  killerYaw = 0.0f;
+
+        struct KickFeedback {
+                Vector3 angles = vec3_origin;
+                Vector3 origin = vec3_origin;
+                GameTime total = 0_sec;
+                GameTime time = 0_sec;
+        } kick;
+
+        struct ViewFeedback {
+                GameTime quakeTime = 0_sec;
+                GameTime flashTime = 0_sec;
+                float    vDamageRoll = 0.0f;
+                float    vDamagePitch = 0.0f;
+                GameTime vDamageTime = 0_sec;
+                GameTime fallTime = 0_sec;
+                float    fallValue = 0.0f;
+                float    damageAlpha = 0.0f;
+                float    bonusAlpha = 0.0f;
+                Vector3  damageBlend = vec3_origin;
+                float    bobTime = 0.0f;
+        } feedback;
+
+        Vector3                vAngle = vec3_origin;
+        Vector3                vForward = vec3_origin;
+        Vector3                oldViewAngles = vec3_origin;
+        Vector3                oldVelocity = vec3_origin;
+        gentity_t*             oldGroundEntity = nullptr;
+
+        GameTime               nextDrownTime = 0_sec;
+        water_level_t          oldWaterLevel = water_level_t::Feet;
+        int32_t                breatherSound = 0;
+        int32_t                machinegunShots = 0;
+
+        struct AnimState {
+                int32_t         end = 0;
+                anim_priority_t priority = ANIM_BASIC;
+                bool            duck = false;
+                bool            run = false;
+                GameTime        time = 0_sec;
+        } anim;
+
+        struct PowerupTimers {
+                GameTime quadDamage = 0_sec;
+                GameTime doubleDamage = 0_sec;
+                GameTime battleSuit = 0_sec;
+                GameTime rebreather = 0_sec;
+                GameTime enviroSuit = 0_sec;
+                GameTime haste = 0_sec;
+                GameTime invisibility = 0_sec;
+                GameTime regeneration = 0_sec;
+                GameTime spawnProtection = 0_sec;
+                GameTime antiGravBelt = 0_sec;
+                GameTime empathyShield = 0_sec;
+                GameTime irGoggles = 0_sec;
+                uint32_t silencerShots = 0;
+        } powerupTime;
+
+        bool                   grenadeBlewUp = false;
+        GameTime               grenadeTime = 0_sec;
+        GameTime               grenadeFinishedTime = 0_sec;
+        int32_t                weaponSound = 0;
+
+        GameTime               pickupMessageTime = 0_sec;
+        GameTime               respawnMinTime = 0_sec;
+        GameTime               respawnMaxTime = 0_sec;
+
+        GameTime               pu_regen_time_blip = 0_sec;
+        GameTime               pu_time_spawn_protection_blip = 0_sec;
+
+        GameTime               nukeTime = 0_sec;
+        GameTime               trackerPainTime = 0_sec;
+        GameTime               frenzyAmmoRegenTime = 0_sec;
+        GameTime               vampiricExpireTime = 0_sec;
+
+        GameTime               emptyClickSound = 0_sec;
+        GameTime               lastPowerupMessageTime = 0_sec;
+        GameTime               lastBannedMessageTime = 0_sec;
+        GameTime               last_attacker_time = 0_sec;
+        GameTime               lastFiringTime = 0_sec;
+        GameTime               timeResidual = 0_sec;
+
+        std::array<float, 5>   fog{};
+        height_fog_t           heightfog{};
+
+        struct FollowState {
+                gentity_t* queuedTarget = nullptr;
+                GameTime   queuedTime = 0_sec;
+                gentity_t* target = nullptr;
+                bool       update = false;
+        } follow;
+
+        struct GrappleState {
+                gentity_t* entity = nullptr;
+                int32_t    state = 0;
+                GameTime   releaseTime = 0_sec;
+        } grapple;
+
+        struct TechState {
+                GameTime regenTime = 0_sec;
+                GameTime soundTime = 0_sec;
+                GameTime lastMessageTime = 0_sec;
+        } tech;
+
+        struct CompassState {
+                bool     drawPoints = false;
+                size_t   drawCount = 0;
+                size_t   drawIndex = 0;
+                GameTime drawTime = 0_sec;
+                Vector3  poiLocation = vec3_origin;
+                int      poiImage = 0;
+        } compass;
+
+        struct MenuState {
+                std::shared_ptr<Menu> current;
+                bool                   doUpdate = false;
+                bool                   restoreStatusBar = false;
+                GameTime               updateTime = 0_sec;
+        } menu;
+
+        struct LagState {
+                uint8_t numOrigins = 0;
+                uint8_t nextOrigin = 0;
+                bool    isCompensated = false;
+                Vector3 restoreOrigin = vec3_origin;
+        } lag;
+
+        struct FreezeState {
+                GameTime thawTime = 0_sec;
+                GameTime frozenTime = 0_sec;
+        } freeze;
+
+        struct CoopRespawnData {
+                bool    spawnBegin = false;
+                Vector3 squadOrigin = vec3_origin;
+                Vector3 squadAngles = vec3_origin;
+                bool    useSquad = false;
+        } coopRespawn;
+
+        CoopRespawn            coopRespawnState = CoopRespawn::None;
+
+        GameTime               respawn_timeout = 0_sec;
+        bool                   awaitingRespawn = false;
+
+        bool                   noWeaponChains = false;
+        gentity_t*             trail_head = nullptr;
+        gentity_t*             trail_tail = nullptr;
+
+        bool                   landmark_free_fall = false;
+        const char*            landmark_name = nullptr;
+        Vector3                landmark_rel_pos = vec3_origin;
+        GameTime               landmark_noise_time = 0_sec;
+
+        GameTime               invisibility_fade_time = 0_sec;
+        GameTime               chase_msg_time = 0_sec;
+        int32_t                menu_sign = 0;
+        Vector3                last_ladder_pos = vec3_origin;
+        GameTime               last_ladder_sound = 0_sec;
+        GameTime               last_damage_time = 0_sec;
+
+        gentity_t*             ownedSphere = nullptr;
+        gentity_t*             sight_entity = nullptr;
+        GameTime               sight_entity_time = 0_sec;
+        gentity_t*             sound_entity = nullptr;
+        GameTime               sound_entity_time = 0_sec;
+        gentity_t*             sound2_entity = nullptr;
+        GameTime               sound2_entity_time = 0_sec;
+
+        Vector3                slow_view_angles = vec3_origin;
+        Vector3                spawn_origin = vec3_origin;
+        Vector3                lastDeathLocation = vec3_origin;
+
+        gentity_t*             enemy = nullptr;
+        gentity_t*             owner = nullptr;
+
+        GameTime               show_hostile = 0_sec;
+
+        bool                   eliminated = false;
+
+        struct InitialMenuState {
+                GameTime delay = 0_sec;
+                bool     shown = false;
+        } initialMenu;
+
+        int32_t                killStreakCount = 0;
+        uint32_t               stepFrame = 0;
+};
+
+struct gentity_t {
+        gentity_t() = delete;
+        gentity_t(const gentity_t&) = delete;
+        gentity_t(gentity_t&&) = delete;
+
+        entity_state_t  s{};
+        gclient_t*      client = nullptr;
+
+        sv_entity_t     sv{};
+
+        bool            inUse = false;
+
+        bool            linked = false;
+        int32_t         linkCount = 0;
+        int32_t         areaNum = 0;
+        int32_t         areaNum2 = 0;
+
+        svflags_t       svFlags = SVF_NONE;
+        Vector3         mins = vec3_origin;
+        Vector3         maxs = vec3_origin;
+        Vector3         absMin = vec3_origin;
+        Vector3         absMax = vec3_origin;
+        Vector3         size = vec3_origin;
+        solid_t         solid = SOLID_NOT;
+        contents_t      clipMask = CONTENTS_NONE;
+        gentity_t*      owner = nullptr;
+
+        int32_t         spawn_count = 0;
+        MoveType        moveType = MoveType::None;
+        ent_flags_t     flags = ent_flags_t::ENT_NONE;
+
+        const char*     model = nullptr;
+        GameTime        freeTime = 0_sec;
+
+        const char*     message = nullptr;
+        const char*     className = nullptr;
+        SpawnFlags      spawnFlags = SPAWNFLAG_NONE;
+
+        GameTime        timeStamp = 0_sec;
+
+        float           angle = 0.0f;
+        const char*     target = nullptr;
+        const char*     targetName = nullptr;
+        const char*     killTarget = nullptr;
+        const char*     team = nullptr;
+        const char*     pathTarget = nullptr;
+        const char*     deathTarget = nullptr;
+        const char*     healthTarget = nullptr;
+        const char*     itemTarget = nullptr;
+        const char*     combatTarget = nullptr;
+        gentity_t*      targetEnt = nullptr;
+
+        float           speed = 0.0f;
+        float           accel = 0.0f;
+        float           decel = 0.0f;
+        Vector3         moveDir = vec3_origin;
+        Vector3         pos1 = vec3_origin;
+        Vector3         pos2 = vec3_origin;
+        Vector3         pos3 = vec3_origin;
+
+        Vector3         velocity = vec3_origin;
+        Vector3         aVelocity = vec3_origin;
+        int32_t         mass = 0;
+        GameTime        airFinished = 0_sec;
+        float           gravity = 1.0f;
+
+        gentity_t*      goalEntity = nullptr;
+        gentity_t*      moveTarget = nullptr;
+        float           yawSpeed = 0.0f;
+        float           ideal_yaw = 0.0f;
+
+        GameTime        nextThink = 0_sec;
+        save_prethink_t preThink{};
+        save_prethink_t postThink{};
+        save_think_t    think{};
+        save_touch_t    touch{};
+        save_use_t      use{};
+        save_pain_t     pain{};
+        save_die_t      die{};
+
+        GameTime        touch_debounce_time = 0_sec;
+        GameTime        pain_debounce_time = 0_sec;
+        GameTime        damage_debounce_time = 0_sec;
+        GameTime        fly_sound_debounce_time = 0_sec;
+        GameTime        last_move_time = 0_sec;
+
+        int32_t         health = 0;
+        int32_t         maxHealth = 0;
+        int32_t         gibHealth = 0;
+        bool            deadFlag = false;
+        GameTime        show_hostile = 0_sec;
+
+        GameTime        powerarmor_time = 0_sec;
+
+        const char*     map = nullptr;
+
+        int32_t         viewHeight = DEFAULT_VIEWHEIGHT;
+        bool            takeDamage = false;
+        int32_t         dmg = 0;
+        int32_t         splashDamage = 0;
+        float           splashRadius = 0.0f;
+        int32_t         sounds = 0;
+        int32_t         count = 0;
+
+        gentity_t*      chain = nullptr;
+        gentity_t*      enemy = nullptr;
+        gentity_t*      oldEnemy = nullptr;
+        gentity_t*      activator = nullptr;
+        gentity_t*      groundEntity = nullptr;
+        int32_t         groundEntity_linkCount = 0;
+        gentity_t*      teamChain = nullptr;
+        gentity_t*      teamMaster = nullptr;
+
+        gentity_t*      myNoise = nullptr;
+        gentity_t*      myNoise2 = nullptr;
+
+        int32_t         noiseIndex = 0;
+        int32_t         noiseIndex2 = 0;
+        float           volume = 0.0f;
+        float           attenuation = 0.0f;
+
+        float           wait = 0.0f;
+        float           delay = 0.0f;
+        float           random = 0.0f;
+
+        GameTime        teleportTime = 0_sec;
+
+        contents_t      waterType = CONTENTS_NONE;
+        water_level_t   waterLevel = water_level_t::Feet;
+
+        Vector3         moveOrigin = vec3_origin;
+        Vector3         moveAngles = vec3_origin;
+
+        int32_t         style = 0;
+        const char*     style_on = nullptr;
+        const char*     style_off = nullptr;
+
+        Item*           item = nullptr;
+
+        uint32_t        crosslevel_flags = 0;
+
+        moveinfo_t      moveInfo{};
+        monsterinfo_t   monsterInfo{};
+
+        plat2flags_t    plat2flags = PLAT2_NONE;
+        Vector3         offset = vec3_origin;
+        Vector3         gravityVector = { 0.0f, 0.0f, -1.0f };
+
+        gentity_t*      bad_area = nullptr;
+        gentity_t*      hint_chain = nullptr;
+        gentity_t*      monster_hint_chain = nullptr;
+        gentity_t*      target_hint_chain = nullptr;
+        int32_t         hint_chain_id = 0;
+
+        char            clock_message[CLOCK_MESSAGE_SIZE]{};
+
+        GameTime        dead_time = 0_sec;
+        gentity_t*      beam = nullptr;
+        gentity_t*      beam2 = nullptr;
+        gentity_t*      proboscus = nullptr;
+        gentity_t*      disintegrator = nullptr;
+        GameTime        disintegrator_time = 0_sec;
+        int32_t         hackFlags = 0;
+
+        struct FogState {
+                Vector3 color = vec3_origin;
+                float   density = 0.0f;
+                float   sky_factor = 0.0f;
+                Vector3 color_off = vec3_origin;
+                float   density_off = 0.0f;
+                float   sky_factor_off = 0.0f;
+        } fog;
+
+        struct HeightFogState {
+                float   falloff = 0.0f;
+                float   density = 0.0f;
+                Vector3 start_color = vec3_origin;
+                float   start_dist = 0.0f;
+                Vector3 end_color = vec3_origin;
+                float   end_dist = 0.0f;
+                float   falloff_off = 0.0f;
+                float   density_off = 0.0f;
+                Vector3 start_color_off = vec3_origin;
+                float   start_dist_off = 0.0f;
+                Vector3 end_color_off = vec3_origin;
+                float   end_dist_off = 0.0f;
+        } heightfog;
+
+        std::bitset<MAX_CLIENTS> itemPickedUpBy{};
+        GameTime        slime_debounce_time = 0_sec;
+
+        bmodel_anim_t   bmodel_anim{};
+
+        MeansOfDeath    lastMOD{};
+
+        const char*     gametype = nullptr;
+        const char*     not_gametype = nullptr;
+        const char*     notteam = nullptr;
+        const char*     notfree = nullptr;
+        const char*     notq2 = nullptr;
+        const char*     notq3a = nullptr;
+        const char*     notarena = nullptr;
+        const char*     ruleset = nullptr;
+        const char*     not_ruleset = nullptr;
+        const char*     powerups_on = nullptr;
+        const char*     powerups_off = nullptr;
+        const char*     bfg_on = nullptr;
+        const char*     bfg_off = nullptr;
+        const char*     plasmabeam_on = nullptr;
+        const char*     plasmabeam_off = nullptr;
+
+        const char*     spawnpad = nullptr;
+
+        Vector3         origin2 = vec3_origin;
+
+        bool            skip = false;
+        Team            fteam = Team::None;
+
+        std::array<int32_t, static_cast<size_t>(AmmoID::_Total)> packAmmoCount{};
+        Item*           packWeapon = nullptr;
+
+        int32_t         arena = 0;
+
+        float           duration = 0.0f;
+        Vector3         durations = vec3_origin;
+
+        saved_spawn_t*  saved = nullptr;
+};
+
+struct saved_spawn_t {
+        Vector3     origin = vec3_origin;
+        Vector3     angles = vec3_origin;
+        int32_t     health = 0;
+        int32_t     dmg = 0;
+        float       scale = 1.0f;
+        const char* target = nullptr;
+        const char* targetname = nullptr;
+        SpawnFlags  spawnFlags = SPAWNFLAG_NONE;
+        int32_t     mass = 0;
+        const char* className = nullptr;
+        Vector3     mins = vec3_origin;
+        Vector3     maxs = vec3_origin;
+        const char* model = nullptr;
+        void        (*spawnFunc)(gentity_t*) = nullptr;
+};
+
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
 	char			userInfo[MAX_INFO_STRING];
@@ -4459,7 +4953,6 @@ Menu.hpp
 */
 
 // Forward declarations
-//struct gentity_t;
 class Menu;
 
 constexpr int MAX_MENU_WIDTH = 28;
