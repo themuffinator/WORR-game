@@ -2,15 +2,9 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="bg_local.hpp" />
-    <ClInclude Include="cg_local.hpp" />
     <ClInclude Include="g_local.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
     <ClInclude Include="game.hpp" />
-    <ClInclude Include="freezetag_damage.hpp" />
-    <ClInclude Include="match_grace_scope.hpp" />
-    <ClInclude Include="match_state_utils.hpp" />
-    <ClInclude Include="g_monster_defines.hpp" />
-    <ClInclude Include="match_state_helper.hpp" />
     <ClInclude Include="q_std.hpp" />
     <ClInclude Include="q_vec3.hpp" />
     <ClInclude Include="team_join_capacity.hpp" />
@@ -185,34 +179,32 @@
     <ClInclude Include="command_voting_utils.hpp">
       <Filter>commands</Filter>
     </ClInclude>
+    <ClInclude Include="match_grace_scope.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
+    <ClInclude Include="match_state_helper.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
+    <ClInclude Include="match_state_utils.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
+    <ClInclude Include="freezetag_damage.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
+    <ClInclude Include="cg_local.hpp">
+      <Filter>cgame</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="cg_main.cpp" />
-    <ClCompile Include="cg_screen.cpp" />
-    <ClCompile Include="g_ai.cpp" />
     <ClCompile Include="g_spectator.cpp" />
     <ClCompile Include="g_combat.cpp" />
-    <ClCompile Include="g_func.cpp" />
-    <ClCompile Include="g_item_list.cpp" />
-    <ClCompile Include="g_items.cpp" />
     <ClCompile Include="g_main.cpp" />
     <ClCompile Include="g_misc.cpp" />
-    <ClCompile Include="g_monster.cpp" />
     <ClCompile Include="g_phys.cpp" />
     <ClCompile Include="g_save.cpp" />
-    <ClCompile Include="g_spawn.cpp" />
     <ClCompile Include="g_svcmds.cpp" />
-    <ClCompile Include="g_target.cpp" />
-    <ClCompile Include="g_trigger.cpp" />
-    <ClCompile Include="g_turret.cpp" />
     <ClCompile Include="g_utils.cpp" />
     <ClCompile Include="g_weapon.cpp" />
-    <ClCompile Include="p_client.cpp" />
-    <ClCompile Include="p_hud_main.cpp" />
-    <ClCompile Include="p_move.cpp" />
-    <ClCompile Include="p_trail.cpp" />
-    <ClCompile Include="p_view.cpp" />
-    <ClCompile Include="p_weapon.cpp" />
     <ClCompile Include="q_std.cpp" />
     <ClCompile Include="bots\bot_debug.cpp">
       <Filter>bots</Filter>
@@ -226,8 +218,6 @@
     <ClCompile Include="bots\bot_utils.cpp">
       <Filter>bots</Filter>
     </ClCompile>
-    <ClCompile Include="g_ai_new.cpp" />
-    <ClCompile Include="g_monster_spawn.cpp" />
     <ClCompile Include="monsters\m_actor.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
@@ -328,11 +318,7 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="g_teamplay.cpp" />
-    <ClCompile Include="match_logging.cpp" />
     <ClCompile Include="g_maps.cpp" />
-    <ClCompile Include="match_state.cpp" />
-    <ClCompile Include="g_client_cfg.cpp" />
-    <ClCompile Include="p_hud_scoreboard.cpp" />
     <ClCompile Include="menu\menu_page_admin.cpp">
       <Filter>menu</Filter>
     </ClCompile>
@@ -363,7 +349,6 @@
     <ClCompile Include="menu\menu_system.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="g_horde.cpp" />
     <ClCompile Include="menu\menu_page_setup.cpp">
       <Filter>menu</Filter>
     </ClCompile>
@@ -426,6 +411,78 @@
     <ClCompile Include="command_voting.cpp">
       <Filter>commands</Filter>
     </ClCompile>
+    <ClCompile Include="match_logging.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="match_state.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="g_ai.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="g_ai_new.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="g_monster_spawn.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="g_monster.cpp">
+      <Filter>ai</Filter>
+    </ClCompile>
+    <ClCompile Include="cg_screen.cpp">
+      <Filter>cgame</Filter>
+    </ClCompile>
+    <ClCompile Include="cg_main.cpp">
+      <Filter>cgame</Filter>
+    </ClCompile>
+    <ClCompile Include="p_client.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_hud_main.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_hud_scoreboard.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_move.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_trail.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_view.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="p_weapon.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="g_client_cfg.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
+    <ClCompile Include="g_turret.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_trigger.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_target.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_spawn.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_items.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_item_list.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_func.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="g_horde.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="bots">
@@ -439,6 +496,21 @@
     </Filter>
     <Filter Include="commands">
       <UniqueIdentifier>{c39401cc-cb9a-4041-97a4-eb429a55caff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="matches">
+      <UniqueIdentifier>{724bba1f-6c6d-43c3-82c0-517a4b423fac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ai">
+      <UniqueIdentifier>{3a72a31d-f872-4424-b979-647160f64a6a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cgame">
+      <UniqueIdentifier>{4a5c42ec-d0a8-43f3-b547-e88afabd3560}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="clients">
+      <UniqueIdentifier>{04755837-2de8-45b5-9c3b-4e5e222b15ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="world">
+      <UniqueIdentifier>{58bed540-cc20-41a8-84f0-a63dc53b0061}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
