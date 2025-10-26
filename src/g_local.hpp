@@ -3849,6 +3849,7 @@ void Match_End();
 //
 void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch);
 void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won);
+int ClientConfig_DefaultSkillRating();
 //bool ClientConfig_BulkUpdate(const std::string &playerID, const std::initializer_list<std::pair<std::string, json>> &updates);
 
 //
