@@ -137,7 +137,7 @@ int32_t Bot_GetItemID(const char *className) {
 	}
 
 	for (int i = 0; i < IT_TOTAL; ++i) {
-		const Item *item = itemList + i;
+		const Item *item = &itemList[i];
 		if (item->className == nullptr || item->className[0] == '\0') {
 			continue;
 		}
