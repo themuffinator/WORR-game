@@ -3312,9 +3312,12 @@ gentity_t* ClientChooseSlot(const char* userInfo, const char* socialID, bool isB
 }
 
 static inline bool CheckBanned(gentity_t* ent, char* userInfo, const char* socialID) {
-	// currently all bans are in Steamworks and Epic, don't bother if not from there
-	if (socialID[0] != 'S' && socialID[0] != 'E')
-		return false;
+        if (!socialID || !*socialID)
+                return false;
+
+        // currently all bans are in Steamworks and Epic, don't bother if not from there
+        if (socialID[0] != 'S' && socialID[0] != 'E')
+                return false;
 
 	// Israel
 	if (!Q_strcasecmp(socialID, "Steamworks-76561198026297488")) {
@@ -3408,14 +3411,14 @@ static inline bool CheckBanned(gentity_t* ent, char* userInfo, const char* socia
 ClientCheckPermissions
 ================
 */
-static void ClientCheckPermissions(gentity_t* ent, std::string socialID) {
-	if (socialID.empty())
-		return;
+static void ClientCheckPermissions(gentity_t* ent, const char* socialID) {
+        if (!socialID || !*socialID)
+                return;
 
-	std::string id(socialID);
+        std::string id(socialID);
 
-	ent->client->sess.banned = game.bannedIDs.contains(id);
-	ent->client->sess.admin = game.adminIDs.contains(id);
+        ent->client->sess.banned = game.bannedIDs.contains(id);
+        ent->client->sess.admin = game.adminIDs.contains(id);
 }
 
 /*
@@ -3431,12 +3434,14 @@ loadgames will.
 ============
 */
 bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-	if (!isBot) {
-		if (CheckBanned(ent, userInfo, socialID))
-			return false;
+        const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 
-		ClientCheckPermissions(ent, socialID);
-	}
+        if (!isBot) {
+                if (CheckBanned(ent, userInfo, safeSocialID))
+                        return false;
+
+                ClientCheckPermissions(ent, safeSocialID);
+        }
 
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
@@ -3485,28 +3490,34 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 		}
 	}
 
-	Q_strlcpy(ent->client->sess.socialID, socialID, sizeof(ent->client->sess.socialID));
+        Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
 	std::array<char, MAX_INFO_VALUE> value = {};
 	// [Paril-KEX] fetch name because now netName is kinda unsuitable
 	gi.Info_ValueForKey(userInfo, "name", value.data(), value.size());
 	Q_strlcpy(ent->client->sess.netName, value.data(), sizeof(ent->client->sess.netName));
 
-	ent->client->sess.skillRating = 0;
+        ent->client->sess.skillRating = 0;
+        ent->client->sess.skillRatingChange = 0;
 
-	if (!isBot) {
-		ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
+        if (!isBot) {
+                if (ent->client->sess.socialID[0]) {
+                        ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
+                }
+                else {
+                        ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
+                }
 
-		if (ent->client->sess.banned) {
-			gi.LocBroadcast_Print(PRINT_HIGH, "BANNED PLAYER {} connects.\n", value.data());
+                if (ent->client->sess.banned) {
+                        gi.LocBroadcast_Print(PRINT_HIGH, "BANNED PLAYER {} connects.\n", value.data());
 			gi.AddCommandString(G_Fmt("kick {}\n", ent - g_entities - 1).data());
 			return false;
 		}
 
-		if (ent->client->sess.skillRating > 0) {
-			gi.LocBroadcast_Print(PRINT_HIGH, "{} connects. (SR: {})\n", value.data(), ent->client->sess.skillRating);
-		}
-		else {
+                if (ent->client->sess.skillRating > 0) {
+                        gi.LocBroadcast_Print(PRINT_HIGH, "{} connects. (SR: {})\n", value.data(), ent->client->sess.skillRating);
+                }
+                else {
 			gi.LocBroadcast_Print(PRINT_HIGH, "$g_player_connected", value.data());
 		}
 
@@ -3515,10 +3526,10 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 			ent->client->sess.admin = true;
 
 		// Detect if client is on a console system
-		if (socialID && (
-			_strnicmp(socialID, "PSN", 3) == 0 ||
-			_strnicmp(socialID, "NX", 2) == 0 ||
-			_strnicmp(socialID, "GDK", 3) == 0
+                if (*safeSocialID && (
+                        _strnicmp(safeSocialID, "PSN", 3) == 0 ||
+                        _strnicmp(safeSocialID, "NX", 2) == 0 ||
+                        _strnicmp(safeSocialID, "GDK", 3) == 0
 			)) {
 			ent->client->sess.consolePlayer = true;
 		}
