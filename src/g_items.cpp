@@ -214,11 +214,10 @@ static gentity_t* CreateDroppedItem(gentity_t* owner, Item* item, int count) {
 	dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
 	gi.setModel(dropped, item->worldModel);
 
-	// --- Bounding Box Fix ---
-	// Use a standard, reliable bounding box for all dropped items.
-	// This fixes the "sinking" bug caused by using an uninitialized s.scale.
-	dropped->mins = { -15, -15, -15 };
-	dropped->maxs = { 15, 15, 15 };
+        // --- Bounding Box Fix ---
+        // Use a bottom-aligned bounding box so the item rests on the floor
+        // instead of sinking halfway into it.
+        SetDroppedItemBounds(dropped);
 
 	// --- Physics and Ownership ---
 	dropped->solid = SOLID_TRIGGER;
@@ -260,20 +259,32 @@ Apply ent->s.scale to a cubic item bounding box
 ===============
 */
 static inline void SetScaledItemBounds(gentity_t* e, float baseHalf = 15.0f) {
-	if (!e)
-		return;
+        if (!e)
+                return;
 
-	// Ensure scale is always positive and non-zero
-	const float s = std::max(0.001f, e->s.scale);
+        // Ensure scale is always positive and non-zero
+        const float s = std::max(0.001f, e->s.scale);
 
-	// Calculate scaled half-size
-	const float hx = baseHalf * s;
-	const float hy = baseHalf * s;
-	const float hz = baseHalf * s;
+        // Calculate scaled half-size
+        const float hx = baseHalf * s;
+        const float hy = baseHalf * s;
+        const float hz = baseHalf * s;
 
-	// Assign mins/maxs
-	e->mins = { -hx, -hy, -hz };
-	e->maxs = { hx,  hy,  hz };
+        // Assign mins/maxs
+        e->mins = { -hx, -hy, -hz };
+        e->maxs = { hx,  hy,  hz };
+}
+
+static inline void SetDroppedItemBounds(gentity_t* e, float scale = 1.0f) {
+        if (!e)
+                return;
+
+        const float s = std::max(0.001f, scale);
+        const Vector3 mins = { -15.0f * s, -15.0f * s, 0.0f };
+        const Vector3 maxs = { 15.0f * s,  15.0f * s, 30.0f * s };
+
+        e->mins = mins;
+        e->maxs = maxs;
 }
 
 /*
@@ -3582,11 +3593,9 @@ gentity_t* Drop_Item(gentity_t* ent, Item* item) {
 	gi.setModel(dropped, item->worldModel);
 	dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
 
-	// scale the bbox
-	const float s = std::max(0.001f, dropped->s.scale); // safety
-	const Vector3 base = { 15, 15, 15 };
-	dropped->mins = -base * s;
-	dropped->maxs = base * s;
+        // scale the bbox
+        const float s = std::max(0.001f, dropped->s.scale); // safety
+        SetDroppedItemBounds(dropped, s);
 
 	dropped->solid = SOLID_TRIGGER;
 	dropped->moveType = MoveType::Toss;
@@ -3597,8 +3606,8 @@ gentity_t* Drop_Item(gentity_t* ent, Item* item) {
 	if (ent->client) AngleVectors(ent->client->vAngle, forward, right, nullptr);
 	else             AngleVectors(ent->s.angles, forward, right, nullptr);
 
-	// scale the spawn offset so big items clear the player
-	const Vector3 offset = Vector3{ 24, 0, -16 } *s;
+        // scale the spawn offset so big items clear the player
+        const Vector3 offset = Vector3{ 24, 0, -16 } *s;
 	const Vector3 start = ent->s.origin;
 	const Vector3 desired = ent->client ? G_ProjectSource(start, offset, forward, right)
 		: (ent->absMin + ent->absMax) / 2;
