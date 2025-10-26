@@ -616,6 +616,50 @@ SAVE_STRUCT_END
 
 MAKE_STRUCT_SAVE_DEDUCER(LevelEntry);
 
+#define DECLARE_SAVE_STRUCT PlayerTeamState
+SAVE_STRUCT_START
+FIELD_AUTO(returned_flag_time),
+FIELD_AUTO(flag_pickup_time),
+FIELD_AUTO(fragged_carrier_time),
+FIELD_AUTO(location),
+FIELD_AUTO(base_defense),
+FIELD_AUTO(carrier_defense),
+FIELD_AUTO(frag_recovery),
+FIELD_AUTO(frag_carrier),
+FIELD_AUTO(hurt_carrier_time)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(PlayerTeamState);
+
+#define DECLARE_SAVE_STRUCT ClientMatchStats
+SAVE_STRUCT_START
+FIELD_AUTO(lifeAverage),
+FIELD_AUTO(lifeLongest),
+FIELD_AUTO(totalDmgDealt),
+FIELD_AUTO(totalDmgReceived),
+FIELD_AUTO(totalShots),
+FIELD_AUTO(totalHits),
+FIELD_AUTO(totalKills),
+FIELD_AUTO(totalTeamKills),
+FIELD_AUTO(totalSpawnKills),
+FIELD_AUTO(totalDeaths),
+FIELD_AUTO(totalSpawnDeaths),
+FIELD_AUTO(totalSuicides),
+FIELD_AUTO(modTotalKills),
+FIELD_AUTO(modTotalDeaths),
+FIELD_AUTO(modTotalDmgD),
+FIELD_AUTO(modTotalDmgR),
+FIELD_AUTO(totalShotsPerWeapon),
+FIELD_AUTO(totalHitsPerWeapon),
+FIELD_AUTO(medalCount),
+FIELD_AUTO(pickupCounts),
+FIELD_AUTO(pickupDelay)
+SAVE_STRUCT_END
+#undef DECLARE_SAVE_STRUCT
+
+MAKE_STRUCT_SAVE_DEDUCER(ClientMatchStats);
+
 // clang-format off
 #define DECLARE_SAVE_STRUCT GameLocals
 SAVE_STRUCT_START
@@ -792,6 +836,23 @@ FIELD_STRUCT(resp.coopRespawn, client_persistant_t),
 FIELD_AUTO(resp.enterTime),
 FIELD_AUTO(resp.score),
 FIELD_AUTO(resp.cmdAngles),
+FIELD_AUTO(resp.totalMatchPlayRealTime),
+FIELD_AUTO(resp.dmg_scorer),
+FIELD_AUTO(resp.dmg_team),
+FIELD_AUTO(resp.medalStack),
+FIELD_AUTO(resp.medalTime),
+FIELD_AUTO(resp.medalType),
+FIELD_STRUCT(resp.teamState, PlayerTeamState),
+FIELD_AUTO(resp.currentRank),
+FIELD_AUTO(resp.previousRank),
+FIELD_AUTO(resp.voted),
+FIELD_AUTO(resp.readyStatus),
+FIELD_STRUCT(resp.match, ClientMatchStats),
+FIELD_AUTO(resp.awardQueue.count),
+FIELD_AUTO(resp.awardQueue.soundIndex),
+FIELD_AUTO(resp.awardQueue.queueSize),
+FIELD_AUTO(resp.awardQueue.playIndex),
+FIELD_AUTO(resp.awardQueue.nextPlayTime),
 //FIELD_AUTO(resp.spectator),
 // old_pmove is not necessary to persist
 
