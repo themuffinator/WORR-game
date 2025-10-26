@@ -34,7 +34,10 @@ GetPlayerNameForSocialID
 ================
 */
 std::string GetPlayerNameForSocialID(const std::string& socialID) {
-	const std::string path = "pcfg/" + socialID + ".json";
+        if (socialID.empty())
+                return {};
+
+        const std::string path = "pcfg/" + socialID + ".json";
 
 	std::ifstream file(path);
 	if (!file.is_open())
@@ -63,7 +66,10 @@ ClientConfig_Create
 ===============
 */
 static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
-	Json::Value newFile(Json::objectValue);
+        if (playerID.empty())
+                return;
+
+        Json::Value newFile(Json::objectValue);
 
 	newFile["socialID"] = playerID;
 	newFile["playerName"] = playerName;
@@ -131,13 +137,21 @@ ClientConfig_Init
 =============
 */
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
-	std::ifstream file(path);
-	Json::Value playerData;
-	bool modified = false;
+        cl->sess.skillRating = 0;
+        cl->sess.skillRatingChange = 0;
 
-	cl->sess.skillRating = 0;
-	cl->sess.skillRatingChange = 0;
+        if (playerID.empty()) {
+                cl->sess.skillRating = DEFAULT_RATING;
+                cl->sess.skillRatingChange = 0;
+                cl->sess.admin = false;
+                cl->sess.banned = false;
+                return;
+        }
+
+        const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+        std::ifstream file(path);
+        Json::Value playerData;
+        bool modified = false;
 
 	// If file doesn't exist, create a new default config
 	if (!file.is_open()) {
@@ -301,16 +315,19 @@ ClientConfig_SaveInternal
 ==========================
 */
 static void ClientConfig_SaveInternal(
-	const std::string& playerID,
-	int skillRating,
-	int skillChange,
-	int timePlayedSeconds,
-	bool won,
-	bool isGhost,
-	bool updateStats,
-	const client_config_t* pc = nullptr
+        const std::string& playerID,
+        int skillRating,
+        int skillChange,
+        int timePlayedSeconds,
+        bool won,
+        bool isGhost,
+        bool updateStats,
+        const client_config_t* pc = nullptr
 ) {
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+        if (playerID.empty())
+                return;
+
+        const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
 	std::ifstream file(path);
 	if (!file.is_open()) {
 		gi.Com_PrintFmt("{}: could not open file for {}\n", __FUNCTION__, playerID);
@@ -423,8 +440,8 @@ Saves real player's config and updates stats.
 ================
 */
 void ClientConfig_SaveStats(gclient_t *cl, bool wonMatch) {
-	if (!cl || cl->sess.is_a_bot)
-		return;
+        if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
+                return;
 
 	const int timePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
 	ClientConfig_SaveInternal(
@@ -473,10 +490,13 @@ Returns true if modified and written, false otherwise.
 ====================
 */
 static bool ClientConfig_Update(
-	const std::string& playerID,
-	const std::function<void(Json::Value&)>& updater
+        const std::string& playerID,
+        const std::function<void(Json::Value&)>& updater
 ) {
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+        if (playerID.empty())
+                return false;
+
+        const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
 
 	// 1) load
 	std::ifstream in(path);
