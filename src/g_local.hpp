@@ -2049,7 +2049,7 @@ struct ClientMatchStats {
 };
 
 struct Ghosts {
-	char				netName[MAX_NETNAME];			// ent->client->pers.netName
+	char				netName[MAX_NETNAME];			// ent->client->sess.netName
 	char				socialID[MAX_INFO_VALUE]{};		// ent->client->socialID
 	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
 	std::array<int16_t, static_cast<int>(AmmoID::_Total)> ammoMax = {};			// ent->client->pers.ammoMax
@@ -4072,9 +4072,6 @@ struct client_persistant_t {
 
 	int32_t			dmg_scorer = 0;		// for clan arena scoring from damage dealt
 	int32_t			dmg_team = 0;		// for team damage checks and warnings
-
-	int				skinIconIndex = 0;
-	char			skin[MAX_INFO_VALUE];
 
 	int32_t			vote_count = 0;			// to prevent people from constantly calling votes
 
