@@ -149,6 +149,11 @@ static bool ShouldResetLimitedLives(LimitedLivesResetMode mode) {
 
 static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_score, LimitedLivesResetMode limitedLivesResetMode = LimitedLivesResetMode::Auto) {
 
+	bool reloadedEntities = false;
+	if (deathmatch->integer && reset_players) {
+		reloadedEntities = G_ReloadMapEntitiesFromString();
+	}
+
 	// reset the players
 	if (reset_players) {
 		for (auto ec : active_clients()) {
@@ -190,7 +195,9 @@ memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
 	Tech_Reset();
 	CTF_ResetFlags();
 
-	Monsters_KillAll();
+	if (!reloadedEntities) {
+		Monsters_KillAll();
+	}
 
 	Entities_ItemTeams_Reset();
 
