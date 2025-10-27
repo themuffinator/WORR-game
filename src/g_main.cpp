@@ -1744,17 +1744,17 @@ static void HostAutoScreenshotsRun() {
 			level.autoScreenshotTool_delayTime = level.time + 300_ms;
 		}
 		else {
-			Match_End();
-			level.intermission.time = level.time + 30_sec;
-			ExitLevel();
-		}
-		break;
-	case 6:
-		Match_End();
-		level.intermission.time = level.time + 30_sec;
-		ExitLevel();
-		break;
-	}
+                        Match_End();
+                        level.intermission.time = level.time + 30_sec;
+                        ExitLevel(true);
+                }
+                break;
+        case 6:
+                Match_End();
+                level.intermission.time = level.time + 30_sec;
+                ExitLevel(true);
+                break;
+        }
 }
 
 /*
