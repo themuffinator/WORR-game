@@ -30,8 +30,7 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 	constexpr int TOTAL_BAR_SEGMENTS = 28;	//24;
 	constexpr GameTime VOTE_DURATION = 5_sec;
 
-	auto& ms = level.mapSelector;
-	MenuBuilder builder;
+        MenuBuilder builder;
 
 	// --- Initial spacing ---
 	builder.spacer().spacer();
@@ -62,8 +61,9 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 	builder.add("", MenuAlign::Center);
 
 	// --- Update logic ---
-	builder.update([=](gentity_t* ent, const Menu& m) {
-		auto& menu = const_cast<Menu&>(m);
+        builder.update([=](gentity_t* ent, const Menu& m) {
+                auto& ms = level.mapSelector;
+                auto& menu = const_cast<Menu&>(m);
 		const int clientNum = ent->s.number;
 		const int vote = ms.votes[clientNum];
 		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && ms.candidates[vote]);
