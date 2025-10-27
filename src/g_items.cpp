@@ -3592,10 +3592,14 @@ gentity_t* Drop_Item(gentity_t* ent, Item* item) {
 	dropped->className = item->className;
 	dropped->s.effects = item->worldModelFlags;
 	gi.setModel(dropped, item->worldModel);
-	dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
+        dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
 
-	// scale the bbox
-	const float s = std::max(0.001f, dropped->s.scale); // safety
+        // Dropped items should default to a normal visual scale
+        if (dropped->s.scale <= 0.0f)
+                dropped->s.scale = 1.0f;
+
+        // scale the bbox
+        const float s = std::max(0.001f, dropped->s.scale); // safety
 	SetDroppedItemBounds(dropped, s);
 
 	dropped->solid = SOLID_TRIGGER;
