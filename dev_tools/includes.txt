@@ -1,0 +1,2496 @@
+.\bg_local.h:
+  #include "q_std.h"
+  #include "game.h"
+
+.\bots\bot_debug.cpp:
+  #include "../g_local.h"
+  #include "bot_utils.h"
+  #include "bot_debug.h"
+
+.\bots\bot_debug.h:
+
+.\bots\bot_exports.cpp:
+  #include "../g_local.h"
+  #include "bot_exports.h"
+
+.\bots\bot_exports.h:
+
+.\bots\bot_includes.h:
+  #include "bot_utils.h"
+  #include "bot_think.h"
+  #include "bot_debug.h"
+  #include "bot_exports.h"
+
+.\bots\bot_think.cpp:
+  #include "../g_local.h"
+  #include "bot_think.h"
+
+.\bots\bot_think.h:
+
+.\bots\bot_utils.cpp:
+  #include "../g_local.h"
+  #include "../monsters/m_player.h"
+  #include "bot_utils.h"
+
+.\bots\bot_utils.h:
+
+.\cg_local.h:
+  #include "bg_local.h"
+
+.\cg_main.cpp:
+  #include "cg_local.h"
+  #include "monsters/m_flash.h"
+
+.\cg_screen.cpp:
+  #include "cg_local.h"
+  #include <vector>
+  #include <optional>
+  #include <array>
+  #include <charconv>
+
+.\fmt-10\fmt\args.h:
+  #include <functional>  // std::reference_wrapper
+  #include <memory>      // std::unique_ptr
+  #include <vector>
+  #include "core.h"
+
+.\fmt-10\fmt\chrono.h:
+  #include <algorithm>
+  #include <chrono>
+  #include <cmath>    // std::isfinite
+  #include <cstring>  // std::memcpy
+  #include <ctime>
+  #include <iterator>
+  #include <locale>
+  #include <ostream>
+  #include <type_traits>
+  #include "format.h"
+  #    include <winapifamily.h>
+
+.\fmt-10\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\fmt-10\fmt\compile.h:
+  #include "format.h"
+
+.\fmt-10\fmt\core.h:
+  #include <cstddef>  // std::byte
+  #include <cstdio>   // std::FILE
+  #include <cstring>  // std::strlen
+  #include <iterator>
+  #include <limits>
+  #include <memory>  // std::addressof
+  #include <string>
+  #include <type_traits>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+  #  include "format.h"
+
+.\fmt-10\fmt\format-inl.h:
+  #include <algorithm>
+  #include <cerrno>  // errno
+  #include <climits>
+  #include <cmath>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\fmt-10\fmt\format.h:
+  #include <cmath>             // std::signbit
+  #include <cstdint>           // uint32_t
+  #include <cstring>           // std::memcpy
+  #include <initializer_list>  // std::initializer_list
+  #include <limits>            // std::numeric_limits
+  #include <memory>            // std::uninitialized_copy
+  #include <stdexcept>         // std::runtime_error
+  #include <system_error>      // std::system_error
+  #  include <bit>  // std::bitcast
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\fmt-10\fmt\os.h:
+  #include <cerrno>
+  #include <cstddef>
+  #include <cstdio>
+  #include <system_error>  // std::system_error
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #    include <winapifamily.h>
+  #    include <fcntl.h>  // for O_RDONLY
+
+.\fmt-10\fmt\ostream.h:
+  #include <fstream>  // std::filebuf
+  #  include <ext/stdio_filebuf.h>
+  #  include <ext/stdio_sync_filebuf.h>
+  #  include <__std_stream>
+  #include "format.h"
+
+.\fmt-10\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "format.h"
+
+.\fmt-10\fmt\ranges.h:
+  #include <initializer_list>
+  #include <tuple>
+  #include <type_traits>
+  #include "format.h"
+
+.\fmt-10\fmt\std.h:
+  #include <atomic>
+  #include <bitset>
+  #include <cstdlib>
+  #include <exception>
+  #include <memory>
+  #include <thread>
+  #include <type_traits>
+  #include <typeinfo>
+  #include <utility>
+  #include <vector>
+  #include "format.h"
+  #include "ostream.h"
+  #  include <version>
+  #    include <filesystem>
+  #    include <variant>
+  #    include <optional>
+  #  include <cxxabi.h>
+
+.\fmt-10\fmt\xchar.h:
+  #include <cwchar>
+  #include "format.h"
+  #  include <locale>
+
+.\fmt\args.h:
+  #  include <functional>  // std::reference_wrapper
+  #  include <memory>      // std::unique_ptr
+  #  include <vector>
+  #include "format.h"  // std_string_view
+
+.\fmt\base.h:
+  #  include <limits.h>  // CHAR_BIT
+  #  include <stdio.h>   // FILE
+  #  include <string.h>  // memcmp
+  #  include <type_traits>  // std::enable_if
+  #  include "format.h"
+
+.\fmt\chrono.h:
+  #  include <algorithm>
+  #  include <chrono>
+  #  include <cmath>    // std::isfinite
+  #  include <cstring>  // std::memcpy
+  #  include <ctime>
+  #  include <iterator>
+  #  include <locale>
+  #  include <ostream>
+  #  include <type_traits>
+  #include "format.h"
+
+.\fmt\color.h:
+  #include "format.h"
+
+.\fmt\compile.h:
+  #  include <iterator>  // std::back_inserter
+  #include "format.h"
+
+.\fmt\core.h:
+  #include "format.h"
+
+.\fmt\format-inl.h:
+  #  include <algorithm>
+  #  include <cerrno>  // errno
+  #  include <climits>
+  #  include <cmath>
+  #  include <exception>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+  #  include <locale>
+
+.\fmt\format.h:
+  #include "base.h"
+  #  include <cmath>    // std::signbit
+  #  include <cstddef>  // std::byte
+  #  include <cstdint>  // uint32_t
+  #  include <cstring>  // std::memcpy
+  #  include <limits>   // std::numeric_limits
+  #  include <new>      // std::bad_alloc
+  #    include <memory>  // std::allocator_traits
+  #  include <stdexcept>     // std::runtime_error
+  #  include <string>        // std::string
+  #  include <system_error>  // std::system_error
+  #    include <bit>  // std::bit_cast
+  #    include <string_view>
+  #    include <intrin.h>  // _BitScanReverse[64], _umul128
+  #  include "format-inl.h"
+
+.\fmt\os.h:
+  #include "format.h"
+  #  include <cerrno>
+  #  include <cstddef>
+  #  include <cstdio>
+  #  include <system_error>  // std::system_error
+  #    include <xlocale.h>  // LC_NUMERIC_MASK on macOS
+  #    include <winapifamily.h>
+  #    include <fcntl.h>  // for O_RDONLY
+
+.\fmt\ostream.h:
+  #  include <fstream>  // std::filebuf
+  #    include <ext/stdio_filebuf.h>
+  #    include <ext/stdio_sync_filebuf.h>
+  #  include <io.h>
+  #include "chrono.h"  // formatbuf
+
+.\fmt\printf.h:
+  #  include <algorithm>  // std::max
+  #  include <limits>     // std::numeric_limits
+  #include "format.h"
+
+.\fmt\ranges.h:
+  #  include <initializer_list>
+  #  include <iterator>
+  #  include <string>
+  #  include <tuple>
+  #  include <type_traits>
+  #  include <utility>
+  #include "format.h"
+
+.\fmt\std.h:
+  #include "format.h"
+  #include "ostream.h"
+  #  include <atomic>
+  #  include <bitset>
+  #  include <complex>
+  #  include <cstdlib>
+  #  include <exception>
+  #  include <functional>
+  #  include <memory>
+  #  include <thread>
+  #  include <type_traits>
+  #  include <typeinfo>
+  #  include <utility>
+  #  include <vector>
+  #      include <filesystem>
+  #      include <variant>
+  #      include <optional>
+  #    include <source_location>
+  #    include <expected>
+  #  include <version>
+  #  include <cxxabi.h>
+
+.\fmt\xchar.h:
+  #include "color.h"
+  #include "format.h"
+  #include "ostream.h"
+  #include "ranges.h"
+  #  include <cwchar>
+  #    include <locale>
+
+.\freeze.h:
+
+.\g_ai.cpp:
+  #include "g_local.h"
+
+.\g_ai_new.cpp:
+  #include "g_local.h"
+
+.\g_client_cfg.cpp:
+  #include <iostream>
+  #include <fstream>
+  #include <string>
+  #include <unordered_map>
+  #include <sstream>
+  #include "nlohmann/json.hpp"
+  #include <set>
+
+.\g_cmds.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+  #include "freeze.h"
+  #include <sstream>
+  #include <sstream>			// for ostringstream
+  #include <iomanip>			// for setw
+
+.\g_cmds_voting.cpp:
+  #include "g_local.h"
+
+.\g_combat.cpp:
+  #include "g_local.h"
+
+.\g_ctf.cpp:
+  #include "g_local.h"
+
+.\g_func.cpp:
+  #include "g_local.h"
+
+.\g_items.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+  #include "monsters/m_player.h"	//doppelganger
+
+.\g_local.h:
+  #include "bg_local.h"
+  #include "menu/Menu.hpp"
+  #include <optional>		// for AutoSelectNextMap()
+  #include <bitset>		// for bitset
+  #include <random>
+  #include <charconv>
+  #include <functional>
+  #include <unordered_set>
+  #include <random>
+  #include <bitset>
+
+.\g_main.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+  #include <chrono>
+
+.\g_maps.cpp:
+  #include "g_local.h"
+  #include "nlohmann/json.hpp"
+  #include <fstream>
+  #include <sstream>
+  #include <regex>
+  #include <functional>
+  #include <cctype>
+
+.\g_match_logging.cpp:
+  #include <iostream>
+  #include <fstream>
+  #include <string>
+  #include <unordered_map>
+  #include <sstream>
+  #include "nlohmann/json.hpp"
+  #include <set>
+
+.\g_match_state.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"	// match starts for death anim
+  #include <cmath>
+  #include <vector>
+  #include <algorithm>
+
+.\g_menu.cpp:
+  #include "g_local.h"
+  #include <assert.h>
+
+.\g_misc.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+
+.\g_monster.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+
+.\g_monster_spawn.cpp:
+  #include "g_local.h"
+
+.\g_phys.cpp:
+  #include "g_local.h"
+
+.\g_save.cpp:
+  #include <sstream>
+  #include "g_local.h"
+  #include <float.h>
+  #include "json/json.h"
+  #include "json/config.h"
+  #include <unordered_map>
+  #include <cassert>
+  #include <fstream>
+  #include <memory>
+
+.\g_spawn.cpp:
+  #include "g_local.h"
+  #include <sstream>	// for ent overrides
+  #include <fstream>	// for ent overrides
+  #include "g_statusbar.h"
+
+.\g_spectator.cpp:
+  #include "g_local.h"
+
+.\g_statusbar.h:
+  #include <sstream>
+
+.\g_svcmds.cpp:
+  #include "g_local.h"
+
+.\g_target.cpp:
+  #include "g_local.h"
+
+.\g_trigger.cpp:
+  #include "g_local.h"
+
+.\g_turret.cpp:
+  #include "g_local.h"
+
+.\g_utils.cpp:
+  #include "g_local.h"
+  #include <chrono>	// get real time
+
+.\g_weapon.cpp:
+  #include "g_local.h"
+
+.\game.h:
+  #include <array>
+  #include <limits.h>
+
+.\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\json\forwards.h:
+  #include "config.h"
+
+.\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\json\json_features.h:
+  #include "forwards.h"
+
+.\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\json\version.h:
+
+.\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\menu\AdminSettingsMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\CallvoteMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+  #include <string>
+
+.\menu\HostInfoMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\JoinMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MapSelectorMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MatchInfoMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MatchStatsMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\Menu.cpp:
+  #include "Menu.hpp"
+  #include "../g_statusbar.h"
+  #include "../g_local.h"
+  #include "../game.h"
+
+.\menu\Menu.hpp:
+  #include <vector>
+  #include <string>
+  #include <memory>
+  #include <tuple>
+  #include <functional>
+
+.\menu\MenuSystem.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\VoteMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\monsters\m_actor.cpp:
+  #include "../g_local.h"
+  #include "m_actor.h"
+  #include "m_flash.h"
+
+.\monsters\m_actor.h:
+
+.\monsters\m_arachnid.cpp:
+  #include "../g_local.h"
+  #include "m_arachnid.h"
+  #include "m_flash.h"
+
+.\monsters\m_arachnid.h:
+
+.\monsters\m_berserk.cpp:
+  #include "../g_local.h"
+  #include "m_berserk.h"
+
+.\monsters\m_berserk.h:
+
+.\monsters\m_boss2.cpp:
+  #include "../g_local.h"
+  #include "m_boss2.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss2.h:
+
+.\monsters\m_boss3.cpp:
+  #include "../g_local.h"
+  #include "m_boss32.h"
+
+.\monsters\m_boss31.cpp:
+  #include "../g_local.h"
+  #include "m_boss31.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss31.h:
+
+.\monsters\m_boss32.cpp:
+  #include "../g_local.h"
+  #include "m_boss32.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss32.h:
+
+.\monsters\m_brain.cpp:
+  #include "../g_local.h"
+  #include "m_brain.h"
+
+.\monsters\m_brain.h:
+
+.\monsters\m_carrier.cpp:
+  #include "../g_local.h"
+  #include "m_carrier.h"
+  #include "m_flash.h"
+
+.\monsters\m_carrier.h:
+
+.\monsters\m_chick.cpp:
+  #include "../g_local.h"
+  #include "m_chick.h"
+  #include "m_flash.h"
+
+.\monsters\m_chick.h:
+
+.\monsters\m_fixbot.cpp:
+  #include "../g_local.h"
+  #include "m_fixbot.h"
+  #include "m_flash.h"
+
+.\monsters\m_fixbot.h:
+
+.\monsters\m_flash.h:
+
+.\monsters\m_flipper.cpp:
+  #include "../g_local.h"
+  #include "m_flipper.h"
+
+.\monsters\m_flipper.h:
+
+.\monsters\m_float.cpp:
+  #include "../g_local.h"
+  #include "m_float.h"
+  #include "m_flash.h"
+
+.\monsters\m_float.h:
+
+.\monsters\m_flyer.cpp:
+  #include "../g_local.h"
+  #include "m_flyer.h"
+  #include "m_flash.h"
+
+.\monsters\m_flyer.h:
+
+.\monsters\m_gekk.cpp:
+  #include "../g_local.h"
+  #include "m_gekk.h"
+
+.\monsters\m_gekk.h:
+
+.\monsters\m_gladiator.cpp:
+  #include "../g_local.h"
+  #include "m_gladiator.h"
+  #include "m_flash.h"
+
+.\monsters\m_gladiator.h:
+
+.\monsters\m_guardian.cpp:
+  #include "../g_local.h"
+  #include "m_guardian.h"
+  #include "m_flash.h"
+
+.\monsters\m_guardian.h:
+
+.\monsters\m_guncmdr.cpp:
+  #include "../g_local.h"
+  #include "m_gunner.h"
+  #include "m_flash.h"
+
+.\monsters\m_gunner.cpp:
+  #include "../g_local.h"
+  #include "m_gunner.h"
+  #include "m_flash.h"
+
+.\monsters\m_gunner.h:
+
+.\monsters\m_hover.cpp:
+  #include "../g_local.h"
+  #include "m_hover.h"
+  #include "m_flash.h"
+
+.\monsters\m_hover.h:
+
+.\monsters\m_infantry.cpp:
+  #include "../g_local.h"
+  #include "m_infantry.h"
+  #include "m_flash.h"
+
+.\monsters\m_infantry.h:
+
+.\monsters\m_insane.cpp:
+  #include "../g_local.h"
+  #include "m_insane.h"
+
+.\monsters\m_insane.h:
+
+.\monsters\m_medic.cpp:
+  #include "../g_local.h"
+  #include "m_medic.h"
+  #include "m_flash.h"
+
+.\monsters\m_medic.h:
+
+.\monsters\m_move.cpp:
+  #include "../g_local.h"
+
+.\monsters\m_mutant.cpp:
+  #include "../g_local.h"
+  #include "m_mutant.h"
+
+.\monsters\m_mutant.h:
+
+.\monsters\m_parasite.cpp:
+  #include "../g_local.h"
+  #include "m_parasite.h"
+
+.\monsters\m_parasite.h:
+
+.\monsters\m_player.h:
+
+.\monsters\m_rider.h:
+
+.\monsters\m_shambler.cpp:
+  #include "../g_local.h"
+  #include "m_shambler.h"
+  #include "m_flash.h"
+
+.\monsters\m_shambler.h:
+
+.\monsters\m_soldier.cpp:
+  #include "../g_local.h"
+  #include "m_soldier.h"
+  #include "m_flash.h"
+
+.\monsters\m_soldier.h:
+
+.\monsters\m_stalker.cpp:
+  #include "../g_local.h"
+  #include "m_stalker.h"
+  #include <float.h>
+
+.\monsters\m_stalker.h:
+
+.\monsters\m_supertank.cpp:
+  #include "../g_local.h"
+  #include "m_supertank.h"
+  #include "m_flash.h"
+
+.\monsters\m_supertank.h:
+
+.\monsters\m_tank.cpp:
+  #include "../g_local.h"
+  #include "m_tank.h"
+  #include "m_flash.h"
+
+.\monsters\m_tank.h:
+
+.\monsters\m_turret.cpp:
+  #include "../g_local.h"
+  #include "m_turret.h"
+
+.\monsters\m_turret.h:
+
+.\monsters\m_widow.cpp:
+  #include "../g_local.h"
+  #include "m_widow.h"
+  #include "m_flash.h"
+
+.\monsters\m_widow.h:
+
+.\monsters\m_widow2.cpp:
+  #include "../g_local.h"
+  #include "m_widow2.h"
+  #include "m_flash.h"
+
+.\monsters\m_widow2.h:
+
+.\nlohmann\json.hpp:
+  #include <algorithm> // all_of, find, for_each
+  #include <cstddef> // nullptr_t, ptrdiff_t, size_t
+  #include <functional> // hash, less
+  #include <initializer_list> // initializer_list
+  #include <iosfwd> // istream, ostream
+  #include <iterator> // random_access_iterator_tag
+  #include <memory> // unique_ptr
+  #include <string> // string, stoi, to_string
+  #include <utility> // declval, forward, move, pair, swap
+  #include <vector> // vector
+  #include <utility>
+  #include <algorithm> // transform
+  #include <array> // array
+  #include <forward_list> // forward_list
+  #include <iterator> // inserter, front_inserter, end
+  #include <map> // map
+  #include <string> // string
+  #include <tuple> // tuple, make_tuple
+  #include <type_traits> // is_arithmetic, is_same, is_enum, underlying_type, is_convertible
+  #include <unordered_map> // unordered_map
+  #include <utility> // pair, declval
+  #include <valarray> // valarray
+  #include <cstddef> // nullptr_t
+  #include <exception> // exception
+  #include <numeric> // accumulate
+  #include <stdexcept> // runtime_error
+  #include <string> // to_string
+  #include <vector> // vector
+  #include <array> // array
+  #include <cstddef> // size_t
+  #include <cstdint> // uint8_t
+  #include <string> // string
+  #include <utility> // declval, pair
+  #include <type_traits>
+  #include <stdint.h>
+  #include <stdint.h>
+  #include <version>
+  #include <cstdlib>
+  #include <cassert> // assert
+  #include <compare> // partial_ordering
+  #include <cstddef> // size_t
+  #include <array> // array
+  #include <cstddef> // size_t
+  #include <type_traits> // conditional, enable_if, false_type, integral_constant, is_constructible, is_integral, is_same, remove_cv, remove_reference, true_type
+  #include <utility> // index_sequence, make_index_sequence, index_sequence_for
+  #include <limits> // numeric_limits
+  #include <type_traits> // false_type, is_constructible, is_integral, is_same, true_type
+  #include <utility> // declval
+  #include <tuple> // tuple
+  #include <string> // char_traits
+  #include <iterator> // random_access_iterator_tag
+  #include <cstdint> // int64_t, uint64_t
+  #include <map> // map
+  #include <memory> // allocator
+  #include <string> // string
+  #include <vector> // vector
+  #include <cstring> // strlen
+  #include <string> // string
+  #include <utility> // forward
+  #include <experimental/filesystem>
+  #include <filesystem>
+  #include <algorithm> // copy
+  #include <iterator> // begin, end
+  #include <string> // string
+  #include <tuple> // tuple, get
+  #include <type_traits> // is_same, is_constructible, is_floating_point, is_enum, underlying_type
+  #include <utility> // move, forward, declval, pair
+  #include <valarray> // valarray
+  #include <vector> // vector
+  #include <cstddef> // size_t
+  #include <iterator> // input_iterator_tag
+  #include <string> // string, to_string
+  #include <tuple> // tuple_size, get, tuple_element
+  #include <utility> // move
+  #include <ranges> // enable_borrowed_range
+  #include <cstdint> // uint8_t, uint64_t
+  #include <tuple> // tie
+  #include <utility> // move
+  #include <cstdint> // uint8_t
+  #include <cstddef> // size_t
+  #include <functional> // hash
+  #include <algorithm> // generate_n
+  #include <array> // array
+  #include <cmath> // ldexp
+  #include <cstddef> // size_t
+  #include <cstdint> // uint8_t, uint16_t, uint32_t, uint64_t
+  #include <cstdio> // snprintf
+  #include <cstring> // memcpy
+  #include <iterator> // back_inserter
+  #include <limits> // numeric_limits
+  #include <string> // char_traits, string
+  #include <utility> // make_pair, move
+  #include <vector> // vector
+  #include <array> // array
+  #include <cstddef> // size_t
+  #include <cstring> // strlen
+  #include <iterator> // begin, end, iterator_traits, random_access_iterator_tag, distance, next
+  #include <memory> // shared_ptr, make_shared, addressof
+  #include <numeric> // accumulate
+  #include <string> // string, char_traits
+  #include <type_traits> // enable_if, is_base_of, is_pointer, is_integral, remove_pointer
+  #include <utility> // pair, declval
+  #include <cstdio>   // FILE *
+  #include <istream>  // istream
+  #include <cstddef>
+  #include <string> // string
+  #include <utility> // move
+  #include <vector> // vector
+  #include <array> // array
+  #include <clocale> // localeconv
+  #include <cstddef> // size_t
+  #include <cstdio> // snprintf
+  #include <cstdlib> // strtof, strtod, strtold, strtoll, strtoull
+  #include <initializer_list> // initializer_list
+  #include <string> // char_traits, string
+  #include <utility> // move
+  #include <vector> // vector
+  #include <cstdint> // size_t
+  #include <utility> // declval
+  #include <string> // string
+  #include <cmath> // isfinite
+  #include <cstdint> // uint8_t
+  #include <functional> // function
+  #include <string> // string
+  #include <utility> // move
+  #include <vector> // vector
+  #include <cstddef> // ptrdiff_t
+  #include <limits>  // numeric_limits
+  #include <iterator> // iterator, random_access_iterator_tag, bidirectional_iterator_tag, advance, next
+  #include <type_traits> // conditional, is_const, remove_const
+  #include <cstddef> // ptrdiff_t
+  #include <iterator> // reverse_iterator
+  #include <utility> // declval
+  #include <type_traits> // conditional, is_same
+  #include <algorithm> // all_of
+  #include <cctype> // isdigit
+  #include <cerrno> // errno, ERANGE
+  #include <cstdlib> // strtoull
+  #include <iosfwd> // ostream
+  #include <limits> // max
+  #include <numeric> // accumulate
+  #include <string> // string
+  #include <utility> // move
+  #include <vector> // vector
+  #include <initializer_list>
+  #include <utility>
+  #include <algorithm> // reverse
+  #include <array> // array
+  #include <map> // map
+  #include <cmath> // isnan, isinf
+  #include <cstdint> // uint8_t, uint16_t, uint32_t, uint64_t
+  #include <cstring> // memcpy
+  #include <limits> // numeric_limits
+  #include <string> // string
+  #include <utility> // move
+  #include <vector> // vector
+  #include <algorithm> // copy
+  #include <cstddef> // size_t
+  #include <iterator> // back_inserter
+  #include <memory> // shared_ptr, make_shared
+  #include <string> // basic_string
+  #include <vector> // vector
+  #include <ios>      // streamsize
+  #include <ostream>  // basic_ostream
+  #include <algorithm> // reverse, remove, fill, find, none_of
+  #include <array> // array
+  #include <clocale> // localeconv, lconv
+  #include <cmath> // labs, isfinite, isnan, signbit
+  #include <cstddef> // size_t, ptrdiff_t
+  #include <cstdint> // uint8_t
+  #include <cstdio> // snprintf
+  #include <limits> // numeric_limits
+  #include <string> // string, char_traits
+  #include <iomanip> // setfill, setw
+  #include <type_traits> // is_same
+  #include <utility> // move
+  #include <array> // array
+  #include <cmath>   // signbit, isfinite
+  #include <cstdint> // intN_t, uintN_t
+  #include <cstring> // memcpy, memmove
+  #include <limits> // numeric_limits
+  #include <type_traits> // conditional
+  #include <functional> // equal_to, less
+  #include <initializer_list> // initializer_list
+  #include <iterator> // input_iterator_tag, iterator_traits
+  #include <memory> // allocator
+  #include <stdexcept> // for out_of_range
+  #include <type_traits> // enable_if, is_convertible
+  #include <utility> // pair
+  #include <vector> // vector
+  #include <any>
+  #include <string_view>
+
+.\p_client.cpp:
+  #include "g_local.h"
+  #include <fmt/format.h>
+  #include "monsters/m_player.h"
+  #include "bots/bot_includes.h"
+  #include <string>
+  #include <sstream>
+
+.\p_hud_main.cpp:
+  #include "g_local.h"
+  #include "g_statusbar.h"
+
+.\p_hud_scoreboard.cpp:
+  #include "g_local.h"
+
+.\p_menu.cpp:
+  #include "g_local.h"
+  #include "g_statusbar.h"
+
+.\p_menu.h:
+
+.\p_move.cpp:
+  #include "q_std.h"
+  #include "bg_local.h"
+
+.\p_trail.cpp:
+  #include "g_local.h"
+
+.\p_view.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+  #include "bots/bot_includes.h"
+
+.\p_weapon.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+
+.\q_std.cpp:
+  #include "g_local.h"
+  #include "../src/format.cc"
+
+.\q_std.h:
+  #include <cmath>
+  #include <cstdio>
+  #include <cstdarg>
+  #include <cstring>
+  #include <cstdlib>
+  #include <cstddef>
+  #include <cinttypes>
+  #include <ctime>
+  #include <type_traits>
+  #include <algorithm>
+  #include <array>
+  #include <string_view>
+  #include <numeric>
+  #include <functional>
+  #include <format>
+  #include <fmt/format.h>
+  #include "q_vec3.h"
+
+.\q_vec3.h:
+  #include <stdexcept>
+  #include <type_traits>
+
+.\vcpkg_installed\vcpkg\blds\detect_compiler\x64-windows-rel\CMakeFiles\3.27.2-msvc1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\vcpkg\blds\detect_compiler\x64-windows-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\fuzzing\fuzzer-common.h:
+  #include <cstdint>      // std::uint8_t
+  #include <cstring>      // memcpy
+  #include <vector>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gmock\gmock.h:
+  # include <errno.h>
+  #include <algorithm>
+  #include <string>
+  #include <stdio.h>
+  #include <ostream>  // NOLINT
+  #include <string>
+  #include <assert.h>
+  #include <stdlib.h>
+  #include <iostream>
+  #include "gtest.h"
+  #include <limits.h>
+  #include <ostream>  // NOLINT
+  #include <map>
+  #include <set>
+  #include <sstream>
+  #include <string>
+  #include <vector>
+  # include <stdexcept>  // NOLINT
+  #include <math.h>
+  #include <algorithm>
+  #include <iterator>
+  #include <limits>
+  #include <ostream>  // NOLINT
+  #include <sstream>
+  #include <string>
+  #include <utility>
+  #include <vector>
+  #include <initializer_list>  // NOLINT -- must be after gtest.h
+  #include <iterator>
+  #include <sstream>
+  #include <string>
+  #include <vector>
+  #include <algorithm>
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest-extra.h:
+  #include <string>
+  #include "fmt/os.h"
+  #include "gmock.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest\gtest-spi.h:
+  #include "gtest/gtest.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest\gtest.h:
+  #include <limits>
+  #include <ostream>
+  #include <vector>
+  #include <ctype.h>   // for isspace, etc
+  #include <stddef.h>  // for ptrdiff_t
+  #include <stdlib.h>
+  #include <stdio.h>
+  #include <string.h>
+  # include <sys/types.h>
+  # include <sys/stat.h>
+  # include <AvailabilityMacros.h>
+  # include <TargetConditionals.h>
+  #include <iostream>  // NOLINT
+  #include <sstream>  // NOLINT
+  #include <string>  // NOLINT
+  # include <unistd.h>
+  # include <strings.h>
+  # include <direct.h>
+  # include <io.h>
+  #  include <android/api-level.h>  // NOLINT
+  # include <regex.h>  // NOLINT
+  # include <typeinfo>
+  # include <pthread.h>  // NOLINT
+  # include <time.h>  // NOLINT
+  #include <utility>  // For ::std::pair.
+  #  include <tuple>
+  #  include <tuple>
+  #   include <tr1/tuple>
+  #   include <tr1/tuple>  // NOLINT
+  #  include <tuple>  // NOLINT
+  # include <vector>  // NOLINT
+  # include <stdlib.h>
+  # include <sys/types.h>
+  # include <sys/wait.h>
+  # include <unistd.h>
+  # include <stdexcept>
+  #include <ctype.h>
+  #include <float.h>
+  #include <string.h>
+  #include <iomanip>
+  #include <limits>
+  #include <set>
+  #include <limits>
+  # include <mem.h>
+  #include <string.h>
+  #include <string>
+  #  include <cxxabi.h>
+  #  include <acxx_demangle.h>
+  #include <stdio.h>
+  # include <utility>
+  #include <iterator>
+  #include <utility>
+  #include <vector>
+  #include <stdlib.h>
+  #include <assert.h>
+  #include <ostream>  // NOLINT
+  #include <sstream>
+  #include <string>
+  #include <utility>
+  #include <vector>
+  #include <iosfwd>
+  #include <vector>
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\mock-allocator.h:
+  #include "fmt/format.h"
+  #include "gmock.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\posix-mock.h:
+  #include <errno.h>
+  #include <locale.h>
+  #include <stdio.h>
+  #  include <xlocale.h>
+  #  include <windows.h>
+  #  include <sys/param.h>  // for FreeBSD version
+  #  include <sys/types.h>  // for ssize_t
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\scan.h:
+  #include <array>
+  #include <cassert>
+  #include <climits>
+  #include "fmt/format.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\test-assert.h:
+  #include <stdexcept>
+  #include "gtest.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\util.h:
+  #include <cstdarg>
+  #include <cstdio>
+  #include <string>
+  #include "fmt/os.h"
+
+.\vcpkg_installed\vcpkg\blds\fmt\x64-windows-dbg\CMakeFiles\3.27.2-msvc1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\vcpkg\blds\fmt\x64-windows-dbg\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\vcpkg\blds\fmt\x64-windows-rel\CMakeFiles\3.27.2-msvc1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\vcpkg\blds\fmt\x64-windows-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\readFromStream\readFromStream.cpp:
+  #include "json/json.h"
+  #include <fstream>
+  #include <iostream>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\readFromString\readFromString.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\streamWrite\streamWrite.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\stringWrite\stringWrite.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\version.h:
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\jsontestrunner\main.cpp:
+  #include <algorithm> // sort
+  #include <cstdio>
+  #include <iostream>
+  #include <json/json.h>
+  #include <memory>
+  #include <sstream>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_reader.cpp:
+  #include "json_tool.h"
+  #include <json/assertions.h>
+  #include <json/reader.h>
+  #include <json/value.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cstring>
+  #include <iostream>
+  #include <istream>
+  #include <limits>
+  #include <memory>
+  #include <set>
+  #include <sstream>
+  #include <utility>
+  #include <cstdio>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_tool.h:
+  #include <json/config.h>
+  #include <clocale>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_value.cpp:
+  #include <json/assertions.h>
+  #include <json/value.h>
+  #include <json/writer.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cmath>
+  #include <cstddef>
+  #include <cstring>
+  #include <iostream>
+  #include <sstream>
+  #include <utility>
+  #include <stdarg.h>
+  #include "json_valueiterator.inl"
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_writer.cpp:
+  #include "json_tool.h"
+  #include <json/writer.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cctype>
+  #include <cstring>
+  #include <iomanip>
+  #include <memory>
+  #include <set>
+  #include <sstream>
+  #include <utility>
+  #include <cmath>
+  #include <cstdio>
+  #include <cmath>
+  #include <cstdio>
+  #include <float.h>
+  #include <float.h>
+  #include <ieeefp.h>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\fuzz.cpp:
+  #include "fuzz.h"
+  #include <cstdint>
+  #include <json/config.h>
+  #include <json/json.h>
+  #include <memory>
+  #include <string>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\fuzz.h:
+  #include <cstddef>
+  #include <stdint.h>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\jsontest.cpp:
+  #include "jsontest.h"
+  #include <cstdio>
+  #include <string>
+  #include <crtdbg.h>
+  #include <windows.h>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\jsontest.h:
+  #include <cstdio>
+  #include <deque>
+  #include <iomanip>
+  #include <json/config.h>
+  #include <json/value.h>
+  #include <json/writer.h>
+  #include <sstream>
+  #include <string>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\main.cpp:
+  #include "fuzz.h"
+  #include "jsontest.h"
+  #include <cmath>
+  #include <cstring>
+  #include <functional>
+  #include <iomanip>
+  #include <iostream>
+  #include <iterator>
+  #include <json/config.h>
+  #include <json/json.h>
+  #include <limits>
+  #include <memory>
+  #include <sstream>
+  #include <string>
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\x64-windows-dbg\CMakeFiles\3.27.2-msvc1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\x64-windows-dbg\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\x64-windows-rel\CMakeFiles\3.27.2-msvc1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\vcpkg\blds\jsoncpp\x64-windows-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\vcpkg\pkgs\fmt_x64-windows\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\version.h:
+
+.\vcpkg_installed\vcpkg\pkgs\jsoncpp_x64-windows\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-rel\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-static-rel\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-static-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\fuzzing\fuzzer-common.h:
+  #include <cstdint>      // std::uint8_t
+  #include <cstring>      // memcpy
+  #include <vector>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gmock\gmock.h:
+  # include <errno.h>
+  #include <algorithm>
+  #include <string>
+  #include <stdio.h>
+  #include <ostream>  // NOLINT
+  #include <string>
+  #include <assert.h>
+  #include <stdlib.h>
+  #include <iostream>
+  #include "gtest.h"
+  #include <limits.h>
+  #include <ostream>  // NOLINT
+  #include <map>
+  #include <set>
+  #include <sstream>
+  #include <string>
+  #include <vector>
+  # include <stdexcept>  // NOLINT
+  #include <math.h>
+  #include <algorithm>
+  #include <iterator>
+  #include <limits>
+  #include <ostream>  // NOLINT
+  #include <sstream>
+  #include <string>
+  #include <utility>
+  #include <vector>
+  #include <initializer_list>  // NOLINT -- must be after gtest.h
+  #include <iterator>
+  #include <sstream>
+  #include <string>
+  #include <vector>
+  #include <algorithm>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest-extra.h:
+  #include <string>
+  #include "fmt/os.h"
+  #include "gmock.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest\gtest-spi.h:
+  #include "gtest/gtest.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\gtest\gtest.h:
+  #include <limits>
+  #include <ostream>
+  #include <vector>
+  #include <ctype.h>   // for isspace, etc
+  #include <stddef.h>  // for ptrdiff_t
+  #include <stdlib.h>
+  #include <stdio.h>
+  #include <string.h>
+  # include <sys/types.h>
+  # include <sys/stat.h>
+  # include <AvailabilityMacros.h>
+  # include <TargetConditionals.h>
+  #include <iostream>  // NOLINT
+  #include <sstream>  // NOLINT
+  #include <string>  // NOLINT
+  # include <unistd.h>
+  # include <strings.h>
+  # include <direct.h>
+  # include <io.h>
+  #  include <android/api-level.h>  // NOLINT
+  # include <regex.h>  // NOLINT
+  # include <typeinfo>
+  # include <pthread.h>  // NOLINT
+  # include <time.h>  // NOLINT
+  #include <utility>  // For ::std::pair.
+  #  include <tuple>
+  #  include <tuple>
+  #   include <tr1/tuple>
+  #   include <tr1/tuple>  // NOLINT
+  #  include <tuple>  // NOLINT
+  # include <vector>  // NOLINT
+  # include <stdlib.h>
+  # include <sys/types.h>
+  # include <sys/wait.h>
+  # include <unistd.h>
+  # include <stdexcept>
+  #include <ctype.h>
+  #include <float.h>
+  #include <string.h>
+  #include <iomanip>
+  #include <limits>
+  #include <set>
+  #include <limits>
+  # include <mem.h>
+  #include <string.h>
+  #include <string>
+  #  include <cxxabi.h>
+  #  include <acxx_demangle.h>
+  #include <stdio.h>
+  # include <utility>
+  #include <iterator>
+  #include <utility>
+  #include <vector>
+  #include <stdlib.h>
+  #include <assert.h>
+  #include <ostream>  // NOLINT
+  #include <sstream>
+  #include <string>
+  #include <utility>
+  #include <vector>
+  #include <iosfwd>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\mock-allocator.h:
+  #include "fmt/format.h"
+  #include "gmock.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\posix-mock.h:
+  #include <errno.h>
+  #include <locale.h>
+  #include <stdio.h>
+  #  include <xlocale.h>
+  #  include <windows.h>
+  #  include <sys/param.h>  // for FreeBSD version
+  #  include <sys/types.h>  // for ssize_t
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\scan.h:
+  #include <array>
+  #include <cassert>
+  #include <climits>
+  #include "fmt/format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\test-assert.h:
+  #include <stdexcept>
+  #include "gtest.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\2b3b374f0b-8ea71ee8ea.clean\test\util.h:
+  #include <cstdarg>
+  #include <cstdio>
+  #include <string>
+  #include "fmt/os.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-dbg\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-dbg\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-rel\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\readFromStream\readFromStream.cpp:
+  #include "json/json.h"
+  #include <fstream>
+  #include <iostream>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\readFromString\readFromString.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\streamWrite\streamWrite.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\example\stringWrite\stringWrite.cpp:
+  #include "json/json.h"
+  #include <iostream>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\version.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\jsontestrunner\main.cpp:
+  #include <algorithm> // sort
+  #include <cstdio>
+  #include <iostream>
+  #include <json/json.h>
+  #include <memory>
+  #include <sstream>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_reader.cpp:
+  #include "json_tool.h"
+  #include <json/assertions.h>
+  #include <json/reader.h>
+  #include <json/value.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cstring>
+  #include <iostream>
+  #include <istream>
+  #include <limits>
+  #include <memory>
+  #include <set>
+  #include <sstream>
+  #include <utility>
+  #include <cstdio>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_tool.h:
+  #include <json/config.h>
+  #include <clocale>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_value.cpp:
+  #include <json/assertions.h>
+  #include <json/value.h>
+  #include <json/writer.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cmath>
+  #include <cstddef>
+  #include <cstring>
+  #include <iostream>
+  #include <sstream>
+  #include <utility>
+  #include <stdarg.h>
+  #include "json_valueiterator.inl"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\lib_json\json_writer.cpp:
+  #include "json_tool.h"
+  #include <json/writer.h>
+  #include <algorithm>
+  #include <cassert>
+  #include <cctype>
+  #include <cstring>
+  #include <iomanip>
+  #include <memory>
+  #include <set>
+  #include <sstream>
+  #include <utility>
+  #include <cmath>
+  #include <cstdio>
+  #include <cmath>
+  #include <cstdio>
+  #include <float.h>
+  #include <float.h>
+  #include <ieeefp.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\fuzz.cpp:
+  #include "fuzz.h"
+  #include <cstdint>
+  #include <json/config.h>
+  #include <json/json.h>
+  #include <memory>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\fuzz.h:
+  #include <cstddef>
+  #include <stdint.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\jsontest.cpp:
+  #include "jsontest.h"
+  #include <cstdio>
+  #include <string>
+  #include <crtdbg.h>
+  #include <windows.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\jsontest.h:
+  #include <cstdio>
+  #include <deque>
+  #include <iomanip>
+  #include <json/config.h>
+  #include <json/value.h>
+  #include <json/writer.h>
+  #include <sstream>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\src\3918c327b1-034a82149a.clean\src\test_lib_json\main.cpp:
+  #include "fuzz.h"
+  #include "jsontest.h"
+  #include <cmath>
+  #include <cstring>
+  #include <functional>
+  #include <iomanip>
+  #include <iostream>
+  #include <iterator>
+  #include <json/config.h>
+  #include <json/json.h>
+  #include <limits>
+  #include <memory>
+  #include <sstream>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\x64-windows-static-dbg\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\x64-windows-static-dbg\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\x64-windows-static-rel\CMakeFiles\3.27.1\CompilerIdCXX\CMakeCXXCompilerId.cpp:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\blds\jsoncpp\x64-windows-static-rel\CMakeFiles\ShowIncludes\foo.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\fmt_x64-windows-static\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\version.h:
+
+.\vcpkg_installed\x64-windows-static\vcpkg\pkgs\jsoncpp_x64-windows-static\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\version.h:
+
+.\vcpkg_installed\x64-windows-static\x64-windows-static\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows\include\fmt\chrono.h:
+  #include <chrono>
+  #include <ctime>
+  #include <locale>
+  #include <sstream>
+  #include "format.h"
+  #include "locale.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\color.h:
+  #include "format.h"
+  #include <fmt/color.h>
+
+.\vcpkg_installed\x64-windows\include\fmt\compile.h:
+  #include <vector>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\core.h:
+  #include <cstdio>  // std::FILE
+  #include <cstring>
+  #include <functional>
+  #include <iterator>
+  #include <memory>
+  #include <string>
+  #include <type_traits>
+  #include <vector>
+  #  include <string_view>
+  #  include <experimental/string_view>
+  #include <fmt/core.h>
+
+.\vcpkg_installed\x64-windows\include\fmt\format-inl.h:
+  #include <cassert>
+  #include <cctype>
+  #include <climits>
+  #include <cmath>
+  #include <cstdarg>
+  #include <cstring>  // std::memmove
+  #include <cwchar>
+  #include <exception>
+  #  include <locale>
+  #  include <io.h>  // _isatty
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\format.h:
+  #include <algorithm>
+  #include <cerrno>
+  #include <cmath>
+  #include <cstdint>
+  #include <limits>
+  #include <memory>
+  #include <stdexcept>
+  #include "core.h"
+  #  include <intrin.h>  // _BitScanReverse[64], _BitScanForward[64], _umul128
+  #include <fmt/format.h>
+  #  include "format-inl.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\locale.h:
+  #include <locale>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\os.h:
+  #include <cerrno>
+  #include <clocale>  // for locale_t
+  #include <cstddef>
+  #include <cstdio>
+  #include <cstdlib>  // for strtod_l
+  #  include <xlocale.h>  // for LC_NUMERIC_MASK on OS X
+  #include "format.h"
+  #  include <winapifamily.h>
+  #  include <fcntl.h>  // for O_RDONLY
+
+.\vcpkg_installed\x64-windows\include\fmt\ostream.h:
+  #include <ostream>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\posix.h:
+  #include "os.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\printf.h:
+  #include <algorithm>  // std::max
+  #include <limits>     // std::numeric_limits
+  #include "ostream.h"
+
+.\vcpkg_installed\x64-windows\include\fmt\ranges.h:
+  #include <initializer_list>
+  #include <type_traits>
+  #include "format.h"
+
+.\vcpkg_installed\x64-windows\include\json\allocator.h:
+  #include <cstring>
+  #include <memory>
+
+.\vcpkg_installed\x64-windows\include\json\assertions.h:
+  #include <cstdlib>
+  #include <sstream>
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows\include\json\config.h:
+  #include <cstddef>
+  #include <cstdint>
+  #include <istream>
+  #include <memory>
+  #include <ostream>
+  #include <sstream>
+  #include <string>
+  #include <type_traits>
+  #include "allocator.h"
+  #include "version.h"
+
+.\vcpkg_installed\x64-windows\include\json\forwards.h:
+  #include "config.h"
+
+.\vcpkg_installed\x64-windows\include\json\json.h:
+  #include "config.h"
+  #include "json_features.h"
+  #include "reader.h"
+  #include "value.h"
+  #include "writer.h"
+
+.\vcpkg_installed\x64-windows\include\json\json_features.h:
+  #include "forwards.h"
+
+.\vcpkg_installed\x64-windows\include\json\reader.h:
+  #include "json_features.h"
+  #include "value.h"
+  #include <deque>
+  #include <iosfwd>
+  #include <istream>
+  #include <stack>
+  #include <string>
+
+.\vcpkg_installed\x64-windows\include\json\value.h:
+  #include "forwards.h"
+  #include <array>
+  #include <exception>
+  #include <map>
+  #include <memory>
+  #include <string>
+  #include <vector>
+
+.\vcpkg_installed\x64-windows\include\json\version.h:
+
+.\vcpkg_installed\x64-windows\include\json\writer.h:
+  #include "value.h"
+  #include <ostream>
+  #include <string>
+  #include <vector>
+

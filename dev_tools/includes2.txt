@@ -1,0 +1,507 @@
+.\bg_local.h:
+  #include "q_std.h"
+  #include "game.h"
+
+.\cg_local.h:
+  #include "bg_local.h"
+
+.\cg_main.cpp:
+  #include "cg_local.h"
+  #include "monsters/m_flash.h"
+
+.\cg_screen.cpp:
+  #include "cg_local.h"
+  #include <vector>
+  #include <optional>
+  #include <array>
+  #include <charconv>
+
+.\freeze.h:
+
+.\g_ai.cpp:
+  #include "g_local.h"
+
+.\g_ai_new.cpp:
+  #include "g_local.h"
+
+.\g_client_cfg.cpp:
+  #include <iostream>
+  #include <fstream>
+  #include <string>
+  #include <unordered_map>
+  #include <sstream>
+  #include "nlohmann/json.hpp"
+  #include <set>
+
+.\g_cmds.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+  #include "freeze.h"
+  #include <sstream>
+  #include <sstream>			// for ostringstream
+  #include <iomanip>			// for setw
+
+.\g_cmds_voting.cpp:
+  #include "g_local.h"
+
+.\g_combat.cpp:
+  #include "g_local.h"
+
+.\g_ctf.cpp:
+  #include "g_local.h"
+
+.\g_func.cpp:
+  #include "g_local.h"
+
+.\g_items.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+  #include "monsters/m_player.h"	//doppelganger
+
+.\g_local.h:
+  #include "bg_local.h"
+  #include "menu/Menu.hpp"
+  #include <optional>		// for AutoSelectNextMap()
+  #include <bitset>		// for bitset
+  #include <random>
+  #include <charconv>
+  #include <functional>
+  #include <unordered_set>
+  #include <random>
+  #include <bitset>
+
+.\g_main.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+  #include <chrono>
+
+.\g_maps.cpp:
+  #include "g_local.h"
+  #include "nlohmann/json.hpp"
+  #include <fstream>
+  #include <sstream>
+  #include <regex>
+  #include <functional>
+  #include <cctype>
+
+.\g_match_logging.cpp:
+  #include <iostream>
+  #include <fstream>
+  #include <string>
+  #include <unordered_map>
+  #include <sstream>
+  #include "nlohmann/json.hpp"
+  #include <set>
+
+.\g_match_state.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"	// match starts for death anim
+  #include <cmath>
+  #include <vector>
+  #include <algorithm>
+
+.\g_menu.cpp:
+  #include "g_local.h"
+  #include <assert.h>
+
+.\g_misc.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+
+.\g_monster.cpp:
+  #include "g_local.h"
+  #include "bots/bot_includes.h"
+
+.\g_monster_spawn.cpp:
+  #include "g_local.h"
+
+.\g_phys.cpp:
+  #include "g_local.h"
+
+.\g_save.cpp:
+  #include <sstream>
+  #include "g_local.h"
+  #include <float.h>
+  #include "json/json.h"
+  #include "json/config.h"
+  #include <unordered_map>
+  #include <cassert>
+  #include <fstream>
+  #include <memory>
+
+.\g_spawn.cpp:
+  #include "g_local.h"
+  #include <sstream>	// for ent overrides
+  #include <fstream>	// for ent overrides
+  #include "g_statusbar.h"
+
+.\g_spectator.cpp:
+  #include "g_local.h"
+
+.\g_statusbar.h:
+  #include <sstream>
+
+.\g_svcmds.cpp:
+  #include "g_local.h"
+
+.\g_target.cpp:
+  #include "g_local.h"
+
+.\g_trigger.cpp:
+  #include "g_local.h"
+
+.\g_turret.cpp:
+  #include "g_local.h"
+
+.\g_utils.cpp:
+  #include "g_local.h"
+  #include <chrono>	// get real time
+
+.\g_weapon.cpp:
+  #include "g_local.h"
+
+.\game.h:
+  #include <array>
+  #include <limits.h>
+
+.\menu\AdminSettingsMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\CallvoteMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+  #include <string>
+
+.\menu\HostInfoMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\JoinMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MapSelectorMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MatchInfoMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\MatchStatsMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\Menu.cpp:
+  #include "Menu.hpp"
+  #include "../g_statusbar.h"
+  #include "../g_local.h"
+  #include "../game.h"
+
+.\menu\Menu.hpp:
+  #include <vector>
+  #include <string>
+  #include <memory>
+  #include <tuple>
+  #include <functional>
+
+.\menu\MenuSystem.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\menu\VoteMenu.cpp:
+  #include "Menu.hpp"
+  #include "../g_local.h"
+
+.\monsters\m_actor.cpp:
+  #include "../g_local.h"
+  #include "m_actor.h"
+  #include "m_flash.h"
+
+.\monsters\m_actor.h:
+
+.\monsters\m_arachnid.cpp:
+  #include "../g_local.h"
+  #include "m_arachnid.h"
+  #include "m_flash.h"
+
+.\monsters\m_arachnid.h:
+
+.\monsters\m_berserk.cpp:
+  #include "../g_local.h"
+  #include "m_berserk.h"
+
+.\monsters\m_berserk.h:
+
+.\monsters\m_boss2.cpp:
+  #include "../g_local.h"
+  #include "m_boss2.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss2.h:
+
+.\monsters\m_boss3.cpp:
+  #include "../g_local.h"
+  #include "m_boss32.h"
+
+.\monsters\m_boss31.cpp:
+  #include "../g_local.h"
+  #include "m_boss31.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss31.h:
+
+.\monsters\m_boss32.cpp:
+  #include "../g_local.h"
+  #include "m_boss32.h"
+  #include "m_flash.h"
+
+.\monsters\m_boss32.h:
+
+.\monsters\m_brain.cpp:
+  #include "../g_local.h"
+  #include "m_brain.h"
+
+.\monsters\m_brain.h:
+
+.\monsters\m_carrier.cpp:
+  #include "../g_local.h"
+  #include "m_carrier.h"
+  #include "m_flash.h"
+
+.\monsters\m_carrier.h:
+
+.\monsters\m_chick.cpp:
+  #include "../g_local.h"
+  #include "m_chick.h"
+  #include "m_flash.h"
+
+.\monsters\m_chick.h:
+
+.\monsters\m_fixbot.cpp:
+  #include "../g_local.h"
+  #include "m_fixbot.h"
+  #include "m_flash.h"
+
+.\monsters\m_fixbot.h:
+
+.\monsters\m_flash.h:
+
+.\monsters\m_flipper.cpp:
+  #include "../g_local.h"
+  #include "m_flipper.h"
+
+.\monsters\m_flipper.h:
+
+.\monsters\m_float.cpp:
+  #include "../g_local.h"
+  #include "m_float.h"
+  #include "m_flash.h"
+
+.\monsters\m_float.h:
+
+.\monsters\m_flyer.cpp:
+  #include "../g_local.h"
+  #include "m_flyer.h"
+  #include "m_flash.h"
+
+.\monsters\m_flyer.h:
+
+.\monsters\m_gekk.cpp:
+  #include "../g_local.h"
+  #include "m_gekk.h"
+
+.\monsters\m_gekk.h:
+
+.\monsters\m_gladiator.cpp:
+  #include "../g_local.h"
+  #include "m_gladiator.h"
+  #include "m_flash.h"
+
+.\monsters\m_gladiator.h:
+
+.\monsters\m_guardian.cpp:
+  #include "../g_local.h"
+  #include "m_guardian.h"
+  #include "m_flash.h"
+
+.\monsters\m_guardian.h:
+
+.\monsters\m_guncmdr.cpp:
+  #include "../g_local.h"
+  #include "m_gunner.h"
+  #include "m_flash.h"
+
+.\monsters\m_gunner.cpp:
+  #include "../g_local.h"
+  #include "m_gunner.h"
+  #include "m_flash.h"
+
+.\monsters\m_gunner.h:
+
+.\monsters\m_hover.cpp:
+  #include "../g_local.h"
+  #include "m_hover.h"
+  #include "m_flash.h"
+
+.\monsters\m_hover.h:
+
+.\monsters\m_infantry.cpp:
+  #include "../g_local.h"
+  #include "m_infantry.h"
+  #include "m_flash.h"
+
+.\monsters\m_infantry.h:
+
+.\monsters\m_insane.cpp:
+  #include "../g_local.h"
+  #include "m_insane.h"
+
+.\monsters\m_insane.h:
+
+.\monsters\m_medic.cpp:
+  #include "../g_local.h"
+  #include "m_medic.h"
+  #include "m_flash.h"
+
+.\monsters\m_medic.h:
+
+.\monsters\m_move.cpp:
+  #include "../g_local.h"
+
+.\monsters\m_mutant.cpp:
+  #include "../g_local.h"
+  #include "m_mutant.h"
+
+.\monsters\m_mutant.h:
+
+.\monsters\m_parasite.cpp:
+  #include "../g_local.h"
+  #include "m_parasite.h"
+
+.\monsters\m_parasite.h:
+
+.\monsters\m_player.h:
+
+.\monsters\m_rider.h:
+
+.\monsters\m_shambler.cpp:
+  #include "../g_local.h"
+  #include "m_shambler.h"
+  #include "m_flash.h"
+
+.\monsters\m_shambler.h:
+
+.\monsters\m_soldier.cpp:
+  #include "../g_local.h"
+  #include "m_soldier.h"
+  #include "m_flash.h"
+
+.\monsters\m_soldier.h:
+
+.\monsters\m_stalker.cpp:
+  #include "../g_local.h"
+  #include "m_stalker.h"
+  #include <float.h>
+
+.\monsters\m_stalker.h:
+
+.\monsters\m_supertank.cpp:
+  #include "../g_local.h"
+  #include "m_supertank.h"
+  #include "m_flash.h"
+
+.\monsters\m_supertank.h:
+
+.\monsters\m_tank.cpp:
+  #include "../g_local.h"
+  #include "m_tank.h"
+  #include "m_flash.h"
+
+.\monsters\m_tank.h:
+
+.\monsters\m_turret.cpp:
+  #include "../g_local.h"
+  #include "m_turret.h"
+
+.\monsters\m_turret.h:
+
+.\monsters\m_widow.cpp:
+  #include "../g_local.h"
+  #include "m_widow.h"
+  #include "m_flash.h"
+
+.\monsters\m_widow.h:
+
+.\monsters\m_widow2.cpp:
+  #include "../g_local.h"
+  #include "m_widow2.h"
+  #include "m_flash.h"
+
+.\monsters\m_widow2.h:
+
+.\p_client.cpp:
+  #include "g_local.h"
+  #include <fmt/format.h>
+  #include "monsters/m_player.h"
+  #include "bots/bot_includes.h"
+  #include <string>
+  #include <sstream>
+
+.\p_hud_main.cpp:
+  #include "g_local.h"
+  #include "g_statusbar.h"
+
+.\p_hud_scoreboard.cpp:
+  #include "g_local.h"
+
+.\p_menu.cpp:
+  #include "g_local.h"
+  #include "g_statusbar.h"
+
+.\p_menu.h:
+
+.\p_move.cpp:
+  #include "q_std.h"
+  #include "bg_local.h"
+
+.\p_trail.cpp:
+  #include "g_local.h"
+
+.\p_view.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+  #include "bots/bot_includes.h"
+
+.\p_weapon.cpp:
+  #include "g_local.h"
+  #include "monsters/m_player.h"
+
+.\q_std.cpp:
+  #include "g_local.h"
+  #include "../src/format.cc"
+
+.\q_std.h:
+  #include <cmath>
+  #include <cstdio>
+  #include <cstdarg>
+  #include <cstring>
+  #include <cstdlib>
+  #include <cstddef>
+  #include <cinttypes>
+  #include <ctime>
+  #include <type_traits>
+  #include <algorithm>
+  #include <array>
+  #include <string_view>
+  #include <numeric>
+  #include <functional>
+  #include <format>
+  #include <fmt/format.h>
+  #include "q_vec3.h"
+
+.\q_vec3.h:
+  #include <stdexcept>
+  #include <type_traits>
+

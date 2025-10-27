@@ -1,0 +1,8 @@
+Welcome to
+A Muff Mode Server!
+
+Use 'mymap' command to
+add a map to the play queue.
+
+Get Muff Mode today at:
+github.com/themuffinator/muffmode

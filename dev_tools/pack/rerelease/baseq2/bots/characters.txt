@@ -1,0 +1,1016 @@
+// Overview Of Bot Character Properties:
+
+// fun_name:	name of the bot as it will appear in-game.
+// name:		simple name to use when calling "addbot" console command directly.
+// skin:		name of the skin to use. List of valid skins below.
+// dogtag:		name of the 'dogtag' background to use in the scoreboard.
+
+
+// Valid Skins:
+
+// female/athena
+// female/brianna
+// female/cobalt
+// female/ctf_b
+// female/ctf_r
+// female/disguise
+// female/ensign
+// female/jezebel
+// female/jungle
+// female/lotus
+// female/rogue_b
+// female/rogue_r
+// female/stiletto
+// female/venus
+// female/voodoo
+
+// male/cipher
+// male/claymore
+// male/ctf_b
+// male/ctf_r
+// male/deaddude
+// male/disguise
+// male/flak
+// male/grunt
+// male/howitzer
+// male/insane1
+// male/insane2
+// male/insane3
+// male/major
+// male/nightops
+// male/pointman
+// male/psycho
+// male/rampage
+// male/razor
+// male/recon
+// male/rogue_b
+// male/rogue_r
+// male/scout
+// male/sniper
+// male/viper
+
+// cyborg/ctf_b
+// cyborg/ctf_r
+// cyborg/disguise
+// cyborg/oni911
+// cyborg/ps9000
+// cyborg/tyr574
+
+
+// Valid Dogtags:
+
+// aoe
+// arena
+// bethesda
+// bladerunner
+// blood
+// bloody
+// bronze
+// chips
+// ctf_blue
+// ctf_red
+// daggerfall
+// default
+// doom
+// doom64
+// etqw_gdf
+// etqw_strogg
+// fireblu
+// freecell
+// id
+// keen
+// machinegames
+// minesweeper
+// nightdive
+// powerslave
+// q4_kane
+// q4_strogg
+// quake
+// shadowman
+// skifree
+// ss2
+// ssr
+// turok
+// turok3
+// wasteland
+// wolf3d
+// wolf3d2
+
+{
+	fun_name	"(c-12)"
+	name		"(c-12)"
+	skin		"male/disguise"
+	dogtag		"etqw_gdf"
+}
+{
+	fun_name	"120db"
+	name		"120db"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"30dayfreetrial"
+	name		"30dayfreetrial"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Alf hockeyfan"
+	name		"Alf hockeyfan"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Antimatter-31"
+	name		"Antimatter-31"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Apo[KA]lypse"
+	name		"Apo[KA]lypse"
+	skin		"cyborg/ctf_r"
+	dogtag		"machinegames"
+}
+{
+	fun_name	"Are-Oh!"
+	name		"Are-Oh!"
+	skin		"male/grunt"
+	dogtag		"quake"
+}
+{
+	fun_name	"Arman Kang"
+	name		"Arman Kang"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Arturas"
+	name		"Arturas"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Atari26o0"
+	name		"Atari26o0"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Banned from Legoland(ate Legos)"
+	name		"Banned from Legoland(ate Legos)"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"BobthemanRoss"
+	name		"BobthemanRoss"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"CM Muffikin"
+	name		"CM Muffikin"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Cammy"
+	name		"Cammy"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Castorios"
+	name		"Castorios"
+	skin		"female/ensign"
+	dogtag		"default"
+}
+{
+	fun_name	"Cirtējs"
+	name		"Cirtējs"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Coiless"
+	name		"Coiless"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Colendro"
+	name		"Colendro"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Corpus Cal"
+	name		"Corpus Cal"
+	skin		"female/athena"
+	dogtag		"bronze"
+}
+{
+	fun_name	"Cynosure58"
+	name		"Cynosure58"
+	skin		"cyborg/tyr574"
+	dogtag		"aoe"
+}
+{
+	fun_name	"D3COD3_VoDKa"
+	name		"D3COD3_VoDKa"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"D3lirious"
+	name		"D3lirious"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"DCLomza"
+	name		"DCLomza"
+	skin		"male/disguise"
+	dogtag		"default"
+}
+{
+	fun_name	"Danix40"
+	name		"Danix40"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"David"
+	name		"David"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Dieselpomp"
+	name		"Dieselpomp"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Dimich"
+	name		"Dimich"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Dirtywhitegoy"
+	name		"Dirtywhitegoy"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Elbow Drop"
+	name		"Elbow Drop"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Enticles!"
+	name		"Enticles!"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"EuleTanne46"
+	name		"EuleTanne46"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"FOCUS888"
+	name		"FOCUS888"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Furax"
+	name		"Furax"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"FVI"
+	name		"FVI"
+	skin		"female/ensign"
+	dogtag		"default"
+}
+{
+	fun_name	"GasiorZaglady"
+	name		"GasiorZaglady"
+	skin		"female/ctf_b"
+	dogtag		"default"
+}
+{
+	fun_name	"Girlyman"
+	name		"Girlyman"
+	skin		"male/scout"
+	dogtag		"ssr"
+}
+{
+	fun_name	"HIKE"
+	name		"HIKE"
+	skin		"female/athena"
+	dogtag		"bronze"
+}
+{
+	fun_name	"HugeInsect"
+	name		"HugeInsect"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Israel"
+	name		"Israel"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Jobe"
+	name		"Jobe"
+	skin		"male/cyclopsdl"
+	dogtag		"default"
+}
+{
+	fun_name	"Kaiser"
+	name		"Kaiser"
+	skin		"cyborg/ps9000"
+	dogtag		"default"
+}
+{
+	fun_name	"Kami"
+	name		"Kami"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Kirlomax"
+	name		"Kirlomax"
+	skin		"cyborg/oni911"
+	dogtag		"default"
+}
+{
+	fun_name	"L-Ka4"
+	name		"L-Ka4"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Live Rust"
+	name		"Live Rust"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Model192"
+	name		"Model192"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"MrNME"
+	name		"MrNME"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"MustangGT37"
+	name		"MustangGT37"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Nihal"
+	name		"Nihal"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Nobsteele"
+	name		"Nobsteele"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"P"
+	name		"P"
+	skin		"female/lotus"
+	dogtag		"default"
+}
+{
+	fun_name	"OG RU57Y"
+	name		"OG RU57Y"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Odys"
+	name		"Odys"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Old Quaker Since 1998"
+	name		"Old Quaker Since 1998"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"PatBateman"
+	name		"PatBateman"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"PeTruKi"
+	name		"PeTruKi"
+	skin		"female/cobalt"
+	dogtag		"doom64"
+}
+{
+	fun_name	"PisVlek [NL]"
+	name		"PisVlek [NL]"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Pumba"
+	name		"Pumba"
+	skin		"female/vertigo"
+	dogtag		"default"
+}
+{
+	fun_name	"SHINOBI_01"
+	name		"SHINOBI_01"
+	skin		"female/disguise"
+	dogtag		"q4_kane"
+}
+{
+	fun_name	"SQUID N TROLL OCTOPUS"
+	name		"SQUID N TROLL OCTOPUS"
+	skin		"male/claymore"
+	dogtag		"default"
+}
+{
+	fun_name	"Salarymanbill"
+	name		"Salarymanbill"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"Sata"
+	name		"Sata"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Saturn9001"
+	name		"Saturn9001"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Sinnbad"
+	name		"Sinnbad"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"SoFienE"
+	name		"SoFienE"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Spice Girls"
+	name		"Spice Girls"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Sunny Nelson"
+	name		"Sunny Nelson"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Switch/CMC"
+	name		"Switch/CMC"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"The Living Ham"
+	name		"The Living Ham"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Tiberius"
+	name		"Tiberius"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Tito3866"
+	name		"Tito3866"
+	skin		"male/grunt"
+	dogtag		"wolf3d"
+}
+{
+	fun_name	"Tominator444909"
+	name		"Tominator444909"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Tool"
+	name		"Tool"
+	skin		"female/stiletto"
+	dogtag		"default"
+}
+{
+	fun_name	"TossSalad[GOON]"
+	name		"TossSalad[GOON]"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"TurboPtys drk"
+	name		"TurboPtys drk"
+	skin		"female/ctf_b"
+	dogtag		"default"
+}
+{
+	fun_name	"Vanna"
+	name		"Vanna"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"Voyteee"
+	name		"Voyteee"
+	skin		"female/voodoo"
+	dogtag		"default"
+}
+{
+	fun_name	"Whiz"
+	name		"Whiz"
+	skin		"female/rogue_r"
+	dogtag		"default"
+}
+{
+	fun_name	"WIenEl"
+	name		"WIenEl"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"X2C20-"
+	name		"X2C20-"
+	skin		"male/claymore"
+	dogtag		"arena"
+}
+{
+	fun_name	"YERBA-MATÉ ENJOYER"
+	name		"YERBA-MATÉ ENJOYER"
+	skin		"female/brianna"
+	dogtag		"default"
+}
+{
+	fun_name	"ZZ DooM"
+	name		"ZZ DooM"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"ZenMaster7353"
+	name		"ZenMaster7353"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"[CZE]Rigg"
+	name		"[CZE]Rigg"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"^1Recon^2trk"
+	name		"^1Recon^2trk"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"aidz"
+	name		"aidz"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"ajjbultd"
+	name		"ajjbultd"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"asd"
+	name		"asd"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"athair_bw"
+	name		"athair_bw"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"belenkaip"
+	name		"belenkaip"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"breakthru."
+	name		"breakthru."
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"canuseemygrapes™"
+	name		"canuseemygrapes™"
+	skin		"female/cobalt"
+	dogtag		"default"
+}
+{
+	fun_name	"deanrw"
+	name		"deanrw"
+	skin		"female/cobalt"
+	dogtag		"default"
+}
+{
+	fun_name	"domel"
+	name		"domel"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"donlukster"
+	name		"donlukster"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"eeeeax"
+	name		"eeeeax"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"finger boy"
+	name		"finger boy"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"freshassneff303"
+	name		"freshassneff303"
+	skin		"male/howitzer"
+	dogtag		"powerslave"
+}
+{
+	fun_name	"garbageboi"
+	name		"garbageboi"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"giesiv"
+	name		"giesiv"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"gigi.gheorghiceanu"
+	name		"gigi.gheorghiceanu"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"havq"
+	name		"havq"
+	skin		"female/jungle"
+	dogtag		"bronze"
+}
+{
+	fun_name	"holyboy81"
+	name		"holyboy81"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"ilawicki"
+	name		"ilawicki"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"juodas"
+	name		"juodas"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"k9megahertz"
+	name		"k9megahertz"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"killnOd"
+	name		"killnOd"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"kontakt"
+	name		"kontakt"
+	skin		"female/ensign"
+	dogtag		"bethesda"
+}
+{
+	fun_name	"lexa099"
+	name		"lexa099"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"lowride"
+	name		"lowride"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"maciej-1984"
+	name		"maciej-1984"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"milk drinker"
+	name		"milk drinker"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"mistakeman"
+	name		"mistakeman"
+	skin		"female/rogue_b"
+	dogtag		"default"
+}
+{
+	fun_name	"mletzko"
+	name		"mletzko"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"momo8appa"
+	name		"momo8appa"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"mrfantasee10"
+	name		"mrfantasee10"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"naaaks"
+	name		"naaaks"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"neo"
+	name		"neo"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"nmac21"
+	name		"nmac21"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"noszczynski"
+	name		"noszczynski"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"obi"
+	name		"obi"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"pikashu"
+	name		"pikashu"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"plitera"
+	name		"plitera"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"qilux"
+	name		"qilux"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"rarytex"
+	name		"rarytex"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"rastaPig"
+	name		"rastaPig"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"ravredq"
+	name		"ravredq"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"redavv"
+	name		"redavv"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"s8an"
+	name		"s8an"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"sedbay"
+	name		"sedbay"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"sleepy"
+	name		"sleepy"
+	skin		"male/viper"
+	dogtag		"default"
+}
+{
+	fun_name	"ssq | Galvatron"
+	name		"ssq | Galvatron"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"sws Gr4ve"
+	name		"sws Gr4ve"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"tec3d"
+	name		"tec3d"
+	skin		"crakhor/sumabeth"
+	dogtag		"default"
+}
+{
+	fun_name	"techman-22"
+	name		"techman-22"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"thebe4st"
+	name		"thebe4st"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"thebe4st"
+	name		"thebe4st"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"thecucaeater"
+	name		"thecucaeater"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"themuffinator"
+	name		"themuffinator"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"triplenipple"
+	name		"triplenipple"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"trojan"
+	name		"trojan"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"twitch.tv/dakterismaja"
+	name		"twitch.tv/dakterismaja"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"v0nGoosewing"
+	name		"v0nGoosewing"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"v1212"
+	name		"v1212"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"woyteck"
+	name		"woyteck"
+	skin		"female/jungle"
+	dogtag		"default"
+}
+{
+	fun_name	"x_-VioLaToR-_x"
+	name		"x_-VioLaToR-_x"
+	skin		"female/athena"
+	dogtag		"q4_strogg"
+}
+{
+	fun_name	"x_SCOOBY_x"
+	name		"x_SCOOBY_x"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"xrosx"
+	name		"xrosx"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"xu^"
+	name		"xu^"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"xubidoo"
+	name		"xubidoo"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"yamazaki"
+	name		"yamazaki"
+	skin		"female/athena"
+	dogtag		"default"
+}
+{
+	fun_name	"zqu8"
+	name		"zqu8"
+	skin		"male/grunt"
+	dogtag		"default"
+}
+{
+	fun_name	"|VooDoo|"
+	name		"|VooDoo|"
+	skin		"male/grunt"
+	dogtag		"default"
+}

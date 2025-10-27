@@ -5,7 +5,6 @@
 
 # WOR
 build/
-dev_tools/
 external/
 
 *.dll
