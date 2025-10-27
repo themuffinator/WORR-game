@@ -1543,7 +1543,7 @@ static void PreExitLevel() {
 
 	// Skip vote system if play queue is active
 	if (!game.mapSystem.playQueue.empty()) {
-		ExitLevel();
+		ExitLevel(true);
 		return;
 	}
 
