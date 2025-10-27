@@ -397,9 +397,9 @@ namespace Commands {
 			gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Changing map to {} ({})\n", map->filename.c_str(), map->longName.c_str());
 		}
 
-		level.changeMap = map->filename;
-		ExitLevel();
-	}
+                level.changeMap = map->filename;
+                ExitLevel(true);
+        }
 
 	void SetTeam(gentity_t* ent, const CommandArgs& args) {
 		if (args.count() < 3) {
