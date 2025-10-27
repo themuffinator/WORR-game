@@ -23,6 +23,7 @@
 #include "monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
+#include <algorithm>	// for std::fill
 
 struct spawn_t {
 	const char* name;
@@ -1749,6 +1750,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		gi.Com_ErrorFmt("{}: Empty or null entity string.\n", __FUNCTION__);
 	}
 
+	level.savedEntityString.assign(entities);
+
 	// Clamp skill level to valid range [0, 4]
 	const int skillLevel = std::clamp(skill->integer, 0, 4);
 	if (skill->integer != skillLevel)
@@ -1854,6 +1857,107 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	setup_shadow_lights();
 
 	level.init = true;
+}
+
+
+bool G_ReloadMapEntitiesFromString() {
+	if (level.savedEntityString.empty())
+		return false;
+
+	for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
+		gentity_t* ent = &g_entities[i];
+		if (!ent->inUse)
+			continue;
+
+		FreeEntity(ent);
+	}
+
+	gi.FreeTags(TAG_LEVEL);
+
+	level.spawn.Clear();
+	level.spawnSpots.fill(nullptr);
+	level.shadowLightCount = 0;
+	std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
+	level.campaign = {};
+	level.start_items = nullptr;
+	level.instantItems = false;
+	level.no_grapple = false;
+	level.no_dm_spawnpads = false;
+	level.no_dm_telepads = false;
+	level.timeoutOwner = nullptr;
+
+	globals.numEntities = game.maxClients + 1;
+
+	std::memset(world, 0, sizeof(*world));
+	world->s.number = 0;
+
+	level.bodyQue = 0;
+	InitBodyQue();
+
+	const char* entities = level.savedEntityString.c_str();
+	bool firstEntity = true;
+	int inhibited = 0;
+
+	while (true) {
+		const char* token = COM_Parse(&entities);
+		if (!entities || token[0] == '\0')
+			break;
+
+		if (token[0] != '{') {
+			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting { in entity string.\n", __FUNCTION__, token);
+		}
+
+		gentity_t* ent = firstEntity ? g_entities : Spawn();
+		firstEntity = false;
+
+		entities = ED_ParseEntity(entities, ent);
+
+		if (ent != g_entities) {
+			if (G_InhibitEntity(ent)) {
+				FreeEntity(ent);
+				++inhibited;
+				continue;
+			}
+			ent->spawnFlags &= ~SPAWNFLAG_EDITOR_MASK;
+		}
+
+		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
+		ED_CallSpawn(ent);
+		MapPostProcess(ent);
+		ent->s.renderFX |= RF_IR_VISIBLE;
+	}
+
+	if (inhibited > 0 && g_verbose->integer) {
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+	}
+
+	PrecacheStartItems();
+	PrecacheInventoryItems();
+	G_FindTeams();
+	QuadHog_SetupSpawn(5_sec);
+	Tech_SetupSpawn();
+
+	if (deathmatch->integer) {
+		if (g_dm_random_items->integer) {
+			PrecacheForRandomRespawn();
+		}
+		game.item_inhibit_pu = 0;
+		game.item_inhibit_pa = 0;
+		game.item_inhibit_ht = 0;
+		game.item_inhibit_ar = 0;
+		game.item_inhibit_am = 0;
+		game.item_inhibit_wp = 0;
+	}
+	else {
+		InitHintPaths();
+	}
+
+	G_LocateSpawnSpots();
+	setup_shadow_lights();
+
+	level.init = true;
+
+	return true;
 }
 
 //===================================================================
