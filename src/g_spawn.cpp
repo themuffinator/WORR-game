@@ -1904,7 +1904,7 @@ bool G_ReloadMapEntitiesFromString() {
 			break;
 
 		if (token[0] != '{') {
-			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting { in entity string.\n", __FUNCTION__, token);
+			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting opening brace in entity string.\n", __FUNCTION__, token);
 		}
 
 		gentity_t* ent = firstEntity ? g_entities : Spawn();
