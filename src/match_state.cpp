@@ -85,46 +85,6 @@ static void Monsters_KillAll() {
 	level.campaign.killedMonsters = 0;
 }
 
-static void Entities_ItemTeams_Reset() {
-	gentity_t* ent;
-	size_t		i;
-
-	gentity_t* master;
-	int			count, choice;
-
-	for (ent = g_entities + 1, i = 1; i < globals.numEntities; i++, ent++) {
-		if (!ent)
-			continue;
-
-		if (!ent->inUse)
-			continue;
-
-		if (!ent->item)
-			continue;
-
-		if (!ent->team)
-			continue;
-
-		if (!ent->teamMaster)
-			continue;
-
-		master = ent->teamMaster;
-
-		ent->svFlags |= SVF_NOCLIENT;
-		ent->solid = SOLID_NOT;
-		gi.linkEntity(ent);
-
-		for (count = 0, ent = master; ent; ent = ent->chain, count++)
-			;
-
-		choice = irandom(count);
-		if (ent && ent->chain) {
-			for (count = 0, ent = master; count < choice; ent = ent->chain, count++)
-				;
-		}
-	}
-}
-
 /*
 ============
 Match reset helpers
@@ -157,8 +117,6 @@ static void ResetMatchWorldState(bool reloadWorldEntities) {
 	if (!reloadedEntities) {
 		Monsters_KillAll();
 	}
-
-	Entities_ItemTeams_Reset();
 
 	gentity_t* ent;
 	size_t i;
