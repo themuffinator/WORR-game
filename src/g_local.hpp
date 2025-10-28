@@ -3819,7 +3819,7 @@ void Match_Reset();
 gentity_t* CreateTargetChangeLevel(std::string_view map);
 bool InAMatch();
 void SpawnEntities(const char* mapname, const char* entities, const char* spawnPoint);
-bool G_ReloadMapEntitiesFromString();
+bool G_ResetWorldEntitiesFromSavedString();
 void LoadMotd();
 void LoadAdminList();
 void LoadBanList();

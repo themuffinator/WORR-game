@@ -127,9 +127,7 @@ static void Entities_ItemTeams_Reset() {
 
 /*
 ============
-Entities_Reset
-
-Reset clients and items
+Match reset helpers
 ============
 */
 enum class LimitedLivesResetMode {
@@ -147,51 +145,12 @@ static bool ShouldResetLimitedLives(LimitedLivesResetMode mode) {
 	return mode == LimitedLivesResetMode::Force;
 }
 
-static void Entities_Reset(bool reset_players, bool reset_ghost, bool reset_score, LimitedLivesResetMode limitedLivesResetMode = LimitedLivesResetMode::Auto) {
-
+static void ResetMatchWorldState(bool reloadWorldEntities) {
 	bool reloadedEntities = false;
-	if (deathmatch->integer && reset_players) {
-		reloadedEntities = G_ReloadMapEntitiesFromString();
+	if (reloadWorldEntities && deathmatch->integer) {
+		reloadedEntities = G_ResetWorldEntitiesFromSavedString();
 	}
 
-	// reset the players
-	if (reset_players) {
-		for (auto ec : active_clients()) {
-			ec->client->resp.ctf_state = 0;
-			if (ShouldResetLimitedLives(limitedLivesResetMode)) {
-				ec->client->pers.lives = G_LimitedLivesMax();
-				ec->client->pers.limitedLivesStash = ec->client->pers.lives;
-				ec->client->pers.limitedLivesPersist = false;
-				if (G_LimitedLivesInCoop())
-					ec->client->resp.coopRespawn.lives = ec->client->pers.lives;
-			}
-			if (reset_score)
-				ec->client->resp.score = 0;
-			if (reset_ghost) {
-
-			}
-			if (ClientIsPlaying(ec->client)) {
-				if (reset_ghost) {
-
-				}
-				Weapon_Grapple_DoReset(ec->client);
-				ec->client->eliminated = false;
-ec->client->pers.readyStatus = false;
-				ec->moveType = MoveType::NoClip;
-				ec->client->respawnMaxTime = level.time + FRAME_TIME_MS;
-				ec->svFlags &= ~SVF_NOCLIENT;
-				ClientSpawn(ec);
-				G_PostRespawn(ec);
-memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
-
-				gi.linkEntity(ec);
-			}
-		}
-
-		CalculateRanks();
-	}
-
-	// reset the level items
 	Tech_Reset();
 	CTF_ResetFlags();
 
@@ -202,9 +161,8 @@ memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
 	Entities_ItemTeams_Reset();
 
 	gentity_t* ent;
-	size_t	i;
+	size_t i;
 
-	// reset item spawns and gibs/corpses, remove dropped items and projectiles
 	for (ent = g_entities + 1, i = 1; i < globals.numEntities; i++, ent++) {
 		if (!ent->inUse)
 			continue;
@@ -220,50 +178,78 @@ memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
 			FreeEntity(ent);
 		}
 		else if (ent->item) {
-			// already processed in CTF_ResetFlags()
 			if (ent->item->id == IT_FLAG_RED || ent->item->id == IT_FLAG_BLUE)
 				continue;
 
 			if (ent->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED | SPAWNFLAG_ITEM_DROPPED_PLAYER)) {
-				//FreeEntity(ent);
 				ent->nextThink = level.time;
 			}
-			else {
-				// powerups don't spawn in for a while
-				if (ent->item->flags & IF_POWERUP) {
-					if (g_quadhog->integer && ent->item->id == IT_POWERUP_QUAD) {
-						FreeEntity(ent);
-						QuadHog_SetupSpawn(5_sec);
-					}
-					else {
-						ent->svFlags |= SVF_NOCLIENT;
-						ent->solid = SOLID_NOT;
-
-						ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
-						//if (!ent->think)
-						ent->think = RespawnItem;
-					}
-					continue;
+			else if (ent->item->flags & IF_POWERUP) {
+				if (g_quadhog->integer && ent->item->id == IT_POWERUP_QUAD) {
+					FreeEntity(ent);
+					QuadHog_SetupSpawn(5_sec);
 				}
 				else {
-					if (ent->svFlags & (SVF_NOCLIENT | SVF_RESPAWNING) || ent->solid == SOLID_NOT) {
-						GameTime t = 0_sec;
-						if (ent->random) {
-							t += GameTime::from_ms((crandom() * ent->random) * 1000);
-							if (t < FRAME_TIME_MS) {
-								t = FRAME_TIME_MS;
-							}
-						}
-						//if (ent->item->id == IT_HEALTH_MEGA)
-						ent->think = RespawnItem;
-						ent->nextThink = level.time + t;
+					ent->svFlags |= SVF_NOCLIENT;
+					ent->solid = SOLID_NOT;
+					ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
+					ent->think = RespawnItem;
+				}
+			}
+			else if (ent->svFlags & (SVF_NOCLIENT | SVF_RESPAWNING) || ent->solid == SOLID_NOT) {
+				GameTime t = 0_sec;
+				if (ent->random) {
+					t += GameTime::from_ms((crandom() * ent->random) * 1000);
+					if (t < FRAME_TIME_MS) {
+						t = FRAME_TIME_MS;
 					}
 				}
+				ent->think = RespawnItem;
+				ent->nextThink = level.time + t;
 			}
 		}
 	}
 }
 
+static void ResetMatchPlayers(bool resetGhost, bool resetScore, LimitedLivesResetMode limitedLivesResetMode = LimitedLivesResetMode::Auto) {
+	for (auto ec : active_clients()) {
+		ec->client->resp.ctf_state = 0;
+		if (ShouldResetLimitedLives(limitedLivesResetMode)) {
+			ec->client->pers.lives = G_LimitedLivesMax();
+			ec->client->pers.limitedLivesStash = ec->client->pers.lives;
+			ec->client->pers.limitedLivesPersist = false;
+			if (G_LimitedLivesInCoop())
+				ec->client->resp.coopRespawn.lives = ec->client->pers.lives;
+		}
+
+		if (resetScore)
+			ec->client->resp.score = 0;
+
+		if (resetGhost) {
+			// Reserved for ghost handling
+		}
+
+		if (ClientIsPlaying(ec->client)) {
+			if (resetGhost) {
+				// Reserved for ghost handling
+			}
+
+			Weapon_Grapple_DoReset(ec->client);
+			ec->client->eliminated = false;
+			ec->client->pers.readyStatus = false;
+			ec->moveType = MoveType::NoClip;
+			ec->client->respawnMaxTime = level.time + FRAME_TIME_MS;
+			ec->svFlags &= ~SVF_NOCLIENT;
+			ClientSpawn(ec);
+			G_PostRespawn(ec);
+			memset(&ec->client->pers.match, 0, sizeof(ec->client->pers.match));
+
+			gi.linkEntity(ec);
+		}
+	}
+
+	CalculateRanks();
+}
 // =================================================
 
 static void RoundAnnounceWin(Team team, const char* reason) {
@@ -516,8 +502,10 @@ static bool Round_StartNew() {
 	level.roundStateTimer = level.time + 10_sec;
 	level.countdownTimerCheck = 0_sec;
 
-	if (!horde)
-		Entities_Reset(!horde, false, false);
+        if (!horde) {
+                ResetMatchWorldState(true);
+                ResetMatchPlayers(false, false);
+        }
 
 	if (Game::Is(GameType::FreezeTag)) {
 		for (auto ec : active_clients()) {
@@ -622,8 +610,9 @@ void Match_Start() {
 
 	level.match = {};
 
-	Monsters_KillAll();
-	Entities_Reset(true, true, true);
+        Monsters_KillAll();
+        ResetMatchWorldState(true);
+        ResetMatchPlayers(true, true);
 	UnReadyAll();
 
 	for (auto ec : active_players())
@@ -1066,7 +1055,8 @@ void Match_Reset() {
 		return;
 	}
 
-	Entities_Reset(true, true, true, LimitedLivesResetMode::Force);
+        ResetMatchWorldState(true);
+        ResetMatchPlayers(true, true, LimitedLivesResetMode::Force);
 	UnReadyAll();
 
 	level.matchStartRealTime = GetCurrentRealTimeMillis();
