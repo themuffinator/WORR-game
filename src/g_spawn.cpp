@@ -1861,7 +1861,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 }
 
 
-bool G_ReloadMapEntitiesFromString() {
+bool G_ResetWorldEntitiesFromSavedString() {
         if (level.savedEntityString.empty())
                 return false;
 
@@ -1930,37 +1930,37 @@ bool G_ReloadMapEntitiesFromString() {
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
-	if (inhibited > 0 && g_verbose->integer) {
-		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-	}
+        if (inhibited > 0 && g_verbose->integer) {
+                gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+        }
 
-	PrecacheStartItems();
-	PrecacheInventoryItems();
-	G_FindTeams();
-	QuadHog_SetupSpawn(5_sec);
-	Tech_SetupSpawn();
+        PrecacheStartItems();
+        PrecacheInventoryItems();
+        G_FindTeams();
+        QuadHog_SetupSpawn(5_sec);
+        Tech_SetupSpawn();
 
-	if (deathmatch->integer) {
-		if (g_dm_random_items->integer) {
-			PrecacheForRandomRespawn();
-		}
-		game.item_inhibit_pu = 0;
-		game.item_inhibit_pa = 0;
-		game.item_inhibit_ht = 0;
-		game.item_inhibit_ar = 0;
-		game.item_inhibit_am = 0;
-		game.item_inhibit_wp = 0;
-	}
-	else {
-		InitHintPaths();
-	}
+        if (deathmatch->integer) {
+                if (g_dm_random_items->integer) {
+                        PrecacheForRandomRespawn();
+                }
+                game.item_inhibit_pu = 0;
+                game.item_inhibit_pa = 0;
+                game.item_inhibit_ht = 0;
+                game.item_inhibit_ar = 0;
+                game.item_inhibit_am = 0;
+                game.item_inhibit_wp = 0;
+        }
+        else {
+                InitHintPaths();
+        }
 
-	G_LocateSpawnSpots();
-	setup_shadow_lights();
+        G_LocateSpawnSpots();
+        setup_shadow_lights();
 
-	level.init = true;
+        level.init = true;
 
-	return true;
+        return true;
 }
 
 //===================================================================
