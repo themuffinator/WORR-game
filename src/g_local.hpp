@@ -2114,6 +2114,7 @@ struct LevelLocals {
 	int64_t		matchStartRealTime = 0;	// real time the match started, used for match end
 	int64_t		matchEndRealTime = 0;	// real time the match ended, used for match end
 	GameTime	exitTime = 0_ms;		// time the level was exited, used for intermission
+	GameTime	entityReloadGraceUntil = 0_ms; // grace period for spawn point availability during reloads
 	bool		readyToExit = false;	// true if the level is ready to exit, used for intermission
 
 	std::array<char, MAX_QPATH> longName{}; // descriptive name
