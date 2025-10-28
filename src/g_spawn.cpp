@@ -1765,7 +1765,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	// Reset all persistent game state
 	SaveClientData();
 	gi.FreeTags(TAG_LEVEL);
-	level = LevelLocals{};
+        level = LevelLocals{};
+        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
 	globals.serverFlags &= SERVER_FLAG_LOADING;
@@ -1861,10 +1862,12 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 
 
 bool G_ReloadMapEntitiesFromString() {
-	if (level.savedEntityString.empty())
-		return false;
+        if (level.savedEntityString.empty())
+                return false;
 
-	for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
+        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+
+        for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
 		gentity_t* ent = &g_entities[i];
 		if (!ent->inUse)
 			continue;

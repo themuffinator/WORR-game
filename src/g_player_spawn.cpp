@@ -972,11 +972,24 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 				false
 			);
 
-			if (!result.spot) {
-				gi.Com_Error("No valid spawn points found.");
-			}
+                        if (!result.spot) {
+                                if (level.time <= level.entityReloadGraceUntil) {
+                                        if (g_verbose->integer) {
+                                                const GameTime remaining = level.entityReloadGraceUntil - level.time;
+                                                gi.Com_PrintFmt(
+                                                        "{}: waiting for spawn points after entity reload ({} ms remaining)\n",
+                                                        __FUNCTION__,
+                                                        remaining.milliseconds()
+                                                );
+                                        }
 
-			spot = result.spot;
+                                        return false;
+                                }
+
+                                gi.Com_Error("No valid spawn points found.");
+                        }
+
+                        spot = result.spot;
 		}
 
 		if (!spot) {
