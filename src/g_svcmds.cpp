@@ -310,7 +310,7 @@ void ServerCommand() {
 		SVCmd_ListIP_f();
 	else if (Q_strcasecmp(cmd, "writeip") == 0)
 		SVCmd_WriteIP_f();
-	else if (Q_strcasecmp(cmd, "nextMap") == 0)
+	else if (Q_strcasecmp(cmd, "nextmap") == 0)
 		SVCmd_NextMap_f();
 	else
 		gi.LocClient_Print(nullptr, PRINT_HIGH, "Unknown server command \"{}\"\n", cmd);

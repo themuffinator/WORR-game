@@ -3241,7 +3241,7 @@ void		Drop_Backpack(gentity_t* ent);
 void		G_CapAllAmmo(gentity_t* ent);
 
 //
-// g_utils.cpp
+// g_utilities.cpp
 //
 bool CheckArenaValid(int arenaNum);
 bool ChangeArena(int newArenaNum);
@@ -3827,7 +3827,7 @@ bool AppendIDToFile(const char* filename, const std::string& id);
 bool RemoveIDFromFile(const char* filename, const std::string& id);
 
 //
-// g_maps.cpp
+// g_map_manager.cpp
 //
 constexpr GameTime MAP_SELECTOR_DURATION = 5_sec;
 int PrintMapList(gentity_t* ent, bool cycleOnly);

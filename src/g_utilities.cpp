@@ -1,7 +1,7 @@
 ﻿// Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-// g_utils.cpp (Game Utilities)
+// g_utilities.cpp (Game Utilities)
 // This file is a collection of miscellaneous utility and helper functions
 // that are used throughout the server-side game module. It contains common,
 // reusable code that doesn't belong to a more specific system like items or AI.

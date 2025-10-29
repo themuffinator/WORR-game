@@ -1,4 +1,4 @@
-// g_maps.cpp (Game Maps)
+// g_map_manager.cpp (Game Maps)
 // This file manages the map loading, rotation, and voting systems for
 // multiplayer matches. It is responsible for parsing map lists, selecting the
 // next map to be played, and handling the end-of-match map voting screen.
@@ -153,7 +153,9 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 	if (!candidate)
 		return;
 
-	const int clientNum = ent->s.number;
+	const int clientNum = ent->s.number - 1;
+	if (clientNum < 0 || clientNum >= MAX_CLIENTS)
+		return;
 
 	// Ignore if already voted for same candidate
 	if (ms.votes[clientNum] == voteIndex)

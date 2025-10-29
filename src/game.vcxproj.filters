@@ -1,13 +1,8 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="bg_local.hpp" />
     <ClInclude Include="g_local.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
-    <ClInclude Include="game.hpp" />
-    <ClInclude Include="q_std.hpp" />
-    <ClInclude Include="q_vec3.hpp" />
-    <ClInclude Include="team_join_capacity.hpp" />
     <ClInclude Include="bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
@@ -194,18 +189,27 @@
     <ClInclude Include="cg_local.hpp">
       <Filter>cgame</Filter>
     </ClInclude>
+    <ClInclude Include="q_vec3.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="q_std.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="game.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="bg_local.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="g_spectator.cpp" />
     <ClCompile Include="g_combat.cpp" />
     <ClCompile Include="g_main.cpp" />
     <ClCompile Include="g_misc.cpp" />
-    <ClCompile Include="g_phys.cpp" />
     <ClCompile Include="g_save.cpp" />
     <ClCompile Include="g_svcmds.cpp" />
-    <ClCompile Include="g_utils.cpp" />
+    <ClCompile Include="g_utilities.cpp" />
     <ClCompile Include="g_weapon.cpp" />
-    <ClCompile Include="q_std.cpp" />
     <ClCompile Include="bots\bot_debug.cpp">
       <Filter>bots</Filter>
     </ClCompile>
@@ -318,7 +322,7 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="g_teamplay.cpp" />
-    <ClCompile Include="g_maps.cpp" />
+    <ClCompile Include="g_map_manager.cpp" />
     <ClCompile Include="menu\menu_page_admin.cpp">
       <Filter>menu</Filter>
     </ClCompile>
@@ -483,6 +487,15 @@
     <ClCompile Include="g_horde.cpp">
       <Filter>matches</Filter>
     </ClCompile>
+    <ClCompile Include="g_phys.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="q_std.cpp">
+      <Filter>shared</Filter>
+    </ClCompile>
+    <ClCompile Include="g_spectator.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="bots">
@@ -511,6 +524,9 @@
     </Filter>
     <Filter Include="world">
       <UniqueIdentifier>{58bed540-cc20-41a8-84f0-a63dc53b0061}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shared">
+      <UniqueIdentifier>{3266378f-a3e5-4bcd-a249-ecd26ad921a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

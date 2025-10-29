@@ -181,7 +181,6 @@
     <ClInclude Include="monsters\m_zombie.hpp" />
     <ClInclude Include="q_std.hpp" />
     <ClInclude Include="q_vec3.hpp" />
-    <ClInclude Include="team_join_capacity.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bots\bot_debug.cpp" />
@@ -209,7 +208,7 @@
     <ClCompile Include="g_items.cpp" />
     <ClCompile Include="match_logging.cpp" />
     <ClCompile Include="g_main.cpp" />
-    <ClCompile Include="g_maps.cpp" />
+    <ClCompile Include="g_map_manager.cpp" />
     <ClCompile Include="match_state.cpp" />
     <ClCompile Include="g_misc.cpp" />
     <ClCompile Include="g_monster.cpp" />
@@ -221,7 +220,7 @@
     <ClCompile Include="g_target.cpp" />
     <ClCompile Include="g_trigger.cpp" />
     <ClCompile Include="g_turret.cpp" />
-    <ClCompile Include="g_utils.cpp" />
+    <ClCompile Include="g_utilities.cpp" />
     <ClCompile Include="g_weapon.cpp" />
     <ClCompile Include="menu\menu_page_admin.cpp" />
     <ClCompile Include="menu\menu_page_callvote.cpp" />
