@@ -1452,8 +1452,12 @@ void ExitLevel(bool forceImmediate) {
 	ClientEndServerFrames();
 	TakeIntermissionScreenshot();
 
-	// Reset intermission state
-	level.intermission = {};
+        // Cache intermission flags that need to persist through the struct reset
+        const bool shouldClearInventory = level.intermission.clear;
+        const bool shouldHandleEndOfUnit = level.intermission.endOfUnit;
+
+        // Reset intermission state
+        level.intermission = {};
 
 	if (deathmatch->integer) {
 		// In Gauntlet mode, rotate the loser
@@ -1471,12 +1475,10 @@ void ExitLevel(bool forceImmediate) {
 			return;
 	}
 
-	// Singleplayer or coop logic
-	if (level.intermission.clear) {
-		level.intermission.clear = false;
-
-		for (auto ec : active_clients()) {
-			auto& cl = *ec->client;
+        // Singleplayer or coop logic
+        if (shouldClearInventory) {
+                for (auto ec : active_clients()) {
+                        auto& cl = *ec->client;
 
 			// Preserve userinfo across the wipe
 			char userInfo[MAX_INFO_STRING];
@@ -1491,8 +1493,8 @@ void ExitLevel(bool forceImmediate) {
 		}
 	}
 
-	if (level.intermission.endOfUnit) {
-		game.levelEntries = {};
+        if (shouldHandleEndOfUnit) {
+                game.levelEntries = {};
 
 		// Restore lives to all players in coop
 		if (g_coop_enable_lives->integer) {
