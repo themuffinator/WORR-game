@@ -4473,6 +4473,7 @@ struct gclient_t {
 	struct {
 		GameTime		thawTime = 0_ms;
 		GameTime		frozenTime = 0_ms;
+		GameTime		holdDeadline = 0_ms;
 	} freeze;
 	/*freeze*/
 
