@@ -1344,17 +1344,19 @@ void BeginIntermission(gentity_t* targ) {
 	}
 
 	// Immediate transition case (SP only)
-	if (!deathmatch->integer && isImmediateLeave) {
-		ReportMatchDetails(true);
-		level.intermission.exit = true;
-		return;
-	}
+        if (!deathmatch->integer && isImmediateLeave) {
+                ReportMatchDetails(true);
+                level.intermission.postIntermission = true;
+                level.intermission.exit = true;
+                return;
+        }
 
-	// SP with direct map change (non end-of-unit)
-	if (!deathmatch->integer && !isEndOfUnit) {
-		level.intermission.exit = true;
-		return;
-	}
+        // SP with direct map change (non end-of-unit)
+        if (!deathmatch->integer && !isEndOfUnit) {
+                level.intermission.postIntermission = true;
+                level.intermission.exit = true;
+                return;
+        }
 
 	// Final match reporting before vote/menu/nextmap
 	ReportMatchDetails(true);
@@ -1852,10 +1854,13 @@ static inline void G_RunFrame_(bool main_loop) {
 		level.inFrame = false;
 		return;
 	}
-	if (level.intermission.exit) {
-		level.inFrame = false;
-		return;
-	}
+        if (level.intermission.exit) {
+                if (!level.intermission.postIntermission)
+                        PreExitLevel();
+
+                level.inFrame = false;
+                return;
+        }
 
 	// --- Campaign Restart ---
 	if (!deathmatch->integer) {
