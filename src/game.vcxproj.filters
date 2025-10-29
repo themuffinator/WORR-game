@@ -120,6 +120,9 @@
     <ClInclude Include="monsters\m_widow2.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_wyvern.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_dog.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -343,6 +346,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_widow2.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_wyvern.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="g_teamplay.cpp" />

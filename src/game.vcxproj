@@ -183,6 +183,7 @@
     <ClInclude Include="monsters\m_wrath.hpp" />
     <ClInclude Include="monsters\m_widow.hpp" />
     <ClInclude Include="monsters\m_widow2.hpp" />
+    <ClInclude Include="monsters\m_wyvern.hpp" />
     <ClInclude Include="monsters\m_centroid.hpp" />
     <ClInclude Include="monsters\m_scrag.hpp" />
     <ClInclude Include="monsters\m_zombie.hpp" />
@@ -293,6 +294,7 @@
     <ClCompile Include="monsters\m_wrath.cpp" />
     <ClCompile Include="monsters\m_widow.cpp" />
     <ClCompile Include="monsters\m_widow2.cpp" />
+    <ClCompile Include="monsters\m_wyvern.cpp" />
     <ClCompile Include="monsters\m_scrag.cpp" />
     <ClCompile Include="monsters\m_zombie.cpp" />
     <ClCompile Include="monsters\q1_support.cpp" />

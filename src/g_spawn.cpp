@@ -301,6 +301,7 @@ void SP_monster_chthon(gentity_t* self);
 void SP_monster_dragon(gentity_t* self);
 void SP_monster_lavaman(gentity_t* self);
 void SP_monster_boss(gentity_t* self);
+void SP_monster_wyvern(gentity_t* self);
 
 void SP_target_chthon_lightning(gentity_t* self);
 
@@ -579,6 +580,7 @@ static const std::initializer_list<spawn_t> spawns = {
         { "monster_dragon", SP_monster_dragon },
         { "monster_lavaman", SP_monster_lavaman },
         { "monster_boss", SP_monster_boss },
+        { "monster_wyvern", SP_monster_wyvern },
 
         { "target_chthon_lightning", SP_target_chthon_lightning }
 };
