@@ -1385,12 +1385,11 @@ void SetStats(gentity_t* ent) {
 	                        countdown = 0;
 	                }
 
-	                if (ent->client->resp.thawer && ent->client->freeze.holdDeadline &&
-	                        ent->client->freeze.holdDeadline > level.time && ent->client->resp.thawer->client) {
-	                        freezeStatus = fmt::format("Being thawed by {}",
-	                                ent->client->resp.thawer->client->sess.netName);
-	                }
-	                else {
+                        if (ent->client->resp.thawer && ent->client->freeze.holdDeadline &&
+                                ent->client->freeze.holdDeadline > level.time && ent->client->resp.thawer->client) {
+                                freezeStatus = "Being thawed";
+                        }
+                        else {
 	                        freezeStatus = "Frozen - waiting for thaw";
 	                }
 	        }
