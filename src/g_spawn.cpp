@@ -279,6 +279,7 @@ void SP_monster_shambler(gentity_t* self);
 void SP_monster_dog(gentity_t* self);
 void SP_monster_ogre(gentity_t* self);
 void SP_monster_ogre_marksman(gentity_t* self);
+void SP_monster_ogre_multigrenade(gentity_t* self);
 void SP_monster_fish(gentity_t* self);
 void SP_monster_army(gentity_t* self);
 void SP_monster_fiend(gentity_t* self);
@@ -290,9 +291,11 @@ void SP_monster_knight(gentity_t* self);
 void SP_monster_hell_knight(gentity_t* self);
 void SP_monster_wizard(gentity_t* self);
 void SP_monster_oldone(gentity_t* self);
+void SP_monster_chthon(gentity_t* self);
+void SP_monster_lavaman(gentity_t* self);
 void SP_monster_boss(gentity_t* self);
 
-void SP_event_lightning(gentity_t* self);
+void SP_target_chthon_lightning(gentity_t* self);
 
 // clang-format off
 static const std::initializer_list<spawn_t> spawns = {
@@ -544,8 +547,9 @@ static const std::initializer_list<spawn_t> spawns = {
 
 	{ "monster_shambler", SP_monster_shambler },
 	{ "monster_dog", SP_monster_dog },
-	{ "monster_ogre", SP_monster_ogre },
-	{ "monster_ogre_marksman", SP_monster_ogre_marksman },
+        { "monster_ogre", SP_monster_ogre },
+        { "monster_ogre_marksman", SP_monster_ogre_marksman },
+        { "monster_ogre_multigrenade", SP_monster_ogre_multigrenade },
 	{ "monster_fish", SP_monster_fish },
 	{ "monster_army", SP_monster_army },
 	{ "monster_demon1", SP_monster_fiend },
@@ -555,11 +559,13 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_enforcer", SP_monster_enforcer },
 	{ "monster_knight", SP_monster_knight },
 	{ "monster_hell_knight", SP_monster_hell_knight },
-	{ "monster_wizard", SP_monster_wizard },
-	{ "monster_oldone", SP_monster_oldone },
-	{ "monster_boss", SP_monster_boss },
+        { "monster_wizard", SP_monster_wizard },
+        { "monster_oldone", SP_monster_oldone },
+        { "monster_chthon", SP_monster_chthon },
+        { "monster_lavaman", SP_monster_lavaman },
+        { "monster_boss", SP_monster_boss },
 
-	{ "event_lightning", SP_event_lightning }
+        { "target_chthon_lightning", SP_target_chthon_lightning }
 };
 // clang-format on
 

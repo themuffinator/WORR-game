@@ -17,14 +17,18 @@ Faithful behaviors:
 #include "../g_local.hpp"
 #include "m_dog.hpp"
 
-constexpr SpawnFlags SPAWNFLAG_DOG_NOJUMP = 8_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_DOG_NOJUMPING = 8_spawnflag;
 
 // Sounds
-static cached_soundIndex sound_bite;   // dog/dattack1.wav
-static cached_soundIndex sound_death;  // dog/ddeath.wav
-static cached_soundIndex sound_pain;   // dog/dpain1.wav
-static cached_soundIndex sound_sight;  // dog/dsight.wav
-static cached_soundIndex sound_idle;   // dog/idle.wav
+static cached_soundIndex sound_bite;      // dog/dattack1.wav
+static cached_soundIndex sound_death;     // dog/ddeath.wav
+static cached_soundIndex sound_pain;      // dog/dpain1.wav
+static cached_soundIndex sound_sight;     // dog/dsight.wav
+static cached_soundIndex sound_idle;      // dog/idle.wav
+static cached_soundIndex sound_launch;    // hound/hlaunch.wav
+static cached_soundIndex sound_impact;    // hound/himpact.wav
+static cached_soundIndex sound_bitemiss;  // hound/hbite2.wav
+static cached_soundIndex sound_jump;      // hound/hjump.wav
 
 /*
 ===============
@@ -118,12 +122,13 @@ static void dog_bite(gentity_t* self) {
 	// Aim slightly across body width like mutant does
 	Vector3 aim = { MELEE_DISTANCE, self->mins[0], 8.0f };
 
-	if (fire_hit(self, aim, std::max(damage, 1), 100)) {
-		gi.sound(self, CHAN_WEAPON, sound_bite, 1, ATTN_NORM, 0);
-	} else {
-		// If we whiff at point blank, lightly debounce refire
-		self->monsterInfo.melee_debounce_time = level.time + 1_sec;
-	}
+        if (fire_hit(self, aim, std::max(damage, 1), 100)) {
+                gi.sound(self, CHAN_WEAPON, sound_bite, 1, ATTN_NORM, 0);
+        } else {
+                gi.sound(self, CHAN_WEAPON, sound_bitemiss, 1, ATTN_NORM, 0);
+                // If we whiff at point blank, lightly debounce refire
+                self->monsterInfo.melee_debounce_time = level.time + 1_sec;
+        }
 }
 
 /*
@@ -154,25 +159,31 @@ Deals damage during a leap if moving fast and close.
 ===============
 */
 static TOUCH(dog_jump_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool /*otherTouchingSelf*/) -> void {
-	if (self->health <= 0) {
-		self->touch = nullptr;
-		return;
-	}
+        if (self->health <= 0) {
+                self->touch = nullptr;
+                return;
+        }
 
-	if (self->style == 1 && other->takeDamage) {
-		// Only if we are actually impacting with speed
-		if (self->velocity.length() > 60) {
-			const Vector3 dir = self->velocity.normalized();
-			const Vector3 point = self->s.origin + (dir * self->maxs[0]);
-			const int damage = static_cast<int>((frandom() + frandom() + frandom()) * 8.0f);
-			Damage(other, self, self, self->velocity, point, dir, std::max(damage, 1), std::max(damage, 1), DamageFlags::Normal, ModID::Unknown);
-			self->style = 0;
-		}
-	}
+        if (self->style == 1 && other->takeDamage) {
+                // Only if we are actually impacting with speed
+                if (self->velocity.length() > 400) {
+                        const Vector3 dir = self->velocity.normalized();
+                        const Vector3 point = self->s.origin + (dir * self->maxs[0]);
+                        const int damage = irandom(20, 25);
+                        Damage(other, self, self, self->velocity, point, dir, damage, damage, DamageFlags::Normal, ModID::Unknown);
+                        self->style = 0;
+                }
+        }
 
-	// Once grounded, stop touching handler
-	if (self->groundEntity)
-		self->touch = nullptr;
+        if (!M_CheckBottom(self)) {
+                if (self->groundEntity) {
+                        self->monsterInfo.nextFrame = FRAME_attack04;
+                        self->touch = nullptr;
+                }
+                return;
+        }
+
+        self->touch = nullptr;
 }
 
 /*
@@ -181,19 +192,21 @@ dog_jump_takeoff
 ===============
 */
 static void dog_jump_takeoff(gentity_t* self) {
-	Vector3 forward;
-	AngleVectors(self->s.angles, forward, nullptr, nullptr);
+        Vector3 forward;
+        AngleVectors(self->s.angles, forward, nullptr, nullptr);
 
-	self->s.origin[Z] += 1.0f;
-	self->velocity = forward * 300.0f;
-	self->velocity[2] = 200.0f;
-	self->groundEntity = nullptr;
+        gi.sound(self, CHAN_WEAPON, sound_launch, 1, ATTN_NORM, 0);
+        gi.sound(self, CHAN_VOICE, sound_jump, 1, ATTN_NORM, 0);
+        self->s.origin[Z] += 1.0f;
+        self->velocity = forward * 400.0f;
+        self->velocity[2] = 200.0f;
+        self->groundEntity = nullptr;
 
-	self->monsterInfo.aiFlags |= AI_DUCKED;
-	self->monsterInfo.attackFinished = level.time + 2.5_sec;
+        self->monsterInfo.aiFlags |= AI_DUCKED;
+        self->monsterInfo.attackFinished = level.time + 3_sec;
 
-	self->style = 1; // in damaging leap
-	self->touch = dog_jump_touch;
+        self->style = 1; // in damaging leap
+        self->touch = dog_jump_touch;
 }
 
 /*
@@ -202,26 +215,27 @@ dog_check_landing
 ===============
 */
 static void dog_check_landing(gentity_t* self) {
-	monster_jump_finished(self);
+        monster_jump_finished(self);
 
-	if (self->groundEntity) {
-		self->monsterInfo.attackFinished = level.time + random_time(400_ms, 1.0_sec);
+        if (self->groundEntity) {
+                gi.sound(self, CHAN_WEAPON, sound_impact, 1, ATTN_NORM, 0);
+                self->monsterInfo.attackFinished = level.time + random_time(500_ms, 1.5_sec);
 
-		if (self->monsterInfo.unDuck)
-			self->monsterInfo.unDuck(self);
+                if (self->monsterInfo.unDuck)
+                        self->monsterInfo.unDuck(self);
 
-		// Chain to melee if we are close enough after the pounce
-		if (self->enemy && range_to(self, self->enemy) <= RANGE_MELEE * 1.5f)
-			self->monsterInfo.melee(self);
+                // Chain to melee if we are close enough after the pounce
+                if (self->enemy && range_to(self, self->enemy) <= RANGE_MELEE * 2.0f)
+                        self->monsterInfo.melee(self);
 
-		return;
-	}
+                return;
+        }
 
-	// Stay in the landing check frames until we land or timeout
-	if (level.time > self->monsterInfo.attackFinished)
-		self->monsterInfo.nextFrame = FRAME_leap03;
-	else
-		self->monsterInfo.nextFrame = FRAME_leap05;
+        // Stay in the landing check frames until we land or timeout
+        if (level.time > self->monsterInfo.attackFinished)
+                self->monsterInfo.nextFrame = FRAME_leap04;
+        else
+                self->monsterInfo.nextFrame = FRAME_leap05;
 }
 
 /*
@@ -230,15 +244,15 @@ dog_jump (missile attack)
 ===============
 */
 static MonsterFrame dog_frames_leap[] = {
-	{ ai_charge },                    // leap01: face
-	{ ai_charge,  0, dog_jump_takeoff }, // leap02: takeoff
-	{ ai_charge },                    // leap03: flight
-	{ ai_charge },                    // leap04
-	{ ai_charge,  0, dog_check_landing }, // leap05: poll landing
-	{ ai_charge },                    // leap06
-	{ ai_charge },                    // leap07
-	{ ai_charge },                    // leap08
-	{ ai_charge }                     // leap09
+        { ai_charge, 20 },                  // leap01: face
+        { ai_charge, 20, dog_jump_takeoff }, // leap02: takeoff
+        { ai_move,   40 },                  // leap03: flight
+        { ai_move,   30 },                  // leap04
+        { ai_move,   30, dog_check_landing }, // leap05: poll landing
+        { ai_move,    0 },                  // leap06
+        { ai_move,    0 },                  // leap07
+        { ai_move,    0 },                  // leap08
+        { ai_move,    0 }                   // leap09
 };
 MMOVE_T(dog_move_leap) = { FRAME_leap01, FRAME_leap09, dog_frames_leap, dog_run };
 
@@ -266,7 +280,7 @@ static bool dog_check_jump(gentity_t* self) {
 		return false;
 
 	// Do not attempt if we cannot jump, or we just did
-	if ((self->monsterInfo.attackFinished >= level.time) || self->spawnFlags.has(SPAWNFLAG_DOG_NOJUMP))
+        if ((self->monsterInfo.attackFinished >= level.time) || self->spawnFlags.has(SPAWNFLAG_DOG_NOJUMPING))
 		return false;
 
 	// Height gate: avoid leaping if enemy is far above our standing reach
@@ -337,19 +351,33 @@ static MonsterFrame dog_frames_painB[] = {
 MMOVE_T(dog_move_painB) = { FRAME_painb01, FRAME_painb16, dog_frames_painB, dog_run };
 
 static PAIN(dog_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
-	if (level.time < self->pain_debounce_time)
-		return;
+        if (level.time < self->pain_debounce_time)
+                return;
 
-	self->pain_debounce_time = level.time + 1.5_sec;
-	gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
+        self->pain_debounce_time = level.time + 1.5_sec;
+        gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
 
-	if (!M_ShouldReactToPain(self, mod))
-		return;
+        if (!M_ShouldReactToPain(self, mod))
+                return;
 
-	if (frandom() > 0.5f)
-		M_SetAnimation(self, &dog_move_painA);
-	else
-		M_SetAnimation(self, &dog_move_painB);
+        if (frandom() > 0.5f)
+                M_SetAnimation(self, &dog_move_painA);
+        else
+                M_SetAnimation(self, &dog_move_painB);
+}
+
+/*
+===============
+dog_setskin
+===============
+*/
+MONSTERINFO_SETSKIN(dog_setskin) (gentity_t* self) -> void {
+        const int maxHealth = self->maxHealth > 0 ? self->maxHealth : self->health;
+
+        if (self->health < (maxHealth / 2))
+                self->s.skinNum |= 1;
+        else
+                self->s.skinNum &= ~1;
 }
 
 /*
@@ -357,15 +385,21 @@ static PAIN(dog_pain) (gentity_t* self, gentity_t* other, float kick, int damage
 dog_die
 ===============
 */
+static void dog_shrink(gentity_t* self) {
+        self->maxs[2] = 0;
+        self->svFlags |= SVF_DEADMONSTER;
+        gi.linkEntity(self);
+}
+
 static MonsterFrame dog_frames_death1[] = {
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move }, { ai_move },
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move } // ends on corpse pose 1
+        { ai_move }, { ai_move }, { ai_move }, { ai_move, 0, dog_shrink }, { ai_move },
+        { ai_move }, { ai_move }, { ai_move }, { ai_move } // ends on corpse pose 1
 };
 MMOVE_T(dog_move_death1) = { FRAME_death01, FRAME_death09, dog_frames_death1, monster_dead };
 
 static MonsterFrame dog_frames_death2[] = {
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move }, { ai_move },
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move } // ends on corpse pose 2
+        { ai_move }, { ai_move }, { ai_move }, { ai_move }, { ai_move, 0, dog_shrink },
+        { ai_move }, { ai_move }, { ai_move }, { ai_move } // ends on corpse pose 2
 };
 MMOVE_T(dog_move_death2) = { FRAME_deathb01, FRAME_deathb09, dog_frames_death2, monster_dead };
 
@@ -401,7 +435,7 @@ static DIE(dog_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker,
 SP_monster_dog
 ===============
 */
-/*QUAKED monster_dog (1 0 0) (-32 -32 -24) (32 32 40) AMBUSH TRIGGER_SPAWN SIGHT NOJUMP x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
+/*QUAKED monster_dog (1 0 0) (-32 -32 -24) (32 32 40) AMBUSH TRIGGER_SPAWN SIGHT NOJUMPING x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 model="models/monsters/dog/tris.md2"
 */
 void SP_monster_dog(gentity_t* self) {
@@ -411,11 +445,15 @@ void SP_monster_dog(gentity_t* self) {
 	}
 
 	// Sounds
-	sound_bite.assign("dog/dattack1.wav");
-	sound_death.assign("dog/ddeath.wav");
-	sound_pain.assign("dog/dpain1.wav");
-	sound_sight.assign("dog/dsight.wav");
-	sound_idle.assign("dog/idle.wav");
+        sound_bite.assign("dog/dattack1.wav");
+        sound_death.assign("dog/ddeath.wav");
+        sound_pain.assign("dog/dpain1.wav");
+        sound_sight.assign("dog/dsight.wav");
+        sound_idle.assign("dog/idle.wav");
+        sound_launch.assign("hound/hlaunch.wav");
+        sound_impact.assign("hound/himpact.wav");
+        sound_bitemiss.assign("hound/hbite2.wav");
+        sound_jump.assign("hound/hjump.wav");
 
 	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
@@ -427,12 +465,13 @@ void SP_monster_dog(gentity_t* self) {
 	self->mins = { -32, -32, -24 };
 	self->maxs = {  32,  32,  40 };
 
-	self->health = static_cast<int>(25 * st.health_multiplier);
-	self->gibHealth = -35;
-	self->mass = 200;
+        self->health = static_cast<int>(25 * st.health_multiplier);
+        self->maxHealth = self->health;
+        self->gibHealth = -35;
+        self->mass = 200;
 
-	self->pain = dog_pain;
-	self->die  = dog_die;
+        self->pain = dog_pain;
+        self->die  = dog_die;
 
 	self->monsterInfo.stand        = dog_stand;
 	self->monsterInfo.walk         = dog_walk;
@@ -441,11 +480,11 @@ void SP_monster_dog(gentity_t* self) {
 	self->monsterInfo.attack       = dog_jump;   // missile = leap
 	self->monsterInfo.melee        = dog_melee;
 	self->monsterInfo.sight        = dog_sight;
-	self->monsterInfo.search       = dog_search;
-	self->monsterInfo.idle         = dog_idle;
-	self->monsterInfo.checkAttack  = dog_checkattack;
-	self->monsterInfo.blocked      = nullptr;    // default blocked is fine for a small quadruped
-	self->monsterInfo.setSkin      = nullptr;
+        self->monsterInfo.search       = dog_search;
+        self->monsterInfo.idle         = dog_idle;
+        self->monsterInfo.checkAttack  = dog_checkattack;
+        self->monsterInfo.blocked      = nullptr;    // default blocked is fine for a small quadruped
+        self->monsterInfo.setSkin      = dog_setskin;
 
 	gi.linkEntity(self);
 
@@ -454,7 +493,7 @@ void SP_monster_dog(gentity_t* self) {
 	self->monsterInfo.combatStyle = CombatStyle::Melee;
 
 	self->monsterInfo.scale      = DOG_MODEL_SCALE;
-	self->monsterInfo.canJump   = !(self->spawnFlags.has(SPAWNFLAG_DOG_NOJUMP));
+        self->monsterInfo.canJump   = !(self->spawnFlags.has(SPAWNFLAG_DOG_NOJUMPING));
 	self->monsterInfo.dropHeight = 256;
 	self->monsterInfo.jumpHeight = 56;
 

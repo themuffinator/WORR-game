@@ -1190,6 +1190,10 @@ FIELD_AUTO(monsterInfo.fly_thrusters),
 FIELD_AUTO(monsterInfo.fly_recovery_time),
 FIELD_AUTO(monsterInfo.fly_recovery_dir),
 
+FIELD_AUTO(monsterInfo.teleport_saved_origin),
+FIELD_AUTO(monsterInfo.teleport_return_time),
+FIELD_AUTO(monsterInfo.teleport_active),
+
 FIELD_AUTO(monsterInfo.checkattack_time),
 FIELD_AUTO(monsterInfo.startFrame),
 FIELD_AUTO(monsterInfo.dodge_time),
