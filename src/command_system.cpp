@@ -106,7 +106,7 @@ namespace Commands {
 
                 for (auto p_ent : active_players()) {
                         const int clientIndex = p_ent->s.number - 1;
-                        if (clientIndex < 0 || clientIndex >= game.maxClients) {
+                        if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients)) {
                                 continue;
                         }
 
