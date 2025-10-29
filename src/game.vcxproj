@@ -162,6 +162,7 @@
     <ClInclude Include="monsters\m_infantry.hpp" />
     <ClInclude Include="monsters\m_insane.hpp" />
     <ClInclude Include="monsters\m_knight.hpp" />
+    <ClInclude Include="monsters\m_sword.hpp" />
     <ClInclude Include="monsters\m_medic.hpp" />
     <ClInclude Include="monsters\m_mutant.hpp" />
     <ClInclude Include="monsters\m_ogre.hpp" />
@@ -270,6 +271,7 @@
     <ClCompile Include="monsters\m_infantry.cpp" />
     <ClCompile Include="monsters\m_insane.cpp" />
     <ClCompile Include="monsters\m_knight.cpp" />
+    <ClCompile Include="monsters\m_sword.cpp" />
     <ClCompile Include="monsters\m_medic.cpp" />
     <ClCompile Include="monsters\m_move.cpp" />
     <ClCompile Include="monsters\m_mutant.cpp" />
