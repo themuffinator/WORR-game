@@ -1,0 +1,2869 @@
+# Diff created by create_repo_diff.py
+# a = C:\_SOURCE\_CODE\quake2-rerelease-dll-main\rerelease
+# b = C:\_SOURCE\_CODE\freeze-tag-quake2-rerelease-main\src
+# excludes = ['*.dll', '*.exe', '*.pdb', '.git', '.vs', 'bin', 'build', 'obj']
+
+--- a/bots/bot_debug.cpp	2023-10-03 19:43:06
++++ b/bots/bot_debug.cpp	2025-10-13 02:05:28
+@@ -4,6 +4,9 @@
+ #include "../g_local.h"
+ #include "bot_utils.h"
+ #include "bot_debug.h"
++/* freeze */
++#include "../g_freeze.h"
++/* freeze */
+ 
+ static const edict_t * escortBot = nullptr;
+ static const edict_t * escortActor = nullptr;
+@@ -159,6 +162,9 @@
+ ================
+ */
+ void Bot_UpdateDebug() {
++	/* freeze */
++	freezeBotHelper();
++	/* freeze */
+ 	if ( !sv_cheats->integer ) {
+ 		return;
+ 	}
+--- a/ctf/g_ctf.cpp	2023-10-03 19:43:06
++++ b/ctf/g_ctf.cpp	2025-10-13 02:05:28
+@@ -2,6 +2,9 @@
+ // Licensed under the GNU General Public License 2.0.
+ #include "../g_local.h"
+ #include "../m_player.h"
++/* freeze */
++#include "../g_freeze.h"
++/* freeze */
+ 
+ #include <assert.h>
+ 
+@@ -66,6 +69,16 @@
+ 	else if (team == CTF_TEAM2)
+ 		ctfgame.total2 += offset;
+ }
++
++/* freeze */
++int get_team_score(int i) {
++	if (i == 0)
++		return ctfgame.total1;
++	if (i == 1)
++		return ctfgame.total2;
++	return ctfgame.total2;
++}
++/* freeze */
+ 
+ cvar_t *competition;
+ cvar_t *matchlock;
+@@ -1564,6 +1577,13 @@
+ 		return;
+ 	}
+ 
++	/* freeze */
++	if (ent->client->frozen && humanPlaying(ent)) {
++		gi.LocClient_Print(ent, PRINT_HIGH, "$g_cant_change_teams");
++		return;
++	}
++	/* freeze */
++
+ 	////
+ 	ent->svflags = SVF_NONE;
+ 	ent->flags &= ~FL_GODMODE;
+@@ -1662,6 +1682,11 @@
+ 	// [Paril-KEX] time & frags
+ 	if (teamplay->integer)
+ 	{
++		/* freeze */
++		if (capturelimit->integer) {
++			fmt::format_to(std::back_inserter(string), FMT_STRING("xv -20 yv -10 loc_string2 1 $g_score_captures \"{}\" "), capturelimit->integer);
++		} else
++		/* freeze */
+ 		if (fraglimit->integer)
+ 		{
+ 			fmt::format_to(std::back_inserter(string), FMT_STRING("xv -20 yv -10 loc_string2 1 $g_score_frags \"{}\" "), fraglimit->integer);
+@@ -1680,6 +1705,7 @@
+ 	}
+ 
+ 	// team one
++	/* freeze
+ 	if (teamplay->integer)
+ 	{
+ 		fmt::format_to(std::back_inserter(string),
+@@ -1693,6 +1719,7 @@
+ 			total[1]);
+ 	}
+ 	else
++	freeze */
+ 	{
+ 		fmt::format_to(std::back_inserter(string),
+ 			FMT_STRING("if 25 xv -32 yv 8 pic 25 endif "
+@@ -1721,7 +1748,11 @@
+ 						sorted[0][i],
+ 						cl->resp.score,
+ 						cl->ping > 999 ? 999 : cl->ping,
++						/* freeze */
++						cl_ent->client->frozen ? "sbfctf1" : "\"\"");
++						/* freeze
+ 						cl_ent->client->pers.inventory[IT_FLAG2] ? "sbfctf2" : "\"\"");
++						freeze */
+ 
+ 			if (string.size() + entry.size() < MAX_CTF_STAT_LENGTH)
+ 			{
+@@ -1741,7 +1772,11 @@
+ 						sorted[1][i],
+ 						cl->resp.score,
+ 						cl->ping > 999 ? 999 : cl->ping,
++						/* freeze */
++						cl_ent->client->frozen ? "sbfctf2" : "\"\"");
++						/* freeze
+ 						cl_ent->client->pers.inventory[IT_FLAG1] ? "sbfctf1" : "\"\"");
++						freeze */
+ 			
+ 			if (string.size() + entry.size() < MAX_CTF_STAT_LENGTH)
+ 			{
+@@ -2993,6 +3028,13 @@
+ 	if (!G_TeamplayEnabled() || g_teamplay_force_join->integer)
+ 		return;
+ 
++	/* freeze */
++	if (ent->client->frozen && humanPlaying(ent)) {
++		gi.LocClient_Print(ent, PRINT_HIGH, "$g_cant_change_teams");
++		return;
++	}
++	/* freeze */
++
+ 	// start as 'observer'
+ 	if (ent->movetype == MOVETYPE_NOCLIP)
+ 		CTFPlayerResetGrapple(ent);
+--- a/ctf/g_ctf.h	2023-10-03 19:43:06
++++ b/ctf/g_ctf.h	2025-10-13 02:05:28
+@@ -77,6 +77,9 @@
+ void CTFPrecache();
+ bool G_TeamplayEnabled();
+ void G_AdjustTeamScore(ctfteam_t team, int32_t offset);
++/* freeze */
++int get_team_score(int i);
++/* freeze */
+ 
+ void SP_info_player_team1(edict_t *self);
+ void SP_info_player_team2(edict_t *self);
+--- a/g_chase.cpp	2023-10-03 19:43:06
++++ b/g_chase.cpp	2025-10-13 02:05:28
+@@ -12,11 +12,18 @@
+ 	vec3_t	 angles;
+ 
+ 	// is our chase target gone?
++	/* freeze */
++	if (!ent->client->chase_target->inuse || ent->client->chase_target->client->resp.spectator || 
++		(ent->client->frozen && (ent->client->frozen_time < level.time + 2_sec || ent->client->thaw_time < level.time + 1_sec)) || 
++		(ent->health < 0 && !ent->client->frozen))
++	{
++	/* freeze
+ 	if (!ent->client->chase_target->inuse || ent->client->chase_target->client->resp.spectator)
+ 	{
+ 		edict_t *old = ent->client->chase_target;
+ 		ChaseNext(ent);
+ 		if (ent->client->chase_target == old)
++	freeze */
+ 		{
+ 			ent->client->chase_target = nullptr;
+ 			ent->client->ps.pmove.pm_flags &= ~(PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION);
+@@ -70,12 +77,20 @@
+ 		goal[2] += 6;
+ 	}
+ 
++	/* freeze */
++	if (ent->client->frozen) {
++		ent->client->ps.pmove.origin = goal * 8;
++	} else {
++	/* freeze */
+ 	if (targ->deadflag)
+ 		ent->client->ps.pmove.pm_type = PM_DEAD;
+ 	else
+ 		ent->client->ps.pmove.pm_type = PM_FREEZE;
+ 
+ 	ent->s.origin = goal;
++	/* freeze */
++	}
++	/* freeze */
+ 	ent->client->ps.pmove.delta_angles = targ->client->v_angle - ent->client->resp.cmd_angles;
+ 
+ 	if (targ->deadflag)
+@@ -92,6 +107,9 @@
+ 	}
+ 
+ 	ent->viewheight = 0;
++	/* freeze */
++	if (!ent->client->frozen)
++	/* freeze */
+ 	ent->client->ps.pmove.pm_flags |= PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION;
+ 	gi.linkentity(ent);
+ }
+@@ -102,7 +120,11 @@
+ 	edict_t	*e;
+ 
+ 	if (!ent->client->chase_target)
++		/* freeze
+ 		return;
++		freeze */
++		ent->client->chase_target = ent;
++		/* freeze */
+ 
+ 	i = ent->client->chase_target - g_edicts;
+ 	do
+@@ -113,10 +135,23 @@
+ 		e = g_edicts + i;
+ 		if (!e->inuse)
+ 			continue;
++		/* freeze */
++		if (!ent->client->resp.spectator && e->client->resp.ctf_team != ent->client->resp.ctf_team)
++			continue;
++		if (e->client->frozen && e != ent)
++			continue;
++		/* freeze */
+ 		if (!e->client->resp.spectator)
+ 			break;
+ 	} while (e != ent->client->chase_target);
+ 
++	/* freeze */
++	if (e == ent) {
++		ent->client->chase_target = nullptr;
++		ent->client->ps.pmove.pm_flags &= ~(PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION);
++	}
++	else
++	/* freeze */
+ 	ent->client->chase_target = e;
+ 	ent->client->update_chase = true;
+ }
+@@ -127,7 +162,11 @@
+ 	edict_t *e;
+ 
+ 	if (!ent->client->chase_target)
++		/* freeze
+ 		return;
++		freeze */
++		ent->client->chase_target = ent;
++		/* freeze */
+ 
+ 	i = ent->client->chase_target - g_edicts;
+ 	do
+@@ -138,16 +177,30 @@
+ 		e = g_edicts + i;
+ 		if (!e->inuse)
+ 			continue;
++		/* freeze */
++		if (!ent->client->resp.spectator && e->client->resp.ctf_team != ent->client->resp.ctf_team)
++			continue;
++		if (e->client->frozen && e != ent)
++			continue;
++		/* freeze */
+ 		if (!e->client->resp.spectator)
+ 			break;
+ 	} while (e != ent->client->chase_target);
+ 
++	/* freeze */
++	if (e == ent) {
++		ent->client->chase_target = nullptr;
++		ent->client->ps.pmove.pm_flags &= ~(PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION);
++	}
++	else
++	/* freeze */
+ 	ent->client->chase_target = e;
+ 	ent->client->update_chase = true;
+ }
+ 
+ void GetChaseTarget(edict_t *ent)
+ {
++	/* freeze
+ 	uint32_t i;
+ 	edict_t *other;
+ 
+@@ -162,6 +215,13 @@
+ 			return;
+ 		}
+ 	}
++	freeze */
++	ChaseNext(ent);
++
++	if (ent->client->chase_target)
++		UpdateChaseCam(ent);
++	else
++	/* freeze */
+ 
+ 	if (ent->client->chase_msg_time <= level.time)
+ 	{
+--- a/g_cmds.cpp	2023-10-03 19:43:06
++++ b/g_cmds.cpp	2025-10-13 02:05:28
+@@ -2,6 +2,9 @@
+ // Licensed under the GNU General Public License 2.0.
+ #include "g_local.h"
+ #include "m_player.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ void SelectNextItem(edict_t *ent, item_flags_t itflags, bool menu = true)
+ {
+@@ -22,6 +25,12 @@
+ 		ChaseNext(ent);
+ 		return;
+ 	}
++	/* freeze */
++	else if (cl->frozen) {
++		//ChaseNext(ent);
++		return;
++	}
++	/* freeze */
+ 	// ZOID
+ 
+ 	// scan  for the next valid one
+@@ -64,6 +73,12 @@
+ 		ChasePrev(ent);
+ 		return;
+ 	}
++	/* freeze */
++	else if (cl->frozen) {
++		//ChasePrev(ent);
++		return;
++	}
++	/* freeze */
+ 	// ZOID
+ 
+ 	// scan  for the next valid one
+@@ -981,6 +996,10 @@
+ 
+ 	if ((level.time - ent->client->respawn_time) < 5_sec)
+ 		return;
++	/* freeze */
++	if (ent->health <= 0)
++		return;
++	/* freeze */
+ 
+ 	ent->flags &= ~FL_GODMODE;
+ 	ent->health = 0;
+@@ -1482,6 +1501,13 @@
+ {
+ 	if (!G_TeamplayEnabled())
+ 		return;
++
++	/* freeze */
++	if (ent->client->frozen && humanPlaying(ent)) {
++		gi.LocClient_Print(ent, PRINT_HIGH, "$g_cant_change_teams");
++		return;
++	}
++	/* freeze */
+ 
+ 	// [Paril-KEX] in force-join, just do a regular team join.
+ 	if (g_teamplay_force_join->integer)
+@@ -1742,6 +1768,10 @@
+ 	// ZOID
+ 	else if (Q_strcasecmp(cmd, "switchteam") == 0)
+ 		Cmd_Switchteam_f(ent);
++	/* freeze */
++	else if (Q_strcasecmp(cmd, "hook") == 0)
++		cmdHook(ent);
++	/* freeze */
+ #ifndef KEX_Q2_GAME
+ 	else // anything that doesn't match a command will be a chat
+ 		Cmd_Say_f(ent, true);
+--- a/g_combat.cpp	2023-10-03 19:43:06
++++ b/g_combat.cpp	2025-10-13 02:05:28
+@@ -3,6 +3,9 @@
+ // g_combat.c
+ 
+ #include "g_local.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ /*
+ ============
+@@ -618,6 +621,11 @@
+ 	damage = CTFApplyStrength(attacker, damage);
+ 	// ZOID
+ 
++	/* freeze */
++	if (client && client->frozen)
++		knockback *= 2;
++	else
++	/* freeze */
+ 	if ((targ->flags & FL_NO_KNOCKBACK) ||
+ 		((targ->flags & FL_ALIVE_KNOCKBACK_ONLY) && (!targ->deadflag || targ->dead_time != level.time)))
+ 		knockback = 0;
+@@ -649,6 +657,15 @@
+ 	take = damage;
+ 	save = 0;
+ 
++	/* freeze */
++	if (playerDamage(targ, attacker, damage, mod) && !(dflags & DAMAGE_NO_PROTECTION))
++	{
++		take = 0;
++		save = damage;
++		SpawnDamage(te_sparks, point, normal, save);
++		return;
++	}
++	/* freeze */
+ 	// check for godmode
+ 	if ((targ->flags & FL_GODMODE) && !(dflags & DAMAGE_NO_PROTECTION))
+ 	{
+--- /dev/null
++++ b/g_freeze.cpp	2025-10-13 02:05:28
+@@ -0,0 +1,1178 @@
++#include "m_player.h"
++#include "g_freeze.h"
++
++#define	DotProduct(a, b)	a.dot(b)
++#define	VectorSubtract(a, b, c)	c = a - b
++#define	VectorAdd(a, b, c)	c = a + b
++#define	VectorCopy(a, b)	b = a
++#define	VectorSet(v, x, y, z)	v = {x, y, z}
++#define	VectorClear(v)	v = {}
++#define	VectorNormalize(x)	x.normalize()
++#define	VectorScale(a, b, c)	c = a * b
++#define	VectorLength(a)	a.length()
++#define	VectorMA(veca, scale, vecb, vecc)	vecc = veca + (vecb * scale)
++float VectorNormalize2(const vec3_t& v, vec3_t& out) {
++	float length = v.length();
++
++	if (length > 0.0f)
++		out = v / length;
++	return length;
++}
++
++// I just wish they'd made CTF_TEAM1 0
++ctfteam_t get_team_enum(int i) {
++	if (i == 0)
++		return CTF_TEAM1;
++	if (i == 1)
++		return CTF_TEAM2;
++	return CTF_TEAM2;
++}
++uint32_t get_team_int(ctfteam_t t) {
++	if (t == CTF_TEAM1)
++		return 0;
++	if (t == CTF_TEAM2)
++		return 1;
++	return 1;
++}
++
++#define	hook_on	0x00000001
++#define	hook_in	0x00000002
++#define	shrink_on	0x00000004
++#define	grow_on	0x00000008
++#define	motor_off	0
++#define	motor_start	1
++#define	motor_on	2
++#define	chan_hook	CHAN_AUX
++
++#define	_drophook	"medic/medatck5.wav"
++#define	_motorstart	"parasite/paratck2.wav"
++#define	_motoron	"parasite/paratck3.wav"
++#define	_motoroff	"parasite/paratck4.wav"
++#define	_hooktouch	"parasite/paratck1.wav"
++#define	_touchsolid	"medic/medatck3.wav"
++#define	_firehook	"medic/medatck2.wav"
++
++#define	_shotgun	0x00000001 // 1
++#define	_supershotgun	0x00000002 // 2
++#define	_machinegun	0x00000004 // 4
++#define	_chaingun	0x00000008 // 8
++#define	_grenadelauncher	0x00000010 // 16
++#define	_rocketlauncher	0x00000020 // 32
++#define	_hyperblaster	0x00000040 // 64
++#define	_railgun	0x00000080 // 128
++#define _chainfist	0x00000100 // 256
++#define _etfrifle	0x00000200 // 512
++#define _proxlauncher	0x00000400 // 1024
++#define _ionripper	0x00000800 // 2048
++#define _plasmabeam	0x00001000 // 4096
++#define _phalanx	0x00002000 // 8192
++#define _disruptor	0x00004000 // 16384
++
++#define	ready_help	0x00000001
++#define	thaw_help	0x00000002
++#define	frozen_help	0x00000004
++#define	chase_help	0x00000008
++
++cvar_t* hook_max_len;
++cvar_t* hook_rpf;
++cvar_t* hook_min_len;
++cvar_t* hook_speed;
++cvar_t* frozen_time;
++cvar_t* start_weapon;
++cvar_t* start_armor;
++cvar_t* grapple_wall;
++static int	gib_queue;
++static int	moan[8];
++
++void putInventory(const char* s, edict_t* ent)
++{
++	gitem_t* item = nullptr;
++	gitem_t* ammo = nullptr;
++	int	index;
++
++	item = FindItem(s);
++	if (item)
++	{
++		index = item->id;
++		ent->client->pers.inventory[index] = 1;
++
++		ammo = GetItemByIndex(item->ammo);
++		if (ammo)
++		{
++			index = ammo->id;
++			ent->client->pers.inventory[index] = ammo->quantity;
++		}
++		ent->client->newweapon = item;
++	}
++}
++
++void playerWeapon(edict_t* ent)
++{
++	gitem_t* item = FindItem("blaster");
++
++	item = FindItem("blaster");
++	ent->client->pers.inventory[item->id] = 1;
++	ent->client->newweapon = item;
++
++	if (start_armor->value)
++	{
++		int	index = FindItem("jacket armor")->id;
++		ent->client->pers.inventory[index] = (int)(start_armor->value / 2) * 2;
++	}
++
++	if (start_weapon->value)
++	{
++		if ((int)start_weapon->value & _shotgun)
++			putInventory("shotgun", ent);
++		if ((int)start_weapon->value & _supershotgun)
++			putInventory("super shotgun", ent);
++		if ((int)start_weapon->value & _machinegun)
++			putInventory("machinegun", ent);
++		if ((int)start_weapon->value & _chaingun)
++			putInventory("chaingun", ent);
++		if ((int)start_weapon->value & _grenadelauncher)
++			putInventory("grenade launcher", ent);
++		if ((int)start_weapon->value & _rocketlauncher)
++			putInventory("rocket launcher", ent);
++		if ((int)start_weapon->value & _hyperblaster)
++			putInventory("hyperblaster", ent);
++		if ((int)start_weapon->value & _railgun)
++			putInventory("railgun", ent);
++		if ((int)start_weapon->value & _chainfist)
++			putInventory("chainfist", ent);
++		if ((int)start_weapon->value & _etfrifle)
++			putInventory("etf rifle", ent);
++		if ((int)start_weapon->value & _proxlauncher)
++			putInventory("prox launcher", ent);
++		if ((int)start_weapon->value & _ionripper)
++			putInventory("ionripper", ent);
++		if ((int)start_weapon->value & _plasmabeam)
++			putInventory("plasmabeam", ent);
++		if ((int)start_weapon->value & _phalanx)
++			putInventory("phalanx", ent);
++		if ((int)start_weapon->value & _disruptor)
++			putInventory("disruptor", ent);
++	}
++	ChangeWeapon(ent);
++}
++
++bool playerDamage(edict_t* targ, edict_t* attacker, int damage, mod_t mod)
++{
++	if (!targ->client)
++		return false;
++	if (mod.id == MOD_TELEFRAG)
++		return false;
++	if (!attacker->client)
++		return false;
++	if (targ->client->hookstate && frandom() < 0.2)
++		targ->client->hookstate = 0;
++	if (targ->health > 0)
++	{
++		if (targ == attacker)
++			return false;
++		if (targ->client->resp.ctf_team != attacker->client->resp.ctf_team && targ->client->respawn_time + 3_sec < level.time)
++			return false;
++	}
++	else
++	{
++		if (targ->client->frozen)
++		{
++			if (frandom() < 0.1)
++				ThrowGib(targ, "models/objects/debris2/tris.md2", damage, GIB_NONE, 1);
++			return true;
++		}
++		else
++			return false;
++	}
++	if (g_friendly_fire->integer)
++		return true;
++	//meansOfDeath |= MOD_FRIENDLY_FIRE;
++	return false;
++}
++
++bool freezeCheck(edict_t* ent, mod_t mod)
++{
++	if (ent->deadflag)
++		return false;
++	if (mod.friendly_fire)
++		return false;
++	switch (mod.id)
++	{
++	case MOD_FALLING:
++	case MOD_SLIME:
++	case MOD_LAVA:
++		if (frandom() < 0.08)
++			break;
++	case MOD_SUICIDE:
++	case MOD_CRUSH:
++	case MOD_WATER:
++	case MOD_EXIT:
++	case MOD_TRIGGER_HURT:
++	case MOD_BFG_LASER:
++	case MOD_BFG_EFFECT:
++	case MOD_TELEFRAG:
++	case MOD_NUKE:
++		return false;
++	}
++	return true;
++}
++
++void freezeAnim(edict_t* ent)
++{
++	ent->client->anim_priority = ANIM_DEATH;
++	if (ent->client->ps.pmove.pm_flags & PMF_DUCKED)
++	{
++		if (rand() & 1)
++		{
++			ent->s.frame = FRAME_crpain1 - 1;
++			ent->client->anim_end = FRAME_crpain1 + rand() % 4;
++		}
++		else
++		{
++			ent->s.frame = FRAME_crdeath1 - 1;
++			ent->client->anim_end = FRAME_crdeath1 + rand() % 5;
++		}
++	}
++	else
++	{
++		switch (rand() % 8)
++		{
++		case 0:
++			ent->s.frame = FRAME_run1 - 1;
++			ent->client->anim_end = FRAME_run1 + rand() % 6;
++			break;
++		case 1:
++			ent->s.frame = FRAME_pain101 - 1;
++			ent->client->anim_end = FRAME_pain101 + rand() % 4;
++			break;
++		case 2:
++			ent->s.frame = FRAME_pain201 - 1;
++			ent->client->anim_end = FRAME_pain201 + rand() % 4;
++			break;
++		case 3:
++			ent->s.frame = FRAME_pain301 - 1;
++			ent->client->anim_end = FRAME_pain301 + rand() % 4;
++			break;
++		case 4:
++			ent->s.frame = FRAME_jump1 - 1;
++			ent->client->anim_end = FRAME_jump1 + rand() % 6;
++			break;
++		case 5:
++			ent->s.frame = FRAME_death101 - 1;
++			ent->client->anim_end = FRAME_death101 + rand() % 6;
++			break;
++		case 6:
++			ent->s.frame = FRAME_death201 - 1;
++			ent->client->anim_end = FRAME_death201 + rand() % 6;
++			break;
++		case 7:
++			ent->s.frame = FRAME_death301 - 1;
++			ent->client->anim_end = FRAME_death301 + rand() % 6;
++			break;
++		}
++	}
++
++	if (frandom() < 0.2)
++		gi.sound(ent, CHAN_BODY, gi.soundindex("player/lava2.wav"), 1, ATTN_NORM, 0);
++	else
++		gi.sound(ent, CHAN_BODY, gi.soundindex("boss3/d_hit.wav"), 1, ATTN_NORM, 0);
++	ent->client->frozen = true;
++	ent->client->frozen_time = level.time + gtime_t::from_sec(frozen_time->value);
++	ent->client->resp.thawer = nullptr;
++	ent->client->bot_helper = nullptr;
++	ent->client->thaw_time = HOLD_FOREVER;
++	if (frandom() > 0.3)
++		ent->client->hookstate -= ent->client->hookstate & (grow_on | shrink_on);
++	ent->deadflag = true;
++	gi.linkentity(ent);
++}
++
++bool gibCheck()
++{
++	if (gib_queue > 35)
++		return true;
++	else
++	{
++		gib_queue++;
++		return false;
++	}
++}
++
++THINK(gibThink) (edict_t* ent) -> void
++{
++	gib_queue--;
++	G_FreeEdict(ent);
++}
++
++void playerView(edict_t* ent)
++{
++	edict_t* other;
++	vec3_t	ent_origin;
++	vec3_t	forward;
++	vec3_t	other_origin;
++	vec3_t	dist;
++	trace_t	trace;
++	float	dot;
++	float	other_dot;
++	edict_t* best_other;
++
++	if ((level.time.milliseconds() / 100) % 8)
++		return;
++
++	other_dot = 0.3f;
++	best_other = nullptr;
++	VectorCopy(ent->s.origin, ent_origin);
++	ent_origin[2] += ent->viewheight;
++	AngleVectors(ent->s.angles, forward, nullptr, nullptr);
++
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		other = g_edicts + 1 + i;
++		if (!other->inuse)
++			continue;
++		if (other->client->resp.spectator)
++			continue;
++		if (other == ent)
++			continue;
++		if (other->health <= 0 && !other->client->frozen)
++			continue;
++		VectorCopy(other->s.origin, other_origin);
++		other_origin[2] += other->viewheight;
++		VectorSubtract(other_origin, ent_origin, dist);
++		if (VectorLength(dist) > 800)
++			continue;
++		trace = gi.trace(ent_origin, vec3_origin, vec3_origin, other_origin, ent, MASK_OPAQUE);
++		if (trace.fraction != 1)
++			continue;
++		VectorNormalize(dist);
++		dot = DotProduct(dist, forward);
++		if (dot > other_dot)
++		{
++			other_dot = dot;
++			best_other = other;
++		}
++	}
++	if (best_other)
++		ent->client->viewed = best_other;
++	else
++		ent->client->viewed = nullptr;
++}
++
++void playerBotHelper(edict_t* ent) {
++	if (ent->client->bot_helper) {
++		edict_t* other = ent->client->bot_helper;
++		if (other->health <= 0 || other->client->frozen) {
++			ent->client->bot_helper = nullptr;
++			other->client->bot_helper = nullptr;
++		}
++		else {
++			return;
++		}
++	}
++
++	edict_t* other;
++	float best_distance = std::numeric_limits<float>::max();
++	edict_t* best_other = nullptr;
++	for (uint32_t i = 0; i < game.maxclients; i++) {
++		other = g_edicts + 1 + i;
++		if (!other->inuse)
++			continue;
++		if (other->client->resp.spectator)
++			continue;
++		if (other == ent)
++			continue;
++		if (other->health <= 0)
++			continue;
++		if (other->client->resp.ctf_team != ent->client->resp.ctf_team)
++			continue;
++		if (!(other->svflags & SVF_BOT))
++			continue;
++		if (other->client->bot_helper)
++			continue;
++		float dist = (ent->s.origin - other->s.origin).length();
++		if (dist < best_distance) {
++			best_distance = dist;
++			best_other = other;
++		}
++	}
++	if (best_other) {
++		ent->client->bot_helper = best_other;
++		best_other->client->bot_helper = ent;
++	}
++}
++
++void freezeBotHelper() {
++	edict_t* ent;
++	for (uint32_t i = 0; i < game.maxclients; i++) {
++		ent = g_edicts + 1 + i;
++		if (!ent->inuse)
++			continue;
++		if (ent->client->resp.spectator)
++			continue;
++		if (ent->client->frozen)
++			continue;
++		if (!ent->client->bot_helper || !ent->client->bot_helper->client->frozen)
++			continue;
++		if (!(ent->svflags & SVF_BOT))
++			continue;
++		gi.Bot_MoveToPoint(ent, ent->client->bot_helper->s.origin, 0);
++	}
++}
++
++void playerThaw(edict_t* ent)
++{
++	edict_t* other;
++	int	j;
++	vec3_t	eorg;
++
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		other = g_edicts + 1 + i;
++		if (!other->inuse)
++			continue;
++		if (other->client->resp.spectator)
++			continue;
++		if (other == ent)
++			continue;
++		if (other->health <= 0)
++			continue;
++		if (other->client->resp.ctf_team != ent->client->resp.ctf_team)
++			continue;
++		for (j = 0; j < 3; j++)
++			eorg[j] = ent->s.origin[j] - (other->s.origin[j] + (other->mins[j] + other->maxs[j]) * 0.5);
++		if (VectorLength(eorg) > MELEE_DISTANCE)
++			continue;
++		if (!(other->client->resp.help & thaw_help))
++		{
++			other->client->showscores = false;
++			other->client->resp.help |= thaw_help;
++			gi.LocCenter_Print(other, "Wait here a second to free them.");
++			gi.sound(other, CHAN_AUTO, gi.soundindex("misc/talk1.wav"), 1, ATTN_STATIC, 0);
++		}
++		ent->client->resp.thawer = other;
++		if (ent->client->thaw_time == HOLD_FOREVER)
++		{
++			ent->client->thaw_time = level.time + 3_sec;
++			gi.sound(ent, CHAN_BODY, gi.soundindex("world/steam3.wav"), 1, ATTN_NORM, 0);
++		}
++		return;
++	}
++	ent->client->resp.thawer = nullptr;
++	ent->client->thaw_time = HOLD_FOREVER;
++}
++
++void playerBreak(edict_t* ent, int force)
++{
++	int	n;
++
++	ent->client->respawn_time = level.time + 1_sec;
++	if (ent->waterlevel == 3)
++		gi.sound(ent, CHAN_BODY, gi.soundindex("misc/fhit3.wav"), 1, ATTN_NORM, 0);
++	else
++		gi.sound(ent, CHAN_BODY, gi.soundindex("world/brkglas.wav"), 1, ATTN_NORM, 0);
++	n = rand() % (gib_queue > 10 ? 5 : 3);
++	if (rand() & 1)
++	{
++		switch (n)
++		{
++		case 0:
++			ThrowGib(ent, "models/objects/gibs/arm/tris.md2", force, GIB_NONE, 1);
++			break;
++		case 1:
++			ThrowGib(ent, "models/objects/gibs/bone/tris.md2", force, GIB_NONE, 1);
++			break;
++		case 2:
++			ThrowGib(ent, "models/objects/gibs/bone2/tris.md2", force, GIB_NONE, 1);
++			break;
++		case 3:
++			ThrowGib(ent, "models/objects/gibs/chest/tris.md2", force, GIB_NONE, 1);
++			break;
++		case 4:
++			ThrowGib(ent, "models/objects/gibs/leg/tris.md2", force, GIB_NONE, 1);
++			break;
++		}
++	}
++	while (n--)
++		ThrowGib(ent, "models/objects/debris1/tris.md2", force, GIB_NONE, 1);
++	ent->takedamage = false;
++	ent->movetype = MOVETYPE_TOSS;
++	ThrowClientHead(ent, force);
++	ent->client->frozen = false;
++	freeze[get_team_int(ent->client->resp.ctf_team)].update = true;
++	ent->client->ps.stats[STAT_CHASE] = 0;
++	if (ent->client->bot_helper) {
++		ent->client->bot_helper->client->bot_helper = nullptr;
++		ent->client->bot_helper = nullptr;
++	}
++}
++
++void playerUnfreeze(edict_t* ent)
++{
++	if (level.time > ent->client->frozen_time && level.time > ent->client->respawn_time)
++	{
++		playerBreak(ent, 50);
++		return;
++	}
++	if (ent->waterlevel == 3 && !((level.time.milliseconds() / 100) % 4))
++		ent->client->frozen_time -= 150_ms;
++	if (level.time > ent->client->thaw_time)
++	{
++		if (!ent->client->resp.thawer || !ent->client->resp.thawer->inuse)
++		{
++			ent->client->resp.thawer = nullptr;
++			ent->client->thaw_time = HOLD_FOREVER;
++		}
++		else
++		{
++			ent->client->resp.thawer->client->resp.score++;
++			ent->client->resp.thawer->client->resp.thawed++;
++			freeze[get_team_int(ent->client->resp.ctf_team)].thawed++;
++			if (rand() & 1)
++				gi.LocBroadcast_Print(PRINT_HIGH, "{} thaws {} like a package of frozen peas.\n", ent->client->resp.thawer->client->pers.netname, ent->client->pers.netname);
++			else
++				gi.LocBroadcast_Print(PRINT_HIGH, "{} evicts {} from their igloo.\n", ent->client->resp.thawer->client->pers.netname, ent->client->pers.netname);
++			playerBreak(ent, 100);
++		}
++	}
++}
++
++void playerMove(edict_t* ent)
++{
++	edict_t* other;
++	vec3_t	forward;
++	float	dist;
++	int	j;
++	vec3_t	eorg;
++
++	if (ent->client->hookstate)
++		return;
++	AngleVectors(ent->s.angles, forward, nullptr, nullptr);
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		other = g_edicts + 1 + i;
++		if (!other->inuse)
++			continue;
++		if (other->client->resp.spectator)
++			continue;
++		if (other == ent)
++			continue;
++		if (!other->client->frozen)
++			continue;
++		if (other->client->resp.ctf_team == ent->client->resp.ctf_team)
++			continue;
++		if (other->client->hookstate)
++			continue;
++		for (j = 0; j < 3; j++)
++			eorg[j] = ent->s.origin[j] - (other->s.origin[j] + (other->mins[j] + other->maxs[j]) * 0.5);
++		dist = VectorLength(eorg);
++		if (dist > MELEE_DISTANCE)
++			continue;
++		VectorScale(forward, 600, other->velocity);
++		other->velocity[2] = 200;
++		gi.linkentity(other);
++	}
++}
++
++void freezeMain(edict_t* ent)
++{
++	if (!ent->inuse)
++		return;
++	playerView(ent);
++	if (ent->client->resp.spectator)
++		return;
++	if (ent->client->frozen)
++	{
++		playerBotHelper(ent);
++		playerThaw(ent);
++		playerUnfreeze(ent);
++	}
++	else if (ent->health > 0)
++		playerMove(ent);
++}
++
++void freezeIntermission(void)
++{
++	int	i, j, k;
++	int	team;
++
++	i = j = k = 0;
++	for (i = 0; i < 2; i++)
++		if (get_team_score(i) > j)
++			j = get_team_score(i);
++
++	for (i = 0; i < 2; i++)
++		if (get_team_score(i) == j)
++		{
++			k++;
++			team = i;
++		}
++
++	if (k > 1)
++	{
++		i = j = k = 0;
++		for (i = 0; i < 2; i++)
++			if (freeze[i].thawed > j)
++				j = freeze[i].thawed;
++
++		for (i = 0; i < 2; i++)
++			if (freeze[i].thawed == j)
++			{
++				k++;
++				team = i;
++			}
++	}
++	if (k != 1)
++	{
++		gi.LocBroadcast_Print(PRINT_HIGH, "Stalemate!\n");
++		return;
++	}
++	gi.LocBroadcast_Print(PRINT_HIGH, "{} team is the winner!\n", freeze_team[team]);
++}
++
++void playerHealth(edict_t* ent)
++{
++	ent->client->pers.inventory.fill(0);
++
++	ent->client->quad_time = 0_ms;
++	ent->client->invincible_time = 0_ms;
++	ent->flags &= ~FL_POWER_ARMOR;
++
++	ent->health = ent->client->pers.max_health;
++
++	ent->s.sound = 0;
++	ent->client->weapon_sound = 0;
++}
++
++void breakTeam(int team)
++{
++	edict_t* ent;
++	gtime_t	break_time;
++
++	break_time = level.time;
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		ent = g_edicts + 1 + i;
++		if (!ent->inuse)
++			continue;
++		if (ent->client->frozen)
++		{
++			ent->client->frozen_time = break_time;
++			break_time += 250_ms;
++			continue;
++		}
++		if (ent->health > 0)
++		{
++			playerHealth(ent);
++			playerWeapon(ent);
++		}
++	}
++	freeze[team].break_time = break_time + 1_sec;
++	if (rand() & 1)
++		gi.LocBroadcast_Print(PRINT_HIGH, "{} team was run circles around by their foe.\n", freeze_team[team]);
++	else
++		gi.LocBroadcast_Print(PRINT_HIGH, "{} team was less than a match for their foe.\n", freeze_team[team]);
++}
++
++void updateTeam(int team)
++{
++	edict_t* ent;
++	int	frozen, alive;
++	int	play_sound = 0;
++
++	frozen = alive = 0;
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		ent = g_edicts + 1 + i;
++		if (!ent->inuse)
++			continue;
++		if (ent->client->resp.spectator)
++			continue;
++		if (ent->client->resp.ctf_team != get_team_enum(team))
++			continue;
++		if (ent->client->frozen)
++			frozen++;
++		if (ent->health > 0)
++			alive++;
++	}
++	freeze[team].frozen = frozen;
++	freeze[team].alive = alive;
++
++	if (frozen && !alive)
++	{
++		for (int i = 0; i < 2; i++)
++		{
++			if (freeze[i].alive)
++			{
++				play_sound++;
++				G_AdjustTeamScore(get_team_enum(i), 1);
++				freeze[i].update = true;
++			}
++		}
++		breakTeam(team);
++
++		if (play_sound <= 1)
++			gi.positioned_sound(vec3_origin, world, CHAN_VOICE | CHAN_RELIABLE, gi.soundindex("world/xian1.wav"), 1, ATTN_NONE, 0);
++	}
++}
++
++bool endCheck()
++{
++	int	i;
++
++	for (i = 0; i < 2; i++)
++		if (/*freeze[i].update && */level.time > freeze[i].last_update)
++		{
++			updateTeam(i);
++			freeze[i].update = false;
++			freeze[i].last_update = level.time + 3_sec;
++		}
++
++	if (capturelimit->value)
++	{
++		for (i = 0; i < 2; i++)
++			if (get_team_score(i) >= capturelimit->value)
++				return true;
++	}
++
++	return false;
++}
++
++void cmdMoan(edict_t* ent)
++{
++	if (!(ent->client->resp.help & frozen_help) && !(ent->svflags & SVF_BOT))
++	{
++		ent->client->showscores = false;
++		ent->client->resp.help |= frozen_help;
++		gi.LocCenter_Print(ent, "You have been frozen.\nWait to be saved.");
++		gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/talk1.wav"), 1, ATTN_STATIC, 0);
++	}
++	//else if (!(ent->client->chase_target || ent->client->resp.help & chase_help) && !(ent->svflags & SVF_BOT))
++	//{
++	//	GetChaseTarget(ent);
++	//	ent->client->showscores = false;
++	//	ent->client->resp.help |= chase_help;
++	//	gi.LocCenter_Print(ent, "Use the chase camera with\nyour inventory keys.");
++	//	gi.sound(ent, CHAN_AUTO, gi.soundindex("misc/talk1.wav"), 1, ATTN_STATIC, 0);
++	//	return;
++	//}
++	if (ent->client->moan_time > level.time)
++		return;
++	ent->client->moan_time = level.time + 2_sec;
++	if (ent->svflags & SVF_BOT)
++		ent->client->moan_time += random_time(5_sec, 30_sec);
++	if (ent->waterlevel == 3)
++	{
++		if (rand() & 1)
++			gi.sound(ent, CHAN_AUTO, gi.soundindex("flipper/flpidle1.wav"), 1, ATTN_NORM, 0);
++		else
++			gi.sound(ent, CHAN_AUTO, gi.soundindex("flipper/flpsrch1.wav"), 1, ATTN_NORM, 0);
++	}
++	else
++		gi.sound(ent, CHAN_AUTO, moan[rand() % 8], 1, ATTN_NORM, 0);
++}
++
++void playerShell(edict_t* ent, ctfteam_t team)
++{
++	ent->s.effects |= EF_COLOR_SHELL;
++	if (team == CTF_TEAM1)
++		ent->s.renderfx |= RF_SHELL_RED;
++	else
++		ent->s.renderfx |= RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE;
++}
++
++void freezeEffects(edict_t* ent)
++{
++	if (level.intermissiontime)
++		return;
++	if (!ent->client->frozen)
++		return;
++	if (!ent->client->resp.thawer || ((level.time.milliseconds() / 100) % 16) < 8)
++		playerShell(ent, ent->client->resp.ctf_team);
++}
++
++void p_projectsourcereverse(gclient_t* client, vec3_t point, vec3_t distance, vec3_t forward, vec3_t right, vec3_t& result)
++{
++	vec3_t	_distance;
++
++	VectorCopy(distance, _distance);
++
++	if (client->pers.hand == LEFT_HANDED)
++		;
++	else if (client->pers.hand == CENTER_HANDED)
++		_distance[1] = 0;
++	else
++		_distance[1] *= -1;
++	result = G_ProjectSource(point, _distance, forward, right);
++}
++
++void drophook(edict_t* ent)
++{
++	ent->owner->client->hookstate = 0;
++	ent->owner->client->hooker = 0;
++	gi.sound(ent->owner, chan_hook, gi.soundindex(_drophook), 1, ATTN_IDLE, 0);
++	G_FreeEdict(ent);
++}
++
++void maintainlinks(edict_t* ent)
++{
++	float	multiplier;
++	vec3_t	norm_hookvel, pred_hookpos;
++	vec3_t	forward, right, offset;
++	vec3_t	start = {}, chainvec;
++	vec3_t	norm_chainvec;
++
++	multiplier = VectorLength(ent->velocity) / 22;
++	VectorNormalize2(ent->velocity, norm_hookvel);
++	VectorMA(ent->s.origin, multiplier, norm_hookvel, pred_hookpos);
++
++	AngleVectors(ent->owner->client->v_angle, forward, right, nullptr);
++	VectorSet(offset, 8, 8, (float)ent->owner->viewheight - 8);
++	p_projectsourcereverse(ent->owner->client, ent->owner->s.origin, offset, forward, right, start);
++	VectorSubtract(pred_hookpos, start, chainvec);
++	VectorNormalize2(chainvec, norm_chainvec);
++	VectorMA(pred_hookpos, -20, norm_chainvec, pred_hookpos);
++	VectorMA(start, 10, norm_chainvec, start);
++
++	gi.WriteByte(svc_temp_entity);
++	gi.WriteByte(TE_MEDIC_CABLE_ATTACK);
++	gi.WriteShort(ent - g_edicts);
++	gi.WritePosition(pred_hookpos);
++	gi.WritePosition(start);
++	gi.multicast(ent->s.origin, MULTICAST_PVS, false);
++}
++
++THINK(hookbehavior) (edict_t* ent) -> void
++{
++	edict_t* targ;
++	bool	chain_moving;
++	vec3_t	forward, right;
++	vec3_t	offset, start = {};
++	vec3_t	end;
++	vec3_t	chainvec, velpart;
++	float	chainlen;
++	float	force;
++	int	_hook_rpf = hook_rpf->value;
++
++	if (!_hook_rpf)
++		_hook_rpf = 80;
++
++	targ = ent->owner;
++	if (!targ->inuse || !(targ->client->hookstate & hook_on) || ent->enemy->solid == SOLID_NOT ||
++		(targ->health <= 0 && !targ->client->frozen) || level.intermissiontime || targ->s.event == EV_PLAYER_TELEPORT)
++	{
++		drophook(ent);
++		return;
++	}
++
++	VectorCopy(ent->enemy->velocity, ent->velocity);
++
++	chain_moving = false;
++	if (targ->client->hookstate & grow_on && ent->angle < hook_max_len->value)
++	{
++		ent->angle += _hook_rpf;
++		if (ent->angle > hook_max_len->value)
++			ent->angle = hook_max_len->value;
++		chain_moving = true;
++	}
++	if (targ->client->hookstate & shrink_on && ent->angle > hook_min_len->value)
++	{
++		ent->angle -= _hook_rpf;
++		if (ent->angle < hook_min_len->value)
++			ent->angle = hook_min_len->value;
++		chain_moving = true;
++	}
++	if (chain_moving)
++	{
++		if (ent->sounds == motor_off)
++		{
++			gi.sound(targ, chan_hook, gi.soundindex(_motorstart), 1, ATTN_IDLE, 0);
++			ent->sounds = motor_start;
++		}
++		else if (ent->sounds == motor_start)
++		{
++			gi.sound(targ, chan_hook, gi.soundindex(_motoron), 1, ATTN_IDLE, 0);
++			ent->sounds = motor_on;
++		}
++	}
++	else if (ent->sounds != motor_off)
++	{
++		gi.sound(targ, chan_hook, gi.soundindex(_motoroff), 1, ATTN_IDLE, 0);
++		ent->sounds = motor_off;
++	}
++
++	AngleVectors(ent->owner->client->v_angle, forward, right, nullptr);
++	VectorSet(offset, 8, 8, (float)ent->owner->viewheight - 8);
++	p_projectsourcereverse(ent->owner->client, ent->owner->s.origin, offset, forward, right, start);
++
++	targ = nullptr;
++	if (ent->enemy->client)
++	{
++		targ = ent->enemy;
++		if (!targ->inuse || (targ->health <= 0 && !targ->client->frozen) ||
++			(targ->client->buttons & 4 && frandom() < 0.3) || targ->s.event == EV_PLAYER_TELEPORT)
++		{
++			drophook(ent);
++			return;
++		}
++		VectorCopy(ent->s.origin, end);
++		VectorCopy(start, ent->s.origin);
++		VectorCopy(end, start);
++		targ = ent->owner;
++		ent->owner = ent->enemy;
++		ent->enemy = targ;
++	}
++
++	VectorSubtract(ent->s.origin, start, chainvec);
++	chainlen = VectorLength(chainvec);
++	if (chainlen > ent->angle)
++	{
++		VectorScale(chainvec, DotProduct(ent->owner->velocity, chainvec) / DotProduct(chainvec, chainvec), velpart);
++		force = (chainlen - ent->angle) * 5;
++		if (DotProduct(ent->owner->velocity, chainvec) < 0)
++		{
++			if (chainlen > ent->angle + 25)
++				VectorSubtract(ent->owner->velocity, velpart, ent->owner->velocity);
++		}
++		else
++		{
++			if (VectorLength(velpart) < force)
++				force -= VectorLength(velpart);
++			else
++				force = 0;
++		}
++	}
++	else
++		force = 0;
++
++	VectorNormalize(chainvec);
++	VectorMA(ent->owner->velocity, force, chainvec, ent->owner->velocity);
++	SV_CheckVelocity(ent->owner);
++
++	if (targ)
++	{
++		targ = ent->enemy;
++		ent->enemy = ent->owner;
++		ent->owner = targ;
++		VectorCopy(ent->enemy->s.origin, ent->s.origin);
++	}
++	else if (!ent->owner->client->resp.old_hook &&
++		ent->owner->client->hookstate & shrink_on && chain_moving)
++		ent->owner->velocity -= ent->owner->gravityVector * (ent->owner->gravity * level.gravity * gi.frame_time_s);
++	maintainlinks(ent);
++	ent->nextthink = level.time + FRAME_TIME_S;
++}
++
++TOUCH(hooktouch) (edict_t* ent, edict_t* other, const trace_t& tr, bool other_touching_self) -> void
++{
++	vec3_t	forward, right;
++	vec3_t	offset, start = {};
++	vec3_t	chainvec;
++
++	AngleVectors(ent->owner->client->v_angle, forward, right, nullptr);
++	VectorSet(offset, 8, 8, (float)ent->owner->viewheight - 8);
++	p_projectsourcereverse(ent->owner->client, ent->owner->s.origin, offset, forward, right, start);
++	VectorSubtract(ent->s.origin, start, chainvec);
++	ent->angle = VectorLength(chainvec);
++	if (tr.surface && tr.surface->flags & SURF_SKY)
++	{
++		drophook(ent);
++		return;
++	}
++	if (other->takedamage)
++		T_Damage(other, ent, ent->owner, ent->velocity, ent->s.origin, tr.plane.normal, ent->dmg, 100, DAMAGE_NONE, MOD_HIT);
++	if (other->solid == SOLID_BBOX)
++	{
++		if (other->client && ent->owner->client->hooker < 2)
++		{
++			ent->owner->client->hooker++;
++			other->s.origin[2] += 9;
++			gi.sound(ent, CHAN_VOICE, gi.soundindex(_hooktouch), 1, ATTN_IDLE, 0);
++		}
++		else
++		{
++			drophook(ent);
++			return;
++		}
++	}
++	else if (other->solid == SOLID_BSP && grapple_wall->value)
++	{
++		if (!ent->owner->client->resp.old_hook)
++			VectorClear(ent->owner->velocity);
++		gi.WriteByte(svc_temp_entity);
++		gi.WriteByte(TE_SHOTGUN);
++		gi.WritePosition(ent->s.origin);
++		if (!tr.plane.normal)
++			gi.WriteDir(vec3_origin);
++		else
++			gi.WriteDir(tr.plane.normal);
++		gi.multicast(ent->s.origin, MULTICAST_PVS, false);
++		gi.sound(ent, CHAN_VOICE, gi.soundindex(_touchsolid), 1, ATTN_IDLE, 0);
++	}
++	else
++	{
++		drophook(ent);
++		return;
++	}
++	VectorCopy(other->velocity, ent->velocity);
++	ent->owner->client->hookstate |= hook_in;
++	ent->enemy = other;
++	ent->touch = nullptr;
++	ent->think = hookbehavior;
++	ent->nextthink = level.time + FRAME_TIME_S;
++}
++
++THINK(hookairborne) (edict_t* ent) -> void
++{
++	vec3_t	chainvec;
++	float	chainlen;
++
++	VectorSubtract(ent->s.origin, ent->owner->s.origin, chainvec);
++	chainlen = VectorLength(chainvec);
++	if (!(ent->owner->client->hookstate & hook_on) || chainlen > hook_max_len->value)
++	{
++		drophook(ent);
++		return;
++	}
++	maintainlinks(ent);
++	ent->nextthink = level.time + FRAME_TIME_S;
++}
++
++void firehook(edict_t* ent)
++{
++	int	damage;
++	vec3_t	forward, right;
++	vec3_t	offset, start = {};
++	edict_t* newhook;
++
++	damage = 10;
++
++	AngleVectors(ent->client->v_angle, forward, right, nullptr);
++	VectorSet(offset, 8, 8, (float)ent->viewheight - 8);
++	p_projectsourcereverse(ent->client, ent->s.origin, offset, forward, right, start);
++
++	newhook = G_Spawn();
++	newhook->svflags = SVF_DEADMONSTER;
++	VectorCopy(start, newhook->s.origin);
++	VectorCopy(start, newhook->s.old_origin);
++	newhook->s.angles = vectoangles(forward);
++	VectorScale(forward, hook_speed->value, newhook->velocity);
++	VectorCopy(forward, newhook->movedir);
++	newhook->movetype = MOVETYPE_FLYMISSILE;
++	newhook->clipmask = MASK_SHOT;
++	newhook->solid = SOLID_BBOX;
++	VectorClear(newhook->mins);
++	VectorClear(newhook->maxs);
++	newhook->owner = ent;
++	newhook->dmg = damage;
++	newhook->sounds = 0;
++	newhook->touch = hooktouch;
++	newhook->think = hookairborne;
++	newhook->nextthink = level.time + FRAME_TIME_S;
++	gi.linkentity(newhook);
++	gi.sound(ent, chan_hook, gi.soundindex(_firehook), 1, ATTN_IDLE, 0);
++}
++
++void cmdHook(edict_t* ent)
++{
++	const char* s;
++	int* hookstate;
++
++	s = gi.argv(1);
++	if (!*s)
++	{
++		gi.LocClient_Print(ent, PRINT_HIGH, "hook <value> [action / stop / grow / shrink] : control hook\n");
++		if (ent->client->resp.old_hook)
++			ent->client->resp.old_hook = false;
++		else
++			ent->client->resp.old_hook = true;
++		return;
++	}
++	if (ent->health <= 0 || ent->client->resp.spectator)
++		return;
++	hookstate = &ent->client->hookstate;
++	if (!(*hookstate & hook_on) && Q_strcasecmp(s, "action") == 0)
++	{
++		*hookstate = hook_on;
++		firehook(ent);
++		return;
++	}
++	if (*hookstate & hook_on)
++	{
++		if (Q_strcasecmp(s, "action") == 0)
++		{
++			*hookstate = 0;
++			return;
++		}
++		if (Q_strcasecmp(s, "stop") == 0)
++		{
++			if (ent->client->resp.old_hook || ent->client->hooker)
++				*hookstate -= *hookstate & (grow_on | shrink_on);
++			else
++				*hookstate = 0;
++			return;
++		}
++		if (Q_strcasecmp(s, "grow") == 0)
++		{
++			*hookstate |= grow_on;
++			*hookstate -= *hookstate & shrink_on;
++			return;
++		}
++		if (Q_strcasecmp(s, "shrink") == 0)
++		{
++			*hookstate |= shrink_on;
++			*hookstate -= *hookstate & grow_on;
++			return;
++		}
++	}
++}
++
++void freezeSpawn()
++{
++	int	i;
++
++	memset(freeze, 0, sizeof(freeze));
++	for (i = 0; i < 2; i++) {
++		freeze[i].update = true;
++		freeze[i].last_update = level.time;
++	}
++	gib_queue = 0;
++
++	moan[0] = gi.soundindex("insane/insane1.wav");
++	moan[1] = gi.soundindex("insane/insane2.wav");
++	moan[2] = gi.soundindex("insane/insane3.wav");
++	moan[3] = gi.soundindex("insane/insane4.wav");
++	moan[4] = gi.soundindex("insane/insane6.wav");
++	moan[5] = gi.soundindex("insane/insane8.wav");
++	moan[6] = gi.soundindex("insane/insane9.wav");
++	moan[7] = gi.soundindex("insane/insane10.wav");
++
++	gi.configstring(CS_GENERAL + 5, ">");
++}
++
++void cvarFreeze()
++{
++	hook_max_len = gi.cvar("hook_max_len", "1000", CVAR_NOFLAGS);
++	hook_rpf = gi.cvar("hook_rpf", "50", CVAR_NOFLAGS);
++	hook_min_len = gi.cvar("hook_min_len", "40", CVAR_NOFLAGS);
++	hook_speed = gi.cvar("hook_speed", "1000", CVAR_NOFLAGS);
++	frozen_time = gi.cvar("frozen_time", "180", CVAR_NOFLAGS);
++	start_weapon = gi.cvar("start_weapon", "0", CVAR_NOFLAGS);
++	start_armor = gi.cvar("start_armor", "0", CVAR_NOFLAGS);
++	grapple_wall = gi.cvar("grapple_wall", "1", CVAR_NOFLAGS);
++}
++
++bool humanPlaying(edict_t* ent) {
++	edict_t* other;
++	for (uint32_t i = 0; i < game.maxclients; i++)
++	{
++		other = g_edicts + 1 + i;
++		if (!other->inuse)
++			continue;
++		if (other == ent)
++			continue;
++		if (other->svflags & SVF_BOT)
++			continue;
++		return true;
++	}
++	return false;
++}
+--- /dev/null
++++ b/g_freeze.h	2025-10-13 02:05:28
+@@ -0,0 +1,33 @@
++#pragma once
++#include "g_local.h"
++
++struct {
++	int	thawed;
++	bool	update;
++	gtime_t	last_update;
++	int	frozen;
++	int	alive;
++	gtime_t	break_time;
++} freeze[2];
++
++static const char* freeze_team[] = { "Red", "Blue", "Green", "Yellow", "None" };
++
++ctfteam_t get_team_enum(int i);
++uint32_t get_team_int(ctfteam_t t);
++void playerWeapon(edict_t* ent);
++bool playerDamage(edict_t* targ, edict_t* attacker, int damage, mod_t mod);
++bool freezeCheck(edict_t* ent, mod_t mod);
++void freezeAnim(edict_t* ent);
++bool gibCheck();
++void gibThink(edict_t* ent);
++void freezeBotHelper();
++void freezeMain(edict_t* ent);
++void freezeIntermission(void);
++bool endCheck();
++void cmdMoan(edict_t* ent);
++void playerShell(edict_t* ent, ctfteam_t team);
++void freezeEffects(edict_t* ent);
++void cmdHook(edict_t* ent);
++void freezeSpawn();
++void cvarFreeze();
++bool humanPlaying(edict_t* ent);
+--- a/g_local.h	2023-10-03 19:43:06
++++ b/g_local.h	2025-10-13 02:05:28
+@@ -2794,6 +2794,12 @@
+ 	bool	 admin;
+ 	ghost_t *ghost; // for ghost codes
+ 					// ZOID
++	/* freeze */
++	edict_t* thawer;
++	bool	old_hook;
++	int	help;
++	int	thawed;
++	/* freeze */
+ };
+ 
+ // [Paril-KEX] seconds until we are fully invisible after
+@@ -3006,6 +3012,16 @@
+ 	gtime_t	 last_attacker_time;
+ 	// saved - for coop; last time we were in a firing state
+ 	gtime_t	 last_firing_time;
++	/* freeze */
++	bool	frozen;
++	edict_t* viewed;
++	edict_t*	bot_helper;
++	gtime_t	thaw_time;
++	gtime_t	frozen_time;
++	int	hookstate;
++	int	hooker;
++	gtime_t	moan_time;
++	/* freeze */
+ };
+ 
+ // ==========================================
+--- a/g_main.cpp	2023-10-03 19:43:06
++++ b/g_main.cpp	2025-10-13 02:05:28
+@@ -3,6 +3,9 @@
+ 
+ #include "g_local.h"
+ #include "bots/bot_includes.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ CHECK_GCLIENT_INTEGRITY;
+ CHECK_EDICT_INTEGRITY;
+@@ -352,6 +355,9 @@
+ 	g_map_list_shuffle = gi.cvar("g_map_list_shuffle", "0", CVAR_NOFLAGS);
+ 	g_lag_compensation = gi.cvar("g_lag_compensation", "1", CVAR_NOFLAGS);
+ 
++	/* freeze */
++	cvarFreeze();
++	/* freeze */
+ 	// items
+ 	InitItems();
+ 
+@@ -661,6 +667,16 @@
+ 	if (!deathmatch->integer)
+ 		return;
+ 
++	/* freeze */
++	for (int i = 0; i < 2; i++)
++		if (freeze[i].break_time > level.time)
++			return;
++	if (endCheck())
++	{
++		EndDMLevel();
++		return;
++	}
++	/* freeze */
+ 	// ZOID
+ 	if (ctf->integer && CTFCheckRules())
+ 	{
+--- a/g_misc.cpp	2023-10-03 19:43:06
++++ b/g_misc.cpp	2025-10-13 02:05:28
+@@ -3,6 +3,9 @@
+ // g_misc.c
+ 
+ #include "g_local.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ /*QUAKED func_group (0 0 0) ?
+ Used to group brushes together just for editor convenience.
+@@ -91,6 +94,10 @@
+ 	vec3_t	 size;
+ 	float	 vscale;
+ 
++	/* freeze */
++	if (gibCheck())
++		return nullptr;
++	/* freeze */
+ 	if (type & GIB_HEAD)
+ 	{
+ 		gib = self;
+@@ -198,7 +205,18 @@
+ 	gib->s.angles[1] = frandom(359);
+ 	gib->s.angles[2] = frandom(359);
+ 
++	/* freeze */
++	if (self->inuse && self->client && self->client->frozen)
++	{
++		playerShell(gib, self->client->resp.ctf_team);
++		if (frandom() > 0.2)
++			gib->s.effects &= ~EF_GIB;
++	}
++
++	gib->think = gibThink;
++	/* freeze
+ 	gib->think = G_FreeEdict;
++	freeze */
+ 
+ 	if (g_instagib->integer)
+ 		gib->nextthink = level.time + random_time(1_sec, 5_sec);
+@@ -242,7 +260,11 @@
+ 	self->takedamage = true; // [Paril-KEX] allow takedamage so we get crushed
+ 	self->solid = SOLID_TRIGGER; // [Paril-KEX] make 'trigger' so we still move but don't block shots/explode
+ 	self->svflags |= SVF_DEADMONSTER;
++	/* freeze */
++	self->s.effects |= EF_GIB;
++	/* freeze
+ 	self->s.effects = EF_GIB;
++	freeze */
+ 	// PGM
+ 	self->s.renderfx |= RF_IR_VISIBLE;
+ 	// PGM
+--- a/g_spawn.cpp	2023-10-03 19:43:06
++++ b/g_spawn.cpp	2025-10-13 02:05:28
+@@ -2,6 +2,9 @@
+ // Licensed under the GNU General Public License 2.0.
+ 
+ #include "g_local.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ struct spawn_t
+ {
+@@ -1663,6 +1666,9 @@
+ 	//
+ 
+ 	// 0 normal
++	/* freeze */
++	freezeSpawn();
++	/* freeze */
+ 	gi.configstring(CS_LIGHTS + 0, "m");
+ 
+ 	// 1 FLICKER (first variety)
+--- a/g_trigger.cpp	2023-10-03 19:43:06
++++ b/g_trigger.cpp	2025-10-13 02:05:28
+@@ -496,7 +496,11 @@
+ 	{
+ 		other->velocity = self->movedir * (self->speed * 10);
+ 	}
++	/* freeze */
++	else if (other->health > 0 || (other->client && other->client->frozen))
++	/* freeze
+ 	else if (other->health > 0)
++	freeze */
+ 	{
+ 		other->velocity = self->movedir * (self->speed * 10);
+ 
+--- a/g_utils.cpp	2023-10-03 19:43:06
++++ b/g_utils.cpp	2025-10-13 02:05:28
+@@ -424,6 +424,11 @@
+ 	static edict_t *touch[MAX_EDICTS];
+ 	edict_t *hit;
+ 
++	/* freeze */
++	if (ent->client && ent->client->frozen)
++		;
++	else
++	/* freeze */
+ 	// dead things don't activate triggers!
+ 	if ((ent->client || (ent->svflags & SVF_MONSTER)) && (ent->health <= 0))
+ 		return;
+--- a/g_weapon.cpp	2023-10-03 19:43:06
++++ b/g_weapon.cpp	2025-10-13 02:05:28
+@@ -949,6 +949,10 @@
+ 				continue;
+ 			if (ent == self->owner)
+ 				continue;
++			/* freeze */
++			if (ent->client && ent->client->frozen)
++				continue;
++			/* freeze */
+ 			if (!CanDamage(ent, self))
+ 				continue;
+ 			if (!CanDamage(ent, self->owner))
+@@ -1092,6 +1096,10 @@
+ 
+ 		if (ent == self->owner)
+ 			continue;
++		/* freeze */
++		if (ent->client && ent->client->frozen)
++			continue;
++		/* freeze */
+ 
+ 		if (!ent->takedamage)
+ 			continue;
+--- a/game.sln	2023-10-03 19:43:06
++++ /dev/null
+@@ -1,25 +0,0 @@
+-﻿
+-Microsoft Visual Studio Solution File, Format Version 12.00
+-# Visual Studio Version 17
+-VisualStudioVersion = 17.7.33808.371
+-MinimumVisualStudioVersion = 10.0.40219.1
+-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "game", "game.vcxproj", "{C994B5EA-3058-403C-953D-3673C2C4D64E}"
+-EndProject
+-Global
+-	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+-		Debug|x64 = Debug|x64
+-		Release|x64 = Release|x64
+-	EndGlobalSection
+-	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+-		{C994B5EA-3058-403C-953D-3673C2C4D64E}.Debug|x64.ActiveCfg = Debug|x64
+-		{C994B5EA-3058-403C-953D-3673C2C4D64E}.Debug|x64.Build.0 = Debug|x64
+-		{C994B5EA-3058-403C-953D-3673C2C4D64E}.Release|x64.ActiveCfg = Release|x64
+-		{C994B5EA-3058-403C-953D-3673C2C4D64E}.Release|x64.Build.0 = Release|x64
+-	EndGlobalSection
+-	GlobalSection(SolutionProperties) = preSolution
+-		HideSolutionNode = FALSE
+-	EndGlobalSection
+-	GlobalSection(ExtensibilityGlobals) = postSolution
+-		SolutionGuid = {5E7547B5-6A49-45CD-97AA-956B8460495D}
+-	EndGlobalSection
+-EndGlobal
+--- a/game.vcxproj	2023-10-03 19:43:06
++++ b/game.vcxproj	2025-10-13 02:05:28
+@@ -1,6 +1,14 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <ItemGroup Label="ProjectConfigurations">
++    <ProjectConfiguration Include="Debug|Win32">
++      <Configuration>Debug</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
++    <ProjectConfiguration Include="Release|Win32">
++      <Configuration>Release</Configuration>
++      <Platform>Win32</Platform>
++    </ProjectConfiguration>
+     <ProjectConfiguration Include="Debug|x64">
+       <Configuration>Debug</Configuration>
+       <Platform>x64</Platform>
+@@ -9,142 +17,6 @@
+       <Configuration>Release</Configuration>
+       <Platform>x64</Platform>
+     </ProjectConfiguration>
+-  </ItemGroup>
+-  <PropertyGroup Label="Globals">
+-    <VCProjectVersion>16.0</VCProjectVersion>
+-    <Keyword>Win32Proj</Keyword>
+-    <ProjectGuid>{c994b5ea-3058-403c-953d-3673c2c4d64e}</ProjectGuid>
+-    <RootNamespace>game</RootNamespace>
+-    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+-  </PropertyGroup>
+-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+-    <UseDebugLibraries>true</UseDebugLibraries>
+-    <PlatformToolset>v143</PlatformToolset>
+-    <CharacterSet>Unicode</CharacterSet>
+-  </PropertyGroup>
+-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+-    <UseDebugLibraries>false</UseDebugLibraries>
+-    <PlatformToolset>v143</PlatformToolset>
+-    <WholeProgramOptimization>true</WholeProgramOptimization>
+-    <CharacterSet>Unicode</CharacterSet>
+-  </PropertyGroup>
+-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+-  <ImportGroup Label="ExtensionSettings">
+-  </ImportGroup>
+-  <ImportGroup Label="Shared">
+-  </ImportGroup>
+-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+-  </ImportGroup>
+-  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+-    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+-  </ImportGroup>
+-  <PropertyGroup Label="UserMacros" />
+-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+-    <OutDir>../</OutDir>
+-    <TargetName>$(ProjectName)_x64</TargetName>
+-  </PropertyGroup>
+-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+-    <OutDir>../</OutDir>
+-    <TargetName>$(ProjectName)_x64</TargetName>
+-  </PropertyGroup>
+-  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+-    <VcpkgUseStatic>true</VcpkgUseStatic>
+-  </PropertyGroup>
+-  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+-    <VcpkgUseStatic>true</VcpkgUseStatic>
+-  </PropertyGroup>
+-  <PropertyGroup Label="Vcpkg">
+-    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+-  </PropertyGroup>
+-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+-    <ClCompile>
+-      <WarningLevel>Level3</WarningLevel>
+-      <SDLCheck>true</SDLCheck>
+-      <PreprocessorDefinitions>KEX_Q2_GAME;KEX_Q2GAME_EXPORTS;NO_FMT_SOURCE;KEX_Q2GAME_DYNAMIC;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+-      <ConformanceMode>true</ConformanceMode>
+-      <LanguageStandard>stdcpp17</LanguageStandard>
+-      <DisableSpecificWarnings>4267;4244</DisableSpecificWarnings>
+-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+-    </ClCompile>
+-    <Link>
+-      <SubSystem>NotSet</SubSystem>
+-      <GenerateDebugInformation>true</GenerateDebugInformation>
+-    </Link>
+-  </ItemDefinitionGroup>
+-  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+-    <ClCompile>
+-      <WarningLevel>Level3</WarningLevel>
+-      <FunctionLevelLinking>true</FunctionLevelLinking>
+-      <IntrinsicFunctions>true</IntrinsicFunctions>
+-      <SDLCheck>true</SDLCheck>
+-      <PreprocessorDefinitions>KEX_Q2_GAME;KEX_Q2GAME_EXPORTS;NO_FMT_SOURCE;KEX_Q2GAME_DYNAMIC;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+-      <ConformanceMode>true</ConformanceMode>
+-      <LanguageStandard>stdcpp17</LanguageStandard>
+-      <DisableSpecificWarnings>4267;4244</DisableSpecificWarnings>
+-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+-    </ClCompile>
+-    <Link>
+-      <SubSystem>NotSet</SubSystem>
+-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+-      <OptimizeReferences>true</OptimizeReferences>
+-      <GenerateDebugInformation>true</GenerateDebugInformation>
+-    </Link>
+-  </ItemDefinitionGroup>
+-  <ItemGroup>
+-    <ClInclude Include="bg_local.h" />
+-    <ClInclude Include="bots\bot_debug.h" />
+-    <ClInclude Include="bots\bot_exports.h" />
+-    <ClInclude Include="bots\bot_includes.h" />
+-    <ClInclude Include="bots\bot_think.h" />
+-    <ClInclude Include="bots\bot_utils.h" />
+-    <ClInclude Include="cg_local.h" />
+-    <ClInclude Include="ctf\g_ctf.h" />
+-    <ClInclude Include="ctf\p_ctf_menu.h" />
+-    <ClInclude Include="game.h" />
+-    <ClInclude Include="g_local.h" />
+-    <ClInclude Include="g_statusbar.h" />
+-    <ClInclude Include="m_actor.h" />
+-    <ClInclude Include="m_arachnid.h" />
+-    <ClInclude Include="m_berserk.h" />
+-    <ClInclude Include="m_boss2.h" />
+-    <ClInclude Include="m_boss31.h" />
+-    <ClInclude Include="m_boss32.h" />
+-    <ClInclude Include="m_brain.h" />
+-    <ClInclude Include="m_chick.h" />
+-    <ClInclude Include="m_flash.h" />
+-    <ClInclude Include="m_flipper.h" />
+-    <ClInclude Include="m_float.h" />
+-    <ClInclude Include="m_flyer.h" />
+-    <ClInclude Include="m_gladiator.h" />
+-    <ClInclude Include="m_guardian.h" />
+-    <ClInclude Include="m_gunner.h" />
+-    <ClInclude Include="m_hover.h" />
+-    <ClInclude Include="m_infantry.h" />
+-    <ClInclude Include="m_insane.h" />
+-    <ClInclude Include="m_medic.h" />
+-    <ClInclude Include="m_mutant.h" />
+-    <ClInclude Include="m_parasite.h" />
+-    <ClInclude Include="m_player.h" />
+-    <ClInclude Include="m_rider.h" />
+-    <ClInclude Include="m_shambler.h" />
+-    <ClInclude Include="m_soldier.h" />
+-    <ClInclude Include="m_supertank.h" />
+-    <ClInclude Include="m_tank.h" />
+-    <ClInclude Include="q_std.h" />
+-    <ClInclude Include="q_vec3.h" />
+-    <ClInclude Include="rogue\m_rogue_carrier.h" />
+-    <ClInclude Include="rogue\m_rogue_stalker.h" />
+-    <ClInclude Include="rogue\m_rogue_turret.h" />
+-    <ClInclude Include="rogue\m_rogue_widow.h" />
+-    <ClInclude Include="rogue\m_rogue_widow2.h" />
+-    <ClInclude Include="xatrix\m_xatrix_fixbot.h" />
+-    <ClInclude Include="xatrix\m_xatrix_gekk.h" />
+   </ItemGroup>
+   <ItemGroup>
+     <ClCompile Include="bots\bot_debug.cpp" />
+@@ -159,6 +31,7 @@
+     <ClCompile Include="g_chase.cpp" />
+     <ClCompile Include="g_cmds.cpp" />
+     <ClCompile Include="g_combat.cpp" />
++    <ClCompile Include="g_freeze.cpp" />
+     <ClCompile Include="g_func.cpp" />
+     <ClCompile Include="g_items.cpp" />
+     <ClCompile Include="g_main.cpp" />
+@@ -240,6 +113,184 @@
+     <ClCompile Include="xatrix\m_xatrix_gekk.cpp" />
+     <ClCompile Include="xatrix\p_xatrix_weapon.cpp" />
+   </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="bg_local.h" />
++    <ClInclude Include="bots\bot_debug.h" />
++    <ClInclude Include="bots\bot_exports.h" />
++    <ClInclude Include="bots\bot_includes.h" />
++    <ClInclude Include="bots\bot_think.h" />
++    <ClInclude Include="bots\bot_utils.h" />
++    <ClInclude Include="cg_local.h" />
++    <ClInclude Include="ctf\g_ctf.h" />
++    <ClInclude Include="ctf\p_ctf_menu.h" />
++    <ClInclude Include="game.h" />
++    <ClInclude Include="g_freeze.h" />
++    <ClInclude Include="g_local.h" />
++    <ClInclude Include="g_statusbar.h" />
++    <ClInclude Include="m_actor.h" />
++    <ClInclude Include="m_arachnid.h" />
++    <ClInclude Include="m_berserk.h" />
++    <ClInclude Include="m_boss2.h" />
++    <ClInclude Include="m_boss31.h" />
++    <ClInclude Include="m_boss32.h" />
++    <ClInclude Include="m_brain.h" />
++    <ClInclude Include="m_chick.h" />
++    <ClInclude Include="m_flash.h" />
++    <ClInclude Include="m_flipper.h" />
++    <ClInclude Include="m_float.h" />
++    <ClInclude Include="m_flyer.h" />
++    <ClInclude Include="m_gladiator.h" />
++    <ClInclude Include="m_guardian.h" />
++    <ClInclude Include="m_gunner.h" />
++    <ClInclude Include="m_hover.h" />
++    <ClInclude Include="m_infantry.h" />
++    <ClInclude Include="m_insane.h" />
++    <ClInclude Include="m_medic.h" />
++    <ClInclude Include="m_mutant.h" />
++    <ClInclude Include="m_parasite.h" />
++    <ClInclude Include="m_player.h" />
++    <ClInclude Include="m_rider.h" />
++    <ClInclude Include="m_shambler.h" />
++    <ClInclude Include="m_soldier.h" />
++    <ClInclude Include="m_supertank.h" />
++    <ClInclude Include="m_tank.h" />
++    <ClInclude Include="q_std.h" />
++    <ClInclude Include="q_vec3.h" />
++    <ClInclude Include="rogue\m_rogue_carrier.h" />
++    <ClInclude Include="rogue\m_rogue_stalker.h" />
++    <ClInclude Include="rogue\m_rogue_turret.h" />
++    <ClInclude Include="rogue\m_rogue_widow.h" />
++    <ClInclude Include="rogue\m_rogue_widow2.h" />
++    <ClInclude Include="xatrix\m_xatrix_fixbot.h" />
++    <ClInclude Include="xatrix\m_xatrix_gekk.h" />
++  </ItemGroup>
++  <PropertyGroup Label="Globals">
++    <VCProjectVersion>17.0</VCProjectVersion>
++    <Keyword>Win32Proj</Keyword>
++    <ProjectGuid>{23f0eefa-c892-4a14-8215-1ea81489d9ef}</ProjectGuid>
++    <RootNamespace>game</RootNamespace>
++    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <UseDebugLibraries>true</UseDebugLibraries>
++    <PlatformToolset>v143</PlatformToolset>
++    <CharacterSet>Unicode</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
++    <ConfigurationType>Application</ConfigurationType>
++    <UseDebugLibraries>false</UseDebugLibraries>
++    <PlatformToolset>v143</PlatformToolset>
++    <WholeProgramOptimization>true</WholeProgramOptimization>
++    <CharacterSet>Unicode</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
++    <ConfigurationType>DynamicLibrary</ConfigurationType>
++    <UseDebugLibraries>true</UseDebugLibraries>
++    <PlatformToolset>v143</PlatformToolset>
++    <CharacterSet>Unicode</CharacterSet>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
++    <ConfigurationType>DynamicLibrary</ConfigurationType>
++    <UseDebugLibraries>false</UseDebugLibraries>
++    <PlatformToolset>v143</PlatformToolset>
++    <WholeProgramOptimization>true</WholeProgramOptimization>
++    <CharacterSet>Unicode</CharacterSet>
++  </PropertyGroup>
++  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
++  <ImportGroup Label="ExtensionSettings">
++  </ImportGroup>
++  <ImportGroup Label="Shared">
++  </ImportGroup>
++  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
++  </ImportGroup>
++  <PropertyGroup Label="UserMacros" />
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <TargetName>$(ProjectName)_x64</TargetName>
++    <OutDir>$(SolutionDir)\</OutDir>
++  </PropertyGroup>
++  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <TargetName>$(ProjectName)_x64</TargetName>
++    <OutDir>$(SolutionDir)\</OutDir>
++  </PropertyGroup>
++  <PropertyGroup Label="Vcpkg">
++    <VcpkgEnableManifest>true</VcpkgEnableManifest>
++  </PropertyGroup>
++  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <VcpkgUseStatic>true</VcpkgUseStatic>
++  </PropertyGroup>
++  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <VcpkgUseStatic>true</VcpkgUseStatic>
++  </PropertyGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
++    <ClCompile>
++      <WarningLevel>Level3</WarningLevel>
++      <SDLCheck>true</SDLCheck>
++      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <ConformanceMode>true</ConformanceMode>
++    </ClCompile>
++    <Link>
++      <SubSystem>Console</SubSystem>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
++    <ClCompile>
++      <WarningLevel>Level3</WarningLevel>
++      <FunctionLevelLinking>true</FunctionLevelLinking>
++      <IntrinsicFunctions>true</IntrinsicFunctions>
++      <SDLCheck>true</SDLCheck>
++      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <ConformanceMode>true</ConformanceMode>
++    </ClCompile>
++    <Link>
++      <SubSystem>Console</SubSystem>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
++    <ClCompile>
++      <WarningLevel>Level3</WarningLevel>
++      <SDLCheck>true</SDLCheck>
++      <PreprocessorDefinitions>KEX_Q2_GAME;KEX_Q2GAME_EXPORTS;NO_FMT_SOURCE;KEX_Q2GAME_DYNAMIC;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <ConformanceMode>true</ConformanceMode>
++      <LanguageStandard>stdcpp17</LanguageStandard>
++      <DisableSpecificWarnings>4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
++      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
++    </ClCompile>
++    <Link>
++      <SubSystem>Console</SubSystem>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++    </Link>
++  </ItemDefinitionGroup>
++  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
++    <ClCompile>
++      <WarningLevel>Level3</WarningLevel>
++      <FunctionLevelLinking>true</FunctionLevelLinking>
++      <IntrinsicFunctions>true</IntrinsicFunctions>
++      <SDLCheck>true</SDLCheck>
++      <PreprocessorDefinitions>KEX_Q2_GAME;KEX_Q2GAME_EXPORTS;NO_FMT_SOURCE;KEX_Q2GAME_DYNAMIC;_CRT_SECURE_NO_WARNINGS;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
++      <ConformanceMode>true</ConformanceMode>
++      <LanguageStandard>stdcpp17</LanguageStandard>
++      <DisableSpecificWarnings>4244;4267;%(DisableSpecificWarnings)</DisableSpecificWarnings>
++      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
++    </ClCompile>
++    <Link>
++      <SubSystem>Console</SubSystem>
++      <GenerateDebugInformation>true</GenerateDebugInformation>
++    </Link>
++  </ItemDefinitionGroup>
+   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+   <ImportGroup Label="ExtensionTargets">
+   </ImportGroup>
+--- a/game.vcxproj.filters	2023-10-03 19:43:06
++++ b/game.vcxproj.filters	2025-10-13 02:05:28
+@@ -1,83 +1,5 @@
+ ﻿<?xml version="1.0" encoding="utf-8"?>
+ <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+-  <ItemGroup>
+-    <ClInclude Include="bg_local.h" />
+-    <ClInclude Include="cg_local.h" />
+-    <ClInclude Include="g_local.h" />
+-    <ClInclude Include="g_statusbar.h" />
+-    <ClInclude Include="game.h" />
+-    <ClInclude Include="m_actor.h" />
+-    <ClInclude Include="m_arachnid.h" />
+-    <ClInclude Include="m_berserk.h" />
+-    <ClInclude Include="m_boss2.h" />
+-    <ClInclude Include="m_boss31.h" />
+-    <ClInclude Include="m_boss32.h" />
+-    <ClInclude Include="m_brain.h" />
+-    <ClInclude Include="m_chick.h" />
+-    <ClInclude Include="m_flash.h" />
+-    <ClInclude Include="m_flipper.h" />
+-    <ClInclude Include="m_float.h" />
+-    <ClInclude Include="m_flyer.h" />
+-    <ClInclude Include="m_gladiator.h" />
+-    <ClInclude Include="m_guardian.h" />
+-    <ClInclude Include="m_gunner.h" />
+-    <ClInclude Include="m_hover.h" />
+-    <ClInclude Include="m_infantry.h" />
+-    <ClInclude Include="m_insane.h" />
+-    <ClInclude Include="m_medic.h" />
+-    <ClInclude Include="m_mutant.h" />
+-    <ClInclude Include="m_parasite.h" />
+-    <ClInclude Include="m_player.h" />
+-    <ClInclude Include="m_rider.h" />
+-    <ClInclude Include="m_shambler.h" />
+-    <ClInclude Include="m_soldier.h" />
+-    <ClInclude Include="m_supertank.h" />
+-    <ClInclude Include="m_tank.h" />
+-    <ClInclude Include="q_std.h" />
+-    <ClInclude Include="q_vec3.h" />
+-    <ClInclude Include="bots\bot_debug.h">
+-      <Filter>bots</Filter>
+-    </ClInclude>
+-    <ClInclude Include="bots\bot_exports.h">
+-      <Filter>bots</Filter>
+-    </ClInclude>
+-    <ClInclude Include="bots\bot_includes.h">
+-      <Filter>bots</Filter>
+-    </ClInclude>
+-    <ClInclude Include="bots\bot_think.h">
+-      <Filter>bots</Filter>
+-    </ClInclude>
+-    <ClInclude Include="bots\bot_utils.h">
+-      <Filter>bots</Filter>
+-    </ClInclude>
+-    <ClInclude Include="ctf\g_ctf.h">
+-      <Filter>ctf</Filter>
+-    </ClInclude>
+-    <ClInclude Include="ctf\p_ctf_menu.h">
+-      <Filter>ctf</Filter>
+-    </ClInclude>
+-    <ClInclude Include="rogue\m_rogue_carrier.h">
+-      <Filter>rogue</Filter>
+-    </ClInclude>
+-    <ClInclude Include="rogue\m_rogue_stalker.h">
+-      <Filter>rogue</Filter>
+-    </ClInclude>
+-    <ClInclude Include="rogue\m_rogue_turret.h">
+-      <Filter>rogue</Filter>
+-    </ClInclude>
+-    <ClInclude Include="rogue\m_rogue_widow.h">
+-      <Filter>rogue</Filter>
+-    </ClInclude>
+-    <ClInclude Include="rogue\m_rogue_widow2.h">
+-      <Filter>rogue</Filter>
+-    </ClInclude>
+-    <ClInclude Include="xatrix\m_xatrix_fixbot.h">
+-      <Filter>xatrix</Filter>
+-    </ClInclude>
+-    <ClInclude Include="xatrix\m_xatrix_gekk.h">
+-      <Filter>xatrix</Filter>
+-    </ClInclude>
+-  </ItemGroup>
+   <ItemGroup>
+     <ClCompile Include="cg_main.cpp" />
+     <ClCompile Include="cg_screen.cpp" />
+@@ -85,6 +7,7 @@
+     <ClCompile Include="g_chase.cpp" />
+     <ClCompile Include="g_cmds.cpp" />
+     <ClCompile Include="g_combat.cpp" />
++    <ClCompile Include="g_freeze.cpp" />
+     <ClCompile Include="g_func.cpp" />
+     <ClCompile Include="g_items.cpp" />
+     <ClCompile Include="g_main.cpp" />
+@@ -151,6 +74,33 @@
+     <ClCompile Include="ctf\p_ctf_menu.cpp">
+       <Filter>ctf</Filter>
+     </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_func.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_items.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_misc.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_monster.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_target.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\g_xatrix_weapon.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\m_xatrix_fixbot.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\m_xatrix_gekk.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
++    <ClCompile Include="xatrix\p_xatrix_weapon.cpp">
++      <Filter>xatrix</Filter>
++    </ClCompile>
+     <ClCompile Include="rogue\g_rogue_combat.cpp">
+       <Filter>rogue</Filter>
+     </ClCompile>
+@@ -220,46 +170,98 @@
+     <ClCompile Include="rogue\rogue_dm_tag.cpp">
+       <Filter>rogue</Filter>
+     </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_func.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_items.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_misc.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_monster.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_target.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\g_xatrix_weapon.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\m_xatrix_fixbot.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\m_xatrix_gekk.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
+-    <ClCompile Include="xatrix\p_xatrix_weapon.cpp">
+-      <Filter>xatrix</Filter>
+-    </ClCompile>
++  </ItemGroup>
++  <ItemGroup>
++    <ClInclude Include="bg_local.h" />
++    <ClInclude Include="cg_local.h" />
++    <ClInclude Include="g_freeze.h" />
++    <ClInclude Include="g_local.h" />
++    <ClInclude Include="g_statusbar.h" />
++    <ClInclude Include="game.h" />
++    <ClInclude Include="m_actor.h" />
++    <ClInclude Include="m_arachnid.h" />
++    <ClInclude Include="m_berserk.h" />
++    <ClInclude Include="m_boss2.h" />
++    <ClInclude Include="m_boss31.h" />
++    <ClInclude Include="m_boss32.h" />
++    <ClInclude Include="m_brain.h" />
++    <ClInclude Include="m_chick.h" />
++    <ClInclude Include="m_flash.h" />
++    <ClInclude Include="m_flipper.h" />
++    <ClInclude Include="m_float.h" />
++    <ClInclude Include="m_flyer.h" />
++    <ClInclude Include="m_gladiator.h" />
++    <ClInclude Include="m_guardian.h" />
++    <ClInclude Include="m_gunner.h" />
++    <ClInclude Include="m_hover.h" />
++    <ClInclude Include="m_infantry.h" />
++    <ClInclude Include="m_insane.h" />
++    <ClInclude Include="m_medic.h" />
++    <ClInclude Include="m_mutant.h" />
++    <ClInclude Include="m_parasite.h" />
++    <ClInclude Include="m_player.h" />
++    <ClInclude Include="m_rider.h" />
++    <ClInclude Include="m_shambler.h" />
++    <ClInclude Include="m_soldier.h" />
++    <ClInclude Include="m_supertank.h" />
++    <ClInclude Include="m_tank.h" />
++    <ClInclude Include="q_std.h" />
++    <ClInclude Include="q_vec3.h" />
++    <ClInclude Include="bots\bot_debug.h">
++      <Filter>bots</Filter>
++    </ClInclude>
++    <ClInclude Include="bots\bot_exports.h">
++      <Filter>bots</Filter>
++    </ClInclude>
++    <ClInclude Include="bots\bot_includes.h">
++      <Filter>bots</Filter>
++    </ClInclude>
++    <ClInclude Include="bots\bot_think.h">
++      <Filter>bots</Filter>
++    </ClInclude>
++    <ClInclude Include="bots\bot_utils.h">
++      <Filter>bots</Filter>
++    </ClInclude>
++    <ClInclude Include="ctf\g_ctf.h">
++      <Filter>ctf</Filter>
++    </ClInclude>
++    <ClInclude Include="ctf\p_ctf_menu.h">
++      <Filter>ctf</Filter>
++    </ClInclude>
++    <ClInclude Include="xatrix\m_xatrix_fixbot.h">
++      <Filter>xatrix</Filter>
++    </ClInclude>
++    <ClInclude Include="xatrix\m_xatrix_gekk.h">
++      <Filter>xatrix</Filter>
++    </ClInclude>
++    <ClInclude Include="rogue\m_rogue_carrier.h">
++      <Filter>rogue</Filter>
++    </ClInclude>
++    <ClInclude Include="rogue\m_rogue_stalker.h">
++      <Filter>rogue</Filter>
++    </ClInclude>
++    <ClInclude Include="rogue\m_rogue_turret.h">
++      <Filter>rogue</Filter>
++    </ClInclude>
++    <ClInclude Include="rogue\m_rogue_widow.h">
++      <Filter>rogue</Filter>
++    </ClInclude>
++    <ClInclude Include="rogue\m_rogue_widow2.h">
++      <Filter>rogue</Filter>
++    </ClInclude>
+   </ItemGroup>
+   <ItemGroup>
+     <Filter Include="bots">
+-      <UniqueIdentifier>{185665ce-b604-4d9a-b22b-02a83797d112}</UniqueIdentifier>
++      <UniqueIdentifier>{4371f1cf-5cb2-41f2-a880-49c74ce8304a}</UniqueIdentifier>
+     </Filter>
+     <Filter Include="ctf">
+-      <UniqueIdentifier>{2b0fdaa0-3de9-4bbd-9bc6-3cadf798c291}</UniqueIdentifier>
++      <UniqueIdentifier>{66968a5e-1ab1-4d60-8696-bab7d90f8721}</UniqueIdentifier>
++    </Filter>
++    <Filter Include="xatrix">
++      <UniqueIdentifier>{c63f5836-a803-4806-aa63-780827f915df}</UniqueIdentifier>
+     </Filter>
+     <Filter Include="rogue">
+-      <UniqueIdentifier>{76ef0be8-1c1d-472a-ada1-3aa1b354e022}</UniqueIdentifier>
+-    </Filter>
+-    <Filter Include="xatrix">
+-      <UniqueIdentifier>{6565427e-a805-4dc7-ba57-3ce0b62e4336}</UniqueIdentifier>
++      <UniqueIdentifier>{0e224d9e-099e-4ac1-a128-d5a1aa0d46af}</UniqueIdentifier>
+     </Filter>
+   </ItemGroup>
+ </Project>
+--- a/p_client.cpp	2023-10-03 19:43:06
++++ b/p_client.cpp	2025-10-13 02:05:28
+@@ -3,6 +3,9 @@
+ #include "g_local.h"
+ #include "m_player.h"
+ #include "bots/bot_includes.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ void SP_misc_teleporter_dest(edict_t *ent);
+ 
+@@ -193,8 +196,10 @@
+ 		{
+ 			self->client->resp.score--;
+ 
++			/* freeze
+ 			if (teamplay->integer)
+ 				G_AdjustTeamScore(self->client->resp.ctf_team, -1);
++			freeze */
+ 		}
+ 		self->enemy = nullptr;
+ 		return;
+@@ -369,16 +374,20 @@
+ 				{
+ 					attacker->client->resp.score--;
+ 
++					/* freeze
+ 					if (teamplay->integer)
+ 						G_AdjustTeamScore(attacker->client->resp.ctf_team, -1);
++					freeze */
+ 				}
+ 			}
+ 			else
+ 			{
+ 				attacker->client->resp.score++;
+ 
++				/* freeze
+ 				if (teamplay->integer)
+ 					G_AdjustTeamScore(attacker->client->resp.ctf_team, 1);
++				freeze */
+ 			}
+ 		}
+ 		else if (!coop->integer)
+@@ -403,8 +412,10 @@
+ 		{
+ 			self->client->resp.score--;
+ 
++			/* freeze
+ 			if (teamplay->integer)
+ 				G_AdjustTeamScore(attacker->client->resp.ctf_team, -1);
++			freeze */
+ 		}
+ 	}
+ 	// ROGUE
+@@ -589,6 +600,9 @@
+ 				self->client->pers.inventory[n] = 0;
+ 			}
+ 		}
++		/* freeze */
++		freeze[get_team_int(self->client->resp.ctf_team)].update = true;
++		/* freeze */
+ 	}
+ 
+ 	if (gamerules->integer) // if we're in a dm game, alert the game
+@@ -648,8 +662,24 @@
+ 	// ROGUE
+ 	//==============
+ 
++	/* freeze */
++	if (freezeCheck(self, mod)) {
++		freezeAnim(self);
++		return;
++	}
++	/* freeze */
+ 	if (self->health < -40)
+ 	{
++		/* freeze */
++		if (self->client->frozen)
++		{
++			if (mod.id == MOD_FALLING && damage < 250)
++				return;
++			self->client->frozen_time = level.time + 1_sec;
++			self->takedamage = false;
++			return;
++		}
++		/* freeze */
+ 		// PMM
+ 		// don't toss gibs if we got vaped by the nuke
+ 		if (!(self->flags & FL_NOGIB))
+@@ -914,6 +944,10 @@
+ 	ctfteam_t ctf_team = client->resp.ctf_team;
+ 	bool id_state = client->resp.id_state;
+ 	// ZOID
++	/* freeze */
++	bool	old_hook = client->resp.old_hook;
++	int	help = client->resp.help;
++	/* freeze */
+ 
+ 	memset(&client->resp, 0, sizeof(client->resp));
+ 
+@@ -924,6 +958,10 @@
+ 
+ 	client->resp.entertime = level.time;
+ 	client->resp.coop_respawn = client->pers;
++	/* freeze */
++	client->resp.old_hook = old_hook;
++	client->resp.help = help;
++	/* freeze */
+ }
+ 
+ /*
+@@ -1663,6 +1701,16 @@
+ 			gi.unicast(ent, true);
+ 			return;
+ 		}
++		/* freeze */
++		if (ent->client->frozen)
++		{
++			ent->client->pers.spectator = false;
++			gi.WriteByte(svc_stufftext);
++			gi.WriteString("spectator 0\n");
++			gi.unicast(ent, true);
++			return;
++		}
++		/* freeze */
+ 
+ 		// count spectators
+ 		for (i = 1, numspec = 0; i <= game.maxclients; i++)
+@@ -2294,8 +2342,13 @@
+ 	}
+ 
+ 	// force the current weapon up
++	/* freeze
+ 	client->newweapon = client->pers.weapon;
+ 	ChangeWeapon(ent);
++	freeze */
++	playerWeapon(ent);
++	freeze[get_team_int(ent->client->resp.ctf_team)].update = true;
++	/* freeze */
+ 
+ 	if (was_waiting_for_respawn)
+ 		G_PostRespawn(ent);
+@@ -2842,6 +2895,7 @@
+ 	char value[MAX_INFO_VALUE] = { 0 };
+ 	gi.Info_ValueForKey(userinfo, "spectator", value, sizeof(value));
+ 
++	/* freeze
+ 	if (deathmatch->integer && *value && strcmp(value, "0"))
+ 	{
+ 		uint32_t i, numspec;
+@@ -2866,6 +2920,7 @@
+ 		}
+ 	}
+ 	else
++	freeze */
+ 	{
+ 		// check for a password ( if not a bot! )
+ 		gi.Info_ValueForKey(userinfo, "password", value, sizeof(value));
+@@ -2887,6 +2942,12 @@
+ 	// take it, otherwise spawn one from scratch
+ 	if (ent->inuse == false)
+ 	{
++		/* freeze */
++		ent->client->resp.thawer = nullptr;
++		ent->client->resp.old_hook = false;
++		ent->client->resp.help = 0;
++		ent->client->resp.thawed = 0;
++		/* freeze */
+ 		// clear the respawning variables
+ 		// ZOID -- force team join
+ 		ent->client->resp.ctf_team = CTF_NOTEAM;
+@@ -2984,6 +3045,9 @@
+ 		for (auto player : active_players())
+ 			if (player->client->showscores)
+ 				player->client->menutime = level.time;
++	/* freeze */
++	freeze[get_team_int(ent->client->resp.ctf_team)].update = true;
++	/* freeze */
+ }
+ 
+ //==============================================================
+@@ -3197,7 +3261,11 @@
+ 		return;
+ 	}
+ 
++	/* freeze */
++	if (ent->client->chase_target && !ent->client->frozen)
++	/* freeze
+ 	if (ent->client->chase_target)
++	freeze */
+ 	{
+ 		client->resp.cmd_angles = ucmd->angles;
+ 		ent->movetype = MOVETYPE_NOCLIP;
+@@ -3334,7 +3402,11 @@
+ 		if (pm.groundentity)
+ 			ent->groundentity_linkcount = pm.groundentity->linkcount;
+ 
++		/* freeze */
++		if (ent->deadflag && !ent->client->frozen)
++		/* freeze
+ 		if (ent->deadflag)
++		freeze */
+ 		{
+ 			client->ps.viewangles[ROLL] = 40;
+ 			client->ps.viewangles[PITCH] = -15;
+@@ -3363,6 +3435,12 @@
+ 			G_TouchTriggers(ent);
+ 			G_TouchProjectiles(ent, old_origin);
+ 		}
++		/* freeze */
++		if (ent->client->frozen) {
++			G_TouchTriggers(ent);
++			G_TouchProjectiles(ent, old_origin);
++		}
++		/* freeze */
+ 
+ 		// touch other objects
+ 		for (i = 0; i < pm.touch.num; i++)
+@@ -3407,6 +3485,10 @@
+ 		}
+ 	}
+ 
++	/* freeze */
++	if (ucmd->buttons & BUTTON_JUMP && ent->health > 0)
++		client->buttons |= BUTTON_CROUCH;
++	/* freeze
+ 	if (client->resp.spectator)
+ 	{
+ 		if (!HandleMenuMovement(ent, ucmd))
+@@ -3426,6 +3508,7 @@
+ 				client->ps.pmove.pm_flags &= ~PMF_JUMP_HELD;
+ 		}
+ 	}
++	freeze */
+ 
+ 	// update chase cam if being followed
+ 	for (i = 1; i <= game.maxclients; i++)
+@@ -3771,6 +3854,9 @@
+ 
+ 	client = ent->client;
+ 
++	/* freeze */
++	freezeMain(ent);
++	/* freeze */
+ 	if (client->awaiting_respawn)
+ 	{
+ 		if ((level.time.milliseconds() % 500) == 0)
+@@ -3813,6 +3899,13 @@
+ 				if ((client->latched_buttons & buttonMask) ||
+ 					(deathmatch->integer && g_dm_force_respawn->integer))
+ 				{
++					/* freeze */
++					if (client->frozen) {
++						if (client->latched_buttons & BUTTON_ATTACK)
++							cmdMoan(ent);
++					}
++					else
++					/* freeze */
+ 					respawn(ent);
+ 					client->latched_buttons = BUTTON_NONE;
+ 				}
+--- a/p_hud.cpp	2023-10-03 19:43:06
++++ b/p_hud.cpp	2025-10-13 02:05:28
+@@ -2,6 +2,9 @@
+ // Licensed under the GNU General Public License 2.0.
+ #include "g_local.h"
+ #include "g_statusbar.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ /*
+ ======================================================================
+@@ -272,6 +275,9 @@
+ 	if (level.intermissiontime)
+ 		return; // already activated
+ 
++	/* freeze */
++	freezeIntermission();
++	/* freeze */
+ 	// ZOID
+ 	if (ctf->integer)
+ 		CTFCalcScores();
+@@ -282,6 +288,7 @@
+ 	level.intermissiontime = level.time;
+ 
+ 	// respawn any dead clients
++	/* freeze
+ 	for (uint32_t i = 0; i < game.maxclients; i++)
+ 	{
+ 		client = g_edicts + 1 + i;
+@@ -298,6 +305,7 @@
+ 			respawn(client);
+ 		}
+ 	}
++	freeze */
+ 
+ 	level.intermission_server_frame = gi.ServerFrame();
+ 	level.changemap = targ->map;
+@@ -1117,6 +1125,9 @@
+ 	if (!cl->chase_target)
+ 		G_SetStats(ent);
+ 
++	/* freeze */
++	if (cl->resp.spectator)
++	/* freeze */
+ 	cl->ps.stats[STAT_SPECTATOR] = 1;
+ 
+ 	// layouts are independant in spectator
+--- a/p_view.cpp	2023-10-03 19:43:06
++++ b/p_view.cpp	2025-10-13 02:05:28
+@@ -4,6 +4,9 @@
+ #include "g_local.h"
+ #include "m_player.h"
+ #include "bots/bot_includes.h"
++/* freeze */
++#include "g_freeze.h"
++/* freeze */
+ 
+ static edict_t   *current_player;
+ static gclient_t *current_client;
+@@ -307,7 +310,11 @@
+ 	vec3_t &angles = ent->client->ps.kick_angles;
+ 
+ 	// if dead, fix the angle and don't add any kick
++	/* freeze */
++	if (ent->deadflag && (!ent->client->resp.spectator || !ent->client->frozen))
++	/* freeze
+ 	if (ent->deadflag && !ent->client->resp.spectator)
++	freeze */
+ 	{
+ 		angles = {};
+ 
+@@ -628,6 +635,15 @@
+ 		if (G_PowerUpExpiringRelative(remaining))
+ 			G_AddBlend(0.4f, 1, 0.4f, 0.04f, ent->client->ps.screen_blend);
+ 	}
++	/* freeze */
++	else if (ent->client->frozen && !ent->client->chase_target && (!ent->client->resp.thawer || ((level.time.milliseconds() / 100) % 16) < 8))
++	{
++		if (ent->client->resp.ctf_team == CTF_TEAM1)
++			G_AddBlend(0.6f, 0, 0, 0.4f, ent->client->ps.screen_blend);
++		else if (ent->client->resp.ctf_team == CTF_TEAM2)
++			G_AddBlend(0.6f, 0.6f, 0.6f, 0.4f, ent->client->ps.screen_blend);
++	}
++	/* freeze */
+ 
+ 	// PGM
+ 	if (ent->client->nuke_time > level.time)
+@@ -866,6 +882,10 @@
+ 	ent->s.renderfx &= RF_STAIR_STEP;
+ 	ent->s.renderfx |= RF_IR_VISIBLE;
+ 	ent->s.alpha = 1.0;
++
++	/* freeze */
++	freezeEffects(ent);
++	/* freeze */
+ 
+ 	if (ent->health <= 0 || level.intermissiontime)
+ 		return;
+@@ -1369,8 +1389,16 @@
+ 	// If it wasn't updated here, the view position would lag a frame
+ 	// behind the body position when pushed -- "sinking into plats"
+ 	//
++	/* freeze */
++	if (current_client->frozen && current_client->chase_target)
++		UpdateChaseCam(ent);
++	else {
++	/* freeze */
+ 	current_client->ps.pmove.origin = ent->s.origin;
+ 	current_client->ps.pmove.velocity = ent->velocity;
++	/* freeze */
++	}
++	/* freeze */
+ 
+ 	//
+ 	// If the end of unit layout is displayed, don't give
+@@ -1468,6 +1496,11 @@
+ 	SV_CalcBlend(ent);
+ 
+ 	// chase cam stuff
++	/* freeze */
++	if (ent->client->frozen)
++		G_SetSpectatorStats(ent);
++	else
++	/* freeze */
+ 	if (ent->client->resp.spectator)
+ 		G_SetSpectatorStats(ent);
+ 	else
+--- a/vcpkg.json	2023-10-03 19:43:06
++++ b/vcpkg.json	2025-10-13 02:05:28
+@@ -2,8 +2,12 @@
+   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+   "name": "q2-game-dll",
+   "version": "2022",
++  "builtin-baseline": "3426db05b996481ca31e95fff3734cf23e0f51bc",
+   "dependencies": [
+     "fmt",
+     "jsoncpp"
++  ],
++  "overrides": [
++    { "name": "fmt", "version": "10.2.1" }
+   ]
+ }
