@@ -27,8 +27,6 @@ static constexpr int     ENFORCER_GIBHEALTH = -40;
 static constexpr int     ENFORCER_MASS = 200;
 
 // Classic Q1-ish muzzle offset: forward 30, right 8.5, up 16
-static constexpr Vector3 ENFORCER_FLASH_OFFSET = { 30.0f, 8.5f, 16.0f };
-
 // Laser parameters (using blaster plumbing for visuals/hit behavior)
 static constexpr int   ENFORCER_LASER_DAMAGE = 15;
 static constexpr float ENFORCER_LASER_SPEED = 600.0f;
@@ -45,8 +43,8 @@ static cached_soundIndex s_sight4;
 static cached_soundIndex s_pain1;
 static cached_soundIndex s_pain2;
 static cached_soundIndex s_death;
+static cached_soundIndex s_gib;
 static cached_soundIndex s_fire;
-static cached_soundIndex s_fire_end; // optional end/impact
 
 // -----------------------------------------------------------------------------
 // Small helpers
@@ -58,9 +56,9 @@ enforcer_idle
 ===============
 */
 static void enforcer_idle(gentity_t* self) {
-	if (frandom() < 0.15f) {
-		gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
-	}
+        if (frandom() < 0.15f) {
+                gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
+        }
 }
 
 /*
@@ -78,16 +76,20 @@ enforcer_sight
 ===============
 */
 MONSTERINFO_SIGHT(enforcer_sight) (gentity_t* self, gentity_t* other) -> void {
-	if (frandom() < 0.15f) {
-		gi.sound(self, CHAN_VOICE, s_sight1, 1, ATTN_NORM, 0);
-	} else if (frandom() < 0.5f) {
-		gi.sound(self, CHAN_VOICE, s_sight2, 1, ATTN_NORM, 0);
-	} else if (frandom() < 0.7f) {
-		gi.sound(self, CHAN_VOICE, s_sight3, 1, ATTN_NORM, 0);
-	}
-	else {
-		gi.sound(self, CHAN_VOICE, s_sight4, 1, ATTN_NORM, 0);
-	}
+        if (frandom() < 0.15f) {
+                gi.sound(self, CHAN_VOICE, s_sight1, 1, ATTN_NORM, 0);
+        } else if (frandom() < 0.5f) {
+                gi.sound(self, CHAN_VOICE, s_sight2, 1, ATTN_NORM, 0);
+        } else if (frandom() < 0.7f) {
+                gi.sound(self, CHAN_VOICE, s_sight3, 1, ATTN_NORM, 0);
+        }
+        else {
+                gi.sound(self, CHAN_VOICE, s_sight4, 1, ATTN_NORM, 0);
+        }
+}
+
+MONSTERINFO_SEARCH(enforcer_search) (gentity_t* self) -> void {
+        gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
 }
 
 /*
@@ -96,7 +98,10 @@ enforcer_setskin
 ===============
 */
 MONSTERINFO_SETSKIN(enforcer_setskin) (gentity_t* self) -> void {
-	// Keep default; hook provided for future damage-skin logic
+        if (self->health < (self->maxHealth * 0.5f))
+                self->s.skinNum |= 1;
+        else
+                self->s.skinNum &= ~1;
 }
 
 // -----------------------------------------------------------------------------
@@ -107,75 +112,53 @@ MONSTERINFO_SETSKIN(enforcer_setskin) (gentity_t* self) -> void {
 ===============
 enforcer_fire
 
-Q2-style firing patterned on soldier_fire_vanilla:
+Ionized-style volley shot:
 
-Computes a proper muzzle start from angles + offset
-
-Aims at enemy (or blind-fire target), optional angle gate
-
-Adds randomized lateral/vertical spread
-
-Uses HOLD_FRAME + fireWait to pace continuous fire
+- Projects the muzzle using the soldier blaster flash offset
+- Leads targets via PredictAim (or blind-fire anchor when applicable)
+- Fires a blaster bolt that mirrors the Ionized behaviour
 ===============
 */
 static void enforcer_fire(gentity_t* self) {
-	Vector3 start;
-	Vector3 forward, right, up;
-	Vector3 aim;
-	Vector3 dir;
-	Vector3 end;
-	float r, u;
-	const MonsterMuzzleFlashID flash_index = MZ2_INFANTRY_MACHINEGUN_10;
+        if (!self->enemy || !self->enemy->inUse) {
+                return;
+        }
 
-	// Build base orientation and muzzle position
-	AngleVectors(self->s.angles, forward, right, nullptr);
-	start = M_ProjectFlashSource(self, ENFORCER_FLASH_OFFSET, forward, right);
+        Vector3 forward;
+        Vector3 right;
+        Vector3 start;
+        Vector3 aim;
+        constexpr MonsterMuzzleFlashID flash_index = MZ2_SOLDIER_BLASTER_1;
 
-	// Validate target
-	if (!self->enemy || !self->enemy->inUse) {
-		self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
-		return;
-	}
+        AngleVectors(self->s.angles, forward, right, nullptr);
+        start = M_ProjectFlashSource(self, monster_flash_offset[flash_index], forward, right);
 
-	// Select aim endpoint: blind-fire target or enemy center-mass/head
-	if (self->monsterInfo.attackState == MonsterAttackState::Blind) {
-		end = self->monsterInfo.blind_fire_target;
-	}
-	else {
-		end = self->enemy->s.origin;
-		end[2] += self->enemy->viewHeight * 0.7f;
-	}
+        if (self->monsterInfo.attackState == MonsterAttackState::Blind) {
+                aim = self->monsterInfo.blind_fire_target - start;
+                if (aim.lengthSquared() > 0.0f)
+                        aim.normalize();
+                else
+                        aim = forward;
+        }
+        else {
+                PredictAim(self, self->enemy, start, ENFORCER_LASER_SPEED, true, -0.2f, &aim, nullptr);
+        }
 
-	// Raw aim vector
-	aim = end - start;
+        if (aim.lengthSquared() == 0.0f)
+                aim = forward;
 
-	// Rebuild basis aligned to the current aim, then add random spread
-	dir = VectorToAngles(aim);
-	AngleVectors(dir, forward, right, up);
+        gi.sound(self, CHAN_WEAPON | CHAN_RELIABLE, s_fire, 1, ATTN_NORM, 0);
+        monster_fire_blaster(self, start, aim, ENFORCER_LASER_DAMAGE, ENFORCER_LASER_SPEED, flash_index, EF_BLASTER);
+}
 
-	// Modest spread for a fast energy shot
-	r = crandom() * 200.0f;
-	u = crandom() * 100.0f;
-
-	end = start + (forward * 8192.0f);
-	end += (right * r);
-	end += (up * u);
-
-	aim = end - start;
-	aim.normalize();
-
-	// Gate continuous fire using HOLD_FRAME + fireWait
-	if (!(self->monsterInfo.aiFlags & AI_HOLD_FRAME))
-		self->monsterInfo.fireWait = level.time + random_time(300_ms, 1.0_sec);
-
-	// Fire the Enforcer "laser" using blaster plumbing
-	gi.sound(self, CHAN_WEAPON, s_fire, 1, ATTN_NORM, 0);
-	monster_fire_blaster(self, start, aim, ENFORCER_LASER_DAMAGE, ENFORCER_LASER_SPEED, flash_index, EF_BLASTER);
-
-	if (level.time >= self->monsterInfo.fireWait)
-		self->monsterInfo.aiFlags &= ~AI_HOLD_FRAME;
-	else
-		self->monsterInfo.aiFlags |= AI_HOLD_FRAME;
+static void enforcer_secondfire(gentity_t* self) {
+        if (!self->radius_dmg) {
+                self->monsterInfo.nextFrame = FRAME_attack06;
+                self->radius_dmg = 1;
+        }
+        else {
+                self->radius_dmg = 0;
+        }
 }
 
 /*
@@ -184,8 +167,9 @@ enforcer_attack_end
 ===============
 */
 static void enforcer_attack_end(gentity_t* self) {
-	self->monsterInfo.attackFinished = level.time + ENFORCER_ROF_GATE;
-	// return to run/stand next think
+        self->monsterInfo.attackFinished = level.time + ENFORCER_ROF_GATE;
+        self->radius_dmg = 0;
+        // return to run/stand next think
 }
 
 /*
@@ -197,11 +181,16 @@ void enforcer_attack(gentity_t* self);
 
 // Two-shot volley with short holds between fires
 static MonsterFrame enforcer_frames_attack[] = {
-	{ ai_stand }, { ai_stand }, { ai_stand },
-	{ ai_stand, 0, enforcer_fire },   // 4
-	{ ai_stand }, { ai_stand },
-	{ ai_stand, 0, enforcer_fire },   // 7
-	{ ai_stand }, { ai_stand }, { ai_stand }
+        { ai_charge, 0 },
+        { ai_charge, 1 },
+        { ai_charge, 1 },
+        { ai_charge, 0 },
+        { ai_charge, 0 },
+        { ai_charge, 0, enforcer_fire },
+        { ai_charge, 0 },
+        { ai_charge, 0 },
+        { ai_charge, 0, enforcer_secondfire },
+        { ai_charge, 0 }
 };
 MMOVE_T(enforcer_move_attack) = { FRAME_attack01, FRAME_attack10, enforcer_frames_attack, enforcer_attack_end };
 
@@ -211,11 +200,11 @@ enforcer_attack
 ===============
 */
 MONSTERINFO_ATTACK(enforcer_attack) (gentity_t* self) -> void {
-	// Simple gate to avoid continuous spamming
-	if (level.time < self->monsterInfo.attackFinished)
-		return;
+        if (level.time < self->monsterInfo.attackFinished)
+                return;
 
-	M_SetAnimation(self, &enforcer_move_attack);
+        self->radius_dmg = 0;
+        M_SetAnimation(self, &enforcer_move_attack);
 }
 
 // -----------------------------------------------------------------------------
@@ -323,11 +312,21 @@ MONSTERINFO_RUN(enforcer_run) (gentity_t* self) -> void {
 // Pain
 // -----------------------------------------------------------------------------
 
-// Short generic pain twitch
-static MonsterFrame pain_frames[] = {
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move }
+static MonsterFrame enforcer_pain_light_frames[] = {
+        { ai_move }, { ai_move }, { ai_move }, { ai_move }
 };
-MMOVE_T(move_pain) = { FRAME_paina01, FRAME_paina04, pain_frames, enforcer_run };
+MMOVE_T(enforcer_move_pain_light) = { FRAME_paina01, FRAME_paina04, enforcer_pain_light_frames, enforcer_run };
+
+static MonsterFrame enforcer_pain_medium_frames[] = {
+        { ai_move }, { ai_move }, { ai_move }, { ai_move }, { ai_move }
+};
+MMOVE_T(enforcer_move_pain_medium) = { FRAME_painb01, FRAME_painb05, enforcer_pain_medium_frames, enforcer_run };
+
+static MonsterFrame enforcer_pain_heavy_frames[] = {
+        { ai_move }, { ai_move }, { ai_move }, { ai_move },
+        { ai_move }, { ai_move }, { ai_move }, { ai_move }
+};
+MMOVE_T(enforcer_move_pain_heavy) = { FRAME_painc01, FRAME_painc08, enforcer_pain_heavy_frames, enforcer_run };
 
 /*
 ===============
@@ -335,20 +334,27 @@ enforcer_pain
 ===============
 */
 static PAIN(enforcer_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
-	if (level.time < self->pain_debounce_time)
-		return;
+        enforcer_setskin(self);
 
-	self->pain_debounce_time = level.time + 3_sec;
-	if (frandom() < 0.45f) {
-		gi.sound(self, CHAN_VOICE, s_pain1, 1, ATTN_NORM, 0);
-	} else {
-		gi.sound(self, CHAN_VOICE, s_pain2, 1, ATTN_NORM, 0);
-	}
+        if (level.time < self->pain_debounce_time)
+                return;
 
-	if (!M_ShouldReactToPain(self, mod))
-		return;
+        if (!M_ShouldReactToPain(self, mod))
+                return;
 
-	M_SetAnimation(self, &move_pain);
+        self->pain_debounce_time = level.time + 3_sec;
+
+        if (frandom() < 0.5f)
+                gi.sound(self, CHAN_VOICE, s_pain1, 1, ATTN_NORM, 0);
+        else
+                gi.sound(self, CHAN_VOICE, s_pain2, 1, ATTN_NORM, 0);
+
+        if (damage <= 10)
+                M_SetAnimation(self, &enforcer_move_pain_light);
+        else if (damage <= 25)
+                M_SetAnimation(self, &enforcer_move_pain_medium);
+        else
+                M_SetAnimation(self, &enforcer_move_pain_heavy);
 }
 
 // -----------------------------------------------------------------------------
@@ -379,11 +385,11 @@ enforcer_die
 */
 static DIE(enforcer_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
 	// check for gib
-	if (M_CheckGib(self, mod)) {
-		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+        if (M_CheckGib(self, mod)) {
+                gi.sound(self, CHAN_VOICE, s_gib, 1, ATTN_NORM, 0);
 
-		// Optional: halve skin like gunner to reflect gore variant if model supports it
-		self->s.skinNum /= 2;
+                // Optional: halve skin like gunner to reflect gore variant if model supports it
+                self->s.skinNum /= 2;
 
 		ThrowGibs(self, damage, {
 			{ 2, "models/objects/gibs/bone/tris.md2" },
@@ -399,11 +405,11 @@ static DIE(enforcer_die) (gentity_t* self, gentity_t* inflictor, gentity_t* atta
 		return;
 
 	// regular death
-	gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
-	self->deadFlag = true;
-	self->takeDamage = true;
+        gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
+        self->deadFlag = true;
+        self->takeDamage = true;
 
-	M_SetAnimation(self, &enforcer_move_death);
+        M_SetAnimation(self, &enforcer_move_death);
 }
 
 // -----------------------------------------------------------------------------
@@ -421,16 +427,16 @@ static void enforcer_precache() {
 	gi.modelIndex("models/monsters/enforcer/gibs/head.md2"); // for head gib
 
 	// Sounds
-	s_idle.assign("enforcer/idle1.wav");
-	s_sight1.assign("enforcer/sight1.wav");
-	s_sight2.assign("enforcer/sight2.wav");
-	s_sight3.assign("enforcer/sight3.wav");
-	s_sight4.assign("enforcer/sight4.wav");
-	s_pain1.assign("enforcer/pain1.wav");
-	s_pain2.assign("enforcer/pain2.wav");
-	s_death.assign("enforcer/death1.wav");
-	s_fire.assign("enforcer/enfire.wav");
-	s_fire_end.assign("enforcer/enfstop.wav");
+        s_idle.assign("enforcer/idle1.wav");
+        s_sight1.assign("enforcer/sight1.wav");
+        s_sight2.assign("enforcer/sight2.wav");
+        s_sight3.assign("enforcer/sight3.wav");
+        s_sight4.assign("enforcer/sight4.wav");
+        s_pain1.assign("enforcer/pain1.wav");
+        s_pain2.assign("enforcer/pain2.wav");
+        s_death.assign("enforcer/death1.wav");
+        s_gib.assign("q1player/udeath.wav");
+        s_fire.assign("enforcer/enfire.wav");
 }
 
 /*
@@ -442,12 +448,14 @@ static void enforcer_start(gentity_t* self) {
 	self->monsterInfo.stand = enforcer_stand;
 	self->monsterInfo.walk = enforcer_walk;
 	self->monsterInfo.run = enforcer_run;
-	self->monsterInfo.attack = enforcer_attack;
-	self->monsterInfo.sight = enforcer_sight;
-	self->monsterInfo.setSkin = enforcer_setskin;
+        self->monsterInfo.attack = enforcer_attack;
+        self->monsterInfo.sight = enforcer_sight;
+        self->monsterInfo.search = enforcer_search;
+        self->monsterInfo.idle = enforcer_idle;
+        self->monsterInfo.setSkin = enforcer_setskin;
 
-	self->pain = enforcer_pain;
-	self->die = enforcer_die;
+        self->pain = enforcer_pain;
+        self->die = enforcer_die;
 
 	self->mins = ENFORCER_MINS;
 	self->maxs = ENFORCER_MAXS;
@@ -458,12 +466,13 @@ static void enforcer_start(gentity_t* self) {
 	self->gibHealth = ENFORCER_GIBHEALTH;
 	self->mass = ENFORCER_MASS;
 
-	gi.linkEntity(self);
+        gi.linkEntity(self);
 
-	M_SetAnimation(self, &enforcer_move_stand);
-	self->monsterInfo.scale = MODEL_SCALE;
+        M_SetAnimation(self, &enforcer_move_stand);
+        self->monsterInfo.scale = MODEL_SCALE;
+        enforcer_setskin(self);
 
-	walkmonster_start(self);
+        walkmonster_start(self);
 }
 
 /*QUAKED monster_enforcer (1 .5 0) (-16 -16 -24) (16 16 32) AMBUSH TRIGGER_SPAWN SIGHT NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
