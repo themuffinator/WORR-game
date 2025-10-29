@@ -1344,17 +1344,19 @@ void BeginIntermission(gentity_t* targ) {
 	}
 
 	// Immediate transition case (SP only)
-	if (!deathmatch->integer && isImmediateLeave) {
-		ReportMatchDetails(true);
-		level.intermission.exit = true;
-		return;
-	}
+        if (!deathmatch->integer && isImmediateLeave) {
+                ReportMatchDetails(true);
+                level.intermission.postIntermission = true;
+                level.intermission.exit = true;
+                return;
+        }
 
-	// SP with direct map change (non end-of-unit)
-	if (!deathmatch->integer && !isEndOfUnit) {
-		level.intermission.exit = true;
-		return;
-	}
+        // SP with direct map change (non end-of-unit)
+        if (!deathmatch->integer && !isEndOfUnit) {
+                level.intermission.postIntermission = true;
+                level.intermission.exit = true;
+                return;
+        }
 
 	// Final match reporting before vote/menu/nextmap
 	ReportMatchDetails(true);
@@ -1450,8 +1452,12 @@ void ExitLevel(bool forceImmediate) {
 	ClientEndServerFrames();
 	TakeIntermissionScreenshot();
 
-	// Reset intermission state
-	level.intermission = {};
+        // Cache intermission flags that need to persist through the struct reset
+        const bool shouldClearInventory = level.intermission.clear;
+        const bool shouldHandleEndOfUnit = level.intermission.endOfUnit;
+
+        // Reset intermission state
+        level.intermission = {};
 
 	if (deathmatch->integer) {
 		// In Gauntlet mode, rotate the loser
@@ -1469,12 +1475,10 @@ void ExitLevel(bool forceImmediate) {
 			return;
 	}
 
-	// Singleplayer or coop logic
-	if (level.intermission.clear) {
-		level.intermission.clear = false;
-
-		for (auto ec : active_clients()) {
-			auto& cl = *ec->client;
+        // Singleplayer or coop logic
+        if (shouldClearInventory) {
+                for (auto ec : active_clients()) {
+                        auto& cl = *ec->client;
 
 			// Preserve userinfo across the wipe
 			char userInfo[MAX_INFO_STRING];
@@ -1489,8 +1493,8 @@ void ExitLevel(bool forceImmediate) {
 		}
 	}
 
-	if (level.intermission.endOfUnit) {
-		game.levelEntries = {};
+        if (shouldHandleEndOfUnit) {
+                game.levelEntries = {};
 
 		// Restore lives to all players in coop
 		if (g_coop_enable_lives->integer) {
@@ -1852,10 +1856,13 @@ static inline void G_RunFrame_(bool main_loop) {
 		level.inFrame = false;
 		return;
 	}
-	if (level.intermission.exit) {
-		level.inFrame = false;
-		return;
-	}
+        if (level.intermission.exit) {
+                if (!level.intermission.postIntermission)
+                        PreExitLevel();
+
+                level.inFrame = false;
+                return;
+        }
 
 	// --- Campaign Restart ---
 	if (!deathmatch->integer) {
