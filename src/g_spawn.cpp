@@ -288,6 +288,7 @@ void SP_monster_spawn(gentity_t* self);
 void SP_monster_vore(gentity_t* self);
 void SP_monster_enforcer(gentity_t* self);
 void SP_monster_knight(gentity_t* self);
+void SP_monster_sword(gentity_t* self);
 void SP_monster_hell_knight(gentity_t* self);
 void SP_monster_wizard(gentity_t* self);
 void SP_monster_oldone(gentity_t* self);
@@ -558,6 +559,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_shalrath", SP_monster_vore },
 	{ "monster_enforcer", SP_monster_enforcer },
 	{ "monster_knight", SP_monster_knight },
+	{ "monster_sword", SP_monster_sword },
 	{ "monster_hell_knight", SP_monster_hell_knight },
         { "monster_wizard", SP_monster_wizard },
         { "monster_oldone", SP_monster_oldone },
