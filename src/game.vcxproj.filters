@@ -159,6 +159,9 @@
     <ClInclude Include="monsters\m_chthon.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_dragon.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_scrag.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -397,6 +400,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_chthon.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_dragon.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_scrag.cpp">

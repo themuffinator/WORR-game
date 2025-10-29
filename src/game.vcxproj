@@ -141,6 +141,7 @@
     <ClInclude Include="monsters\m_carrier.hpp" />
     <ClInclude Include="monsters\m_chick.hpp" />
     <ClInclude Include="monsters\m_chthon.hpp" />
+    <ClInclude Include="monsters\m_dragon.hpp" />
     <ClInclude Include="monsters\m_dog.hpp" />
     <ClInclude Include="monsters\m_enforcer.hpp" />
     <ClInclude Include="monsters\m_fiend.hpp" />
@@ -244,6 +245,7 @@
     <ClCompile Include="monsters\m_carrier.cpp" />
     <ClCompile Include="monsters\m_chick.cpp" />
     <ClCompile Include="monsters\m_chthon.cpp" />
+    <ClCompile Include="monsters\m_dragon.cpp" />
     <ClCompile Include="monsters\m_dog.cpp" />
     <ClCompile Include="monsters\m_enforcer.cpp" />
     <ClCompile Include="monsters\m_fiend.cpp" />
