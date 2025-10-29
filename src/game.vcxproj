@@ -163,6 +163,7 @@
     <ClInclude Include="monsters\m_medic.hpp" />
     <ClInclude Include="monsters\m_mutant.hpp" />
     <ClInclude Include="monsters\m_ogre.hpp" />
+    <ClInclude Include="monsters\m_overlord.hpp" />
     <ClInclude Include="monsters\m_shub.hpp" />
     <ClInclude Include="monsters\m_parasite.hpp" />
     <ClInclude Include="monsters\m_player.hpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="monsters\m_tank.hpp" />
     <ClInclude Include="monsters\m_turret.hpp" />
     <ClInclude Include="monsters\m_vore.hpp" />
+    <ClInclude Include="monsters\m_wrath.hpp" />
     <ClInclude Include="monsters\m_widow.hpp" />
     <ClInclude Include="monsters\m_widow2.hpp" />
     <ClInclude Include="monsters\m_scrag.hpp" />
@@ -267,6 +269,7 @@
     <ClCompile Include="monsters\m_move.cpp" />
     <ClCompile Include="monsters\m_mutant.cpp" />
     <ClCompile Include="monsters\m_ogre.cpp" />
+    <ClCompile Include="monsters\m_overlord.cpp" />
     <ClCompile Include="monsters\m_shub.cpp" />
     <ClCompile Include="monsters\m_parasite.cpp" />
     <ClCompile Include="monsters\m_shambler.cpp" />
@@ -277,6 +280,7 @@
     <ClCompile Include="monsters\m_tank.cpp" />
     <ClCompile Include="monsters\m_turret.cpp" />
     <ClCompile Include="monsters\m_vore.cpp" />
+    <ClCompile Include="monsters\m_wrath.cpp" />
     <ClCompile Include="monsters\m_widow.cpp" />
     <ClCompile Include="monsters\m_widow2.cpp" />
     <ClCompile Include="monsters\m_scrag.cpp" />
