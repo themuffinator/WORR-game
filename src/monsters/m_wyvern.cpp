@@ -325,6 +325,9 @@ static void wyvern_firebreath(gentity_t *self) {
         AngleVectors(self->s.angles, forward, right, nullptr);
         const Vector3 start = M_ProjectFlashSource(self, offset, forward, right);
 
+        if (!self->enemy || !self->enemy->inUse)
+                return;
+
         Vector3 end = self->enemy->s.origin;
         end.z += self->enemy->viewHeight;
         Vector3 aim = end - start;
