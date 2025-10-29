@@ -565,6 +565,7 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_demon1", SP_monster_fiend },
 	{ "monster_zombie", SP_monster_zombie },
 	{ "monster_tarbaby", SP_monster_spawn },
+	{ "monster_tarbaby_hell", SP_monster_spawn },
 	{ "monster_spike", SP_monster_spike },
 	{ "monster_spike_hell", SP_monster_spike },
 	{ "monster_mine", SP_monster_spike },
