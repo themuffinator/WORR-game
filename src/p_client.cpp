@@ -1384,7 +1384,7 @@ static inline bool FreezeTag_IsActive() {
 	return Game::Is(GameType::FreezeTag) && !level.intermission.time;
 }
 
-static inline bool FreezeTag_IsFrozen(const gentity_t* ent) {
+bool FreezeTag_IsFrozen(const gentity_t* ent) {
 	return FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated;
 }
 
@@ -2915,9 +2915,15 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	const bool wasPlaying = ClientIsPlaying(cl);
 	const bool duel = Game::Has(GameFlags::OneVOne);
 	const int clientNum = static_cast<int>(cl - game.clients);
+	const bool isBot = (ent->svFlags & SVF_BOT) || cl->sess.is_a_bot;
 
 	if (!force && cl->resp.teamDelayTime > level.time) {
 		gi.LocClient_Print(ent, PRINT_HIGH, ".You must wait before switching teams again.\n");
+		return false;
+	}
+
+	if (!force && !isBot && FreezeTag_IsFrozen(ent)) {
+		gi.LocClient_Print(ent, PRINT_HIGH, "$g_cant_change_teams");
 		return false;
 	}
 
