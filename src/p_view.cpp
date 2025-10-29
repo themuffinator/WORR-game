@@ -638,8 +638,8 @@ static void G_CalcBlend(gentity_t* ent) {
 	BlendIfExpiring(ent->client->powerupTime.rebreather, 0.4f, 1, 0.4f, 0.04f, "items/airout.wav");
 
 	// Freeze effect
-	if (Game::Is(GameType::FreezeTag) && ent->client->eliminated && !ent->client->follow.target && !ent->client->resp.thawer) {
-		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
+	if (Game::Is(GameType::FreezeTag) && ent->client->eliminated && !ent->client->follow.target) {
+	        G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
 	}
 
 	// Nuke effect
@@ -1399,42 +1399,42 @@ void ClientEndServerFrame(gentity_t* ent) {
 	// If the end of unit layout is displayed, don't give
 	// the player any normal movement attributes
 	//
-        if (level.intermission.time || ent->client->awaitingRespawn) {
-                if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time))) {
-                        currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
-                        currentClient->ps.gunIndex = 0;
-                }
-                SetStats(ent);
-                SetCoopStats(ent);
+	if (level.intermission.time || ent->client->awaitingRespawn) {
+	        if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time))) {
+	                currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
+	                currentClient->ps.gunIndex = 0;
+	        }
+	        SetStats(ent);
+	        SetCoopStats(ent);
 
-                bool handledUiUpdate = false;
+	        bool handledUiUpdate = false;
 
-                if (deathmatch->integer) {
-                        const bool voteActive = (level.mapSelector.voteStartTime != 0_sec);
+	        if (deathmatch->integer) {
+	                const bool voteActive = (level.mapSelector.voteStartTime != 0_sec);
 
-                        if (voteActive && ent->client->menu.current) {
-                                // Keep the menu flowing during the vote even though we're in intermission.
-                                ent->client->showScores = true;
+	                if (voteActive && ent->client->menu.current) {
+	                        // Keep the menu flowing during the vote even though we're in intermission.
+	                        ent->client->showScores = true;
 
-                                if (ent->client->menu.updateTime <= level.time) {
-                                        MenuSystem::Update(ent);
-                                        gi.unicast(ent, true);
-                                        ent->client->menu.updateTime = level.time + FRAME_TIME_MS;
-                                }
+	                        if (ent->client->menu.updateTime <= level.time) {
+	                                MenuSystem::Update(ent);
+	                                gi.unicast(ent, true);
+	                                ent->client->menu.updateTime = level.time + FRAME_TIME_MS;
+	                        }
 
-                                handledUiUpdate = true;
-                        }
-                }
+	                        handledUiUpdate = true;
+	                }
+	        }
 
-                // if the scoreboard is up, update it if a client leaves
-                if (!handledUiUpdate && deathmatch->integer && ent->client->showScores && ent->client->menu.updateTime) {
-                        DeathmatchScoreboardMessage(ent, ent->enemy);
-                        gi.unicast(ent, false);
-                        ent->client->menu.updateTime = 0_ms;
-                }
+	        // if the scoreboard is up, update it if a client leaves
+	        if (!handledUiUpdate && deathmatch->integer && ent->client->showScores && ent->client->menu.updateTime) {
+	                DeathmatchScoreboardMessage(ent, ent->enemy);
+	                gi.unicast(ent, false);
+	                ent->client->menu.updateTime = 0_ms;
+	        }
 
 		/*freeze*/
-		if (Game::Is(GameType::FreezeTag) && !level.intermission.time && ent->client->eliminated && !ent->client->resp.thawer) {	// || level.framenum & 8) {
+		if (FreezeTag_IsActive() && ent->client->eliminated) {	// || level.framenum & 8) {
 			ent->s.effects |= EF_COLOR_SHELL;
 			ent->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 		}

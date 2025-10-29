@@ -282,11 +282,14 @@ static void AddPlayerEntry(
 	if (Game::Is(GameType::FreezeTag)) {
 		std::string extra;
 
-		if (cl->eliminated && !cl->resp.thawer) {
-			fmt::format_to(std::back_inserter(extra),
-				"xv {} yv {} string \"FROZEN\" ",
-				x + 96, y);
-		}
+	        if (cl->eliminated) {
+	                const bool thawing = cl->resp.thawer && cl->freeze.holdDeadline && cl->freeze.holdDeadline > level.time;
+	                const char* status = thawing ? "THAWING" : "FROZEN";
+
+	                fmt::format_to(std::back_inserter(extra),
+	                        "xv {} yv {} string \"{}\" ",
+	                        x + 96, y, status);
+	        }
 
 		if (cl->resp.thawed > 0) {
 			fmt::format_to(std::back_inserter(extra),

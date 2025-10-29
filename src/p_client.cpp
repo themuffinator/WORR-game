@@ -1401,6 +1401,7 @@ static void FreezeTag_ResetState(gclient_t* cl) {
 
 	cl->freeze.frozenTime = 0_ms;
 	cl->freeze.thawTime = 0_ms;
+	cl->freeze.holdDeadline = 0_ms;
 	cl->resp.thawer = nullptr;
 }
 
@@ -1413,6 +1414,7 @@ static void FreezeTag_StartFrozenState(gentity_t* ent) {
 	cl->eliminated = true;
 	cl->resp.thawer = nullptr;
 	cl->freeze.frozenTime = level.time;
+	cl->freeze.holdDeadline = 0_ms;
 
 	const GameTime thawDuration = FreezeTag_Duration();
 
@@ -1445,15 +1447,15 @@ static bool FreezeTag_CanThawTarget(gentity_t* thawer, gentity_t* frozen) {
 	if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
 		return false;
 
-	if (frozen->client->resp.thawer)
-		return false;
+	if (frozen->client->resp.thawer && frozen->client->resp.thawer != thawer)
+	        return false;
 
 	return true;
 }
 
 static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
 	if (!FreezeTag_IsActive() || !thawer || !thawer->client)
-		return nullptr;
+	        return nullptr;
 
 	constexpr float THAW_RANGE = 96.0f;
 
@@ -1496,9 +1498,115 @@ static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
 	return best;
 }
 
+static constexpr GameTime FREEZETAG_THAW_HOLD_DURATION = 3_sec;
+static constexpr float FREEZETAG_THAW_RANGE = MELEE_DISTANCE;
+
+static bool FreezeTag_IsValidThawHelper(gentity_t* thawer, gentity_t* frozen) {
+	if (!FreezeTag_IsActive())
+	        return false;
+
+	if (!thawer || !thawer->client || !frozen || !frozen->client)
+	        return false;
+
+	if (thawer == frozen)
+	        return false;
+
+	if (!ClientIsPlaying(thawer->client) || thawer->client->eliminated)
+	        return false;
+
+	if (!ClientIsPlaying(frozen->client) || !frozen->client->eliminated)
+	        return false;
+
+	if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
+	        return false;
+
+	const Vector3 delta = frozen->s.origin - thawer->s.origin;
+	return delta.length() <= FREEZETAG_THAW_RANGE;
+}
+
+static gentity_t* FreezeTag_FindNearbyThawer(gentity_t* frozen) {
+	gentity_t* best = nullptr;
+	float       bestDistance = 0.0f;
+
+	for (gentity_t* candidate : active_clients()) {
+	        if (!FreezeTag_IsValidThawHelper(candidate, frozen))
+	                continue;
+
+	        const float distance = (frozen->s.origin - candidate->s.origin).length();
+
+	        if (!best || distance < bestDistance) {
+	                best = candidate;
+	                bestDistance = distance;
+	        }
+	}
+
+	return best;
+}
+
+static void FreezeTag_StopThawHold(gentity_t* frozen, bool notify) {
+	if (!frozen || !frozen->client)
+	        return;
+
+	gclient_t* fcl = frozen->client;
+	gentity_t* thawer = fcl->resp.thawer;
+
+	if (notify && thawer && thawer->client) {
+	        gi.LocClient_Print(thawer, PRINT_CENTER, ".You stopped thawing {}.", fcl->sess.netName);
+	        gi.LocClient_Print(frozen, PRINT_CENTER, ".{} stopped thawing you.", thawer->client->sess.netName);
+	}
+
+	fcl->resp.thawer = nullptr;
+	fcl->freeze.holdDeadline = 0_ms;
+}
+
+static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
+	if (!frozen || !frozen->client || !thawer || !thawer->client)
+	        return;
+
+	gclient_t* fcl = frozen->client;
+
+	fcl->resp.thawer = thawer;
+	fcl->freeze.holdDeadline = level.time + FREEZETAG_THAW_HOLD_DURATION;
+
+	gi.sound(frozen, CHAN_AUTO, gi.soundIndex("world/steam.wav"), 1, ATTN_NORM, 0);
+	gi.LocClient_Print(thawer, PRINT_CENTER, ".Helping {} thaw...", fcl->sess.netName);
+	gi.LocClient_Print(frozen, PRINT_CENTER, ".{} is thawing you...", thawer->client->sess.netName);
+}
+
+static bool FreezeTag_UpdateThawHold(gentity_t* frozen) {
+	if (!FreezeTag_IsActive() || !frozen || !frozen->client || !frozen->client->eliminated)
+	        return false;
+
+	gclient_t* fcl = frozen->client;
+	gentity_t* thawer = fcl->resp.thawer;
+
+	if (thawer) {
+	        if (!FreezeTag_IsValidThawHelper(thawer, frozen)) {
+	                FreezeTag_StopThawHold(frozen, true);
+	        }
+	        else if (fcl->freeze.holdDeadline && level.time >= fcl->freeze.holdDeadline) {
+	                FreezeTag_ThawPlayer(thawer, frozen, true, false);
+	                return true;
+	        }
+	}
+
+	if (!fcl->resp.thawer) {
+	        gentity_t* helper = FreezeTag_FindNearbyThawer(frozen);
+
+	        if (helper) {
+	                FreezeTag_StartThawHold(helper, frozen);
+	        }
+	        else {
+	                fcl->freeze.holdDeadline = 0_ms;
+	        }
+	}
+
+	return false;
+}
+
 static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
 	if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
-		return;
+	        return;
 
 	gclient_t* fcl = frozen->client;
 
@@ -1524,13 +1632,14 @@ static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awar
 	frozen->lastMOD = thawMod;
 
 	if (frozen->health > frozen->gibHealth)
-		frozen->health = frozen->gibHealth - 1;
+	        frozen->health = frozen->gibHealth - 1;
 
 	GibPlayer(frozen, 400);
 	ThrowClientHead(frozen, 400);
 
 	fcl->freeze.thawTime = 0_ms;
 	fcl->freeze.frozenTime = 0_ms;
+	fcl->freeze.holdDeadline = 0_ms;
 	fcl->eliminated = false;
 	fcl->respawnMinTime = level.time;
 	fcl->respawnMaxTime = level.time;
@@ -1655,9 +1764,9 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 		damage = 400;
 	}
 
-	if (Game::Is(GameType::FreezeTag) && !level.intermission.time && self->client->eliminated && !self->client->resp.thawer) {
-		self->s.effects |= EF_COLOR_SHELL;
-		self->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
+	if (FreezeTag_IsActive() && self->client->eliminated) {
+	        self->s.effects |= EF_COLOR_SHELL;
+	        self->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 	}
 	else {
 		self->s.effects = EF_NONE;
@@ -2186,7 +2295,7 @@ void CopyToBodyQue(gentity_t* ent) {
 		return;
 
 	gentity_t* body;
-	bool frozen = !!(Game::Is(GameType::FreezeTag) && !level.intermission.time && ent->client->eliminated && !ent->client->resp.thawer);
+	bool frozen = FreezeTag_IsActive() && ent->client && ent->client->eliminated;
 
 	// grab a body que and cycle to the next one
 	body = &g_entities[game.maxClients + level.bodyQue + 1];
@@ -4010,10 +4119,15 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	cl->cmd = *ucmd;
 
 	if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
-		if (gentity_t* target = FreezeTag_FindFrozenTarget(ent))
-			FreezeTag_ThawPlayer(ent, target, true, false);
+	        if (gentity_t* target = FreezeTag_FindFrozenTarget(ent)) {
+	                gclient_t* targetCl = target->client;
 
-		cl->latchedButtons &= ~BUTTON_USE;
+	                if (targetCl && !targetCl->resp.thawer && FreezeTag_IsValidThawHelper(ent, target)) {
+	                        FreezeTag_StartThawHold(ent, target);
+	                }
+	        }
+
+	        cl->latchedButtons &= ~BUTTON_USE;
 	}
 
 	if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
@@ -4597,11 +4711,14 @@ void ClientBeginServerFrame(gentity_t* ent) {
 
 	client = ent->client;
 
-	if (FreezeTag_IsActive() && client->eliminated && !client->resp.thawer) {
-		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
-			FreezeTag_ThawPlayer(nullptr, ent, false, true);
-			return;
-		}
+	if (FreezeTag_IsActive() && client->eliminated) {
+	        if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+	                FreezeTag_ThawPlayer(nullptr, ent, false, true);
+	                return;
+	        }
+
+	        if (FreezeTag_UpdateThawHold(ent))
+	                return;
 	}
 
 	if (client->awaitingRespawn) {

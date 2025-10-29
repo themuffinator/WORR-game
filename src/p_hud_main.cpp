@@ -357,18 +357,18 @@ void DrawHelpComputer(gentity_t* ent) {
 	else {
 		int y = 66;
 
-                if (!game.help[0].empty()) {
-                        helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
-                                "xv 0 yv {} loc_cstring 0 \"{}\" ",
-                                y, y + 11, game.help[0].message.data());
-                        y += 58;
-                }
+	        if (!game.help[0].empty()) {
+	                helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
+	                        "xv 0 yv {} loc_cstring 0 \"{}\" ",
+	                        y, y + 11, game.help[0].message.data());
+	                y += 58;
+	        }
 
-                if (!game.help[1].empty()) {
-                        helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
-                                "xv 0 yv {} loc_cstring 0 \"{}\" ",
-                                y, y + 11, game.help[1].message.data());
-                }
+	        if (!game.help[1].empty()) {
+	                helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
+	                        "xv 0 yv {} loc_cstring 0 \"{}\" ",
+	                        y, y + 11, game.help[1].message.data());
+	        }
 	}
 
 	helpString += fmt::format(
@@ -669,7 +669,7 @@ static void SetMiniScoreStats(gentity_t* ent) {
 
 	// Medal HUD display
 	if (medalType != PlayerMedal::None) {
-            const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
+	    const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
 		if (count >= 2 && static_cast<size_t>(medalType) < awardNames.size()) {
 			const std::string& medalName = awardNames[static_cast<size_t>(medalType)];
 			const std::string medalText = fmt::format("{} (x{})", medalName, count);
@@ -690,7 +690,7 @@ static void SetMiniScoreStats(gentity_t* ent) {
 		if (ent->client->sess.team == Team::Free || ent->client->follow.target) {
 			const gentity_t* target = ent->client->follow.target ? ent->client->follow.target : ent;
 			own = target->s.number - 1;
-                    ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
+	            ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
 		}
 
 		for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -1367,20 +1367,33 @@ void SetStats(gentity_t* ent) {
 
 	const bool freezeActive = Game::Is(GameType::FreezeTag);
 	bool       frozen = false;
+	std::string freezeStatus;
 
 	if (deathmatch->integer) {
 		int countdown = level.countdownTimerCheck.seconds<int>();
 
-		if (freezeActive && ent->client->eliminated && !ent->client->resp.thawer) {
-			frozen = true;
+	        if (freezeActive && ent->client->eliminated) {
+	                frozen = true;
 
-			if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
-				countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
-			}
-			else {
-				countdown = 0;
-			}
-		}
+	                if (ent->client->freeze.holdDeadline && ent->client->freeze.holdDeadline > level.time) {
+	                        countdown = std::max(0, (ent->client->freeze.holdDeadline - level.time).seconds<int>());
+	                }
+	                else if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
+	                        countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
+	                }
+	                else {
+	                        countdown = 0;
+	                }
+
+	                if (ent->client->resp.thawer && ent->client->freeze.holdDeadline &&
+	                        ent->client->freeze.holdDeadline > level.time && ent->client->resp.thawer->client) {
+	                        freezeStatus = fmt::format("Being thawed by {}",
+	                                ent->client->resp.thawer->client->sess.netName);
+	                }
+	                else {
+	                        freezeStatus = "Frozen - waiting for thaw";
+	                }
+	        }
 
 		ent->client->ps.stats[STAT_COUNTDOWN] = countdown;
 
@@ -1392,8 +1405,8 @@ void SetStats(gentity_t* ent) {
 	}
 
 	if (freezeActive && frozen) {
-		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
-		gi.configString(CONFIG_MATCH_STATE2, "Frozen - waiting for thaw");
+	        ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+	        gi.configString(CONFIG_MATCH_STATE2, freezeStatus.c_str());
 	}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
