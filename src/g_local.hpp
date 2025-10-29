@@ -1094,11 +1094,13 @@ enum monster_ai_flags_t : uint64_t {
 
 	AI_CHTHON_VULNERABLE = bit_v<40>, // can be damaged
 	AI_OLDONE_VULNERABLE = bit_v<41>, // can be damaged
+  AI_SPAWNED_OVERLORD = bit_v<42>,
 };
 MAKE_ENUM_BITFLAGS(monster_ai_flags_t);
 
+// mask to catch all flavors of spawned minions
 constexpr monster_ai_flags_t AI_SPAWNED_MASK =
-AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW | AI_SPAWNED_OLDONE; // mask to catch all three flavors of spawned
+AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW | AI_SPAWNED_OLDONE | AI_SPAWNED_OVERLORD; // mask to catch all three flavors of spawned
 
 // monster attack state
 
