@@ -129,16 +129,16 @@ MONSTERINFO_ATTACK(knight_attack_run) (gentity_t* self) -> void {
 }
 
 static MonsterFrame frames_attack[] = {
-        { ai_charge },
-        { ai_charge },
-        { ai_charge },
-        { ai_charge },
-        { ai_charge },
-        { ai_charge },
-        { ai_charge, 0, knight_melee_hit },
-        { ai_charge },
-        { ai_charge },
-        { ai_charge, 0, knight_check_dist }
+	{ ai_charge, 0, knight_sword_sound },
+	{ ai_charge },
+	{ ai_charge },
+	{ ai_charge, 0, knight_melee_hit },
+	{ ai_charge },
+	{ ai_charge, 0, knight_melee_hit },
+	{ ai_charge },
+	{ ai_charge, 0, knight_melee_hit },
+	{ ai_charge },
+	{ ai_charge, 0, knight_check_dist }
 };
 MMOVE_T(knight_move_attack) = { FRAME_attackb1, FRAME_attackb10, frames_attack, knight_run };
 
