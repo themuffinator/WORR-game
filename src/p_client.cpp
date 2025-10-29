@@ -1706,11 +1706,16 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 			}
 		}
 
-		PushDeathStats(self, attacker, mod);
+                PushDeathStats(self, attacker, mod);
 
-		LookAtKiller(self, inflictor, attacker);
-		self->client->ps.pmove.pmType = PM_DEAD;
-		ClientObituary(self, inflictor, attacker, mod);
+                LookAtKiller(self, inflictor, attacker);
+
+                self->client->deathView.active = true;
+                self->client->deathView.startTime = level.time;
+                self->client->deathView.startOffset = self->client->ps.viewOffset;
+
+                self->client->ps.pmove.pmType = PM_DEAD;
+                ClientObituary(self, inflictor, attacker, mod);
 
 		CTF_ScoreBonuses(self, inflictor, attacker);
 		TossClientItems(self);
@@ -2375,10 +2380,12 @@ void G_PostRespawn(gentity_t* self) {
 }
 
 void ClientRespawn(gentity_t* ent) {
-	if (!ent || !ent->client)
-		return;
+        if (!ent || !ent->client)
+                return;
 
-	if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
+        ent->client->deathView = {};
+
+        if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
 		const bool gibbed = ent->health <= ent->gibHealth;
 		if (!ent->client->resp.thawer && !gibbed)
 			return;

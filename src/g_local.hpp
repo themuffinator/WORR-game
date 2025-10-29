@@ -4325,6 +4325,12 @@ struct gclient_t {
 	Vector3			oldVelocity = vec3_origin;
 	gentity_t* oldGroundEntity; // [Paril-KEX]
 
+        struct {
+                bool                    active = false;
+                GameTime                startTime = 0_ms;
+                Vector3                 startOffset = vec3_origin;
+        } deathView;
+
 	GameTime			nextDrownTime = 0_ms;
 	water_level_t	oldWaterLevel = WATER_NONE;
 	int32_t			breatherSound = 0;

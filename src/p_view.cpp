@@ -311,7 +311,33 @@ static void OffsetThirdPersonDeathView(gentity_t* ent) {
                 desiredPos = tr.endPos;
         }
 
-        ent->client->ps.viewOffset = desiredPos - ent->s.origin;
+        Vector3 thirdPersonOffset = desiredPos - ent->s.origin;
+
+        constexpr GameTime deathViewBlendTime = 200_ms;
+        auto& deathView = ent->client->deathView;
+
+        if (deathView.active) {
+                GameTime elapsed = level.time - deathView.startTime;
+                if (elapsed < 0_ms)
+                        elapsed = 0_ms;
+
+                float alpha;
+                if (deathViewBlendTime > 0_ms) {
+                        alpha = static_cast<float>(elapsed.milliseconds()) /
+                                static_cast<float>(deathViewBlendTime.milliseconds());
+                        alpha = std::clamp(alpha, 0.0f, 1.0f);
+                } else {
+                        alpha = 1.0f;
+                }
+
+                Vector3 startOffset = deathView.startOffset;
+                ent->client->ps.viewOffset = startOffset + (thirdPersonOffset - startOffset) * alpha;
+
+                if (alpha >= 1.0f)
+                        deathView.active = false;
+        } else {
+                ent->client->ps.viewOffset = thirdPersonOffset;
+        }
 
         Vector3 toFocus = focusPoint - desiredPos;
         float focusDistFlat = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
@@ -367,9 +393,13 @@ static void G_CalcViewOffset(gentity_t* ent) {
                 ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
                 OffsetThirdPersonDeathView(ent);
                 return;
-        } else if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
-		// add angles based on weapon kick
-		angles = P_CurrentKickAngles(ent);
+        }
+
+        ent->client->deathView = {};
+
+        if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
+                // add angles based on weapon kick
+                angles = P_CurrentKickAngles(ent);
 
 		// add angles based on damage kick
 		if (ent->client->feedback.vDamageTime > level.time) {
