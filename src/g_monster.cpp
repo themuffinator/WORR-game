@@ -118,8 +118,13 @@ static PRETHINK(monster_teleport_return) (gentity_t* self) -> void {
         if (level.time < self->monsterInfo.teleport_return_time)
                 return;
 
-        if (self->enemy && visible(self, self->enemy))
+        if (self->enemy && visible(self, self->enemy)) {
+                self->monsterInfo.teleport_active = false;
+                self->monsterInfo.teleport_return_time = 0_ms;
+                self->monsterInfo.teleport_saved_origin = vec3_origin;
+                self->postThink = nullptr;
                 return;
+        }
 
         gi.WriteByte(svc_temp_entity);
         gi.WriteByte(TE_TELEPORT_EFFECT);
