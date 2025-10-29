@@ -1685,6 +1685,8 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 	self->maxs[2] = -8;
 
 	self->svFlags |= SVF_DEADMONSTER;
+	self->svFlags &= ~SVF_INSTANCED;
+	self->s.instanceBits = 0;
 
 	if (!self->deadFlag) {
 
