@@ -162,6 +162,9 @@
     <ClInclude Include="monsters\m_scrag.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_wrath.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\q1_support.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -400,6 +403,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_scrag.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_wrath.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\q1_support.cpp">
