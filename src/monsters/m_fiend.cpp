@@ -309,11 +309,9 @@ static MonsterFrame fiend_frames_jump_up[] = {
         { ai_move },
         { ai_move },
         { ai_move },
-        { ai_move },
-        { ai_move },
         { ai_move }
 };
-MMOVE_T(fiend_move_jump_up) = { FRAME_leap01, FRAME_leap12, fiend_frames_jump_up, fiend_run };
+MMOVE_T(fiend_move_jump_up) = { FRAME_leap01, FRAME_leap10, fiend_frames_jump_up, fiend_run };
 
 static MonsterFrame fiend_frames_jump_down[] = {
         { ai_move },
@@ -325,11 +323,9 @@ static MonsterFrame fiend_frames_jump_down[] = {
         { ai_move },
         { ai_move },
         { ai_move },
-        { ai_move },
-        { ai_move },
         { ai_move }
 };
-MMOVE_T(fiend_move_jump_down) = { FRAME_leap01, FRAME_leap12, fiend_frames_jump_down, fiend_run };
+MMOVE_T(fiend_move_jump_down) = { FRAME_leap01, FRAME_leap10, fiend_frames_jump_down, fiend_run };
 
 static void fiend_jump_updown(gentity_t* self, BlockedJumpResult result) {
         if (!self->enemy)
