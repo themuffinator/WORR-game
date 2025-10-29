@@ -34,15 +34,25 @@ str_split
 =================
 */
 static inline std::vector<std::string> str_split(const std::string_view& str, char by) {
-	std::vector<std::string> out;
-	size_t start, end = 0;
+        std::vector<std::string> out;
 
-	while ((start = str.find_first_not_of(by, end)) != std::string_view::npos) {
-		end = str.find(by, start);
-		out.push_back(std::string{ str.substr(start, end - start) });
-	}
+        size_t start = 0;
+        while (start < str.size()) {
+                start = str.find_first_not_of(by, start);
+                if (start == std::string_view::npos)
+                        break;
 
-	return out;
+                const size_t end = str.find(by, start);
+                if (end == std::string_view::npos) {
+                        out.emplace_back(str.substr(start));
+                        break;
+                }
+
+                out.emplace_back(str.substr(start, end - start));
+                start = end + 1;
+        }
+
+        return out;
 }
 
 constexpr struct GameTypeRules {

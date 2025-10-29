@@ -499,16 +499,27 @@ edict_t *CreateTargetChangeLevel(const char *map)
 
 inline std::vector<std::string> str_split(const std::string_view &str, char by)
 {
-	std::vector<std::string> out;
-    size_t start, end = 0;
- 
-    while ((start = str.find_first_not_of(by, end)) != std::string_view::npos)
+    std::vector<std::string> out;
+
+    size_t start = 0;
+    while (start < str.size())
     {
-        end = str.find(by, start);
-		out.push_back(std::string{str.substr(start, end - start)});
+        start = str.find_first_not_of(by, start);
+        if (start == std::string_view::npos)
+            break;
+
+        const size_t end = str.find(by, start);
+        if (end == std::string_view::npos)
+        {
+            out.emplace_back(str.substr(start));
+            break;
+        }
+
+        out.emplace_back(str.substr(start, end - start));
+        start = end + 1;
     }
 
-	return out;
+    return out;
 }
 
 /*
