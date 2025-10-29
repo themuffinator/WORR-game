@@ -677,7 +677,8 @@ void SP_monster_vore(gentity_t* self) {
         if (self->spawnFlags.has(SPAWNFLAG_VORE_ONROOF)) {
                 self->s.angles[ROLL] = 180.0f;
                 self->gravityVector[Z] = 1.0f;
-                vore_physics_change(self);
+                self->mins = { -32, -32, -32 };
+                self->maxs = { 32, 32, 16 };
         }
 
         gi.linkEntity(self);
