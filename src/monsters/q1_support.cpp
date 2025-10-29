@@ -574,6 +574,8 @@ void fire_gib(gentity_t* self, const Vector3& start, const Vector3& aimDir, int 
         gi.linkEntity(gib);
 }
 
+void blaster_touch(gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf);
+
 void fire_plasmaball(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, float damageRadius) {
         gentity_t* plasma = Spawn();
         plasma->s.origin = start;
@@ -600,4 +602,38 @@ void fire_plasmaball(gentity_t* self, const Vector3& start, const Vector3& dir, 
         plasma->teamChain = nullptr;
 
         gi.linkEntity(plasma);
+}
+
+void fire_lightning(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, Effect effect) {
+        gentity_t* bolt = Spawn();
+        bolt->s.origin = start;
+        bolt->s.oldOrigin = start;
+        bolt->s.angles = VectorToAngles(dir);
+        bolt->velocity = dir * speed;
+        bolt->svFlags |= SVF_PROJECTILE;
+        bolt->moveType = MoveType::FlyMissile;
+        bolt->flags |= FL_DODGE;
+        bolt->clipMask = MASK_PROJECTILE;
+        if (self && self->client && !G_ShouldPlayersCollide(true))
+                bolt->clipMask &= ~CONTENTS_PLAYER;
+        bolt->solid = SOLID_BBOX;
+        bolt->s.effects |= effect;
+        bolt->s.modelIndex = gi.modelIndex("models/proj/lightning/tris.md2");
+        bolt->s.skinNum = 1;
+        bolt->s.sound = gi.soundIndex("weapons/tesla.wav");
+        bolt->owner = self;
+        bolt->touch = blaster_touch;
+        bolt->nextThink = level.time + 2_sec;
+        bolt->think = FreeEntity;
+        bolt->dmg = damage;
+        bolt->className = "bolt";
+        bolt->style = static_cast<int32_t>(ModID::Thunderbolt);
+
+        gi.linkEntity(bolt);
+
+        trace_t tr = gi.traceLine(self->s.origin, bolt->s.origin, bolt, bolt->clipMask);
+        if (tr.fraction < 1.0f) {
+                bolt->s.origin = tr.endPos + (tr.plane.normal * 1.0f);
+                bolt->touch(bolt, tr.ent, tr, false);
+        }
 }

@@ -129,6 +129,9 @@
     <ClInclude Include="monsters\m_ogre.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_eel.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_rotfish.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -144,7 +147,16 @@
     <ClInclude Include="monsters\m_spawn.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_overlord.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_spike.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_vore.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_wrath.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
     <ClInclude Include="monsters\m_enforcer.hpp">
@@ -156,10 +168,19 @@
     <ClInclude Include="monsters\m_knight.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_sword.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_shub.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
     <ClInclude Include="monsters\m_chthon.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_centroid.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
+    <ClInclude Include="monsters\m_dragon.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
     <ClInclude Include="monsters\m_scrag.hpp">
@@ -375,6 +396,9 @@
     <ClCompile Include="monsters\m_rotfish.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
+    <ClCompile Include="monsters\m_eel.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
     <ClCompile Include="monsters\m_grunt.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
@@ -387,7 +411,16 @@
     <ClCompile Include="monsters\m_spawn.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
+    <ClCompile Include="monsters\m_overlord.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_spike.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
     <ClCompile Include="monsters\m_vore.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_wrath.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_enforcer.cpp">
@@ -399,10 +432,19 @@
     <ClCompile Include="monsters\m_knight.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
+    <ClCompile Include="monsters\m_sword.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
     <ClCompile Include="monsters\m_shub.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_chthon.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_centroid.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_dragon.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_scrag.cpp">
