@@ -288,6 +288,8 @@ void SP_monster_zombie(gentity_t* self);
 void SP_monster_spawn(gentity_t* self);
 void SP_monster_spike(gentity_t* self);
 void SP_monster_vore(gentity_t* self);
+void SP_monster_overlord(gentity_t* self);
+void SP_monster_wrath(gentity_t* self);
 void SP_monster_enforcer(gentity_t* self);
 void SP_monster_knight(gentity_t* self);
 void SP_monster_hell_knight(gentity_t* self);
