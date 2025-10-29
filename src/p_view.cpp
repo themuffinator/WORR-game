@@ -257,86 +257,67 @@ similar to Quake III Arena, using Vector3 and direct trace calls.
 ===============
 */
 static void OffsetThirdPersonDeathView(gentity_t* ent) {
-	constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
-	constexpr Vector3 maxs = { 4.0f,  4.0f,  4.0f };
-	const float focusDist = 512.0f;
-	const float camRange = 80.0f;
-	const float camAngleDeg = 0.0f;
+        if (!ent || !ent->client)
+                return;
 
-	const float camAngleRad = camAngleDeg * M_PI / 180.0f;
-	const float forwardScale = cosf(camAngleRad);
-	const float sideScale = std::sinf(camAngleRad);
+        constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
+        constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
+        constexpr float focusDist = 512.0f;
+        constexpr float camRange = 80.0f;
+        constexpr float camAngleDeg = 0.0f;
 
-	// Eye origin
-	Vector3 viewOrigin = ent->s.origin;
-	viewOrigin.z += ent->viewHeight;
+        const float forwardScale = cosf(camAngleDeg * PIf / 180.0f);
+        const float sideScale = std::sinf(camAngleDeg * PIf / 180.0f);
 
-	// View angles for death camera
-	Vector3 viewAngles = ent->client->ps.viewAngles;
-	viewAngles.y = ent->client->killerYaw;
-	if (viewAngles.x > 45.0f)
-		viewAngles.x = 45.0f;
+        // Eye origin at the player's view height.
+        Vector3 viewOrigin = ent->s.origin;
+        viewOrigin.z += static_cast<float>(ent->viewHeight);
 
-	// Convert to directional vectors
-	const float pitch = DEG2RAD(viewAngles.x);
-	const float yaw = DEG2RAD(viewAngles.y);
+        // Determine the focus direction based on the killer's yaw.
+        Vector3 focusAngles = ent->client->ps.viewAngles;
+        focusAngles[YAW] = ent->client->killerYaw;
+        if (focusAngles[PITCH] > 45.0f)
+                focusAngles[PITCH] = 45.0f;
 
-	Vector3 forward = {
-		cosf(pitch) * cosf(yaw),
-		cosf(pitch) * std::sinf(yaw),
-		-std::sinf(pitch)
-	};
+        Vector3 focusForward;
+        AngleVectors(focusAngles, focusForward, nullptr, nullptr);
+        Vector3 focusPoint = viewOrigin + focusForward * focusDist;
 
-	const Vector3 up = { 0.0f, 0.0f, 1.0f };
-	Vector3 right = forward.cross(up);
+        // Base third-person camera orientation.
+        Vector3 cameraAngles = ent->client->ps.viewAngles;
+        cameraAngles[YAW] = ent->client->killerYaw;
+        cameraAngles[PITCH] *= 0.5f;
 
-	// Focus point in front of player
-	Vector3 focusPoint = viewOrigin + forward * focusDist;
+        Vector3 forward, right, up;
+        AngleVectors(cameraAngles, forward, right, up);
 
-	// Initial camera position behind and offset from player
-	Vector3 cameraPos = viewOrigin - forward * (camRange * forwardScale) - right * (camRange * sideScale);
-#if 0
-	// Trace to avoid clipping into geometry
-	trace_t tr = gi.trace(viewOrigin, mins, maxs, cameraPos, ent, MASK_SOLID);
-	if (tr.fraction != 1.0f) {
-		cameraPos = tr.endPos;
-		cameraPos.z += (1.0f - tr.fraction) * 32.0f;
+        Vector3 desiredPos = viewOrigin;
+        desiredPos.z += 8.0f;
+        desiredPos -= forward * (camRange * forwardScale);
+        desiredPos -= right * (camRange * sideScale);
 
-		tr = gi.trace(viewOrigin, mins, maxs, cameraPos, ent, MASK_SOLID);
-		cameraPos = tr.endPos;
-	}
-#endif
-	cameraPos = viewOrigin - forward * 512.0f; // force it back further
-	cameraPos.z += 64.0f;
+        // Prevent the camera from clipping into world geometry.
+        trace_t tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
+        if (tr.fraction < 1.0f) {
+                desiredPos = tr.endPos;
+                desiredPos.z += (1.0f - tr.fraction) * 32.0f;
 
-	// Apply view offset from player origin
-	ent->client->ps.viewOffset = cameraPos - ent->s.origin;
+                tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
+                desiredPos = tr.endPos;
+        }
 
-	// Aim the view angles toward the focus point
-	Vector3 toFocus = focusPoint - cameraPos;
-	float flatDist = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
+        ent->client->ps.viewOffset = desiredPos - ent->s.origin;
 
-	ent->client->ps.viewAngles.x = -atan2f(toFocus.z, flatDist) * 180.0f / M_PI;
-	ent->client->ps.viewAngles.y = ent->client->killerYaw;
-	ent->client->ps.viewAngles.z = 0.0f;
+        Vector3 toFocus = focusPoint - desiredPos;
+        float focusDistFlat = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
 
-	ent->svFlags &= ~SVF_NOCLIENT;
-	ent->svFlags &= ~SVF_INSTANCED;
+        ent->client->ps.viewAngles[PITCH] = -RAD2DEG(std::atan2(toFocus.z, focusDistFlat));
 
-	gi.Com_Print("ThirdPersonDeathView:\n");
-	gi.Com_PrintFmt("  camPos: {} {} {}\n", cameraPos.x, cameraPos.y, cameraPos.z);
-	gi.Com_PrintFmt("  ent->origin: {} {} {}\n", ent->s.origin.x, ent->s.origin.y, ent->s.origin.z);
-	gi.Com_PrintFmt("  viewOffset: {} {} {}\n", ent->client->ps.viewOffset.x, ent->client->ps.viewOffset.y, ent->client->ps.viewOffset.z);
-	gi.Com_PrintFmt("  viewAngles: pitch={} yaw={}\n", ent->client->ps.viewAngles.x, ent->client->ps.viewAngles.y);
-
-	if (ent->s.modelIndex == 0) {
-		gi.Com_Print("WARNING: Player modelIndex == 0 (not rendered)\n");
-	}
-	if (ent->svFlags & SVF_NOCLIENT) {
-		gi.Com_Print("WARNING: Player SVF_NOCLIENT is set\n");
-	}
-
-
+        float yawDeg = RAD2DEG(std::atan2(toFocus.y, toFocus.x));
+        if (yawDeg < 0.0f)
+                yawDeg += 360.0f;
+        ent->client->ps.viewAngles[YAW] = yawDeg;
+        ent->client->ps.viewAngles[ROLL] = 0.0f;
 }
 
 /*
@@ -370,20 +351,18 @@ static void G_CalcViewOffset(gentity_t* ent) {
 	if (ent->deadFlag && ClientIsPlaying(ent->client)) {
 		angles = {};
 
-		if (ent->flags & FL_SAM_RAIMI) {
-			ent->client->ps.viewAngles[ROLL] = 0;
-			ent->client->ps.viewAngles[PITCH] = 0;
-		}
-		else {
-			ent->client->ps.viewAngles[ROLL] = 40;
-			ent->client->ps.viewAngles[PITCH] = -15;
-		}
-		ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
-		//#if 0
-		OffsetThirdPersonDeathView(ent);
-		//#endif
-	}
-	else if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
+                if (ent->flags & FL_SAM_RAIMI) {
+                        ent->client->ps.viewAngles[ROLL] = 0;
+                        ent->client->ps.viewAngles[PITCH] = 0;
+                }
+                else {
+                        ent->client->ps.viewAngles[ROLL] = 40;
+                        ent->client->ps.viewAngles[PITCH] = -15;
+                }
+                ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
+                OffsetThirdPersonDeathView(ent);
+                return;
+        } else if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
 		// add angles based on weapon kick
 		angles = P_CurrentKickAngles(ent);
 
