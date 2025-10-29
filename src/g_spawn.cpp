@@ -291,9 +291,11 @@ void SP_monster_knight(gentity_t* self);
 void SP_monster_hell_knight(gentity_t* self);
 void SP_monster_wizard(gentity_t* self);
 void SP_monster_oldone(gentity_t* self);
+void SP_monster_chthon(gentity_t* self);
+void SP_monster_lavaman(gentity_t* self);
 void SP_monster_boss(gentity_t* self);
 
-void SP_event_lightning(gentity_t* self);
+void SP_target_chthon_lightning(gentity_t* self);
 
 // clang-format off
 static const std::initializer_list<spawn_t> spawns = {
@@ -557,11 +559,13 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_enforcer", SP_monster_enforcer },
 	{ "monster_knight", SP_monster_knight },
 	{ "monster_hell_knight", SP_monster_hell_knight },
-	{ "monster_wizard", SP_monster_wizard },
-	{ "monster_oldone", SP_monster_oldone },
-	{ "monster_boss", SP_monster_boss },
+        { "monster_wizard", SP_monster_wizard },
+        { "monster_oldone", SP_monster_oldone },
+        { "monster_chthon", SP_monster_chthon },
+        { "monster_lavaman", SP_monster_lavaman },
+        { "monster_boss", SP_monster_boss },
 
-	{ "event_lightning", SP_event_lightning }
+        { "target_chthon_lightning", SP_target_chthon_lightning }
 };
 // clang-format on
 

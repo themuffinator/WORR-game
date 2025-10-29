@@ -1419,10 +1419,10 @@ int CountPlayers() {
 }
 
 static THINK(BossExplode_think) (gentity_t* self) -> void {
-	// owner gone or changed
-	if (!self->owner->inUse || self->owner->s.modelIndex != self->style || self->count != self->owner->spawn_count) {
-		FreeEntity(self);
-		return;
+        // owner gone or changed
+        if (!self->owner->inUse || self->owner->s.modelIndex != self->style || self->count != self->owner->spawn_count) {
+                FreeEntity(self);
+                return;
 	}
 
 	Vector3 org = self->owner->s.origin + self->owner->mins;
@@ -1442,15 +1442,49 @@ static THINK(BossExplode_think) (gentity_t* self) -> void {
 }
 
 void BossExplode(gentity_t* self) {
-	// no blowy on deady
-	if (self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
-		return;
+        // no blowy on deady
+        if (self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
+                return;
 
-	gentity_t* exploder = Spawn();
-	exploder->owner = self;
-	exploder->count = self->spawn_count;
-	exploder->style = self->s.modelIndex;
-	exploder->think = BossExplode_think;
-	exploder->nextThink = level.time + random_time(75_ms, 250_ms);
-	exploder->viewHeight = 0;
+        gentity_t* exploder = Spawn();
+        exploder->owner = self;
+        exploder->count = self->spawn_count;
+        exploder->style = self->s.modelIndex;
+        exploder->think = BossExplode_think;
+        exploder->nextThink = level.time + random_time(75_ms, 250_ms);
+        exploder->viewHeight = 0;
+}
+
+static THINK(Q1BossExplode_think) (gentity_t* self) -> void {
+        if (!self->owner->inUse || self->owner->s.modelIndex != self->style || self->count != self->owner->spawn_count) {
+                FreeEntity(self);
+                return;
+        }
+
+        Vector3 org = self->owner->s.origin + self->owner->mins;
+
+        org.x += frandom() * self->owner->size.x;
+        org.y += frandom() * self->owner->size.y;
+        org.z += frandom() * self->owner->size.z;
+
+        gi.WriteByte(svc_temp_entity);
+        gi.WriteByte(!(self->viewHeight % 3) ? TE_EXPLOSION1 : TE_EXPLOSION1_NL);
+        gi.WritePosition(org);
+        gi.multicast(org, MULTICAST_PVS, false);
+
+        self->viewHeight++;
+        self->nextThink = level.time + random_time(50_ms, 200_ms);
+}
+
+void Q1BossExplode(gentity_t* self) {
+        if (self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
+                return;
+
+        gentity_t* exploder = Spawn();
+        exploder->owner = self;
+        exploder->count = self->spawn_count;
+        exploder->style = self->s.modelIndex;
+        exploder->think = Q1BossExplode_think;
+        exploder->nextThink = level.time + random_time(75_ms, 250_ms);
+        exploder->viewHeight = 0;
 }
