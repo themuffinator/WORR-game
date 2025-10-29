@@ -22,6 +22,7 @@
 
 #include "g_local.hpp"
 #include "bots/bot_includes.hpp"
+#include "char_array_utils.hpp"
 #include "command_registration.hpp"
 #include "command_voting.hpp"
 #include <fstream>
@@ -1280,10 +1281,10 @@ void BeginIntermission(gentity_t* targ) {
 	if (level.intermission.time)
 		return; // already triggered
 
-	if (!targ || targ->map.empty()) {
-		gi.Com_ErrorFmt("{}: called with null map target.", __FUNCTION__);
-		return;
-	}
+        if (!targ || CharArrayIsBlank(targ->map)) {
+                gi.Com_ErrorFmt("{}: called with null map target.", __FUNCTION__);
+                return;
+        }
 
 	// Score adjustment (for duel, gauntlet, etc.)
 	Gauntlet_MatchEnd_AdjustScores();

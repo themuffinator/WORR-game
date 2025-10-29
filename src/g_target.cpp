@@ -19,6 +19,7 @@
 //   triggers) and `target_delay` (to time events).
 
 #include "g_local.hpp"
+#include "char_array_utils.hpp"
 
 /*QUAKED target_temp_entity (1 0 0) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Fire an origin based temp entity event to the clients.
@@ -655,15 +656,15 @@ static USE(use_target_changelevel)(gentity_t* self, gentity_t* other, gentity_t*
 		}
 	}
 
-	BeginIntermission(self);
+        BeginIntermission(self);
 }
 
 void SP_target_changelevel(gentity_t* ent) {
-	if (ent->map.empty()) {
-		gi.Com_PrintFmt("{}: no map\n", *ent);
-		FreeEntity(ent);
-		return;
-	}
+        if (CharArrayIsBlank(ent->map)) {
+                gi.Com_PrintFmt("{}: no map\n", *ent);
+                FreeEntity(ent);
+                return;
+        }
 
 	ent->use = use_target_changelevel;
 	ent->svFlags = SVF_NOCLIENT;

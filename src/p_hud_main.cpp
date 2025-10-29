@@ -357,18 +357,18 @@ void DrawHelpComputer(gentity_t* ent) {
 	else {
 		int y = 66;
 
-		if (!game.help[0].message.empty()) {
-			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
-				"xv 0 yv {} loc_cstring 0 \"{}\" ",
-				y, y + 11, game.help[0].message.data());
-			y += 58;
-		}
+                if (!game.help[0].empty()) {
+                        helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
+                                "xv 0 yv {} loc_cstring 0 \"{}\" ",
+                                y, y + 11, game.help[0].message.data());
+                        y += 58;
+                }
 
-		if (!game.help[1].message.empty()) {
-			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
-				"xv 0 yv {} loc_cstring 0 \"{}\" ",
-				y, y + 11, game.help[1].message.data());
-		}
+                if (!game.help[1].empty()) {
+                        helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
+                                "xv 0 yv {} loc_cstring 0 \"{}\" ",
+                                y, y + 11, game.help[1].message.data());
+                }
 	}
 
 	helpString += fmt::format(
