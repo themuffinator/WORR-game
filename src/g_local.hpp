@@ -3439,11 +3439,15 @@ void monster_fire_shotgun(gentity_t* self, const Vector3& start, const Vector3& 
 void monster_fire_blaster(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType, Effect effect);
 void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
-	MonsterMuzzleFlashID flashType);
+        MonsterMuzzleFlashID flashType);
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+void monster_fire_flakcannon(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType);
+void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
-	MonsterMuzzleFlashID flashType);
+        MonsterMuzzleFlashID flashType);
 void monster_fire_homing_pod(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_railgun(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int kick,

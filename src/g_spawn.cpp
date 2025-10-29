@@ -279,6 +279,7 @@ void SP_monster_shambler(gentity_t* self);
 void SP_monster_dog(gentity_t* self);
 void SP_monster_ogre(gentity_t* self);
 void SP_monster_ogre_marksman(gentity_t* self);
+void SP_monster_ogre_multigrenade(gentity_t* self);
 void SP_monster_fish(gentity_t* self);
 void SP_monster_army(gentity_t* self);
 void SP_monster_fiend(gentity_t* self);
@@ -544,8 +545,9 @@ static const std::initializer_list<spawn_t> spawns = {
 
 	{ "monster_shambler", SP_monster_shambler },
 	{ "monster_dog", SP_monster_dog },
-	{ "monster_ogre", SP_monster_ogre },
-	{ "monster_ogre_marksman", SP_monster_ogre_marksman },
+        { "monster_ogre", SP_monster_ogre },
+        { "monster_ogre_marksman", SP_monster_ogre_marksman },
+        { "monster_ogre_multigrenade", SP_monster_ogre_multigrenade },
 	{ "monster_fish", SP_monster_fish },
 	{ "monster_army", SP_monster_army },
 	{ "monster_demon1", SP_monster_fiend },

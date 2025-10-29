@@ -43,9 +43,37 @@ void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3
 }
 
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
-	fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
-	monster_muzzleflash(self, start, flashType);
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+        fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
+        monster_muzzleflash(self, start, flashType);
+}
+
+void monster_fire_flakcannon(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType) {
+        Vector3 forward, right, up;
+        const Vector3 angles = VectorToAngles(aimDir);
+        AngleVectors(angles, forward, right, up);
+
+        for (int i = 0; i < count; ++i) {
+                const float r = crandom_open() * static_cast<float>(hSpread);
+                const float u = crandom_open() * static_cast<float>(vSpread);
+                Vector3 dir = (forward * 8192.0f) + (right * r) + (up * u);
+                dir.normalize();
+                fire_flechette(self, start, dir, damage, speed, damage);
+        }
+
+        monster_muzzleflash(self, start, flashType);
+}
+
+static void fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        GameTime timer, float splashRadius, float rightAdjust, float upAdjust) {
+        fire_grenade(self, start, aimDir, damage, speed, timer, splashRadius, rightAdjust, upAdjust, true);
+}
+
+void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+        fire_multigrenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust);
+        monster_muzzleflash(self, start, flashType);
 }
 
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
