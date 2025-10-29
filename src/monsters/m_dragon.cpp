@@ -93,6 +93,7 @@ static MonsterFrame dragon_frames_run[] = {
 MMOVE_T(dragon_move_run) = { FRAME_drgfly01, FRAME_drgfly13, dragon_frames_run, nullptr };
 
 MONSTERINFO_RUN(dragon_run) (gentity_t* self) -> void {
+        self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
         M_SetAnimation(self, &dragon_move_run);
 }
 
@@ -348,34 +349,34 @@ static MonsterFrame dragon_frames_attack1[] = {
 };
 MMOVE_T(dragon_move_attack1) = { FRAME_drgfir01, FRAME_drgfir10, dragon_frames_attack1, nullptr };
 
-static void dragon_postfix1(gentity_t* self) {
+static void dragon_resume_run(gentity_t* self, int nextFrame) {
+        self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
         M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly05;
+        self->monsterInfo.nextFrame = nextFrame;
+}
+
+static void dragon_postfix1(gentity_t* self) {
+        dragon_resume_run(self, FRAME_drgfly05);
 }
 
 static void dragon_postfix2(gentity_t* self) {
-        M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly07;
+        dragon_resume_run(self, FRAME_drgfly07);
 }
 
 static void dragon_postfix3(gentity_t* self) {
-        M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly09;
+        dragon_resume_run(self, FRAME_drgfly09);
 }
 
 static void dragon_postfix4(gentity_t* self) {
-        M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly11;
+        dragon_resume_run(self, FRAME_drgfly11);
 }
 
 static void dragon_postfix5(gentity_t* self) {
-        M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly13;
+        dragon_resume_run(self, FRAME_drgfly13);
 }
 
 static void dragon_postfix6(gentity_t* self) {
-        M_SetAnimation(self, &dragon_move_run, false);
-        self->monsterInfo.nextFrame = FRAME_drgfly03;
+        dragon_resume_run(self, FRAME_drgfly03);
 }
 
 static MonsterFrame dragon_frames_fix1[] = {
