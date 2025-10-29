@@ -3436,7 +3436,9 @@ void monster_fire_blaster(gentity_t* self, const Vector3& start, const Vector3& 
 void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_homing_pod(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
@@ -3577,6 +3579,8 @@ void fire_blaster(gentity_t* self, const Vector3& start, const Vector3& aimDir, 
 void fire_blueblaster(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, Effect effect);
 void fire_greenblaster(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, Effect effect, bool hyper);
 void fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, GameTime timer, float splashRadius, float rightAdjust, float upAdjust, bool monster);
+void fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, GameTime timer,
+        float splashRadius, float rightAdjust, float upAdjust, bool monster);
 void fire_handgrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, GameTime timer, float splashRadius, bool held);
 gentity_t* fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, float splashRadius, int splashDamage);
 void fire_rail(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int kick);

@@ -43,9 +43,15 @@ void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3
 }
 
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
-	fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
-	monster_muzzleflash(self, start, flashType);
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+        fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
+        monster_muzzleflash(self, start, flashType);
+}
+
+void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
+        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+        fire_multigrenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
+        monster_muzzleflash(self, start, flashType);
 }
 
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,

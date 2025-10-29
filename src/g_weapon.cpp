@@ -758,7 +758,106 @@ void fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, 
 	grenade->splashRadius = splashRadius;
 	grenade->className = "grenade";
 
-	gi.linkEntity(grenade);
+        gi.linkEntity(grenade);
+}
+
+static void MultiGrenadeExplodeReal(gentity_t* ent, gentity_t* other, const Vector3& normal) {
+        if (ent->owner && ent->owner->client)
+                G_PlayerNoise(ent->owner, ent->s.origin, PlayerNoise::Impact);
+
+        if (other && other->takeDamage) {
+                Vector3 dir = other->s.origin - ent->s.origin;
+                Damage(other, ent, ent->owner, dir, ent->s.origin, normal, ent->dmg, ent->dmg, DamageFlags::Normal, ModID::GrenadeLauncher);
+        }
+
+        RadiusDamage(ent, ent->owner, (float)ent->dmg, other, ent->splashRadius, DamageFlags::Normal | DamageFlags::StatOnce,
+                ModID::GrenadeLauncher_Splash);
+
+        Vector3 origin = ent->s.origin + normal;
+        gi.WriteByte(svc_temp_entity);
+        if (ent->waterLevel) {
+                if (ent->groundEntity)
+                        gi.WriteByte(TE_GRENADE_EXPLOSION_WATER);
+                else
+                        gi.WriteByte(TE_ROCKET_EXPLOSION_WATER);
+        }
+        else {
+                if (ent->groundEntity)
+                        gi.WriteByte(TE_GRENADE_EXPLOSION);
+                else
+                        gi.WriteByte(TE_ROCKET_EXPLOSION);
+        }
+        gi.WritePosition(origin);
+        gi.multicast(ent->s.origin, MULTICAST_PHS, false);
+
+        FreeEntity(ent);
+}
+
+static THINK(MultiGrenade_Explode) (gentity_t* ent) -> void {
+        MultiGrenadeExplodeReal(ent, nullptr, ent->velocity * -0.02f);
+}
+
+static TOUCH(MultiGrenade_Touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
+        if (other == ent->owner)
+                return;
+
+        if (tr.surface && (tr.surface->flags & SURF_SKY)) {
+                FreeEntity(ent);
+                return;
+        }
+
+        if (!other->takeDamage) {
+                gi.sound(ent, CHAN_VOICE, gi.soundIndex("weapons/grenlb1b.wav"), 1, ATTN_NORM, 0);
+                return;
+        }
+
+        MultiGrenadeExplodeReal(ent, other, tr.plane.normal);
+}
+
+void fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, GameTime timer,
+        float splashRadius, float rightAdjust, float upAdjust, bool monster) {
+        gentity_t* grenade;
+        Vector3 dir;
+        Vector3 forward, right, up;
+
+        (void)monster;
+
+        dir = VectorToAngles(aimDir);
+        AngleVectors(dir, forward, right, up);
+
+        grenade = Spawn();
+        grenade->s.origin = start;
+        grenade->velocity = aimDir * speed;
+
+        if (upAdjust) {
+                float gravityAdjustment = level.gravity / 800.f;
+                grenade->velocity += up * upAdjust * gravityAdjustment;
+        }
+
+        if (rightAdjust)
+                grenade->velocity += right * rightAdjust;
+
+        grenade->moveType = MoveType::Bounce;
+        grenade->clipMask = MASK_PROJECTILE;
+        if (self->client && !G_ShouldPlayersCollide(true))
+                grenade->clipMask &= ~CONTENTS_PLAYER;
+        grenade->solid = SOLID_BBOX;
+        grenade->svFlags |= SVF_PROJECTILE;
+        grenade->flags |= (FL_DODGE | FL_TRAP);
+        grenade->s.effects |= EF_GRENADE;
+        grenade->speed = speed;
+        grenade->aVelocity = { crandom() * 360.0f, crandom() * 360.0f, crandom() * 360.0f };
+        grenade->s.modelIndex = gi.modelIndex("models/objects/grenade/tris.md2");
+        grenade->nextThink = level.time + timer;
+        grenade->think = MultiGrenade_Explode;
+        grenade->s.effects |= EF_GRENADE_LIGHT;
+        grenade->owner = self;
+        grenade->touch = MultiGrenade_Touch;
+        grenade->dmg = damage;
+        grenade->splashRadius = splashRadius;
+        grenade->className = "grenade";
+
+        gi.linkEntity(grenade);
 }
 
 void fire_handgrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, GameTime timer, float splashRadius, bool held) {
