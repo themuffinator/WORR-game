@@ -869,6 +869,12 @@ namespace Commands {
 
 		Team team = StringToTeamNum(args.getString(1).data());
 		if (team != Team::None) {
+			const bool isBot = (ent->svFlags & SVF_BOT) || ent->client->sess.is_a_bot;
+			if (!isBot && FreezeTag_IsFrozen(ent) && team != ent->client->sess.team) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_cant_change_teams");
+				return;
+			}
+
 			::SetTeam(ent, team, false, false, false);
 		}
 	}
