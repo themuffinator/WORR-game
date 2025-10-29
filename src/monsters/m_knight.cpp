@@ -51,20 +51,7 @@ static void knight_sword_sound(gentity_t* self) {
         gi.sound(self, CHAN_WEAPON, s_sword_hit, 1, ATTN_NORM, 0);
 }
 
-static void knight_check_dist(gentity_t* self) {
-        if (!self->enemy || !self->enemy->inUse || self->enemy->health <= 0)
-                return;
-
-        if (range_to(self, self->enemy) <= RANGE_MELEE) {
-                self->monsterInfo.nextFrame = FRAME_attackb1;
-        }
-        else if (frandom() > 0.6f) {
-                self->monsterInfo.nextFrame = FRAME_runattack1;
-        }
-        else {
-                self->monsterInfo.nextFrame = FRAME_run1;
-        }
-}
+static void knight_check_dist(gentity_t* self);
 
 MONSTERINFO_SETSKIN(knight_setskin) (gentity_t* self) -> void {
         if (self->health < (self->maxHealth / 2))
@@ -219,6 +206,23 @@ MONSTERINFO_RUN(knight_run) (gentity_t* self) -> void {
         }
 
         M_SetAnimation(self, &knight_move_run);
+}
+
+static void knight_check_dist(gentity_t* self) {
+        if (!self->enemy || !self->enemy->inUse || self->enemy->health <= 0)
+                return;
+
+        if (range_to(self, self->enemy) <= RANGE_MELEE) {
+                M_SetAnimation(self, &knight_move_attack);
+                return;
+        }
+
+        if (frandom() > 0.6f) {
+                M_SetAnimation(self, &knight_move_attack_run);
+        }
+        else {
+                M_SetAnimation(self, &knight_move_run);
+        }
 }
 
 static MonsterFrame knight_frames_pain1[] = {
