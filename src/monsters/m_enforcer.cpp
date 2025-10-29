@@ -22,6 +22,7 @@ Core behavior:
 // -----------------------------------------------------------------------------
 static constexpr Vector3 ENFORCER_MINS = { -16.0f, -16.0f, -24.0f };
 static constexpr Vector3 ENFORCER_MAXS = { 16.0f,  16.0f,  32.0f };
+static constexpr Vector3 ENFORCER_CORPSE_MAXS = { 16.0f, 16.0f, -8.0f };
 static constexpr int     ENFORCER_HEALTH = 80;
 static constexpr int     ENFORCER_GIBHEALTH = -40;
 static constexpr int     ENFORCER_MASS = 200;
@@ -98,7 +99,7 @@ enforcer_setskin
 ===============
 */
 MONSTERINFO_SETSKIN(enforcer_setskin) (gentity_t* self) -> void {
-        if (self->health < (self->maxHealth * 0.5f))
+        if (self->health < (self->maxHealth / 2))
                 self->s.skinNum |= 1;
         else
                 self->s.skinNum &= ~1;
@@ -366,15 +367,22 @@ static PAIN(enforcer_pain) (gentity_t* self, gentity_t* other, float kick, int d
 enforcer_dead
 ===============
 */
+static void enforcer_death_shrink(gentity_t* self) {
+        self->svFlags |= SVF_DEADMONSTER;
+        self->mins = ENFORCER_MINS;
+        self->maxs = ENFORCER_CORPSE_MAXS;
+        gi.linkEntity(self);
+}
+
 static void enforcer_dead(gentity_t* self) {
-	self->mins = { -16, -16, -24 };
-	self->maxs = { 16, 16, -8 };
-	monster_dead(self);
+        self->mins = ENFORCER_MINS;
+        self->maxs = ENFORCER_CORPSE_MAXS;
+        monster_dead(self);
 }
 
 static MonsterFrame enforcer_frames_death[] = {
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move },
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move }
+        { ai_move }, { ai_move }, { ai_move, 0, enforcer_death_shrink }, { ai_move },
+        { ai_move }, { ai_move }, { ai_move }, { ai_move }
 };
 MMOVE_T(enforcer_move_death) = { FRAME_death01, FRAME_death08, enforcer_frames_death, enforcer_dead };
 
