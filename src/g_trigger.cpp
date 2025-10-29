@@ -19,6 +19,7 @@
 //   for all trigger entities.
 
 #include "g_local.hpp"
+#include "char_array_utils.hpp"
 
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_MONSTER = 0x01_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_NOT_PLAYER = 0x02_spawnflag;
@@ -1365,8 +1366,8 @@ void SP_trigger_coop_relay(gentity_t* self) {
 	if (!self->message)
 		self->message = "$g_coop_wait_for_players";
 
-	if (self->map.empty())
-		strncpy(self->map.data(), "$g_coop_players_waiting_for_you", sizeof(self->map));
+        if (CharArrayIsBlank(self->map))
+                strncpy(self->map.data(), "$g_coop_players_waiting_for_you", sizeof(self->map));
 
 	if (!self->wait)
 		self->wait = 1;
