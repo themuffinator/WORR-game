@@ -260,6 +260,11 @@ static void OffsetThirdPersonDeathView(gentity_t* ent) {
         if (!ent || !ent->client)
                 return;
 
+        // Ensure the corpse is visible to its owner before manipulating the
+        // third-person camera.
+        ent->svFlags &= ~SVF_INSTANCED;
+        ent->s.instanceBits = 0;
+
         constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
         constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
         constexpr float focusDist = 512.0f;
