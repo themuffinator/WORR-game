@@ -515,6 +515,8 @@ static void chthon_gib(gentity_t* self) {
                         { "models/objects/gibs/sm_meat/tris.md2" },
                         { "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
                 });
+
+        monster_dead(self);
 }
 
 static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
