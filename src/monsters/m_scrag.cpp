@@ -15,6 +15,7 @@ No behavior or stats changed.
 #include "../g_local.hpp"
 #include "m_scrag.hpp"
 #include "m_flash.hpp"
+#include "q1_support.hpp"
 
 // -----------------------------------------------------------------------------
 // Tunables (unchanged to preserve behavior)
@@ -22,8 +23,8 @@ No behavior or stats changed.
 static constexpr float SCRAG_MODEL_SCALE = 1.0f;
 static constexpr int   SCRAG_HEALTH = 80;
 static constexpr int   SCRAG_GIB_HEALTH = -40;
-static constexpr int   SCRAG_DAMAGE = 12;    // wizspike-ish
-static constexpr int   SCRAG_SPEED = 700;   // projectile speed
+static constexpr int   SCRAG_DAMAGE = 10;    // wizspike-ish
+static constexpr int   SCRAG_SPEED = 500;   // projectile speed
 static const Vector3    SCRAG_MUZZLE_OFFSET = { 24.0f, 0.0f, 16.0f };
 
 // -----------------------------------------------------------------------------
@@ -84,11 +85,12 @@ static void scrag_fire(gentity_t* self) {
 	Vector3 dir = end - start;
 	dir.normalize();
 
-	gi.sound(self, CHAN_WEAPON, s_fire, 1, ATTN_NORM, 0);
+        gi.sound(self, CHAN_WEAPON, s_fire, 1, ATTN_NORM, 0);
 
-	// Reuse a flier muzzleflash so visuals stay consistent
-	const MonsterMuzzleFlashID flash = MZ2_FLYER_BLASTER_1;
-	monster_fire_blaster(self, start, dir, SCRAG_DAMAGE, SCRAG_SPEED, flash, EF_BLASTER);
+        // Match Quake 1's green acid bolt while keeping the familiar flash cue.
+        const MonsterMuzzleFlashID flash = MZ2_FLYER_BLASTER_1;
+        monster_muzzleflash(self, start, flash);
+        fire_acid(self, start, dir, SCRAG_DAMAGE, SCRAG_SPEED);
 }
 
 /*

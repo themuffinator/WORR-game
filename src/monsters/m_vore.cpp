@@ -16,6 +16,7 @@ VORE (Shalrath) - WOR port
 #include "../g_local.hpp"
 #include "m_vore.hpp"
 #include "m_flash.hpp"
+#include "q1_support.hpp"
 
 // -----------------------------------------------------------------------------
 // Config
@@ -25,6 +26,7 @@ static const float VORE_POD_SPEED = 550.0f;
 // static const float VORE_POD_TURNRATE = 0.045f; // handled in projectile think (g_weapon.cpp) if used
 static const float VORE_MIN_RANGE = 160.0f;
 static const float VORE_MAX_RANGE = 1024.0f;
+static const float VORE_POD_TURN_FRACTION = 0.075f;
 
 // -----------------------------------------------------------------------------
 // Sounds
@@ -186,8 +188,10 @@ static void vore_fire(gentity_t* self) {
 
 	gi.sound(self, CHAN_WEAPON, snd_attack2, 1, ATTN_NORM, 0);
 
-	// follow Chick’s pattern: call wrapper that handles the muzzleflash
-	monster_fire_homing_pod(self, start, aim, VORE_POD_DAMAGE, VORE_POD_SPEED, flashNumber);
+	// Launch the tracking pod with Quake 1 behaviour.
+        fire_vorepod(self, start, aim, VORE_POD_DAMAGE, static_cast<int>(VORE_POD_SPEED),
+                static_cast<float>(VORE_POD_DAMAGE), VORE_POD_DAMAGE, VORE_POD_TURN_FRACTION, 0);
+        monster_muzzleflash(self, start, flashNumber);
 }
 
 /*

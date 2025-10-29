@@ -179,6 +179,7 @@
     <ClInclude Include="monsters\m_widow2.hpp" />
     <ClInclude Include="monsters\m_scrag.hpp" />
     <ClInclude Include="monsters\m_zombie.hpp" />
+    <ClInclude Include="monsters\q1_support.hpp" />
     <ClInclude Include="q_std.hpp" />
     <ClInclude Include="q_vec3.hpp" />
   </ItemGroup>
@@ -280,6 +281,7 @@
     <ClCompile Include="monsters\m_widow2.cpp" />
     <ClCompile Include="monsters\m_scrag.cpp" />
     <ClCompile Include="monsters\m_zombie.cpp" />
+    <ClCompile Include="monsters\q1_support.cpp" />
     <ClCompile Include="p_client.cpp" />
     <ClCompile Include="p_hud_main.cpp" />
     <ClCompile Include="p_hud_scoreboard.cpp" />

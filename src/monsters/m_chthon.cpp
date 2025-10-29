@@ -15,6 +15,7 @@ Behavior overview
 #include "../g_local.hpp"
 #include "m_chthon.hpp"
 #include "m_flash.hpp"
+#include "q1_support.hpp"
 
 // -----------------------------------------------------------------------------
 // Tunables
@@ -94,9 +95,8 @@ static void chthon_fireball(gentity_t* self) {
 
 	gi.sound(self, CHAN_WEAPON, s_attack, 1, ATTN_NORM, 0);
 
-	// Heavy, slow "lava ball" using rocket plumbing:
-	// damage 40, splash handled by monster_fire_rocket (damage+20), speed 400.
-	monster_fire_rocket(self, start, dir, 40, 400, MZ2_CHTON_ROCKET_1);
+	// Heavy, slow "lava ball" matching Quake 1 behaviour.
+	fire_lavaball(self, start, dir, 40, 400, 40.0f, 40);
 }
 
 /*
@@ -255,6 +255,7 @@ static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attack
 	// If you have death animations, trigger them here, e.g.:
 	// M_SetAnimation(self, &chthon_move_death1);
 	// Otherwise, remove the corpse in the standard way.
+	Q1BossExplode(self);
 	chthon_dead(self);
 }
 
