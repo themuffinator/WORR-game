@@ -126,6 +126,9 @@
     <ClInclude Include="monsters\m_ogre.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_eel.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_rotfish.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -367,6 +370,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_rotfish.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_eel.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_grunt.cpp">
