@@ -64,8 +64,11 @@ void OpenMapSelectorMenu(gentity_t* ent) {
         builder.update([=](gentity_t* ent, const Menu& m) {
                 auto& ms = level.mapSelector;
                 auto& menu = const_cast<Menu&>(m);
-		const int clientNum = ent->s.number;
-		const int vote = ms.votes[clientNum];
+                const int clientNum = ent->s.number - 1;
+                if (clientNum < 0 || clientNum >= MAX_CLIENTS)
+                        return;
+
+                const int vote = ms.votes[clientNum];
 		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && ms.candidates[vote]);
 
 		if (!hasVoted) {
