@@ -36,4 +36,6 @@ enum {
         FRAME_deathb1, FRAME_deathb2, FRAME_deathb3, FRAME_deathb4, FRAME_deathb5, FRAME_deathb6, FRAME_deathb7, FRAME_deathb8, FRAME_deathb9, FRAME_deathb10, FRAME_deathb11
 };
 
+constexpr float MODEL_SCALE = 1.0f;
+
 void SP_monster_knight(gentity_t *self);
