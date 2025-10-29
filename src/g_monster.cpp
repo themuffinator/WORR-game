@@ -785,6 +785,17 @@ void M_ProcessPain(gentity_t* e) {
 					e->monsterInfo.commander = nullptr;
 				}
 			}
+			if (e->monsterInfo.aiFlags & AI_SPAWNED_OLDONE) {
+				if (e->monsterInfo.commander && e->monsterInfo.commander->inUse &&
+					!strcmp(e->monsterInfo.commander->className, "monster_oldone")) {
+					if (e->monsterInfo.commander->monsterInfo.monster_used > 0) {
+						e->monsterInfo.commander->monsterInfo.monster_used -= e->monsterInfo.monster_slots;
+						if (e->monsterInfo.commander->monsterInfo.monster_used < 0)
+							e->monsterInfo.commander->monsterInfo.monster_used = 0;
+					}
+					e->monsterInfo.commander = nullptr;
+				}
+			}
 
 			if (!(e->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && e->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
 				G_MonsterKilled(e);

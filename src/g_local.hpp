@@ -1075,29 +1075,30 @@ enum monster_ai_flags_t : uint64_t {
 	AI_SPAWNED_CARRIER = bit_v<22>, // both do_not_count and spawned are set for spawned monsters
 	AI_SPAWNED_MEDIC_C = bit_v<23>, // both do_not_count and spawned are set for spawned monsters
 	AI_SPAWNED_WIDOW = bit_v<24>,	 // both do_not_count and spawned are set for spawned monsters
-	AI_BLOCKED = bit_v<25>, // used by blocked_checkattack: set to say I'm attacking while blocked (prevents run-attacks)
-	AI_SPAWNED_ALIVE = bit_v<26>, // [Paril-KEX] for spawning dead
-	AI_SPAWNED_DEAD = bit_v<27>,
-	AI_HIGH_TICK_RATE = bit_v<28>, // not limited by 10hz actions
-	AI_NO_PATH_FINDING = bit_v<29>, // don't try nav nodes for path finding
-	AI_PATHING = bit_v<30>, // using nav nodes currently
-	AI_STINKY = bit_v<31>, // spawn flies
-	AI_STUNK = bit_v<32>, // already spawned files
+	AI_SPAWNED_OLDONE = bit_v<25>,
+	AI_BLOCKED = bit_v<26>, // used by blocked_checkattack: set to say I'm attacking while blocked (prevents run-attacks)
+	AI_SPAWNED_ALIVE = bit_v<27>, // [Paril-KEX] for spawning dead
+	AI_SPAWNED_DEAD = bit_v<28>,
+	AI_HIGH_TICK_RATE = bit_v<29>, // not limited by 10hz actions
+	AI_NO_PATH_FINDING = bit_v<30>, // don't try nav nodes for path finding
+	AI_PATHING = bit_v<31>, // using nav nodes currently
+	AI_STINKY = bit_v<32>, // spawn flies
+	AI_STUNK = bit_v<33>, // already spawned files
 
-	AI_ALTERNATE_FLY = bit_v<33>, // use alternate flying mechanics; see monsterInfo.fly_xxx
-	AI_TEMP_MELEE_COMBAT = bit_v<34>, // temporarily switch to the melee combat style
-	AI_FORGET_ENEMY = bit_v<35>,			// forget the current enemy
-	AI_DOUBLE_TROUBLE = bit_v<36>, // JORG only
-	AI_REACHED_HOLD_COMBAT = bit_v<37>,
-	AI_THIRD_EYE = bit_v<38>,
+	AI_ALTERNATE_FLY = bit_v<34>, // use alternate flying mechanics; see monsterInfo.fly_xxx
+	AI_TEMP_MELEE_COMBAT = bit_v<35>, // temporarily switch to the melee combat style
+	AI_FORGET_ENEMY = bit_v<36>,			// forget the current enemy
+	AI_DOUBLE_TROUBLE = bit_v<37>, // JORG only
+	AI_REACHED_HOLD_COMBAT = bit_v<38>,
+	AI_THIRD_EYE = bit_v<39>,
 
-	AI_CHTHON_VULNERABLE = bit_v<39>, // can be damaged
-	AI_OLDONE_VULNERABLE = bit_v<40>, // can be damaged
+	AI_CHTHON_VULNERABLE = bit_v<40>, // can be damaged
+	AI_OLDONE_VULNERABLE = bit_v<41>, // can be damaged
 };
 MAKE_ENUM_BITFLAGS(monster_ai_flags_t);
 
 constexpr monster_ai_flags_t AI_SPAWNED_MASK =
-AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW; // mask to catch all three flavors of spawned
+AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW | AI_SPAWNED_OLDONE; // mask to catch all three flavors of spawned
 
 // monster attack state
 
