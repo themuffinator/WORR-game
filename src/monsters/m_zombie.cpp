@@ -729,7 +729,9 @@ void SP_monster_zombie(gentity_t* self) {
         self->maxs = zombie_alive_maxs;
 
         self->health = self->maxHealth = 60 * st.health_multiplier;
-        self->gibHealth = 0;
+        // Negative gibHealth ensures standard feign-death flow still runs unless a
+        // particularly high-damage attack lands, matching the original behavior.
+        self->gibHealth = -35;
         self->mass = 100;
         self->count = ZSTATE_NORMAL;
 
