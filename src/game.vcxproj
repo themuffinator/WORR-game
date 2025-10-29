@@ -177,6 +177,7 @@
     <ClInclude Include="monsters\m_vore.hpp" />
     <ClInclude Include="monsters\m_widow.hpp" />
     <ClInclude Include="monsters\m_widow2.hpp" />
+    <ClInclude Include="monsters\m_centroid.hpp" />
     <ClInclude Include="monsters\m_scrag.hpp" />
     <ClInclude Include="monsters\m_zombie.hpp" />
     <ClInclude Include="monsters\q1_support.hpp" />
@@ -244,6 +245,7 @@
     <ClCompile Include="monsters\m_carrier.cpp" />
     <ClCompile Include="monsters\m_chick.cpp" />
     <ClCompile Include="monsters\m_chthon.cpp" />
+    <ClCompile Include="monsters\m_centroid.cpp" />
     <ClCompile Include="monsters\m_dog.cpp" />
     <ClCompile Include="monsters\m_enforcer.cpp" />
     <ClCompile Include="monsters\m_fiend.cpp" />

@@ -282,6 +282,7 @@ void SP_monster_ogre_marksman(gentity_t* self);
 void SP_monster_ogre_multigrenade(gentity_t* self);
 void SP_monster_fish(gentity_t* self);
 void SP_monster_army(gentity_t* self);
+void SP_monster_centroid(gentity_t* self);
 void SP_monster_fiend(gentity_t* self);
 void SP_monster_zombie(gentity_t* self);
 void SP_monster_spawn(gentity_t* self);
@@ -552,6 +553,7 @@ static const std::initializer_list<spawn_t> spawns = {
         { "monster_ogre_multigrenade", SP_monster_ogre_multigrenade },
 	{ "monster_fish", SP_monster_fish },
 	{ "monster_army", SP_monster_army },
+	{ "monster_centroid", SP_monster_centroid },
 	{ "monster_demon1", SP_monster_fiend },
 	{ "monster_zombie", SP_monster_zombie },
 	{ "monster_tarbaby", SP_monster_spawn },
