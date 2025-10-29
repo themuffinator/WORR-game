@@ -171,6 +171,7 @@ static TOUCH(dog_jump_touch) (gentity_t* self, gentity_t* other, const trace_t& 
                         const Vector3 point = self->s.origin + (dir * self->maxs[0]);
                         const int damage = irandom(20, 25);
                         Damage(other, self, self, self->velocity, point, dir, damage, damage, DamageFlags::Normal, ModID::Unknown);
+                        gi.sound(self, CHAN_WEAPON, sound_impact, 1, ATTN_NORM, 0);
                         self->style = 0;
                 }
         }
@@ -372,9 +373,10 @@ dog_setskin
 ===============
 */
 MONSTERINFO_SETSKIN(dog_setskin) (gentity_t* self) -> void {
-        const int maxHealth = self->maxHealth > 0 ? self->maxHealth : self->health;
+        const int maxHealth = std::max(self->maxHealth, self->health);
+        const bool useDamagedSkin = self->health < (maxHealth / 2);
 
-        if (self->health < (maxHealth / 2))
+        if (useDamagedSkin)
                 self->s.skinNum |= 1;
         else
                 self->s.skinNum &= ~1;
@@ -386,6 +388,9 @@ dog_die
 ===============
 */
 static void dog_shrink(gentity_t* self) {
+        if (self->svFlags & SVF_DEADMONSTER)
+                return;
+
         self->maxs[2] = 0;
         self->svFlags |= SVF_DEADMONSTER;
         gi.linkEntity(self);
@@ -485,6 +490,9 @@ void SP_monster_dog(gentity_t* self) {
         self->monsterInfo.checkAttack  = dog_checkattack;
         self->monsterInfo.blocked      = nullptr;    // default blocked is fine for a small quadruped
         self->monsterInfo.setSkin      = dog_setskin;
+
+        if (self->monsterInfo.setSkin)
+                self->monsterInfo.setSkin(self);
 
 	gi.linkEntity(self);
 
