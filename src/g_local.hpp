@@ -2817,17 +2817,22 @@ struct MonsterInfo {
 
 	// alternate flying mechanics
 	float fly_max_distance, fly_min_distance; // how far we should try to stay
-	float fly_acceleration; // accel/decel speed
-	float fly_speed; // max speed from flying
-	Vector3 fly_ideal_position; // ideally where we want to end up to hover, relative to our target if not pinned
-	GameTime fly_position_time; // if <= level.time, we can try changing positions
-	bool fly_buzzard, fly_above; // orbit around all sides of their enemy, not just the sides
-	bool fly_pinned; // whether we're currently pinned to ideal position (made absolute)
-	bool fly_thrusters; // slightly different flight mechanics, for melee attacks
-	GameTime fly_recovery_time; // time to try a new dir to get away from hazards
-	Vector3 fly_recovery_dir;
+        float fly_acceleration; // accel/decel speed
+        float fly_speed; // max speed from flying
+        Vector3 fly_ideal_position; // ideally where we want to end up to hover, relative to our target if not pinned
+        GameTime fly_position_time; // if <= level.time, we can try changing positions
+        bool fly_buzzard, fly_above; // orbit around all sides of their enemy, not just the sides
+        bool fly_pinned; // whether we're currently pinned to ideal position (made absolute)
+        bool fly_thrusters; // slightly different flight mechanics, for melee attacks
+        GameTime fly_recovery_time; // time to try a new dir to get away from hazards
+        Vector3 fly_recovery_dir;
 
-	GameTime checkattack_time;
+        // teleport helpers
+        Vector3 teleport_saved_origin;
+        GameTime teleport_return_time;
+        bool teleport_active;
+
+        GameTime checkattack_time;
 	int32_t startFrame;
 	GameTime dodge_time;
 	int32_t move_block_counter;
@@ -3446,9 +3451,11 @@ void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& d
 void monster_fire_homing_pod(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_railgun(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int kick,
-	MonsterMuzzleFlashID flashType);
+        MonsterMuzzleFlashID flashType);
 void monster_fire_bfg(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, int kick,
-	float splashRadius, MonsterMuzzleFlashID flashType);
+        float splashRadius, MonsterMuzzleFlashID flashType);
+void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed);
+bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDelay);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset, Vector3& start);
 Vector3 M_ProjectFlashSource(gentity_t* self, const Vector3& offset, const Vector3& forward, const Vector3& right);

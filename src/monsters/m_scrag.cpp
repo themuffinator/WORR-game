@@ -147,10 +147,10 @@ static void scrag_fire(gentity_t* self) {
         Vector3 forward, right;
 	AngleVectors(self->s.angles, forward, right, nullptr);
 
-	Vector3 start = M_ProjectFlashSource(self, SCRAG_MUZZLE_OFFSET, forward, right);
+        Vector3 start = M_ProjectFlashSource(self, SCRAG_MUZZLE_OFFSET, forward, right);
 
-	Vector3 end = self->enemy->s.origin;
-	end[2] += self->enemy->viewHeight;
+        Vector3 end = self->enemy->s.origin;
+        end[2] += self->enemy->viewHeight;
 
         Vector3 dir = end - start;
         dir.normalize();
@@ -332,10 +332,10 @@ scrag_die
 ===============
 */
 static DIE(scrag_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
-	if (M_CheckGib(self, mod)) {
-		ThrowGibs(self, 120, {
-			{ "models/objects/gibs/sm_meat/tris.md2" }
-			});
+        if (M_CheckGib(self, mod)) {
+                ThrowGibs(self, 120, {
+                        { "models/objects/gibs/sm_meat/tris.md2" }
+                        });
 		return;
 	}
 	if (self->deadFlag)
