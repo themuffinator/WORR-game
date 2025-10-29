@@ -101,25 +101,30 @@ namespace Commands {
 	bool TeamSkillShuffle() {
 		if (!Teams()) return false;
 
-		std::vector<int> playerIndices;
-		int totalSkill = 0;
+                std::vector<int> playerIndices;
+                int totalSkill = 0;
 
-		for (auto p_ent : active_players()) {
-			playerIndices.push_back(p_ent->s.number);
-			totalSkill += p_ent->client->sess.skillRating;
+                for (auto p_ent : active_players()) {
+                        const int clientIndex = p_ent->s.number - 1;
+                        if (clientIndex < 0 || clientIndex >= game.maxClients) {
+                                continue;
+                        }
+
+                        playerIndices.push_back(clientIndex);
+                        totalSkill += p_ent->client->sess.skillRating;
 		}
 
 		if (playerIndices.size() < 2) return false;
 
 		// Sort players by skill rating, descending
-		std::ranges::sort(playerIndices, std::greater{}, [](int clientNum) {
-			return game.clients[clientNum].sess.skillRating;
+                std::ranges::sort(playerIndices, std::greater{}, [](int clientNum) {
+                        return game.clients[clientNum].sess.skillRating;
 			});
 
 		// Distribute players into teams like picking for a schoolyard game
 		Team currentTeam = Team::Red;
-		for (int clientNum : playerIndices) {
-			game.clients[clientNum].sess.team = currentTeam;
+                for (int clientNum : playerIndices) {
+                        game.clients[clientNum].sess.team = currentTeam;
 			currentTeam = (currentTeam == Team::Red) ? Team::Blue : Team::Red;
 		}
 
