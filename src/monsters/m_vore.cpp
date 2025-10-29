@@ -33,6 +33,13 @@ void               vore_attack(gentity_t* self);
 static inline bool VORE_ON_CEILING(gentity_t* ent) { return ent->gravityVector[Z] > 0.0f; }
 static void        vore_update_skin(gentity_t* self);
 
+static Vector3 VoreFlashOffset(MonsterMuzzleFlashID flash, bool onCeiling) {
+        Vector3 offset = monster_flash_offset[flash];
+        if (onCeiling)
+                offset[Z] = -offset[Z];
+        return offset;
+}
+
 // -----------------------------------------------------------------------------
 // Config
 // -----------------------------------------------------------------------------
@@ -269,15 +276,17 @@ static void vore_fire(gentity_t* self) {
 	if (!self->enemy || !self->enemy->inUse)
 		return;
 
-	Vector3 forward, right, up;
-	AngleVectors(self->s.angles, forward, right, up);
+        Vector3 forward, right, up;
+        AngleVectors(self->s.angles, forward, right, up);
 
-	MonsterMuzzleFlashID flashNumber;
-	float spread_rl;
-	vore_select_flash(self->s.frame, flashNumber, spread_rl);
+        MonsterMuzzleFlashID flashNumber;
+        float spread_rl;
+        vore_select_flash(self->s.frame, flashNumber, spread_rl);
 
-	// project muzzle from flash offset like Chick/Gunner/Ogre
-	const Vector3 start = M_ProjectFlashSource(self, monster_flash_offset[flashNumber], forward, right);
+        const bool onCeiling = VORE_ON_CEILING(self);
+
+        // project muzzle from flash offset like Chick/Gunner/Ogre
+        const Vector3 start = M_ProjectFlashSource(self, VoreFlashOffset(flashNumber, onCeiling), forward, right);
 
 	// choose target: blind-fire target if set, otherwise enemy origin
 	const Vector3 target = (self->monsterInfo.aiFlags & AI_MANUAL_STEERING && self->monsterInfo.blind_fire_target)
@@ -328,8 +337,7 @@ static MonsterFrame vore_frames_attack[] = {
 MMOVE_T(vore_move_attack) = { FRAME_attack01, FRAME_attack10, vore_frames_attack, vore_run };
 
 MONSTERINFO_ATTACK(vore_attack) (gentity_t* self) -> void {
-        const Vector3 offset = VORE_ON_CEILING(self) ? Vector3{ 0.0f, 0.0f, -10.0f } : Vector3{ 0.0f, 0.0f, 10.0f };
-        if (!M_CheckClearShot(self, offset))
+        if (!M_CheckClearShot(self, VoreFlashOffset(MZ2_VORE_POD_2, VORE_ON_CEILING(self))))
                 return;
 
         monster_done_dodge(self);
@@ -623,9 +631,9 @@ MONSTERINFO_CHECKATTACK(vore_checkattack) (gentity_t* self) -> bool {
 	if (d < VORE_MIN_RANGE || d > VORE_MAX_RANGE)
 		return false;
 
-	// clear shot from a representative flash
-	if (!M_CheckClearShot(self, monster_flash_offset[MZ2_VORE_POD_2]))
-		return false;
+        // clear shot from a representative flash
+        if (!M_CheckClearShot(self, VoreFlashOffset(MZ2_VORE_POD_2, VORE_ON_CEILING(self))))
+                return false;
 
 	self->monsterInfo.attackState = MonsterAttackState::Missile;
 	return true;

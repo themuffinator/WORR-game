@@ -593,22 +593,32 @@ constexpr Vector3 monster_flash_offset[] = {
 	{ 32.7f + 1.f, 9.9f, 15.0f },
 	{ 34.5f + 1.f, 11.0f, 15.0f },
 
-	// MZ2_MEDIC_HYPERBLASTER2_1-12
-	{ 33.0f + 1.f, 12.5f, 15.0f },
-	{ 32.4f + 1.f, 11.2f, 15.0f },
-	{ 35.6f + 1.f, 7.4f, 15.0f },
-	{ 34.0f + 1.f, 4.1f, 15.0f },
-	{ 36.6f + 1.f, 1.0f, 15.0f },
-	{ 34.7f + 1.f, -1.9f, 15.0f },
-	{ 36.6f + 1.f, -0.5f, 15.0f },
-	{ 34.2f + 1.f, 2.8f, 15.0f },
-	{ 36.5f + 1.f, 3.8f, 15.0f },
-	{ 33.5f + 1.f, 6.9f, 15.0f },
-	{ 32.7f + 1.f, 9.9f, 15.0f },
-	{ 34.5f + 1.f, 11.0f, 15.0f },
+        // MZ2_MEDIC_HYPERBLASTER2_1-12
+        { 33.0f + 1.f, 12.5f, 15.0f },
+        { 32.4f + 1.f, 11.2f, 15.0f },
+        { 35.6f + 1.f, 7.4f, 15.0f },
+        { 34.0f + 1.f, 4.1f, 15.0f },
+        { 36.6f + 1.f, 1.0f, 15.0f },
+        { 34.7f + 1.f, -1.9f, 15.0f },
+        { 36.6f + 1.f, -0.5f, 15.0f },
+        { 34.2f + 1.f, 2.8f, 15.0f },
+        { 36.5f + 1.f, 3.8f, 15.0f },
+        { 33.5f + 1.f, 6.9f, 15.0f },
+        { 32.7f + 1.f, 9.9f, 15.0f },
+        { 34.5f + 1.f, 11.0f, 15.0f },
 
-	// end of table
-	{ 0.0f, 0.0f, 0.0f }
+        // Quake I additions
+        // MZ2_VORE_POD_1 -- Ionized chest muzzle (frames attack01/02)
+        { 0.0f, 0.0f, 10.0f },
+        // MZ2_VORE_POD_2 -- Ionized chest muzzle (frames attack03/04)
+        { 0.0f, 0.0f, 10.0f },
+        // MZ2_VORE_POD_3 -- Ionized chest muzzle (frames attack05/06)
+        { 0.0f, 0.0f, 10.0f },
+        // MZ2_VORE_POD_4 -- Ionized chest muzzle (frames attack07/08)
+        { 0.0f, 0.0f, 10.0f },
+
+        // MZ2_CHTON_ROCKET_1 -- Ionized lava-hand launch position
+        { 36.0f, 160.0f, 200.0f }
 };
 
-//static_assert(q_countof(monster_flash_offset) - 1 == static_cast<size_t>(MZ2_LAST));
+static_assert(q_countof(monster_flash_offset) - 1 == static_cast<size_t>(MZ2_LAST));
