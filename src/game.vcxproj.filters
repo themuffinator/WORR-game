@@ -162,6 +162,9 @@
     <ClInclude Include="monsters\m_scrag.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\q1_support.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="command_registration.hpp">
       <Filter>commands</Filter>
     </ClInclude>
@@ -397,6 +400,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_scrag.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\q1_support.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="g_player_spawn.cpp" />

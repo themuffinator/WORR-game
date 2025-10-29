@@ -2776,6 +2776,9 @@ struct MonsterInfo {
 	float	dropHeight, jumpHeight;
 	GameTime blind_fire_delay;
 	Vector3	blind_fire_target;
+	Vector3 teleportReturnOrigin;
+	GameTime teleportReturnTime;
+	bool	teleportActive = false;
 	// used by the spawners to not spawn too much and keep track of #s of monsters spawned
 	int32_t	 monster_slots; // nb: for spawned monsters, this is how many slots we took from our commander
 	int32_t	 monster_used;

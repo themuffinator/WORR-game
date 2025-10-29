@@ -1,6 +1,7 @@
 #include "../g_local.hpp"
 #include "m_hellknight.hpp"
 #include "m_flash.hpp"
+#include "q1_support.hpp"
 
 // Sounds used by the Hell Knight
 static cached_soundIndex s_idle;
@@ -19,6 +20,8 @@ static constexpr int     HK_HEALTH = 250;
 static constexpr int     HK_GIBHEALTH = -40; // Corrected to match QC source
 static constexpr int     HK_MASS = 250;
 static constexpr Vector3 HK_CAST_OFFSET = { 20.0f, 0.0f, 16.0f }; // Projectile spawn offset
+static constexpr int     HK_FLAME_DAMAGE = 15;
+static constexpr int     HK_FLAME_SPEED = 600;
 
 // Forward declarations for AI state functions
 void hk_run(gentity_t* self);
@@ -83,8 +86,9 @@ static void hk_fire_spike_core(gentity_t* self, int yawStep) {
 	dir.normalize();
 
 	gi.sound(self, CHAN_WEAPON, s_magic, 1, ATTN_NORM, 0);
-	// Fire a green projectile with a standard blaster muzzle flash
-	monster_fire_blaster(self, start, dir, 15, 300, MZ2_FLYER_BLASTER_1, EF_BLASTER);
+        // Fire the Quake 1-style flame bolt
+        monster_muzzleflash(self, start, MZ2_FLYER_BLASTER_1);
+        fire_flame(self, start, dir, HK_FLAME_DAMAGE, HK_FLAME_SPEED, ModID::IonRipper);
 }
 
 // Wrapper functions for different projectile spread angles, creating a volley effect

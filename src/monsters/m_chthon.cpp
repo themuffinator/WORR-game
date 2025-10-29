@@ -16,7 +16,7 @@ Behavior overview
 #include "../g_local.hpp"
 #include "m_chthon.hpp"
 #include "m_flash.hpp"
-#include <algorithm>
+#include "q1_support.hpp"
 
 // -----------------------------------------------------------------------------
 // Tunables
@@ -338,9 +338,8 @@ MONSTERINFO_STAND(chthon_stand) (gentity_t* self) -> void {
         M_SetAnimation(self, &chthon_move_stand);
 }
 
-MONSTERINFO_WALK(chthon_walk) (gentity_t* self) -> void {
-        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
-        M_SetAnimation(self, &chthon_move_stand);
+	// Heavy, slow "lava ball" matching Quake 1 behaviour.
+	fire_lavaball(self, start, dir, 40, 400, 40.0f, 40);
 }
 
 MONSTERINFO_RUN(chthon_run) (gentity_t* self) -> void {
@@ -518,51 +517,56 @@ static void chthon_gib(gentity_t* self) {
 }
 
 static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
-        (void)inflictor; (void)attacker; (void)point;
+	// Chthon is only killable while vulnerable or by telefrag.
+	const bool telefrag = (mod.id == ModID::Telefragged);
+	const bool vulnerable = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
 
-        const bool telefrag = (mod.id == ModID::Telefragged || mod.id == ModID::Telefrag_Spawn);
-        const bool vulnerable = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
+	if (!telefrag && !vulnerable) {
+		// Refuse to die outside the vulnerability window.
+		// Play a pain bark and std::clamp very low health so stray hits cannot finish him.
+		if (level.time >= self->pain_debounce_time) {
+			self->pain_debounce_time = level.time + 1_sec;
+			gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
+		}
+		if (self->health < 50)
+			self->health = 50;
+		return;
+	}
 
-        if (!telefrag && !vulnerable) {
-                if (level.time >= self->pain_debounce_time) {
-                        self->pain_debounce_time = level.time + 1_sec;
-                        gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
-                }
-                if (self->health < 50)
-                        self->health = 50;
-                if (self->monsterInfo.setSkin)
-                        self->monsterInfo.setSkin(self);
-                return;
-        }
+	// Normal monster die structure from here on.
 
-        if (!telefrag && !chthon_is_energy_mod(mod)) {
-                self->health += self->monsterInfo.damage.blood;
-                if (self->health < 1)
-                        self->health = 1;
-                if (self->monsterInfo.setSkin)
-                        self->monsterInfo.setSkin(self);
-                return;
-        }
+	// check for gib
+	if (M_CheckGib(self, mod)) {
+		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 
-        if (self->deadFlag)
-                return;
+		// Optionally alter skin on gib if your model supports it
+		// self->s.skinNum /= 2;
 
-        gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
-        self->deadFlag = true;
-        self->takeDamage = false;
-        self->monsterInfo.aiFlags &= ~AI_CHTHON_VULNERABLE;
+		ThrowGibs(self, damage, {
+			{ 3, "models/objects/gibs/bone/tris.md2" },
+			{ 4, "models/objects/gibs/sm_meat/tris.md2" },
+			{ "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
+			});
 
-        M_SetAnimation(self, &chthon_move_death);
-        if (self->monsterInfo.setSkin)
-                self->monsterInfo.setSkin(self);
-}
+		self->deadFlag = true;
+		return;
+	}
 
-// -----------------------------------------------------------------------------
-// Think loop
-// -----------------------------------------------------------------------------
-static THINK(chthon_think) (gentity_t* self) -> void {
-        chthon_check_attack(self);
-        self->nextThink = level.time + 250_ms;
+	if (self->deadFlag)
+		return;
+
+	// regular death
+	self->deadFlag = true;
+	self->takeDamage = true;
+
+	// Chthon typically has a single death sound; if you have multiple, branch like chick_die.
+	gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
+
+	// If you have death animations, trigger them here, e.g.:
+	// M_SetAnimation(self, &chthon_move_death1);
+	// Otherwise, remove the corpse in the standard way.
+	Q1BossExplode(self);
+	chthon_dead(self);
 }
 
 static void chthon_precache() {
