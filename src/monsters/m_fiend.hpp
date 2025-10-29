@@ -56,10 +56,12 @@ enum {
 	FRAME_leap04,
 	FRAME_leap05,
 	FRAME_leap06,
-	FRAME_leap07,
-	FRAME_leap08,
-	FRAME_leap09,
-	FRAME_leap10,
+        FRAME_leap07,
+        FRAME_leap08,
+        FRAME_leap09,
+        FRAME_leap10,
+        FRAME_leap11,
+        FRAME_leap12,
 
 	// pain A (short)
 	FRAME_pain01,
