@@ -141,10 +141,12 @@
     <ClInclude Include="monsters\m_carrier.hpp" />
     <ClInclude Include="monsters\m_chick.hpp" />
     <ClInclude Include="monsters\m_chthon.hpp" />
+    <ClInclude Include="monsters\m_dragon.hpp" />
     <ClInclude Include="monsters\m_dog.hpp" />
     <ClInclude Include="monsters\m_enforcer.hpp" />
     <ClInclude Include="monsters\m_fiend.hpp" />
     <ClInclude Include="monsters\m_rotfish.hpp" />
+    <ClInclude Include="monsters\m_eel.hpp" />
     <ClInclude Include="monsters\m_fixbot.hpp" />
     <ClInclude Include="monsters\m_flash.hpp" />
     <ClInclude Include="monsters\m_shark.hpp" />
@@ -171,6 +173,7 @@
     <ClInclude Include="monsters\m_shambler.hpp" />
     <ClInclude Include="monsters\m_soldier.hpp" />
     <ClInclude Include="monsters\m_spawn.hpp" />
+    <ClInclude Include="monsters\m_spike.hpp" />
     <ClInclude Include="monsters\m_stalker.hpp" />
     <ClInclude Include="monsters\m_supertank.hpp" />
     <ClInclude Include="monsters\m_tank.hpp" />
@@ -246,10 +249,12 @@
     <ClCompile Include="monsters\m_carrier.cpp" />
     <ClCompile Include="monsters\m_chick.cpp" />
     <ClCompile Include="monsters\m_chthon.cpp" />
+    <ClCompile Include="monsters\m_dragon.cpp" />
     <ClCompile Include="monsters\m_dog.cpp" />
     <ClCompile Include="monsters\m_enforcer.cpp" />
     <ClCompile Include="monsters\m_fiend.cpp" />
     <ClCompile Include="monsters\m_rotfish.cpp" />
+    <ClCompile Include="monsters\m_eel.cpp" />
     <ClCompile Include="monsters\m_fixbot.cpp" />
     <ClCompile Include="monsters\m_shark.cpp" />
     <ClCompile Include="monsters\m_float.cpp" />
@@ -275,6 +280,7 @@
     <ClCompile Include="monsters\m_shambler.cpp" />
     <ClCompile Include="monsters\m_soldier.cpp" />
     <ClCompile Include="monsters\m_spawn.cpp" />
+    <ClCompile Include="monsters\m_spike.cpp" />
     <ClCompile Include="monsters\m_stalker.cpp" />
     <ClCompile Include="monsters\m_supertank.cpp" />
     <ClCompile Include="monsters\m_tank.cpp" />

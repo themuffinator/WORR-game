@@ -230,6 +230,7 @@ void SP_monster_soldier_ss(gentity_t* self);
 void SP_monster_tank(gentity_t* self);
 void SP_monster_medic(gentity_t* self);
 void SP_monster_flipper(gentity_t* self);
+void SP_monster_eel(gentity_t* self);
 void SP_monster_chick(gentity_t* self);
 void SP_monster_parasite(gentity_t* self);
 void SP_monster_flyer(gentity_t* self);
@@ -285,6 +286,7 @@ void SP_monster_army(gentity_t* self);
 void SP_monster_fiend(gentity_t* self);
 void SP_monster_zombie(gentity_t* self);
 void SP_monster_spawn(gentity_t* self);
+void SP_monster_spike(gentity_t* self);
 void SP_monster_vore(gentity_t* self);
 void SP_monster_overlord(gentity_t* self);
 void SP_monster_wrath(gentity_t* self);
@@ -294,6 +296,7 @@ void SP_monster_hell_knight(gentity_t* self);
 void SP_monster_wizard(gentity_t* self);
 void SP_monster_oldone(gentity_t* self);
 void SP_monster_chthon(gentity_t* self);
+void SP_monster_dragon(gentity_t* self);
 void SP_monster_lavaman(gentity_t* self);
 void SP_monster_boss(gentity_t* self);
 
@@ -503,7 +506,8 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_tank", SP_monster_tank },
 	{ "monster_tank_commander", SP_monster_tank },
 	{ "monster_medic", SP_monster_medic },
-	{ "monster_flipper", SP_monster_flipper },
+        { "monster_flipper", SP_monster_flipper },
+        { "monster_eel", SP_monster_eel },
 	{ "monster_chick", SP_monster_chick },
 	{ "monster_parasite", SP_monster_parasite },
 	{ "monster_flyer", SP_monster_flyer },
@@ -556,16 +560,19 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_army", SP_monster_army },
 	{ "monster_demon1", SP_monster_fiend },
 	{ "monster_zombie", SP_monster_zombie },
-        { "monster_tarbaby", SP_monster_spawn },
-        { "monster_shalrath", SP_monster_vore },
-        { "monster_overlord", SP_monster_overlord },
-        { "monster_wrath", SP_monster_wrath },
-        { "monster_enforcer", SP_monster_enforcer },
+	{ "monster_tarbaby", SP_monster_spawn },
+	{ "monster_spike", SP_monster_spike },
+	{ "monster_spike_hell", SP_monster_spike },
+	{ "monster_mine", SP_monster_spike },
+	{ "monster_mine_hell", SP_monster_spike },
+	{ "monster_shalrath", SP_monster_vore },
+	{ "monster_enforcer", SP_monster_enforcer },
 	{ "monster_knight", SP_monster_knight },
 	{ "monster_hell_knight", SP_monster_hell_knight },
         { "monster_wizard", SP_monster_wizard },
         { "monster_oldone", SP_monster_oldone },
         { "monster_chthon", SP_monster_chthon },
+        { "monster_dragon", SP_monster_dragon },
         { "monster_lavaman", SP_monster_lavaman },
         { "monster_boss", SP_monster_boss },
 
