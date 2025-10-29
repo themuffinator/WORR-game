@@ -31,6 +31,7 @@ static void        vore_jump_down(gentity_t* self);
 static void        vore_jump(gentity_t* self, BlockedJumpResult result);
 void               vore_attack(gentity_t* self);
 static inline bool VORE_ON_CEILING(gentity_t* ent) { return ent->gravityVector[Z] > 0.0f; }
+static void        vore_update_skin(gentity_t* self);
 
 // -----------------------------------------------------------------------------
 // Config
@@ -410,6 +411,7 @@ static void vore_jump_straightup(gentity_t* self) {
                         if (self->s.angles[ROLL] > 360.0f)
                                 self->s.angles[ROLL] -= 360.0f;
                         self->groundEntity = nullptr;
+                        vore_update_skin(self);
                 }
         } else if (self->groundEntity) {
                 self->velocity[X] += crandom() * 5.0f;
@@ -420,6 +422,7 @@ static void vore_jump_straightup(gentity_t* self) {
                         self->gravityVector[Z] = 1.0f;
                         self->s.angles[ROLL] = 180.0f;
                         self->groundEntity = nullptr;
+                        vore_update_skin(self);
                 }
         }
 }
@@ -517,6 +520,7 @@ MONSTERINFO_BLOCKED(vore_blocked) (gentity_t* self, float dist) -> bool {
                         if (self->s.angles[ROLL] > 360.0f)
                                 self->s.angles[ROLL] -= 360.0f;
                         self->groundEntity = nullptr;
+                        vore_update_skin(self);
                         return true;
                 }
         }
@@ -537,14 +541,20 @@ MONSTERINFO_PHYSCHANGED(vore_physics_change) (gentity_t* self) -> void {
                 self->mins = { -32, -32, -24 };
                 self->maxs = { 32, 32, 32 };
         }
+
+        vore_update_skin(self);
 }
 
-MONSTERINFO_SETSKIN(vore_setskin) (gentity_t* self) -> void {
-        if (self->health < (self->maxHealth / 2))
+static void vore_update_skin(gentity_t* self) {
+        const bool damaged = self->health < (self->maxHealth / 2);
+
+        if (damaged)
                 self->s.skinNum |= 1;
         else
                 self->s.skinNum &= ~1;
 }
+
+MONSTERINFO_SETSKIN(vore_setskin) (gentity_t* self) -> void { vore_update_skin(self); }
 
 static void vore_dead(gentity_t* self) {
         self->mins = { -16, -16, -24 };
@@ -552,7 +562,7 @@ static void vore_dead(gentity_t* self) {
         monster_dead(self);
 }
 
-static void vore_shrink(gentity_t* self) {
+static void vore_corpse_shrink(gentity_t* self) {
         self->maxs[Z] = -4.0f;
         self->svFlags |= SVF_DEADMONSTER;
         gi.linkEntity(self);
@@ -562,7 +572,7 @@ static MonsterFrame vore_frames_death[] = {
         { ai_move },
         { ai_move },
         { ai_move },
-        { ai_move, 0, vore_shrink },
+        { ai_move, 0, vore_corpse_shrink },
         { ai_move },
         { ai_move },
         { ai_move }
@@ -684,6 +694,8 @@ void SP_monster_vore(gentity_t* self) {
                 self->gravityVector[Z] = 1.0f;
                 vore_physics_change(self);
         }
+
+        vore_update_skin(self);
 
         gi.linkEntity(self);
 
