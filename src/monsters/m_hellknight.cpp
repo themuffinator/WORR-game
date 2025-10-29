@@ -86,9 +86,9 @@ static void hk_fire_spike_core(gentity_t* self, int yawStep) {
 	dir.normalize();
 
 	gi.sound(self, CHAN_WEAPON, s_magic, 1, ATTN_NORM, 0);
-        // Fire the Quake 1-style flame bolt
-        monster_muzzleflash(self, start, MZ2_FLYER_BLASTER_1);
-        fire_flame(self, start, dir, HK_FLAME_DAMAGE, HK_FLAME_SPEED, ModID::IonRipper);
+	// Fire the Quake 1-style flame bolt
+	monster_muzzleflash(self, start, MZ2_FLYER_BLASTER_1);
+	fire_flame(self, start, dir, HK_FLAME_DAMAGE, HK_FLAME_SPEED, ModID::IonRipper);
 }
 
 // Wrapper functions for different projectile spread angles, creating a volley effect
@@ -246,6 +246,13 @@ static PAIN(hk_pain) (gentity_t* self, gentity_t* other, float kick, int damage,
 	M_SetAnimation(self, &hellknight_move_pain);
 }
 
+MONSTERINFO_SETSKIN(hk_setskin) (gentity_t* self) -> void {
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum |= 1;
+	else
+		self->s.skinNum &= ~1;
+}
+
 // Death state: Handles dying and gibbing.
 static void hk_dead(gentity_t* self) {
 	self->mins = { -16, -16, -24 };
@@ -253,21 +260,28 @@ static void hk_dead(gentity_t* self) {
 	monster_dead(self);
 }
 
+static void hk_shrink(gentity_t* self) {
+	self->svFlags |= SVF_DEADMONSTER;
+	self->maxs[2] = 0;
+	gi.linkEntity(self);
+}
+
 static MonsterFrame frames_deatha[] = {
 	{ ai_move, 10 }, { ai_move, 8 }, { ai_move, 7 }, { ai_move }, { ai_move }, { ai_move },
-	{ ai_move }, { ai_move, 10 }, { ai_move, 11 }, { ai_move }, { ai_move }
+	{ ai_move }, { ai_move, 10 }, { ai_move, 11, hk_shrink }, { ai_move }, { ai_move }
 };
 MMOVE_T(hellknight_move_deatha) = { FRAME_hk_deatha1, FRAME_hk_deatha11, frames_deatha, hk_dead };
 
 static MonsterFrame frames_deathb[] = {
 	{ ai_move }, { ai_move }, { ai_move }, { ai_move },
-	{ ai_move }, { ai_move }, { ai_move }, { ai_move }, { ai_move }
+	{ ai_move, 0, hk_shrink }, { ai_move }, { ai_move }, { ai_move }, { ai_move }
 };
 MMOVE_T(hellknight_move_deathb) = { FRAME_hk_deathb1, FRAME_hk_deathb9, frames_deathb, hk_dead };
 
 static DIE(hk_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
 	if (M_CheckGib(self, mod)) {
 		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+		self->s.skinNum &= ~1;
 		ThrowGibs(self, damage, {
 			{ "progs/h_hellkn.mdl", GIB_HEAD },
 			{ 2, "progs/gib1.mdl" },
@@ -329,7 +343,10 @@ void SP_monster_hell_knight(gentity_t* self) {
 	self->monsterInfo.attack = hk_attack;
 	self->monsterInfo.melee = hk_melee;
 	self->monsterInfo.sight = hk_sight;
+	self->monsterInfo.setSkin = hk_setskin;
 	self->monsterInfo.checkAttack = M_CheckAttack; // Use the engine's default attack decision logic
+
+	self->s.skinNum &= ~1;
 
 	M_SetAnimation(self, &hellknight_move_stand);
 	walkmonster_start(self);
