@@ -3904,6 +3904,7 @@ gentity_t* PickCoopTarget(gentity_t* self);
 int		 CountPlayers();
 bool	 monster_jump_finished(gentity_t* self);
 void BossExplode(gentity_t* self);
+void Q1BossExplode(gentity_t* self);
 
 // g_rogue_func
 void plat2_spawn_danger_area(gentity_t* ent);

@@ -7,7 +7,8 @@ Behavior overview
 - Immobile boss that lobs lava balls at enemies on a timer.
 - Normally invulnerable; a target_chthon_lightning can strike Chthon, dealing
   a big hit and briefly making him vulnerable.
-- Can only be killed while vulnerable, or by telefrag.
+- Can only be killed while vulnerable (or by telefrag) and only by energy
+  weapons during that window.
 
 ==============================================================================
 */
@@ -15,390 +16,700 @@ Behavior overview
 #include "../g_local.hpp"
 #include "m_chthon.hpp"
 #include "m_flash.hpp"
+#include <algorithm>
 
 // -----------------------------------------------------------------------------
 // Tunables
 // -----------------------------------------------------------------------------
-static constexpr Vector3  CHTHON_MINS = { -64.0f, -64.0f, -24.0f };
-static constexpr Vector3  CHTHON_MAXS = { 64.0f,  64.0f, 128.0f };
-static constexpr int      CHTHON_HEALTH = 1200;
+static constexpr Vector3  CHTHON_MINS = { -128.0f, -128.0f, -24.0f };
+static constexpr Vector3  CHTHON_MAXS = { 128.0f,  128.0f, 226.0f };
+static constexpr int      CHTHON_BASE_HEALTH = 3000;
+static constexpr int      CHTHON_LAVAMAN_HEALTH = 1500;
 static constexpr int      CHTHON_GIBHEALTH = -150;
 static constexpr int      CHTHON_MASS = 1000;
+static constexpr int      CHTHON_PROJECTILE_DAMAGE = 100;
+static constexpr int      CHTHON_PROJECTILE_DAMAGE_LAVAMAN = 40;
+static constexpr int      CHTHON_PROJECTILE_SPEED = 750;
 static constexpr GameTime CHTHON_ATTACK_PERIOD = 2_sec;
-static constexpr Vector3  CHTHON_MUZZLE_OFFSET = { 32.0f, 0.0f, 48.0f };
+static constexpr GameTime CHTHON_PAIN_COOLDOWN = 6_sec;
+static constexpr float    CHTHON_PROJECTILE_SIDE_ADJUST = 10.0f;
+static constexpr float    CHTHON_RANDOM_HEAD_CHANCE = 0.33f;
+static constexpr float    CHTHON_LEAD_CHANCE = 0.35f;
 
 // Sounds
 static cached_soundIndex s_idle;
 static cached_soundIndex s_sight;
 static cached_soundIndex s_pain;
 static cached_soundIndex s_death;
-static cached_soundIndex s_attack;
+static cached_soundIndex s_throw;
+static cached_soundIndex s_rise;
 
 // -----------------------------------------------------------------------------
 // Fwd decls
 // -----------------------------------------------------------------------------
 static void chthon_precache();
 static void chthon_start(gentity_t* self);
+static void chthon_check_attack(gentity_t* self);
+static void chthon_attack(gentity_t* self);
+static void chthon_attack_left(gentity_t* self);
+static void chthon_attack_right(gentity_t* self);
+static void chthon_rise(gentity_t* self);
+static void chthon_rise_sound(gentity_t* self);
+static void chthon_sight_sound(gentity_t* self);
+static void chthon_sight_sound2(gentity_t* self);
+static void chthon_idle(gentity_t* self);
+static void chthon_gib(gentity_t* self);
+static THINK(chthon_think)(gentity_t* self);
+static bool chthon_is_energy_mod(const MeansOfDeath& mod);
 
-/*
-===============
-chthon_idle
-===============
-*/
+// -----------------------------------------------------------------------------
+// Utility helpers
+// -----------------------------------------------------------------------------
+static bool chthon_is_energy_mod(const MeansOfDeath& mod) {
+        switch (mod.id) {
+        case ModID::Blaster:
+        case ModID::Blaster2:
+        case ModID::BlueBlaster:
+        case ModID::HyperBlaster:
+        case ModID::Laser:
+        case ModID::TargetLaser:
+        case ModID::TargetBlaster:
+        case ModID::BFG10K_Laser:
+        case ModID::BFG10K_Blast:
+        case ModID::BFG10K_Effect:
+        case ModID::IonRipper:
+        case ModID::Phalanx:
+        case ModID::Heatbeam:
+        case ModID::Disruptor:
+        case ModID::ETFRifle:
+        case ModID::PlasmaBeam:
+        case ModID::TeslaMine:
+        case ModID::Tracker:
+        case ModID::DefenderSphere:
+        case ModID::Thunderbolt:
+        case ModID::Thunderbolt_Discharge:
+                return true;
+        default:
+                return false;
+        }
+}
+
+static bool chthon_is_lavaman(const gentity_t* self) {
+        return (self->className && !Q_stricmp(self->className, "monster_lavaman"));
+}
+
+static int chthon_base_skin(const gentity_t* self) {
+        return chthon_is_lavaman(self) ? 2 : 0;
+}
+
 static void chthon_idle(gentity_t* self) {
-	if (frandom() < 0.15f) {
-		gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
-	}
+        if (!s_idle.index())
+                return;
+        if (frandom() < 0.1f)
+                gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
 }
 
-/*
-===============
-chthon_sight
-===============
-*/
-MONSTERINFO_SIGHT(chthon_sight) (gentity_t* self, gentity_t* other) -> void {
-	gi.sound(self, CHAN_VOICE, s_sight, 1, ATTN_NORM, 0);
+static void chthon_rise_sound(gentity_t* self) {
+        gi.sound(self, CHAN_VOICE, s_rise, 1, ATTN_NORM, 0);
 }
 
-/*
-===============
-chthon_setskin
-===============
-*/
-MONSTERINFO_SETSKIN(chthon_setskin) (gentity_t* self) -> void {
-	// Optional cosmetic feedback: swap skin while vulnerable
-	// 0 = normal, 1 = vulnerable (adjust to match your model skins)
-	const bool vuln = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
-	self->s.skinNum = vuln ? 1 : 0;
+static void chthon_sight_sound(gentity_t* self) {
+        gi.sound(self, CHAN_VOICE, s_sight, 1, ATTN_NORM, 0);
 }
 
-/*
-===============
-chthon_fireball
-===============
-*/
-static void chthon_fireball(gentity_t* self) {
-	if (!self->enemy || !self->enemy->inUse)
-		return;
-
-	Vector3 forward, right;
-	AngleVectors(self->s.angles, forward, right, nullptr);
-	Vector3 start = M_ProjectFlashSource(self, CHTHON_MUZZLE_OFFSET, forward, right);
-
-	// Aim roughly center-mass
-	Vector3 end = self->enemy->s.origin;
-	end[2] += self->enemy->viewHeight * 0.5f;
-
-	Vector3 dir = end - start;
-	dir.normalize();
-
-	gi.sound(self, CHAN_WEAPON, s_attack, 1, ATTN_NORM, 0);
-
-	// Heavy, slow "lava ball" using rocket plumbing:
-	// damage 40, splash handled by monster_fire_rocket (damage+20), speed 400.
-	monster_fire_rocket(self, start, dir, 40, 400, MZ2_CHTON_ROCKET_1);
+static void chthon_sight_sound2(gentity_t* self) {
+        if (frandom() < 0.1f)
+                gi.sound(self, CHAN_VOICE, s_sight, 1, ATTN_IDLE, 0);
 }
 
-/*
-===============
-chthon_attack_anim
-===============
-*/
-static void chthon_attack_anim(gentity_t* self);
-
-static MonsterFrame chthon_frames_attack[] = {
-	{ ai_stand }, { ai_stand }, { ai_stand, 0, chthon_fireball },
-	{ ai_stand }, { ai_stand, 0, chthon_fireball }, { ai_stand }
-};
-MMOVE_T(chthon_move_attack) = { FRAME_attack01, FRAME_attack06, chthon_frames_attack, chthon_attack_anim };
-
-/*
-===============
-chthon_attack_anim
-===============
-*/
-static void chthon_attack_anim(gentity_t* self) {
-	self->monsterInfo.attackFinished = level.time + CHTHON_ATTACK_PERIOD;
-	M_SetAnimation(self, nullptr); // return to stand
-}
-
-/*
-===============
-chthon_stand
-===============
-*/
+// -----------------------------------------------------------------------------
+// Animation state
+// -----------------------------------------------------------------------------
 static void chthon_stand(gentity_t* self);
+static void chthon_walk(gentity_t* self);
+static void chthon_run(gentity_t* self);
 
 static MonsterFrame chthon_frames_stand[] = {
-	{ ai_stand, 0, chthon_idle },
-	{ ai_stand }, { ai_stand }, { ai_stand }, { ai_stand },
-	{ ai_stand }, { ai_stand }, { ai_stand }
+        { ai_stand, 0, chthon_idle },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_check_attack },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_check_attack },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_check_attack },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_sight_sound },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_check_attack },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand },
+        { ai_stand, 0, chthon_check_attack },
+        { ai_stand }
 };
-MMOVE_T(chthon_move_stand) = { FRAME_idle01, FRAME_idle08, chthon_frames_stand, chthon_stand };
+MMOVE_T(chthon_move_stand) = { FRAME_walk01, FRAME_walk31, chthon_frames_stand, chthon_stand };
 
-/*
-===============
-chthon_stand
-===============
-*/
+static MonsterFrame chthon_frames_walk[] = {
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk, 0, chthon_sight_sound2 },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk, 0, chthon_check_attack },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk },
+        { ai_walk, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_walk) = { FRAME_walk01, FRAME_walk31, chthon_frames_walk, chthon_walk };
+
+static MonsterFrame chthon_frames_run[] = {
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_sight_sound2 },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_check_attack },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_run) = { FRAME_walk01, FRAME_walk31, chthon_frames_run, chthon_run };
+
+static MonsterFrame chthon_frames_rise[] = {
+        { ai_move, 0, chthon_rise_sound },
+        { ai_move },
+        { ai_move, 0, chthon_sight_sound },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move, 0, chthon_stand }
+};
+MMOVE_T(chthon_move_rise) = { FRAME_rise01, FRAME_rise17, chthon_frames_rise, nullptr };
+
+static MonsterFrame chthon_frames_shock1[] = {
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_shock1) = { FRAME_shocka01, FRAME_shocka10, chthon_frames_shock1, chthon_walk };
+
+static MonsterFrame chthon_frames_shock2[] = {
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_shock2) = { FRAME_shockb01, FRAME_shockb06, chthon_frames_shock2, chthon_walk };
+
+static MonsterFrame chthon_frames_shock3[] = {
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move },
+        { ai_move, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_shock3) = { FRAME_shockc01, FRAME_shockc10, chthon_frames_shock3, chthon_walk };
+
+static MonsterFrame chthon_frames_attack[] = {
+        { ai_charge },
+        { ai_charge, 0, chthon_sight_sound2 },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_attack_left },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_attack_right },
+        { ai_charge },
+        { ai_charge },
+        { ai_charge, 0, chthon_check_attack }
+};
+MMOVE_T(chthon_move_attack) = { FRAME_attack01, FRAME_attack23, chthon_frames_attack, chthon_walk };
+
+static MonsterFrame chthon_frames_death[] = {
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move, 0, Q1BossExplode },
+        { ai_move }
+};
+MMOVE_T(chthon_move_death) = { FRAME_death01, FRAME_death09, chthon_frames_death, chthon_gib };
+
 MONSTERINFO_STAND(chthon_stand) (gentity_t* self) -> void {
-	self->monsterInfo.aiFlags |= AI_STAND_GROUND;
-	M_SetAnimation(self, &chthon_move_stand);
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
+        M_SetAnimation(self, &chthon_move_stand);
 }
 
-/*
-===============
-chthon_run
-===============
-*/
-MONSTERINFO_RUN(chthon_run) (gentity_t* self) -> void {
-	self->monsterInfo.aiFlags |= AI_STAND_GROUND;
-	M_SetAnimation(self, &chthon_move_stand);
-}
-
-/*
-===============
-chthon_walk
-===============
-*/
 MONSTERINFO_WALK(chthon_walk) (gentity_t* self) -> void {
-	self->monsterInfo.aiFlags |= AI_STAND_GROUND;
-	M_SetAnimation(self, &chthon_move_stand);
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
+        M_SetAnimation(self, &chthon_move_stand);
 }
 
-/*
-===============
-chthon_pain
-===============
-*/
+MONSTERINFO_RUN(chthon_run) (gentity_t* self) -> void {
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
+        M_SetAnimation(self, &chthon_move_stand);
+}
+
+MONSTERINFO_ATTACK(chthon_attack) (gentity_t* self) -> void {
+        self->monsterInfo.attackFinished = level.time + CHTHON_ATTACK_PERIOD;
+        M_SetAnimation(self, &chthon_move_attack);
+}
+
+MONSTERINFO_SIGHT(chthon_sight) (gentity_t* self, gentity_t* other) -> void {
+        (void)other;
+        gi.sound(self, CHAN_VOICE, s_sight, 1, ATTN_NORM, 0);
+}
+
+MONSTERINFO_CHECKATTACK(chthon_checkattack) (gentity_t* self) -> bool {
+        return M_CheckAttack_Base(self, 0.4f, 0.8f, 0.8f, 0.8f, 0.f, 0.f);
+}
+
+MONSTERINFO_SETSKIN(chthon_setskin) (gentity_t* self) -> void {
+        const int base = chthon_base_skin(self);
+        int skin = base;
+        if (self->health <= self->maxHealth / 2)
+                skin |= 1;
+        self->s.skinNum = skin;
+}
+
+// -----------------------------------------------------------------------------
+// Combat helpers
+// -----------------------------------------------------------------------------
+static void chthon_fire_lava(gentity_t* self, float sideSign) {
+        if (!self->enemy || !self->enemy->inUse)
+                return;
+
+        const bool blindfire = (self->monsterInfo.aiFlags & AI_MANUAL_STEERING) != 0;
+
+        Vector3 forward, right;
+        AngleVectors(self->s.angles, forward, right, nullptr);
+        Vector3 offset = { 36.0f, 160.0f * sideSign, 200.0f };
+        Vector3 start = M_ProjectFlashSource(self, offset, forward, right);
+
+        Vector3 target = blindfire ? self->monsterInfo.blind_fire_target : self->enemy->s.origin;
+        Vector3 aim = target;
+        if (!blindfire) {
+            if (frandom() < CHTHON_RANDOM_HEAD_CHANCE || start.z < self->enemy->absMin[2])
+                    aim[2] += self->enemy->viewHeight;
+            else
+                    aim[2] = self->enemy->absMin[2] + 1.0f;
+        }
+
+        Vector3 dir = aim - start;
+        Vector3 aimPoint = aim;
+        if (!blindfire && frandom() < CHTHON_LEAD_CHANCE) {
+                PredictAim(self, self->enemy, start, static_cast<float>(CHTHON_PROJECTILE_SPEED), false, 0.f, &dir, &aimPoint);
+        }
+
+        dir.normalize();
+        trace_t trace = gi.traceLine(start, aimPoint, self, MASK_PROJECTILE);
+
+        auto try_fire = [&](const Vector3& fireDir, const Vector3& fireTarget) {
+                gi.sound(self, CHAN_WEAPON, s_throw, 1, ATTN_NORM, 0);
+                int damage = chthon_is_lavaman(self) ? CHTHON_PROJECTILE_DAMAGE_LAVAMAN : CHTHON_PROJECTILE_DAMAGE;
+                monster_fire_rocket(self, start, fireDir, damage, CHTHON_PROJECTILE_SPEED, MZ2_CHTON_ROCKET_1);
+        };
+
+        if (blindfire) {
+                if (!(trace.startsolid || trace.allsolid || trace.fraction < 0.5f)) {
+                        try_fire(dir, aimPoint);
+                        return;
+                }
+
+                // try nudging aim sideways to squeeze a shot out
+                for (float adjust : { -CHTHON_PROJECTILE_SIDE_ADJUST, CHTHON_PROJECTILE_SIDE_ADJUST }) {
+                        Vector3 nudged = aimPoint + right * (adjust * sideSign);
+                        Vector3 nudgedDir = nudged - start;
+                        nudgedDir.normalize();
+                        trace = gi.traceLine(start, nudged, self, MASK_PROJECTILE);
+                        if (!(trace.startsolid || trace.allsolid || trace.fraction < 0.5f)) {
+                                try_fire(nudgedDir, nudged);
+                                return;
+                        }
+                }
+        } else {
+                if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP) {
+                        try_fire(dir, aimPoint);
+                        return;
+                }
+        }
+}
+
+static void chthon_attack_left(gentity_t* self) {
+        chthon_fire_lava(self, 1.0f);
+}
+
+static void chthon_attack_right(gentity_t* self) {
+        chthon_fire_lava(self, -1.0f);
+}
+
+static void chthon_check_attack(gentity_t* self) {
+        if (!self->enemy || !self->enemy->inUse || self->enemy->health <= 0)
+                return;
+        if (level.time < self->monsterInfo.attackFinished)
+                return;
+        self->monsterInfo.attack(self);
+}
+
+// -----------------------------------------------------------------------------
+// Pain / death
+// -----------------------------------------------------------------------------
 static PAIN(chthon_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
-	const bool vuln = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
-	if (!vuln) {
-		// Bark but do not flinch; cap minimum health so stray hits cannot kill
-		if (level.time >= self->pain_debounce_time) {
-			self->pain_debounce_time = level.time + 2_sec;
-			gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
-		}
-		if (self->health < 50)
-			self->health = 50;
-		return;
-	}
+        (void)other; (void)kick;
 
-	if (level.time >= self->pain_debounce_time) {
-		self->pain_debounce_time = level.time + 1_sec;
-		gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
-	}
+        const bool vulnerable = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
+
+        if (!vulnerable && mod.id != ModID::Telefragged && mod.id != ModID::Telefrag_Spawn) {
+                if (level.time >= self->pain_debounce_time) {
+                        self->pain_debounce_time = level.time + 2_sec;
+                        gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
+                }
+                if (self->health < 50)
+                        self->health = 50;
+                if (self->monsterInfo.setSkin)
+                        self->monsterInfo.setSkin(self);
+                return;
+        }
+
+        if (vulnerable && !chthon_is_energy_mod(mod)) {
+                self->health = std::min(self->health + damage, self->maxHealth);
+                if (self->monsterInfo.setSkin)
+                        self->monsterInfo.setSkin(self);
+                return;
+        }
+
+        if (level.time < self->pain_debounce_time)
+                return;
+        if (!M_ShouldReactToPain(self, mod))
+                return;
+
+        self->pain_debounce_time = level.time + CHTHON_PAIN_COOLDOWN;
+        gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
+
+        if (damage > 25) {
+                if (self->health <= self->maxHealth / 6)
+                        M_SetAnimation(self, &chthon_move_shock3);
+                else if (self->health <= self->maxHealth / 3)
+                        M_SetAnimation(self, &chthon_move_shock2);
+                else if (self->health <= self->maxHealth / 2)
+                        M_SetAnimation(self, &chthon_move_shock1);
+        }
+
+        if (self->monsterInfo.setSkin)
+                self->monsterInfo.setSkin(self);
 }
 
-/*
-===============
-chthon_dead
-===============
-*/
-static void chthon_dead(gentity_t* self) {
-	self->mins = { -64, -64, 0 };
-	self->maxs = { 64, 64, 8 };
-	monster_dead(self);
+static void chthon_gib(gentity_t* self) {
+        gi.WriteByte(svc_temp_entity);
+        gi.WriteByte(TE_EXPLOSION1_BIG);
+        gi.WritePosition(self->s.origin);
+        gi.multicast(self->s.origin, MULTICAST_PHS, false);
+
+        self->s.sound = 0;
+        self->svFlags |= SVF_DEADMONSTER;
+        self->solid = SOLID_NOT;
+        self->takeDamage = false;
+
+        ThrowGibs(self, 500, {
+                        { 2, "models/objects/gibs/bone/tris.md2" },
+                        { 1, "models/objects/gibs/bone2/tris.md2" },
+                        { 4, "models/objects/gibs/sm_meat/tris.md2" },
+                        { "models/objects/gibs/sm_meat/tris.md2" },
+                        { "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
+                });
 }
 
-/*
-===============
-chthon_die
-===============
-*/
 static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
-	// Chthon is only killable while vulnerable or by telefrag.
-	const bool telefrag = (mod.id == ModID::Telefragged);
-	const bool vulnerable = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
+        (void)inflictor; (void)attacker; (void)point;
 
-	if (!telefrag && !vulnerable) {
-		// Refuse to die outside the vulnerability window.
-		// Play a pain bark and std::clamp very low health so stray hits cannot finish him.
-		if (level.time >= self->pain_debounce_time) {
-			self->pain_debounce_time = level.time + 1_sec;
-			gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
-		}
-		if (self->health < 50)
-			self->health = 50;
-		return;
-	}
+        const bool telefrag = (mod.id == ModID::Telefragged || mod.id == ModID::Telefrag_Spawn);
+        const bool vulnerable = (self->monsterInfo.aiFlags & AI_CHTHON_VULNERABLE) != 0;
 
-	// Normal monster die structure from here on.
+        if (!telefrag && !vulnerable) {
+                if (level.time >= self->pain_debounce_time) {
+                        self->pain_debounce_time = level.time + 1_sec;
+                        gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
+                }
+                if (self->health < 50)
+                        self->health = 50;
+                if (self->monsterInfo.setSkin)
+                        self->monsterInfo.setSkin(self);
+                return;
+        }
 
-	// check for gib
-	if (M_CheckGib(self, mod)) {
-		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
+        if (!telefrag && !chthon_is_energy_mod(mod)) {
+                self->health += self->monsterInfo.damage.blood;
+                if (self->health < 1)
+                        self->health = 1;
+                if (self->monsterInfo.setSkin)
+                        self->monsterInfo.setSkin(self);
+                return;
+        }
 
-		// Optionally alter skin on gib if your model supports it
-		// self->s.skinNum /= 2;
+        if (self->deadFlag)
+                return;
 
-		ThrowGibs(self, damage, {
-			{ 3, "models/objects/gibs/bone/tris.md2" },
-			{ 4, "models/objects/gibs/sm_meat/tris.md2" },
-			{ "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
-			});
+        gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
+        self->deadFlag = true;
+        self->takeDamage = false;
+        self->monsterInfo.aiFlags &= ~AI_CHTHON_VULNERABLE;
 
-		self->deadFlag = true;
-		return;
-	}
-
-	if (self->deadFlag)
-		return;
-
-	// regular death
-	self->deadFlag = true;
-	self->takeDamage = true;
-
-	// Chthon typically has a single death sound; if you have multiple, branch like chick_die.
-	gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
-
-	// If you have death animations, trigger them here, e.g.:
-	// M_SetAnimation(self, &chthon_move_death1);
-	// Otherwise, remove the corpse in the standard way.
-	chthon_dead(self);
+        M_SetAnimation(self, &chthon_move_death);
+        if (self->monsterInfo.setSkin)
+                self->monsterInfo.setSkin(self);
 }
 
-/*
-===============
-chthon_precache
-===============
-*/
-static void chthon_precache() {
-	gi.modelIndex("models/monsters/boss/tris.md2");
-	s_idle.assign("boss1/idle1.wav");		// remove
-	s_sight.assign("boss1/sight1.wav");
-	s_pain.assign("boss1/pain.wav");
-	s_death.assign("boss1/death.wav");
-	s_attack.assign("boss1/throw.wav");
-}
-
-/*
-===============
-chthon_think
-===============
-*/
+// -----------------------------------------------------------------------------
+// Think loop
+// -----------------------------------------------------------------------------
 static THINK(chthon_think) (gentity_t* self) -> void {
-	// Fire on a simple cadence when we have an enemy
-	if (self->enemy && self->enemy->inUse && level.time >= self->monsterInfo.attackFinished) {
-		M_SetAnimation(self, &chthon_move_attack);
-	}
-	self->nextThink = level.time + 250_ms;
+        chthon_check_attack(self);
+        self->nextThink = level.time + 250_ms;
 }
 
-/*
-===============
-chthon_start
-===============
-*/
+static void chthon_precache() {
+        gi.modelIndex("models/monsters/chthon/tris.md2");
+
+        s_idle.assign("chthon/idle1.wav");
+        s_sight.assign("chthon/sight1.wav");
+        s_pain.assign("chthon/pain.wav");
+        s_death.assign("chthon/death.wav");
+        s_throw.assign("chthon/throw.wav");
+        s_rise.assign("chthon/out1.wav");
+
+        gi.soundIndex("misc/udeath.wav");
+}
+
+static void chthon_configure(gentity_t* self) {
+        self->mins = CHTHON_MINS;
+        self->maxs = CHTHON_MAXS;
+        self->yawSpeed = 10;
+        self->mass = CHTHON_MASS;
+
+        if (chthon_is_lavaman(self)) {
+                self->s.skinNum = chthon_base_skin(self);
+                self->health = self->maxHealth = CHTHON_LAVAMAN_HEALTH;
+        } else {
+                self->s.skinNum = chthon_base_skin(self);
+                self->health = self->maxHealth = CHTHON_BASE_HEALTH;
+        }
+        self->gibHealth = CHTHON_GIBHEALTH;
+        self->moveType = MoveType::None;
+        self->svFlags |= SVF_MONSTER;
+        self->takeDamage = true;
+        self->monsterInfo.attackFinished = level.time;
+
+        self->monsterInfo.stand = chthon_stand;
+        self->monsterInfo.walk = chthon_walk;
+        self->monsterInfo.run = chthon_run;
+        self->monsterInfo.attack = chthon_attack;
+        self->monsterInfo.sight = chthon_sight;
+        self->monsterInfo.checkAttack = chthon_checkattack;
+        self->monsterInfo.setSkin = chthon_setskin;
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND | AI_IGNORE_SHOTS;
+
+        self->pain = chthon_pain;
+        self->die = chthon_die;
+
+        gi.linkEntity(self);
+
+        if (self->monsterInfo.setSkin)
+                self->monsterInfo.setSkin(self);
+
+        if (!self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
+                M_SetAnimation(self, &chthon_move_rise);
+        else
+                M_SetAnimation(self, &chthon_move_stand);
+
+        stationarymonster_start(self);
+
+        self->think = chthon_think;
+        self->nextThink = level.time + 250_ms;
+}
+
+// -----------------------------------------------------------------------------
+// Spawn functions
+// -----------------------------------------------------------------------------
 static void chthon_start(gentity_t* self) {
-	self->monsterInfo.stand = chthon_stand;
-	self->monsterInfo.walk = chthon_walk;
-	self->monsterInfo.run = chthon_run;
-	self->monsterInfo.sight = chthon_sight;
-	self->monsterInfo.setSkin = chthon_setskin;
-	self->pain = chthon_pain;
-	self->die = chthon_die;
-
-	self->mins = CHTHON_MINS;
-	self->maxs = CHTHON_MAXS;
-	self->yawSpeed = 10;
-	self->mass = CHTHON_MASS;
-	self->health = self->maxHealth = CHTHON_HEALTH;
-	self->gibHealth = CHTHON_GIBHEALTH;
-
-	self->svFlags |= SVF_MONSTER;
-	self->moveType = MoveType::None;   // truly stationary
-
-	M_SetAnimation(self, &chthon_move_stand);
-
-	// Proper stationary monster init (fixes the old walkmonster_start misuse)
-	stationarymonster_start(self);
-
-	self->think = chthon_think;
-	self->nextThink = level.time + 500_ms;
+        chthon_precache();
+        self->s.modelIndex = gi.modelIndex("models/monsters/chthon/tris.md2");
+        chthon_configure(self);
 }
 
-/*QUAKED SP_monster_boss (1 .5 0) (-64 -64 -24) (64 64 128) AMBUSH TRIGGER_SPAWN SIGHT NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
-Chthon boss. Immobile, lobs lava balls. Vulnerable only during lightning windows.
-*/
+void SP_monster_chthon(gentity_t* self) {
+        if (!M_AllowSpawn(self)) {
+                FreeEntity(self);
+                return;
+        }
+
+        self->className = "monster_chthon";
+        chthon_start(self);
+}
+
+void SP_monster_lavaman(gentity_t* self) {
+        if (!M_AllowSpawn(self)) {
+                FreeEntity(self);
+                return;
+        }
+
+        self->className = "monster_lavaman";
+        self->s.scale = 0.75f;
+        chthon_start(self);
+}
+
 void SP_monster_boss(gentity_t* self) {
-	if (!M_AllowSpawn(self)) {
-		FreeEntity(self);
-		return;
-	}
-
-	chthon_precache();
-
-	self->className = "monster_chthon";
-	self->s.modelIndex = gi.modelIndex("models/monsters/boss/tris.md2");
-
-	chthon_start(self);
+        SP_monster_chthon(self);
 }
 
 // -----------------------------------------------------------------------------
 // target_chthon_lightning: applies a big damage hit and brief vulnerability
 // -----------------------------------------------------------------------------
-
-/*
-===============
-chthon_clear_vuln_think
-===============
-*/
 static THINK(chthon_clear_vuln_think) (gentity_t* self) -> void {
-	self->monsterInfo.aiFlags &= ~AI_CHTHON_VULNERABLE;
-	self->think = chthon_think;
-	self->nextThink = level.time + 250_ms;
+        self->monsterInfo.aiFlags &= ~AI_CHTHON_VULNERABLE;
+        if (self->monsterInfo.setSkin)
+                self->monsterInfo.setSkin(self);
+        self->think = chthon_think;
+        self->nextThink = level.time + 250_ms;
 }
 
-/*
-===============
-Use_target_chthon_lightning
-===============
-*/
 static USE(Use_target_chthon_lightning) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
-	(void)other;
+        (void)other;
 
-	const int   lightning_damage = (self->dmg > 0) ? self->dmg : 200;
-	const float vuln_seconds = (self->wait > 0.f) ? self->wait : 1.5f;
+        const int   lightning_damage = (self->dmg > 0) ? self->dmg : 200;
+        const float vuln_seconds = (self->wait > 0.f) ? self->wait : 1.5f;
 
-	for (gentity_t* e = g_entities; e < g_entities + globals.numEntities; ++e) {
-		if (!e->inUse || !e->className) continue;
-		if (strcmp(e->className, "monster_chthon") != 0) continue;
-		if (self->target && e->targetName && strcmp(self->target, e->targetName) != 0) continue;
+        for (gentity_t* e = g_entities; e < g_entities + globals.numEntities; ++e) {
+                if (!e->inUse || !e->className)
+                        continue;
+                if (strcmp(e->className, "monster_chthon") != 0 && strcmp(e->className, "monster_lavaman") != 0)
+                        continue;
+                if (self->target && e->targetName && strcmp(self->target, e->targetName) != 0)
+                        continue;
 
-		// Mark vulnerable and deal the lightning strike
-		e->monsterInfo.aiFlags |= AI_CHTHON_VULNERABLE;
+                e->monsterInfo.aiFlags |= AI_CHTHON_VULNERABLE;
 
-		Damage(
-			e,
-			self,
-			activator ? activator : self,
-			Vector3{ 0, 0, 0 },
-			e->s.origin,
-			Vector3{ 0, 0, 0 },
-			lightning_damage,
-			0,
-			DamageFlags::NoKnockback,
-			ModID::Laser // use an existing MOD for lightning hit
-		);
+                Damage(
+                        e,
+                        self,
+                        activator ? activator : self,
+                        Vector3{ 0, 0, 0 },
+                        e->s.origin,
+                        Vector3{ 0, 0, 0 },
+                        lightning_damage,
+                        0,
+                        DamageFlags::Energy | DamageFlags::NoKnockback,
+                        ModID::Laser
+                );
 
-		// Optional: TE lightning effect could be added here.
+                e->think = chthon_clear_vuln_think;
+                e->nextThink = level.time + GameTime::from_sec(vuln_seconds);
 
-		// Schedule the vulnerability to clear
-		e->think = chthon_clear_vuln_think;
-		e->nextThink = level.time + GameTime::from_sec(vuln_seconds);
-	}
+                if (e->monsterInfo.setSkin)
+                        e->monsterInfo.setSkin(e);
+        }
 
-	// One-shot target
-	FreeEntity(self);
+        FreeEntity(self);
 }
 
-/*
-===============
-SP_event_lightning
-===============
-*/
-void SP_event_lightning(gentity_t* self) {
-	self->className = "target_chthon_lightning";
-	self->use = Use_target_chthon_lightning;
+void SP_target_chthon_lightning(gentity_t* self) {
+        self->className = "target_chthon_lightning";
+        self->use = Use_target_chthon_lightning;
 }
