@@ -141,6 +141,9 @@
     <ClInclude Include="monsters\m_spawn.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
+    <ClInclude Include="monsters\m_spike.hpp">
+      <Filter>monsters</Filter>
+    </ClInclude>
     <ClInclude Include="monsters\m_vore.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
@@ -379,6 +382,9 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_spawn.cpp">
+      <Filter>monsters</Filter>
+    </ClCompile>
+    <ClCompile Include="monsters\m_spike.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="monsters\m_vore.cpp">

@@ -170,6 +170,7 @@
     <ClInclude Include="monsters\m_shambler.hpp" />
     <ClInclude Include="monsters\m_soldier.hpp" />
     <ClInclude Include="monsters\m_spawn.hpp" />
+    <ClInclude Include="monsters\m_spike.hpp" />
     <ClInclude Include="monsters\m_stalker.hpp" />
     <ClInclude Include="monsters\m_supertank.hpp" />
     <ClInclude Include="monsters\m_tank.hpp" />
@@ -272,6 +273,7 @@
     <ClCompile Include="monsters\m_shambler.cpp" />
     <ClCompile Include="monsters\m_soldier.cpp" />
     <ClCompile Include="monsters\m_spawn.cpp" />
+    <ClCompile Include="monsters\m_spike.cpp" />
     <ClCompile Include="monsters\m_stalker.cpp" />
     <ClCompile Include="monsters\m_supertank.cpp" />
     <ClCompile Include="monsters\m_tank.cpp" />
