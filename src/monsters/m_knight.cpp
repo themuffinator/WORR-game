@@ -13,14 +13,6 @@ static cached_soundIndex s_sword_hit;
 static cached_soundIndex s_sword_miss;
 static cached_soundIndex s_sword_swing;
 
-void knight_stand(gentity_t* self);
-void knight_walk(gentity_t* self);
-void knight_run(gentity_t* self);
-
-static constexpr SpawnFlags SPAWNFLAG_KNIGHT_NOJUMPING = 8_spawnflag;
-static constexpr SpawnFlags SPAWNFLAG_KNIGHT_KNEEL = 16_spawnflag;
-static constexpr SpawnFlags SPAWNFLAG_STATUE_STATIONARY = 32_spawnflag;
-
 static constexpr int KNIGHT_BASE_HEALTH = 75;
 static constexpr int KNIGHT_BASE_GIB_HEALTH = -40;
 static constexpr int KNIGHT_BASE_MASS = 120;
@@ -28,6 +20,10 @@ static constexpr int KNIGHT_STATUE_HEALTH = 125;
 static constexpr int KNIGHT_STATUE_GIB_HEALTH = -100;
 static constexpr int KNIGHT_STATUE_MASS = 175;
 static constexpr float KNIGHT_MODEL_SCALE = 1.0f;
+
+void knight_stand(gentity_t* self);
+void knight_walk(gentity_t* self);
+void knight_run(gentity_t* self);
 
 /*
 Helpers
@@ -72,17 +68,10 @@ static void knight_check_dist(gentity_t* self) {
         }
 }
 
-MONSTERINFO_SETSKIN(knight_setskin) (gentity_t* self) -> void {
-        if (self->health < (self->maxHealth / 2))
-                self->s.skinNum |= 1;
-        else
-                self->s.skinNum &= ~1;
-}
-
 static void knight_melee_hit(gentity_t* self) {
-	Vector3 aim = { MELEE_DISTANCE, self->mins[0], -4.0f };
+        Vector3 aim = { MELEE_DISTANCE, self->mins[0], -4.0f };
 
-	if (fire_hit(self, aim, irandom(15, 25), 200)) {
+        if (fire_hit(self, aim, irandom(15, 25), 200)) {
 		// Successful strike
 		gi.sound(self, CHAN_WEAPON, s_sword_hit, 1, ATTN_NORM, 0);
 	}
@@ -260,13 +249,17 @@ static PAIN(knight_pain) (gentity_t* self, gentity_t* other, float kick, int dam
                 M_SetAnimation(self, &knight_move_pain2);
 }
 
-/*
-Death
-*/
-static void knight_dead(gentity_t* self) {
-	self->mins = { -16, -16, -24 };
-	self->maxs = { 16,  16,  -8 };
-	monster_dead(self);
+MONSTERINFO_SETSKIN(knight_setskin) (gentity_t* self) -> void {
+        if (self->health < (self->maxHealth / 2))
+                self->s.skinNum |= 1;
+        else
+                self->s.skinNum &= ~1;
+}
+
+static void knight_shrink(gentity_t* self) {
+        self->maxs[2] = 0;
+        self->svFlags |= SVF_DEADMONSTER;
+        gi.linkEntity(self);
 }
 
 static MonsterFrame knight_frames_death1[] = {
@@ -274,14 +267,14 @@ static MonsterFrame knight_frames_death1[] = {
         { ai_move },
         { ai_move },
         { ai_move },
-        { ai_move },
+        { ai_move, 0, knight_shrink },
         { ai_move },
         { ai_move },
         { ai_move },
         { ai_move },
         { ai_move }
 };
-MMOVE_T(knight_move_death1) = { FRAME_death1, FRAME_death10, knight_frames_death1, knight_dead };
+MMOVE_T(knight_move_death1) = { FRAME_death1, FRAME_death10, knight_frames_death1, monster_dead };
 
 static MonsterFrame knight_frames_death2[] = {
         { ai_move },
@@ -289,36 +282,49 @@ static MonsterFrame knight_frames_death2[] = {
         { ai_move },
         { ai_move },
         { ai_move },
-        { ai_move },
+        { ai_move, 0, knight_shrink },
         { ai_move },
         { ai_move },
         { ai_move },
         { ai_move },
         { ai_move }
 };
-MMOVE_T(knight_move_death2) = { FRAME_deathb1, FRAME_deathb11, knight_frames_death2, knight_dead };
+MMOVE_T(knight_move_death2) = { FRAME_deathb1, FRAME_deathb11, knight_frames_death2, monster_dead };
 
 static DIE(knight_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker,
-	int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
+        int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
+        const bool isStatue = self->spawnFlags.has(SPAWNFLAG_STATUE_STATIONARY) ||
+                (self->className && strcmp(self->className, "monster_statue") == 0);
+
         if (M_CheckGib(self, mod)) {
                 gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 
                 self->s.skinNum &= ~1;
 
-                ThrowGibs(self, damage, {
-                        { 2, "models/objects/gibs/bone/tris.md2" },
-                        { 2, "models/objects/gibs/sm_meat/tris.md2" },
-                        { "models/monsters/knight/gibs/head.md2", GIB_HEAD }
+                if (isStatue) {
+                        ThrowGibs(self, damage, {
+                                { 2, "models/objects/gibs/bone/tris.md2" },
+                                { 4, "models/objects/gibs/sm_meat/tris.md2" },
+                                { "models/monsters/knight/gibs/head.md2", GIB_HEAD | GIB_SKINNED | GIB_DEBRIS }
                         });
+                }
+                else {
+                        ThrowGibs(self, damage, {
+                                { 2, "models/objects/gibs/bone/tris.md2" },
+                                { 4, "models/objects/gibs/sm_meat/tris.md2" },
+                                { "models/objects/gibs/chest/tris.md2" },
+                                { "models/monsters/knight/gibs/head.md2", GIB_HEAD | GIB_SKINNED }
+                        });
+                }
+
                 self->deadFlag = true;
                 return;
         }
 
-    if (!M_ShouldReactToPain(self, mod))
-        return;
+        if (self->deadFlag)
+                return;
 
-    gi.sound(self, CHAN_VOICE, s_pain, 1, ATTN_NORM, 0);
-
+        gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
         self->deadFlag = true;
         self->takeDamage = true;
 
@@ -326,87 +332,6 @@ static DIE(knight_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attack
                 M_SetAnimation(self, &knight_move_death1);
         else
                 M_SetAnimation(self, &knight_move_death2);
-}
-
-MONSTERINFO_SETSKIN(knight_setskin) (gentity_t* self) -> void {
-    if (self->health < (self->maxHealth / 2))
-        self->s.skinNum |= 1;
-    else
-        self->s.skinNum &= ~1;
-}
-
-static void knight_shrink(gentity_t* self) {
-    self->maxs[2] = 0;
-    self->svFlags |= SVF_DEADMONSTER;
-    gi.linkEntity(self);
-}
-
-static MonsterFrame knight_frames_death1[] = {
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move, 0, knight_shrink },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move }
-};
-MMOVE_T(knight_move_death1) = { FRAME_death1, FRAME_death10, knight_frames_death1, monster_dead };
-
-static MonsterFrame knight_frames_death2[] = {
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move, 0, knight_shrink },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move },
-    { ai_move }
-};
-MMOVE_T(knight_move_death2) = { FRAME_deathb1, FRAME_deathb11, knight_frames_death2, monster_dead };
-
-static DIE(knight_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
-    const bool isStatue = self->spawnFlags.has(SPAWNFLAG_STATUE_STATIONARY) || (self->className && strcmp(self->className, "monster_statue") == 0);
-
-    if (M_CheckGib(self, mod)) {
-        gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
-        self->s.skinNum &= ~1;
-
-        if (isStatue) {
-            ThrowGibs(self, damage, {
-                { 2, "models/objects/gibs/bone/tris.md2" },
-                { 4, "models/objects/gibs/sm_meat/tris.md2" },
-                { "models/monsters/knight/gibs/head.md2", GIB_HEAD | GIB_SKINNED | GIB_DEBRIS }
-            });
-        } else {
-            ThrowGibs(self, damage, {
-                { 2, "models/objects/gibs/bone/tris.md2" },
-                { 4, "models/objects/gibs/sm_meat/tris.md2" },
-                { "models/objects/gibs/chest/tris.md2" },
-                { "models/monsters/knight/gibs/head.md2", GIB_HEAD | GIB_SKINNED }
-            });
-        }
-
-        self->deadFlag = true;
-        return;
-    }
-
-    if (self->deadFlag)
-        return;
-
-    gi.sound(self, CHAN_VOICE, s_death, 1, ATTN_NORM, 0);
-    self->deadFlag = true;
-    self->takeDamage = true;
-
-    if (frandom() < 0.5f)
-        M_SetAnimation(self, &knight_move_death1);
-    else
-        M_SetAnimation(self, &knight_move_death2);
 }
 
 static void knight_precache() {
@@ -434,7 +359,7 @@ void SP_monster_knight(gentity_t* self) {
         self->s.modelIndex = gi.modelIndex("models/monsters/knight/tris.md2");
 
         self->mins = { -16, -16, -24 };
-        self->maxs = { 16,  16,  40 };
+        self->maxs = { 16,  16,  32 };
         self->moveType = MoveType::Step;
         self->solid = SOLID_BBOX;
         self->yawSpeed = 15;
