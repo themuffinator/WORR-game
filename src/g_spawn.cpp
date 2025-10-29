@@ -230,6 +230,7 @@ void SP_monster_soldier_ss(gentity_t* self);
 void SP_monster_tank(gentity_t* self);
 void SP_monster_medic(gentity_t* self);
 void SP_monster_flipper(gentity_t* self);
+void SP_monster_eel(gentity_t* self);
 void SP_monster_chick(gentity_t* self);
 void SP_monster_parasite(gentity_t* self);
 void SP_monster_flyer(gentity_t* self);
@@ -501,7 +502,8 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_tank", SP_monster_tank },
 	{ "monster_tank_commander", SP_monster_tank },
 	{ "monster_medic", SP_monster_medic },
-	{ "monster_flipper", SP_monster_flipper },
+        { "monster_flipper", SP_monster_flipper },
+        { "monster_eel", SP_monster_eel },
 	{ "monster_chick", SP_monster_chick },
 	{ "monster_parasite", SP_monster_parasite },
 	{ "monster_flyer", SP_monster_flyer },

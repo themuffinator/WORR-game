@@ -145,6 +145,7 @@
     <ClInclude Include="monsters\m_enforcer.hpp" />
     <ClInclude Include="monsters\m_fiend.hpp" />
     <ClInclude Include="monsters\m_rotfish.hpp" />
+    <ClInclude Include="monsters\m_eel.hpp" />
     <ClInclude Include="monsters\m_fixbot.hpp" />
     <ClInclude Include="monsters\m_flash.hpp" />
     <ClInclude Include="monsters\m_shark.hpp" />
@@ -248,6 +249,7 @@
     <ClCompile Include="monsters\m_enforcer.cpp" />
     <ClCompile Include="monsters\m_fiend.cpp" />
     <ClCompile Include="monsters\m_rotfish.cpp" />
+    <ClCompile Include="monsters\m_eel.cpp" />
     <ClCompile Include="monsters\m_fixbot.cpp" />
     <ClCompile Include="monsters\m_shark.cpp" />
     <ClCompile Include="monsters\m_float.cpp" />
