@@ -18,12 +18,16 @@ OGRE (Quake 1) - WOR port
 #include "m_ogre.hpp"
 #include "m_flash.hpp"
 
+#include <cstring>
+
 /*
 ===============
 Spawnflags
 ===============
 */
 constexpr SpawnFlags SPAWNFLAG_OGRE_NOGRENADE = 8_spawnflag;
+
+void ogre_attack(gentity_t* self);
 
 /*
 ===============
@@ -147,18 +151,18 @@ ogre_melee_hit
 ===============
 */
 static void ogre_melee_hit(gentity_t* self) {
-	if (!self->enemy || self->enemy->health <= 0)
-		return;
+        if (!self->enemy || self->enemy->health <= 0)
+                return;
 
-	Vector3 aim = { MELEE_DISTANCE, self->maxs[0], 8 };
-	const int dmg = irandom(15, 25);
+        Vector3 aim = { MELEE_DISTANCE, self->maxs[0], 8 };
+        const int dmg = irandom(15, 25);
 
-	if (fire_hit(self, aim, dmg, 100))
-		gi.sound(self, CHAN_WEAPON, snd_melee_hit, 1, ATTN_NORM, 0);
-	else {
-		gi.sound(self, CHAN_WEAPON, snd_melee_swing, 1, ATTN_NORM, 0);
-		self->monsterInfo.melee_debounce_time = level.time + 1_sec;
-	}
+        if (fire_hit(self, aim, dmg, 100))
+                gi.sound(self, CHAN_WEAPON, snd_melee_hit, 1, ATTN_NORM, 0);
+        else {
+                gi.sound(self, CHAN_WEAPON, snd_melee_swing, 1, ATTN_NORM, 0);
+                self->monsterInfo.melee_debounce_time = level.time + 1_sec;
+        }
 }
 
 /*
@@ -166,18 +170,34 @@ static void ogre_melee_hit(gentity_t* self) {
 ogre_melee
 ===============
 */
+static void ogre_melee_refire(gentity_t* self) {
+        if (!self->enemy || !self->enemy->inUse || self->enemy->health <= 0)
+                return;
+
+        if ((skill && skill->integer >= 3) || range_to(self, self->enemy) == RANGE_MELEE) {
+                self->monsterInfo.nextFrame = FRAME_melee01;
+        }
+        else {
+                self->monsterInfo.melee_debounce_time = level.time + 600_ms;
+                ogre_attack(self);
+        }
+}
+
 static MonsterFrame ogre_frames_melee[] = {
-	{ ai_charge, 8 },
-	{ ai_charge, 8 },
-	{ ai_charge, 0, ogre_melee_hit },
-	{ ai_charge, 5 },
-	{ ai_charge, 0, ogre_melee_hit },
-	{ ai_charge, 6 }
+        { ai_charge, 8 },
+        { ai_charge, 8 },
+        { ai_charge, 0, ogre_melee_hit },
+        { ai_charge, 5 },
+        { ai_charge, 0, ogre_melee_hit },
+        { ai_charge, 6, ogre_melee_refire }
 };
 MMOVE_T(ogre_move_melee) = { FRAME_melee01, FRAME_melee06, ogre_frames_melee, ogre_run };
 
-MONSTERINFO_MELEE(ogre_melee) (gentity_t* self) -> void {
-	M_SetAnimation(self, &ogre_move_melee);
+MONSTERINFO_MELEE(ogre_check_refire) (gentity_t* self) -> void {
+        if (!self->enemy || !self->enemy->inUse || self->enemy->health <= 0)
+                return;
+
+        M_SetAnimation(self, &ogre_move_melee);
 }
 
 /*
@@ -211,40 +231,40 @@ Select Ogre grenade flash + spread
 ===============
 */
 static void ogre_select_grenade_flash(int frame, MonsterMuzzleFlashID& flash_number, float& spread) {
-	switch (frame) {
-	case FRAME_gren01:
-	case FRAME_gren02:
-		flash_number = MZ2_GUNNER_GRENADE_1;
-		spread = -0.10f;
-		break;
+        switch (frame) {
+        case FRAME_gren01:
+        case FRAME_gren02:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_1;
+                spread = -0.10f;
+                break;
 
-	case FRAME_gren03:
-	case FRAME_gren04:
-		flash_number = MZ2_GUNNER_GRENADE_2;
-		spread = -0.05f;
-		break;
+        case FRAME_gren03:
+        case FRAME_gren04:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_2;
+                spread = -0.05f;
+                break;
 
-	case FRAME_gren05:
-	case FRAME_gren06:
-		flash_number = MZ2_GUNNER_GRENADE_3;
-		spread = 0.05f;
-		break;
+        case FRAME_gren05:
+        case FRAME_gren06:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_3;
+                spread = 0.05f;
+                break;
 
-	default: // FRAME_gren07..08 and fallback
-		flash_number = MZ2_GUNNER_GRENADE_4;
-		spread = 0.10f;
-		break;
-	}
+        default: // FRAME_gren07..08 and fallback
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_2;
+                spread = 0.10f;
+                break;
+        }
 }
 
 /*
 ===============
-ogre_fire_grenade
+ogre_grenade_fire
 ===============
 */
-static void ogre_fire_grenade(gentity_t* self) {
-	if (!self->enemy || !self->enemy->inUse)
-		return;
+static void ogre_grenade_fire(gentity_t* self, bool multiGrenade) {
+        if (!self->enemy || !self->enemy->inUse)
+                return;
 
 	Vector3 forward, right, up;
 	AngleVectors(self->s.angles, forward, right, up);
@@ -290,7 +310,10 @@ static void ogre_fire_grenade(gentity_t* self) {
 	const float rightAdjust = crandom_open() * 10.0f;
 	const float upAdjust = frandom() * 10.0f;
 
-	monster_fire_grenade(self, start, aim, 40, 600, flash_number, rightAdjust, upAdjust);
+        if (multiGrenade)
+                monster_fire_multigrenade(self, start, aim, 40, 600, flash_number, rightAdjust, upAdjust);
+        else
+                monster_fire_grenade(self, start, aim, 40, 600, flash_number, rightAdjust, upAdjust);
 }
 
 /*
@@ -298,13 +321,50 @@ static void ogre_fire_grenade(gentity_t* self) {
 ogre_attack_grenade
 ===============
 */
+static void ogre_flak_fire(gentity_t* self) {
+        if (!self->enemy || !self->enemy->inUse)
+                return;
+
+        Vector3 forward, right;
+        AngleVectors(self->s.angles, forward, right, nullptr);
+
+        MonsterMuzzleFlashID flash_number;
+        switch (self->s.frame) {
+        case FRAME_gren03:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_1;
+                break;
+        case FRAME_gren05:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_3;
+                break;
+        default:
+                flash_number = MZ2_GUNCMDR_GRENADE_FRONT_2;
+                break;
+        }
+
+        Vector3 start = M_ProjectFlashSource(self, monster_flash_offset[flash_number], forward, right);
+
+        Vector3 aim;
+        PredictAim(self, self->enemy, start, 0, true, -0.2f, &aim, nullptr);
+        monster_fire_flakcannon(self, start, aim, 4, 800, 500, 500, 5, flash_number);
+}
+
+static void ogre_fire(gentity_t* self) {
+        const bool isMarksman = self->className && strcmp(self->className, "monster_ogre_marksman") == 0;
+        const bool isMultiGrenade = self->className && strcmp(self->className, "monster_ogre_multigrenade") == 0;
+
+        if (isMarksman)
+                ogre_flak_fire(self);
+        else
+                ogre_grenade_fire(self, isMultiGrenade);
+}
+
 static MonsterFrame ogre_frames_grenade[] = {
-	{ ai_charge, 0 },
-	{ ai_charge, 0 },
-	{ ai_charge, 0, ogre_fire_grenade }, // throw
-	{ ai_charge, 0 },
-	{ ai_charge, 0 },
-	{ ai_charge, 0 },
+        { ai_charge, 0 },
+        { ai_charge, 0 },
+        { ai_charge, 0, ogre_fire }, // throw
+        { ai_charge, 0 },
+        { ai_charge, 0 },
+        { ai_charge, 0 },
 	{ ai_charge, 0 },
 	{ ai_charge, 0 }
 };
@@ -432,7 +492,17 @@ ogre_setskin
 ===============
 */
 MONSTERINFO_SETSKIN(ogre_setskin) (gentity_t* self) -> void {
-	self->s.skinNum = (self->health < (self->maxHealth / 2)) ? 1 : 0;
+        int baseSkin = 0;
+
+        if (self->className) {
+                if (strcmp(self->className, "monster_ogre_marksman") == 0)
+                        baseSkin = 2;
+                else if (strcmp(self->className, "monster_ogre_multigrenade") == 0)
+                        baseSkin = 4;
+        }
+
+        const bool injured = self->maxHealth > 0 && self->health < (self->maxHealth / 2);
+        self->s.skinNum = baseSkin + (injured ? 1 : 0);
 }
 
 /*
@@ -469,20 +539,23 @@ void SP_monster_ogre(gentity_t* self) {
 	self->mins = { -24, -24, -24 };
 	self->maxs = { 24,  24,  32 };
 
-	self->health = 200 * st.health_multiplier;
-	self->gibHealth = -80;
-	self->mass = 300;
+        self->health = 200 * st.health_multiplier;
+        self->maxHealth = self->health;
+        self->gibHealth = -80;
+        self->mass = 300;
 
-	// callbacks
-	self->pain = ogre_pain;
-	self->die = ogre_die;
+        self->item = &itemList[IT_PACK];
+
+        // callbacks
+        self->pain = ogre_pain;
+        self->die = ogre_die;
 
 	self->monsterInfo.stand = ogre_stand;
 	self->monsterInfo.walk = ogre_walk;
 	self->monsterInfo.run = ogre_run;
 	self->monsterInfo.dodge = nullptr;
-	self->monsterInfo.attack = ogre_attack;     // grenade
-	self->monsterInfo.melee = ogre_melee;      // chainsaw
+        self->monsterInfo.attack = ogre_attack;     // grenade
+        self->monsterInfo.melee = ogre_check_refire;      // chainsaw
 	self->monsterInfo.sight = ogre_sight;
 	self->monsterInfo.search = ogre_search;
 	self->monsterInfo.idle = ogre_idle;
@@ -512,5 +585,11 @@ SP_monster_ogre_marksman
 model="models/monsters/ogre/tris.md2"
 */
 void SP_monster_ogre_marksman(gentity_t* self) {
-	SP_monster_ogre(self);
+        SP_monster_ogre(self);
+        self->s.skinNum = 2;
+}
+
+void SP_monster_ogre_multigrenade(gentity_t* self) {
+        SP_monster_ogre(self);
+        self->s.skinNum = 4;
 }
