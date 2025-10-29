@@ -17,3 +17,4 @@ void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int da
 void fire_gib(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
         float rightAdjust, float upAdjust);
 void fire_plasmaball(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, float damageRadius);
+void fire_lightning(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, Effect effect);

@@ -1075,6 +1075,7 @@ enum monster_ai_flags_t : uint64_t {
 	AI_SPAWNED_CARRIER = bit_v<22>, // both do_not_count and spawned are set for spawned monsters
 	AI_SPAWNED_MEDIC_C = bit_v<23>, // both do_not_count and spawned are set for spawned monsters
 	AI_SPAWNED_WIDOW = bit_v<24>,	 // both do_not_count and spawned are set for spawned monsters
+        AI_SPAWNED_OVERLORD = bit_v<41>,
 	AI_BLOCKED = bit_v<25>, // used by blocked_checkattack: set to say I'm attacking while blocked (prevents run-attacks)
 	AI_SPAWNED_ALIVE = bit_v<26>, // [Paril-KEX] for spawning dead
 	AI_SPAWNED_DEAD = bit_v<27>,
@@ -1096,8 +1097,9 @@ enum monster_ai_flags_t : uint64_t {
 };
 MAKE_ENUM_BITFLAGS(monster_ai_flags_t);
 
+// mask to catch all flavors of spawned minions
 constexpr monster_ai_flags_t AI_SPAWNED_MASK =
-AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW; // mask to catch all three flavors of spawned
+        AI_SPAWNED_CARRIER | AI_SPAWNED_MEDIC_C | AI_SPAWNED_WIDOW | AI_SPAWNED_OVERLORD;
 
 // monster attack state
 
