@@ -215,11 +215,11 @@ static PAIN(shambler_pain) (gentity_t *self, gentity_t *other, float kick, int d
 }
 
 MONSTERINFO_SETSKIN(shambler_setskin) (gentity_t *self) -> void {
-	// FIXME: create pain skin?
-	//if (self->health < (self->maxHealth / 2))
-	//	self->s.skinNum |= 1;
-	//else
-	//	self->s.skinNum &= ~1;
+	// Ionized logic: toggle the damaged skin when we're below half health.
+	if (self->health < (self->maxHealth / 2))
+		self->s.skinNum |= 1;
+	else
+		self->s.skinNum &= ~1;
 }
 
 //
@@ -235,7 +235,7 @@ static void ShamblerSaveLoc(gentity_t *self) {
 	shambler_lightning_update(self);
 }
 
-constexpr SpawnFlags SPAWNFLAG_SHAMBLER_PRECISE = 1_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_SHAMBLER_PRECISE = 8_spawnflag;
 
 static Vector3 FindShamblerOffset(gentity_t *self) {
 	Vector3 offset = { 0, 0, 48.f };
@@ -487,9 +487,17 @@ static DIE(shambler_die) (gentity_t *self, gentity_t *inflictor, gentity_t *atta
 }
 
 void SP_monster_shambler(gentity_t *self) {
+	const spawn_temp_t &st = ED_GetSpawnTemp();
+
 	if (!M_AllowSpawn(self)) {
 		FreeEntity(self);
 		return;
+	}
+
+	// Legacy compatibility: earlier builds used bit 0 (value 1) for precise mode.
+	if (!self->spawnFlags.has(SPAWNFLAG_SHAMBLER_PRECISE) && self->spawnFlags.has(1_spawnflag)) {
+		self->spawnFlags |= SPAWNFLAG_SHAMBLER_PRECISE;
+		self->spawnFlags &= ~1_spawnflag;
 	}
 
 	self->s.modelIndex = gi.modelIndex("models/monsters/shambler/tris.md2");
@@ -509,7 +517,7 @@ void SP_monster_shambler(gentity_t *self) {
 	sound_smack.assign("shambler/smack.wav");
 	sound_boom.assign("shambler/sboom.wav");
 
-	self->health = 600 * st.health_multiplier;
+	self->health = self->maxHealth = 600 * st.health_multiplier;
 	self->gibHealth = -60;
 
 	self->mass = 500;
