@@ -14,6 +14,8 @@ QUAKE ZOMBIE (Ionized port)
 #include "m_zombie.hpp"
 
 void monster_think(gentity_t* self);
+void zombie_run(gentity_t* self);
+void zombie_resurrect_think(gentity_t* self);
 
 namespace {
 
@@ -46,7 +48,7 @@ static void zombie_fall(gentity_t* self) {
         self->health = self->maxHealth;
 }
 
-static TOUCH(zombie_gib_touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
+TOUCH(zombie_gib_touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
         if (other == ent->owner)
                 return;
 
@@ -57,7 +59,7 @@ static TOUCH(zombie_gib_touch) (gentity_t* ent, gentity_t* other, const trace_t&
 
         if (other->takeDamage) {
                 Vector3 dir = other->s.origin - ent->s.origin;
-                Damage(other, ent, ent->owner, dir, ent->s.origin, tr.plane.normal, ent->dmg, ent->dmg, DamageFlags::None, MeansOfDeath{ ModID::Gekk });
+                Damage(other, ent, ent->owner, dir, ent->s.origin, tr.plane.normal, ent->dmg, ent->dmg, DamageFlags::Normal, MeansOfDeath{ ModID::Gekk });
                 gi.sound(ent, CHAN_WEAPON | CHAN_RELIABLE, sound_gib_hit, 1.0f, ATTN_NORM, 0);
         }
         else {
@@ -132,8 +134,6 @@ static void zombie_Cidle(gentity_t* self) {
         if (frandom() < 0.1f)
                 gi.sound(self, CHAN_VOICE, sound_idleC, 1, ATTN_IDLE, 0);
 }
-
-static THINK(zombie_resurrect_think) (gentity_t* self) -> void;
 
 static void zombie_down(gentity_t* self) {
         self->solid = SOLID_NOT;
@@ -530,7 +530,7 @@ MONSTERINFO_ATTACK(zombie_attack) (gentity_t* self) -> void {
                 M_SetAnimation(self, &zombie_move_attack3);
 }
 
-static PAIN(zombie_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
+PAIN(zombie_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
         if (self->count == ZSTATE_FEIGNDEAD && self->nextThink > level.time)
                 return;
 
@@ -596,7 +596,7 @@ MONSTERINFO_SEARCH(zombie_search) (gentity_t* self) -> void {
         gi.sound(self, CHAN_VOICE, sound_idle, 1, ATTN_IDLE, 0);
 }
 
-static THINK(zombie_resurrect_think) (gentity_t* self) -> void {
+THINK(zombie_resurrect_think) (gentity_t* self) -> void {
         if (!self->inUse || self->health <= self->gibHealth)
                 return;
 
@@ -624,7 +624,7 @@ static THINK(zombie_resurrect_think) (gentity_t* self) -> void {
         M_SetAnimation(self, &zombie_move_getup);
 }
 
-static DIE(zombie_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
+DIE(zombie_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
         if (M_CheckGib(self, mod)) {
                 gi.sound(self, CHAN_VOICE, sound_gib, 1, ATTN_NORM, 0);
                 ThrowGibs(self, damage, {
@@ -651,7 +651,7 @@ MONSTERINFO_CHECKATTACK(mummy_checkattack) (gentity_t* self) -> bool {
         return M_CheckAttack_Base(self, 0.4f, 0.8f, 0.8f, 0.8f, 0.f, 0.f);
 }
 
-static THINK(misc_zombie_crucified_think) (gentity_t* self) -> void {
+THINK(misc_zombie_crucified_think) (gentity_t* self) -> void {
         if (++self->s.frame < 198)
                 self->nextThink = level.time + FRAME_TIME_S;
         else {
@@ -689,8 +689,6 @@ void SP_misc_zombie_crucified(gentity_t* self) {
 "sounds" 1 spawns a crucified zombie
 */
 void SP_monster_zombie(gentity_t* self) {
-        const spawn_temp_t& st = ED_GetSpawnTemp();
-
         if (!M_AllowSpawn(self)) {
                 FreeEntity(self);
                 return;
@@ -755,8 +753,6 @@ void SP_monster_zombie(gentity_t* self) {
 model="models/monsters/zombie/tris.md2"
 */
 void SP_monster_mummy(gentity_t* self) {
-        const spawn_temp_t& st = ED_GetSpawnTemp();
-
         SP_monster_zombie(self);
 
         if (!self->inUse)
