@@ -1322,7 +1322,10 @@ AnnouncerSound
 ===============
 */
 void AnnouncerSound(gentity_t* announcer, std::string_view soundKey) {
-	if (soundKey.empty()) return;
+        if (soundKey.empty()) return;
+
+        if (!deathmatch || !deathmatch->integer)
+                return;
 
 	const std::string path = G_Fmt("vo/{}.wav", soundKey).data();
 	const int idx = gi.soundIndex(path.c_str());
