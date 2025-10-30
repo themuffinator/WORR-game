@@ -330,7 +330,7 @@ MONSTERINFO_ATTACK(fiend_jump) (gentity_t* self) -> void {
 static void fiend_jump_down(gentity_t* self) {
         Vector3 forward, up;
         Vector3 right;
-        AngleVectors(self->s.angles, forward, &right, &up);
+        AngleVectors(self->s.angles, &forward, &right, &up);
 
         self->velocity += forward * 100.0f;
         self->velocity += up * 300.0f;
@@ -339,7 +339,7 @@ static void fiend_jump_down(gentity_t* self) {
 static void fiend_jump_up(gentity_t* self) {
         Vector3 forward, up;
         Vector3 right;
-        AngleVectors(self->s.angles, forward, &right, &up);
+        AngleVectors(self->s.angles, &forward, &right, &up);
 
         self->velocity += forward * 200.0f;
         self->velocity += up * 450.0f;
