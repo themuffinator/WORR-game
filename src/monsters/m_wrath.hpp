@@ -91,4 +91,4 @@ enum
 	FRAME_wrthdt15
 };
 
-constexpr float MODEL_SCALE = 1.000000f;
+inline constexpr float WRATH_MODEL_SCALE = 1.000000f;

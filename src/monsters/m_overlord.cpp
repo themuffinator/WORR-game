@@ -730,7 +730,7 @@ void SP_monster_overlord(gentity_t* self) {
         gi.linkEntity(self);
 
         M_SetAnimation(self, &overlord_move_stand);
-        self->monsterInfo.scale = MODEL_SCALE;
+        self->monsterInfo.scale = OVERLORD_MODEL_SCALE;
 
         self->flags |= FL_FLY;
         if (!self->yaw_speed)
