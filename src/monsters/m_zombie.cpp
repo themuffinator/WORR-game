@@ -39,6 +39,8 @@ namespace {
 	constexpr Vector3 zombie_corpse_mins{ -16.f, -16.f, -8.f };
 	constexpr Vector3 zombie_corpse_maxs{ 16.f, 16.f, 0.f };
 
+	extern const MonsterMove zombie_move_pain5;
+
 	static void zombie_halve_health(gentity_t* self) {
 		self->maxHealth = std::max(1, self->maxHealth / 2);
 		self->health = self->maxHealth;
