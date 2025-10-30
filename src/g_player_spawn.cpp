@@ -1354,7 +1354,14 @@ void ClientSpawn(gentity_t* ent) {
 
 	ent->s.frame = 0;
 
-	PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
+        if (!is_landmark && !cl->coopRespawn.useSquad) {
+                // When spawning at a map-defined point, ensure the saved command angles
+                // match the mapper-provided orientation so the player faces the spot's
+                // direction after transitions (e.g., coop level changes).
+                cl->resp.cmdAngles = spawnAngles;
+        }
+
+        PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
 
 	// [Paril-KEX] set up world fog & send it instantly
 	ent->client->pers.wanted_fog = {
