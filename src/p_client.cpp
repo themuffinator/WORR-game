@@ -2379,6 +2379,13 @@ void G_PostRespawn(gentity_t* self) {
 		BroadcastReadyReminderMessage();
 }
 
+// Wrap ClientSpawn so the shared post-spawn logic (freeze, respawn timers, etc.)
+// is always applied once regardless of where the spawn originated.
+static void ClientCompleteSpawn(gentity_t* ent) {
+	ClientSpawn(ent);
+	G_PostRespawn(ent);
+}
+
 void ClientRespawn(gentity_t* ent) {
         if (!ent || !ent->client)
                 return;
@@ -2405,8 +2412,7 @@ void ClientRespawn(gentity_t* ent) {
 			AssignPlayerSkin(ent, ent->client->sess.skinName);
 		}
 
-		ClientSpawn(ent);
-		G_PostRespawn(ent);
+		ClientCompleteSpawn(ent);
 
 		if (FreezeTag_IsActive())
 			FreezeTag_ResetState(ent->client);
@@ -2672,7 +2678,7 @@ static void ClientBeginDeathmatch(gentity_t* ent) {
 	InitClientResp(ent->client);
 
 	// locate ent at a spawn point
-	ClientSpawn(ent);
+	ClientCompleteSpawn(ent);
 
 	if (level.intermission.time) {
 		MoveClientToIntermission(ent);
@@ -3180,7 +3186,7 @@ void ClientBegin(gentity_t* ent) {
 		ent->className = "player";
 		InitClientResp(cl);
 		cl->coopRespawn.spawnBegin = true;
-		ClientSpawn(ent);
+		ClientCompleteSpawn(ent);
 		cl->coopRespawn.spawnBegin = false;
 
 		if (!cl->sess.inGame)
