@@ -689,6 +689,8 @@ void SP_monster_overlord(gentity_t* self) {
                 return;
         }
 
+        const spawn_temp_t& st = ED_GetSpawnTemp();
+
         soundMelee.assign("overlord/smash.wav");
         soundSight.assign("wrath/wsee.wav");
         soundAttack.assign("wrath/watt.wav");

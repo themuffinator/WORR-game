@@ -373,6 +373,8 @@ void SP_monster_wrath(gentity_t* self) {
                 return;
         }
 
+        const spawn_temp_t& st = ED_GetSpawnTemp();
+
         soundSight.assign("wrath/wsee.wav");
         soundAttack.assign("wrath/watt.wav");
         soundDie.assign("wrath/wdthc.wav");
