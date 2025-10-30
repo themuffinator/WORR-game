@@ -536,6 +536,7 @@ void SP_monster_oldone(gentity_t* self) {
         self->className = "monster_oldone";
         self->s.modelIndex = gi.modelIndex("models/monsters/oldone/tris.md2");
 
+        const spawn_temp_t& st = ED_GetSpawnTemp();
         oldone_configure(self, st);
         stationarymonster_start(self);
 }
