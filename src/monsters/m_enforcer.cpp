@@ -153,12 +153,12 @@ static void enforcer_fire(gentity_t* self) {
 }
 
 static void enforcer_secondfire(gentity_t* self) {
-        if (!self->radius_dmg) {
+        if ((self->monsterInfo.aiFlags & AI_ENFORCER_SECOND_VOLLEY) == 0) {
                 self->monsterInfo.nextFrame = FRAME_attack06;
-                self->radius_dmg = 1;
+                self->monsterInfo.aiFlags |= AI_ENFORCER_SECOND_VOLLEY;
         }
         else {
-                self->radius_dmg = 0;
+                self->monsterInfo.aiFlags &= ~AI_ENFORCER_SECOND_VOLLEY;
         }
 }
 
@@ -169,7 +169,7 @@ enforcer_attack_end
 */
 static void enforcer_attack_end(gentity_t* self) {
         self->monsterInfo.attackFinished = level.time + ENFORCER_ROF_GATE;
-        self->radius_dmg = 0;
+        self->monsterInfo.aiFlags &= ~AI_ENFORCER_SECOND_VOLLEY;
         // return to run/stand next think
 }
 
@@ -204,7 +204,7 @@ MONSTERINFO_ATTACK(enforcer_attack) (gentity_t* self) -> void {
         if (level.time < self->monsterInfo.attackFinished)
                 return;
 
-        self->radius_dmg = 0;
+        self->monsterInfo.aiFlags &= ~AI_ENFORCER_SECOND_VOLLEY;
         M_SetAnimation(self, &enforcer_move_attack);
 }
 

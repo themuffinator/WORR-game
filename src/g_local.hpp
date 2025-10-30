@@ -1094,7 +1094,8 @@ enum monster_ai_flags_t : uint64_t {
 
 	AI_CHTHON_VULNERABLE = bit_v<40>, // can be damaged
 	AI_OLDONE_VULNERABLE = bit_v<41>, // can be damaged
-  AI_SPAWNED_OVERLORD = bit_v<42>,
+        AI_SPAWNED_OVERLORD = bit_v<42>,
+        AI_ENFORCER_SECOND_VOLLEY = bit_v<43>,
 };
 MAKE_ENUM_BITFLAGS(monster_ai_flags_t);
 
