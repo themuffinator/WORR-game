@@ -6,7 +6,7 @@ static cached_soundIndex sound_chomp;
 static cached_soundIndex sound_death;
 static cached_soundIndex sound_idle;
 
-static MONSTERINFO_IDLE(eel_idle) (gentity_t* self) -> void {
+MONSTERINFO_IDLE(eel_idle) (gentity_t* self) -> void {
         if (frandom() < 0.5f)
                 gi.sound(self, CHAN_AUTO, sound_idle, 1, ATTN_IDLE, 0);
 }
@@ -21,7 +21,7 @@ static MonsterFrame eel_frames_stand[] = {
 };
 MMOVE_T(eel_move_stand) = { FRAME_eelswim1, FRAME_eelswim6, eel_frames_stand, nullptr };
 
-static MONSTERINFO_STAND(eel_stand) (gentity_t* self) -> void {
+MONSTERINFO_STAND(eel_stand) (gentity_t* self) -> void {
         M_SetAnimation(self, &eel_move_stand);
 }
 
@@ -35,7 +35,7 @@ static MonsterFrame eel_frames_run[] = {
 };
 MMOVE_T(eel_move_run) = { FRAME_eelswim1, FRAME_eelswim6, eel_frames_run, nullptr };
 
-static MONSTERINFO_RUN(eel_run) (gentity_t* self) -> void {
+MONSTERINFO_RUN(eel_run) (gentity_t* self) -> void {
         M_SetAnimation(self, &eel_move_run);
 }
 
@@ -49,7 +49,7 @@ static MonsterFrame eel_frames_walk[] = {
 };
 MMOVE_T(eel_move_walk) = { FRAME_eelswim1, FRAME_eelswim6, eel_frames_walk, nullptr };
 
-static MONSTERINFO_WALK(eel_walk) (gentity_t* self) -> void {
+MONSTERINFO_WALK(eel_walk) (gentity_t* self) -> void {
         M_SetAnimation(self, &eel_move_walk);
 }
 
@@ -103,7 +103,7 @@ static MonsterFrame eel_frames_attack2[] = {
 };
 MMOVE_T(eel_move_attack2) = { FRAME_eelswim1, FRAME_eelswim6, eel_frames_attack2, eel_run };
 
-static MONSTERINFO_ATTACK(eel_attack) (gentity_t* self) -> void {
+MONSTERINFO_ATTACK(eel_attack) (gentity_t* self) -> void {
         constexpr float missileChance = 0.5f;
 
         if (frandom() > missileChance) {
@@ -117,11 +117,11 @@ static MONSTERINFO_ATTACK(eel_attack) (gentity_t* self) -> void {
         }
 }
 
-static PAIN(eel_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
-        if (level.time < self->painDebounceTime)
+PAIN(eel_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
+        if (level.time < self->pain_debounce_time)
                 return;
 
-        self->painDebounceTime = level.time + 1_sec;
+        self->pain_debounce_time = level.time + 1_sec;
 
         if (!M_ShouldReactToPain(self, mod))
                 return;
@@ -160,7 +160,7 @@ static MonsterFrame eel_frames_death[] = {
 };
 MMOVE_T(eel_move_death) = { FRAME_eeldth1, FRAME_eeldth15, eel_frames_death, eel_dead };
 
-static MONSTERINFO_SIGHT(eel_sight) (gentity_t* self, gentity_t* other) -> void {
+MONSTERINFO_SIGHT(eel_sight) (gentity_t* self, gentity_t* other) -> void {
         gi.sound(self, CHAN_VOICE, sound_idle, 1, ATTN_NORM, 0);
 }
 
