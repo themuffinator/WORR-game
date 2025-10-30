@@ -103,7 +103,7 @@ static int chthon_base_skin(const gentity_t* self) {
 }
 
 static void chthon_idle(gentity_t* self) {
-        if (!s_idle.index())
+        if (!s_idle)
                 return;
         if (frandom() < 0.1f)
                 gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
