@@ -21,6 +21,8 @@
 #include "g_local.hpp"
 #include "freezetag_damage.hpp"
 
+#include <cassert>
+
 /*
 ============
 CanDamage
@@ -822,6 +824,11 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	bool       sphereNotified = false;
 	gclient_t* targCl = targ->client;
 
+#ifndef NDEBUG
+	const int originalHealth = targ->health;
+	bool      zeroDamageScaleActive = false;
+#endif
+
 	// friendly fire scaling/flagging
 	if (targ != attacker && !static_cast<int>(dFlags & DamageFlags::NoProtection)) {
 		if (OnSameTeam(targ, attacker)) {
@@ -839,10 +846,19 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	}
 
 	// global damage scale
-	if (targ->svFlags & SVF_MONSTER)
-		damage = static_cast<int>(damage * ai_damage_scale->integer);
-	else
-		damage = static_cast<int>(damage * g_damage_scale->integer);
+        const float scaleValue = (targ->svFlags & SVF_MONSTER) ? ai_damage_scale->value : g_damage_scale->value;
+        const float clampedScale = std::max(0.0f, scaleValue);
+        const float baseDamage = std::max(0.0f, static_cast<float>(damage));
+        const float scaledDamage = baseDamage * clampedScale;
+        const bool  hadPositiveScaledDamage = scaledDamage > 0.0f;
+
+#ifndef NDEBUG
+        zeroDamageScaleActive = (clampedScale == 0.0f) && (baseDamage > 0.0f);
+#endif
+
+        damage = static_cast<int>(scaledDamage);
+        if (hadPositiveScaledDamage && damage <= 0)
+                damage = 1;
 
 	// defender sphere halves damage
 	if (damage > 0 && targCl && targCl->ownedSphere && (targCl->ownedSphere->spawnFlags == SF_SPHERE_DEFENDER)) {
@@ -879,13 +895,19 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	ApplyKnockback(targ, attacker, dir, knockback, dFlags);
 
 	// always give half damage if hurting self (after knockback calc)
-	if (targ == attacker)
-		damage = std::max(1, damage / 2);
+        if (targ == attacker && damage > 0)
+                damage = std::max(1, damage / 2);
 
-	damage = std::max(1, damage);
+        if (damage <= 0)
+                damage = 0;
 
 	int take = damage;
 	int save = 0;
+
+#ifndef NDEBUG
+	if (zeroDamageScaleActive)
+		assert(take == 0);
+#endif
 
 	FreezeTagDamageQuery freezeQuery{};
 	freezeQuery.freezeTagActive = Game::Is(GameType::FreezeTag);
@@ -1038,6 +1060,11 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	// actually apply the damage; can kill
 	if (ApplyDamage(targ, inflictor, attacker, targCl, take, knockback, point, normal, mod, tempEvent, sphereNotified))
 		return;
+
+#ifndef NDEBUG
+	if (zeroDamageScaleActive)
+		assert(targ->health == originalHealth);
+#endif
 
 	if (Game::Is(GameType::FreezeTag) && !level.intermission.time && targCl && targCl->eliminated &&
 		targ->health <= targ->gibHealth && (!attacker || !attacker->client)) {
