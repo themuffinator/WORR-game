@@ -257,98 +257,100 @@ similar to Quake III Arena, using Vector3 and direct trace calls.
 ===============
 */
 static void OffsetThirdPersonDeathView(gentity_t* ent) {
-        if (!ent || !ent->client)
-                return;
+	if (!ent || !ent->client)
+		return;
 
-        // Ensure the corpse is visible to its owner before manipulating the
-        // third-person camera.
-        ent->svFlags &= ~SVF_INSTANCED;
-        ent->s.instanceBits = 0;
+	// Ensure the corpse is visible to its owner before manipulating the
+	// third-person camera.
+	ent->svFlags &= ~SVF_INSTANCED;
+	ent->s.instanceBits = 0;
 
-        constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
-        constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
-        constexpr float focusDist = 512.0f;
-        constexpr float camRange = 80.0f;
-        constexpr float camAngleDeg = 0.0f;
+	constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
+	constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
+	constexpr float focusDist = 512.0f;
+	constexpr float camRange = 80.0f;
+	constexpr float camAngleDeg = 0.0f;
 
-        const float forwardScale = cosf(camAngleDeg * PIf / 180.0f);
-        const float sideScale = std::sinf(camAngleDeg * PIf / 180.0f);
+	const float forwardScale = cosf(camAngleDeg * PIf / 180.0f);
+	const float sideScale = std::sinf(camAngleDeg * PIf / 180.0f);
 
-        // Eye origin at the player's view height.
-        Vector3 viewOrigin = ent->s.origin;
-        viewOrigin.z += static_cast<float>(ent->viewHeight);
+	// Eye origin at the player's view height.
+	Vector3 viewOrigin = ent->s.origin;
+	viewOrigin.z += static_cast<float>(ent->viewHeight);
 
-        // Determine the focus direction based on the killer's yaw.
-        Vector3 focusAngles = ent->client->ps.viewAngles;
-        focusAngles[YAW] = ent->client->killerYaw;
-        if (focusAngles[PITCH] > 45.0f)
-                focusAngles[PITCH] = 45.0f;
+	// Determine the focus direction based on the killer's yaw.
+	Vector3 focusAngles = ent->client->ps.viewAngles;
+	focusAngles[YAW] = ent->client->killerYaw;
+	if (focusAngles[PITCH] > 45.0f)
+		focusAngles[PITCH] = 45.0f;
 
-        Vector3 focusForward;
-        AngleVectors(focusAngles, focusForward, nullptr, nullptr);
-        Vector3 focusPoint = viewOrigin + focusForward * focusDist;
+	Vector3 focusForward;
+	AngleVectors(focusAngles, focusForward, nullptr, nullptr);
+	Vector3 focusPoint = viewOrigin + focusForward * focusDist;
 
-        // Base third-person camera orientation.
-        Vector3 cameraAngles = ent->client->ps.viewAngles;
-        cameraAngles[YAW] = ent->client->killerYaw;
-        cameraAngles[PITCH] *= 0.5f;
+	// Base third-person camera orientation.
+	Vector3 cameraAngles = ent->client->ps.viewAngles;
+	cameraAngles[YAW] = ent->client->killerYaw;
+	cameraAngles[PITCH] *= 0.5f;
 
-        Vector3 forward, right, up;
-        AngleVectors(cameraAngles, forward, right, up);
+	Vector3 forward, right, up;
+	AngleVectors(cameraAngles, forward, right, up);
 
-        Vector3 desiredPos = viewOrigin;
-        desiredPos.z += 8.0f;
-        desiredPos -= forward * (camRange * forwardScale);
-        desiredPos -= right * (camRange * sideScale);
+	Vector3 desiredPos = viewOrigin;
+	desiredPos.z += 8.0f;
+	desiredPos -= forward * (camRange * forwardScale);
+	desiredPos -= right * (camRange * sideScale);
 
-        // Prevent the camera from clipping into world geometry.
-        trace_t tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
-        if (tr.fraction < 1.0f) {
-                desiredPos = tr.endPos;
-                desiredPos.z += (1.0f - tr.fraction) * 32.0f;
+	// Prevent the camera from clipping into world geometry.
+	trace_t tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
+	if (tr.fraction < 1.0f) {
+		desiredPos = tr.endPos;
+		desiredPos.z += (1.0f - tr.fraction) * 32.0f;
 
-                tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
-                desiredPos = tr.endPos;
-        }
+		tr = gi.trace(viewOrigin, mins, maxs, desiredPos, ent, MASK_SOLID);
+		desiredPos = tr.endPos;
+	}
 
-        Vector3 thirdPersonOffset = desiredPos - ent->s.origin;
+	Vector3 thirdPersonOffset = desiredPos - ent->s.origin;
 
-        constexpr GameTime deathViewBlendTime = 200_ms;
-        auto& deathView = ent->client->deathView;
+	constexpr GameTime deathViewBlendTime = 200_ms;
+	auto& deathView = ent->client->deathView;
 
-        if (deathView.active) {
-                GameTime elapsed = level.time - deathView.startTime;
-                if (elapsed < 0_ms)
-                        elapsed = 0_ms;
+	if (deathView.active) {
+		GameTime elapsed = level.time - deathView.startTime;
+		if (elapsed < 0_ms)
+			elapsed = 0_ms;
 
-                float alpha;
-                if (deathViewBlendTime > 0_ms) {
-                        alpha = static_cast<float>(elapsed.milliseconds()) /
-                                static_cast<float>(deathViewBlendTime.milliseconds());
-                        alpha = std::clamp(alpha, 0.0f, 1.0f);
-                } else {
-                        alpha = 1.0f;
-                }
+		float alpha;
+		if (deathViewBlendTime > 0_ms) {
+			alpha = static_cast<float>(elapsed.milliseconds()) /
+				static_cast<float>(deathViewBlendTime.milliseconds());
+			alpha = std::clamp(alpha, 0.0f, 1.0f);
+		}
+		else {
+			alpha = 1.0f;
+		}
 
-                Vector3 startOffset = deathView.startOffset;
-                ent->client->ps.viewOffset = startOffset + (thirdPersonOffset - startOffset) * alpha;
+		Vector3 startOffset = deathView.startOffset;
+		ent->client->ps.viewOffset = startOffset + (thirdPersonOffset - startOffset) * alpha;
 
-                if (alpha >= 1.0f)
-                        deathView.active = false;
-        } else {
-                ent->client->ps.viewOffset = thirdPersonOffset;
-        }
+		if (alpha >= 1.0f)
+			deathView.active = false;
+	}
+	else {
+		ent->client->ps.viewOffset = thirdPersonOffset;
+	}
 
-        Vector3 toFocus = focusPoint - desiredPos;
-        float focusDistFlat = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
+	Vector3 toFocus = focusPoint - desiredPos;
+	float focusDistFlat = std::max(1.0f, std::sqrt(toFocus.x * toFocus.x + toFocus.y * toFocus.y));
 
-        ent->client->ps.viewAngles[PITCH] = -RAD2DEG(std::atan2(toFocus.z, focusDistFlat));
+	ent->client->ps.viewAngles[PITCH] = -RAD2DEG(std::atan2(toFocus.z, focusDistFlat));
 
-        float yawDeg = RAD2DEG(std::atan2(toFocus.y, toFocus.x));
-        if (yawDeg < 0.0f)
-                yawDeg += 360.0f;
-        ent->client->ps.viewAngles[YAW] = yawDeg;
-        ent->client->ps.viewAngles[ROLL] = 0.0f;
+	float yawDeg = RAD2DEG(std::atan2(toFocus.y, toFocus.x));
+	if (yawDeg < 0.0f)
+		yawDeg += 360.0f;
+	ent->client->ps.viewAngles[YAW] = yawDeg;
+	ent->client->ps.viewAngles[ROLL] = 0.0f;
 }
 
 /*
@@ -382,24 +384,24 @@ static void G_CalcViewOffset(gentity_t* ent) {
 	if (ent->deadFlag && ClientIsPlaying(ent->client)) {
 		angles = {};
 
-                if (ent->flags & FL_SAM_RAIMI) {
-                        ent->client->ps.viewAngles[ROLL] = 0;
-                        ent->client->ps.viewAngles[PITCH] = 0;
-                }
-                else {
-                        ent->client->ps.viewAngles[ROLL] = 40;
-                        ent->client->ps.viewAngles[PITCH] = -15;
-                }
-                ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
-                OffsetThirdPersonDeathView(ent);
-                return;
-        }
+		if (ent->flags & FL_SAM_RAIMI) {
+			ent->client->ps.viewAngles[ROLL] = 0;
+			ent->client->ps.viewAngles[PITCH] = 0;
+		}
+		else {
+			ent->client->ps.viewAngles[ROLL] = 40;
+			ent->client->ps.viewAngles[PITCH] = -15;
+		}
+		ent->client->ps.viewAngles[YAW] = ent->client->killerYaw;
+		OffsetThirdPersonDeathView(ent);
+		return;
+	}
 
-        ent->client->deathView = {};
+	ent->client->deathView = {};
 
-        if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
-                // add angles based on weapon kick
-                angles = P_CurrentKickAngles(ent);
+	if (!ent->client->pers.bob_skip && !SkipViewModifiers()) {
+		// add angles based on weapon kick
+		angles = P_CurrentKickAngles(ent);
 
 		// add angles based on damage kick
 		if (ent->client->feedback.vDamageTime > level.time) {
@@ -653,7 +655,7 @@ static void G_CalcBlend(gentity_t* ent) {
 
 	// Freeze effect
 	if (Game::Is(GameType::FreezeTag) && ent->client->eliminated && !ent->client->follow.target) {
-	        G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
+		G_AddBlend(0.5f, 0.5f, 0.6f, 0.4f, ent->client->ps.screenBlend);
 	}
 
 	// Nuke effect
@@ -1307,7 +1309,7 @@ PlayQueuedAwardSound
 */
 static void PlayQueuedAwardSound(gentity_t* ent) {
 	auto* cl = ent->client;
-auto& queue = cl->pers.awardQueue;
+	auto& queue = cl->pers.awardQueue;
 
 	if (queue.queueSize <= 0 || level.time < queue.nextPlayTime)
 		return;
@@ -1414,45 +1416,45 @@ void ClientEndServerFrame(gentity_t* ent) {
 	// the player any normal movement attributes
 	//
 	if (level.intermission.time || ent->client->awaitingRespawn) {
-	        if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time))) {
-	                currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
-	                currentClient->ps.gunIndex = 0;
-	        }
-	        SetStats(ent);
-	        SetCoopStats(ent);
+		if (ent->client->awaitingRespawn || (level.intermission.endOfUnit || level.isN64 || (deathmatch->integer && level.intermission.time))) {
+			currentClient->ps.screenBlend[3] = currentClient->ps.damageBlend[3] = 0;
+			currentClient->ps.gunIndex = 0;
+		}
+		SetStats(ent);
+		SetCoopStats(ent);
 
-	        bool handledUiUpdate = false;
+		bool handledUiUpdate = false;
 
-	        if (deathmatch->integer) {
-	                const bool voteActive = (level.mapSelector.voteStartTime != 0_sec);
+		if (deathmatch->integer) {
+			const bool voteActive = (level.mapSelector.voteStartTime != 0_sec);
 
-	                if (voteActive && ent->client->menu.current) {
-	                        // Keep the menu flowing during the vote even though we're in intermission.
-	                        ent->client->showScores = true;
+			if (voteActive && ent->client->menu.current) {
+				// Keep the menu flowing during the vote even though we're in intermission.
+				ent->client->showScores = true;
 
-	                        if (ent->client->menu.updateTime <= level.time) {
-	                                MenuSystem::Update(ent);
-	                                gi.unicast(ent, true);
-	                                ent->client->menu.updateTime = level.time + FRAME_TIME_MS;
-	                        }
+				if (ent->client->menu.updateTime <= level.time) {
+					MenuSystem::Update(ent);
+					gi.unicast(ent, true);
+					ent->client->menu.updateTime = level.time + FRAME_TIME_MS;
+				}
 
-	                        handledUiUpdate = true;
-	                }
-	        }
+				handledUiUpdate = true;
+			}
+		}
 
-	        // if the scoreboard is up, update it if a client leaves
-	        if (!handledUiUpdate && deathmatch->integer && ent->client->showScores && ent->client->menu.updateTime) {
-	                DeathmatchScoreboardMessage(ent, ent->enemy);
-	                gi.unicast(ent, false);
-	                ent->client->menu.updateTime = 0_ms;
-	        }
+		// if the scoreboard is up, update it if a client leaves
+		if (!handledUiUpdate && deathmatch->integer && ent->client->showScores && ent->client->menu.updateTime) {
+			DeathmatchScoreboardMessage(ent, ent->enemy);
+			gi.unicast(ent, false);
+			ent->client->menu.updateTime = 0_ms;
+		}
 
-		/*freeze*/
+/*freeze*/
 		if (FreezeTag_IsActive() && ent->client->eliminated) {	// || level.framenum & 8) {
 			ent->s.effects |= EF_COLOR_SHELL;
 			ent->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 		}
-		/*freeze*/
+/*freeze*/
 
 		return;
 	}

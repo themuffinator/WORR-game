@@ -3666,6 +3666,7 @@ constexpr SpawnFlags SPAWNFLAG_CHANGELEVEL_FADE_OUT = 32_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_CHANGELEVEL_IMMEDIATE_LEAVE = 64_spawnflag;
 
 void ClientRespawn(gentity_t* ent);
+inline bool FreezeTag_IsActive();
 bool FreezeTag_IsFrozen(const gentity_t* ent);
 void FreezeTag_ForceRespawn(gentity_t* ent);
 void BeginIntermission(gentity_t* targ);

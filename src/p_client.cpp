@@ -1380,7 +1380,7 @@ static void GibPlayer(gentity_t* self, int damage) {
 	}
 }
 
-static inline bool FreezeTag_IsActive() {
+inline bool FreezeTag_IsActive() {
 	return Game::Is(GameType::FreezeTag) && !level.intermission.time;
 }
 
