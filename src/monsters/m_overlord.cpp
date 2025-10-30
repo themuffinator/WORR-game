@@ -302,11 +302,11 @@ static void overlord_fire(gentity_t* self) {
 
         if (blindfire) {
                 dir = aimPoint - start;
-        } else if (frandom() < 0.33f || start[Z] < self->enemy->absmin[Z]) {
+        } else if (frandom() < 0.33f || start[Z] < self->enemy->absMin[Z]) {
                 aimPoint[Z] += self->enemy->viewHeight;
                 dir = aimPoint - start;
         } else {
-                aimPoint[Z] = self->enemy->absmin[Z] + 1.f;
+                aimPoint[Z] = self->enemy->absMin[Z] + 1.f;
                 dir = aimPoint - start;
         }
 
@@ -335,7 +335,7 @@ static void overlord_fire(gentity_t* self) {
                                 tryFire(target + (right * 10.f));
                 }
         } else {
-                if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != Solid::Bsp)
+                if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP)
                         fire_vorepod(self, start, dir, damage, rocketSpeed, static_cast<float>(damage), damage, 0.015f, 1);
         }
 
@@ -580,11 +580,11 @@ MonsterFrame overlord_frames_pain2[] = {
 };
 MMOVE_T(overlord_move_pain2) = { FRAME_s_wtpb01, FRAME_s_wtpb11, overlord_frames_pain2, overlord_run };
 
-PAIN(overlord_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const mod_t& mod) -> void {
-        if (level.time < self->painDebounceTime)
+PAIN(overlord_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
+        if (level.time < self->pain_debounce_time)
                 return;
 
-        self->painDebounceTime = level.time + 2_sec;
+        self->pain_debounce_time = level.time + 2_sec;
 
         if (!M_ShouldReactToPain(self, mod))
                 return;
@@ -598,7 +598,7 @@ PAIN(overlord_pain) (gentity_t* self, gentity_t* other, float kick, int damage, 
 }
 
 static void overlord_dead(gentity_t* self) {
-        RadiusDamage(self, self, 60, nullptr, 105, DamageFlags::None, ModID::Barrel);
+        RadiusDamage(self, self, 60, nullptr, 105, DamageFlags::Normal, MeansOfDeath{ ModID::Barrel });
 
         gi.WriteByte(svc_temp_entity);
         gi.WriteByte(TE_EXPLOSION1);
@@ -648,12 +648,12 @@ static void overlord_kill_wraths(gentity_t* self) {
         for (gentity_t* ent = nullptr; (ent = G_FindByString<&gentity_t::className>(ent, "monster_wrath"));) {
                 if (ent->inUse && ent->health > 0) {
                         Damage(ent, self, self, vec3_origin, damageOrigin, vec3_origin,
-                                ent->health + 1, 0, DamageFlags::NoKnockback, ModID::Unknown);
+                                ent->health + 1, 0, DamageFlags::NoKnockback, MeansOfDeath{ ModID::Unknown });
                 }
         }
 }
 
-DIE(overlord_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const mod_t& mod) -> void {
+DIE(overlord_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int damage, const Vector3& point, const MeansOfDeath& mod) -> void {
         if (self->deadFlag)
                 return;
 
@@ -684,10 +684,8 @@ static void overlord_set_fly_parameters(gentity_t* self) {
 model="models/monsters/overlord/tris.md2"
 */
 void SP_monster_overlord(gentity_t* self) {
-        const spawn_temp_t& st = ED_GetSpawnTemp();
-
         if (!M_AllowSpawn(self)) {
-                G_FreeEdict(self);
+                FreeEntity(self);
                 return;
         }
 
@@ -699,7 +697,7 @@ void SP_monster_overlord(gentity_t* self) {
         soundAttackSecondary.assign("vore/attack2.wav");
 
         self->moveType = MoveType::Step;
-        self->solid = Solid::BBox;
+        self->solid = SOLID_BBOX;
 
         self->s.modelIndex = gi.modelIndex("models/monsters/overlord/tris.md2");
         self->mins = { -16.f, -16.f, -24.f };
@@ -707,7 +705,7 @@ void SP_monster_overlord(gentity_t* self) {
 
         self->health = max(3000, 3000 + 1250 * (skill->integer - 1)) * st.health_multiplier;
         if (!st.was_key_specified("armor_type"))
-                self->monsterInfo.armor_type = IT_ARMOR_BODY;
+                self->monsterInfo.armorType = IT_ARMOR_BODY;
         if (!st.was_key_specified("armor_power"))
                 self->monsterInfo.armor_power = max(500, 500 + 150 * (skill->integer - 1));
         self->mass = 750;
@@ -725,7 +723,7 @@ void SP_monster_overlord(gentity_t* self) {
         self->monsterInfo.melee = overlord_melee;
         self->monsterInfo.sight = overlord_sight;
         self->monsterInfo.search = nullptr;
-        self->monsterInfo.checkattack = overlord_checkattack;
+        self->monsterInfo.checkAttack = overlord_checkattack;
 
         gi.linkEntity(self);
 
@@ -733,8 +731,8 @@ void SP_monster_overlord(gentity_t* self) {
         self->monsterInfo.scale = MODEL_SCALE;
 
         self->flags |= FL_FLY;
-        if (!self->yaw_speed)
-                self->yaw_speed = 10;
+        if (!self->yawSpeed)
+                self->yawSpeed = 10;
         self->viewHeight = 10;
 
         flymonster_start(self);
