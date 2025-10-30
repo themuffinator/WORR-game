@@ -853,43 +853,56 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 }
 
 static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
-	// if transitioning from another level with a landmark seamless transition
-	// just set the location here
-	if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
-		return false;
-	}
+        // if transitioning from another level with a landmark seamless transition
+        // just set the location here
+        if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
+                return false;
+        }
 
-	gentity_t* landmark = PickTarget(ent->client->landmark_name);
-	if (!landmark) {
-		return false;
-	}
+        gentity_t* landmark = PickTarget(ent->client->landmark_name);
+        if (!landmark) {
+                return false;
+        }
 
-	Vector3 oldOrigin = origin;
-	Vector3 spot_origin = origin;
-	origin = ent->client->landmark_rel_pos;
+        Vector3 originalOrigin = origin;
+        Vector3 spot_origin = origin;
+        Vector3 originalAngles = angles;
+        origin = ent->client->landmark_rel_pos;
 
-	// rotate our relative landmark into our new landmark's frame of reference
-	origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
-	origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
-	origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
+        // rotate our relative landmark into our new landmark's frame of reference
+        origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
+        origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
+        origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
 
-	origin += landmark->s.origin;
+        origin += landmark->s.origin;
 
-	angles = ent->client->oldViewAngles + landmark->s.angles;
+        Vector3 destAngles = landmark->s.angles;
 
-	if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
-		origin[Z] = spot_origin[2];
+        if (landmark->target) {
+                if (gentity_t* lookTarget = PickTarget(landmark->target); lookTarget && lookTarget->inUse) {
+                        Vector3 dir = lookTarget->s.origin - landmark->s.origin;
+                        if (dir.lengthSquared() > 0.0f) {
+                                destAngles = VectorToAngles(dir.normalized());
+                        }
+                }
+        }
 
-	// sometimes, landmark spawns can cause slight inconsistencies in collision;
-	// we'll do a bit of tracing to make sure the bbox is clear
-	if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-		return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
-		}) == StuckResult::NoGoodPosition) {
-		origin = oldOrigin;
-		return false;
-	}
+        angles = destAngles;
 
-	ent->s.origin = origin;
+        if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
+                origin[Z] = spot_origin[2];
+
+        // sometimes, landmark spawns can cause slight inconsistencies in collision;
+        // we'll do a bit of tracing to make sure the bbox is clear
+        if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+                return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
+                }) == StuckResult::NoGoodPosition) {
+                origin = originalOrigin;
+                angles = originalAngles;
+                return false;
+        }
+
+        ent->s.origin = origin;
 
 	// rotate the velocity that we grabbed from the map
 	if (ent->velocity) {
@@ -1083,10 +1096,12 @@ static inline void PutClientOnSpawnPoint(gentity_t* ent, const Vector3& spawnOri
 	ent->s.angles = spawnAngles;
 	//ent->s.angles[PITCH] /= 3;		//muff: why??
 
-	cl->ps.viewAngles = ent->s.angles;
-	cl->vAngle = ent->s.angles;
+        cl->ps.viewAngles = ent->s.angles;
+        cl->vAngle = ent->s.angles;
 
-	AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
+        cl->oldViewAngles = ent->s.angles;
+
+        AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
 }
 
 /*
