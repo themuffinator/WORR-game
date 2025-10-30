@@ -88,7 +88,8 @@ static void hk_fire_spike_core(gentity_t* self, int yawStep) {
 	gi.sound(self, CHAN_WEAPON, s_magic, 1, ATTN_NORM, 0);
 	// Fire the Quake 1-style flame bolt
 	monster_muzzleflash(self, start, MZ2_FLYER_BLASTER_1);
-	fire_flame(self, start, dir, HK_FLAME_DAMAGE, HK_FLAME_SPEED, ModID::IonRipper);
+        [[maybe_unused]] gentity_t* projectile =
+                fire_flame(self, start, dir, HK_FLAME_DAMAGE, HK_FLAME_SPEED, ModID::IonRipper);
 }
 
 // Wrapper functions for different projectile spread angles, creating a volley effect
