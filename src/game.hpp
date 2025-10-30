@@ -963,10 +963,10 @@ enum MonsterMuzzleFlashID : uint16_t {
 	MZ2_VORE_POD_3,
 	MZ2_VORE_POD_4,
 
-	MZ2_CHTON_ROCKET_1,
+        MZ2_CHTON_ROCKET_1,
 
-	// only used for compile time checks
-	MZ2_LAST
+        // only used for compile time checks
+        MZ2_LAST = MZ2_CHTON_ROCKET_1
 };
 
 // temp entity events
