@@ -1774,12 +1774,19 @@ parsing textual entity definitions out of an ent file.
 ===============
 */
 void SpawnEntities(const char* mapName, const char* entities, const char* spawnPoint) {
-	entities = TryLoadEntityOverride(mapName, entities);
-	if (!entities || !*entities) {
-		gi.Com_ErrorFmt("{}: Empty or null entity string.\n", __FUNCTION__);
-	}
+    if (entities && *entities) {
+        entities = TryLoadEntityOverride(mapName, entities);
+        level.savedEntityString.assign(entities);
+    }
+    else {
+        if (g_verbose->integer) {
+            gi.Com_PrintFmt("{}: Empty entity string for map \"{}\".\n", __FUNCTION__, mapName);
+        }
 
-	level.savedEntityString.assign(entities);
+        level.savedEntityString.clear();
+        static const char emptyEntityString[] = "";
+        entities = emptyEntityString;
+    }
 
 	// Clamp skill level to valid range [0, 4]
 	const int skillLevel = std::clamp(skill->integer, 0, 4);
