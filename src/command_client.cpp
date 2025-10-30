@@ -1002,6 +1002,33 @@ namespace Commands {
                         aimingAt = player;
                 }
 
+                trace_t pointTrace{};
+                gentity_t* tracedEnt = nullptr;
+                const Item* pointingItem = nullptr;
+
+                if (gesture == GESTURE_POINT) {
+                        pointTrace = gi.traceLine(start, start + (ent->client->vForward * 2048.0f), ent, static_cast<contents_t>(MASK_SHOT & ~CONTENTS_WINDOW));
+
+                        if (pointTrace.fraction != 1.0f)
+                                tracedEnt = pointTrace.ent;
+
+                        if (tracedEnt && tracedEnt->item) {
+                                const Item* candidate = tracedEnt->item;
+
+                                if (candidate && ((candidate->flags & IF_WEAPON) || candidate->highValue != HighValueItems::None))
+                                        pointingItem = candidate;
+                        }
+                }
+
+                const char* pointingItemName = nullptr;
+
+                if (pointingItem) {
+                        pointingItemName = pointingItem->pickupName;
+
+                        if ((!pointingItemName || !pointingItemName[0]) && pointingItem->pickupNameDefinitive)
+                                pointingItemName = pointingItem->pickupNameDefinitive;
+                }
+
                 switch (gesture) {
                 case GESTURE_FLIP_OFF:
                         otherNotifyMsg = "$g_flipoff_other";
@@ -1060,16 +1087,22 @@ namespace Commands {
                         }
                 }
 
+                const char* pointTargetName = nullptr;
+
+                if (aimingAt)
+                        pointTargetName = aimingAt->client->sess.netName.c_str();
+                else if (pointingItemName)
+                        pointTargetName = pointingItemName;
+
                 if (gesture == GESTURE_POINT && hasTarget) {
                         if (CheckFlood(ent))
                                 return;
 
-                        trace_t tr = gi.traceLine(start, start + (ent->client->vForward * 2048.0f), ent, static_cast<contents_t>(MASK_SHOT & ~CONTENTS_WINDOW));
-                        otherNotifyMsg = "$g_point_other_ping";
+                        const char* pingNotifyMsg = pointTargetName ? "$g_point_other" : "$g_point_other_ping";
 
                         const uint32_t key = GetUnicastKey();
 
-                        if (tr.fraction != 1.0f) {
+                        if (pointTrace.fraction != 1.0f) {
                                 for (auto player : active_players()) {
                                         if (player != ent && !OnSameTeam(ent, player))
                                                 continue;
@@ -1077,14 +1110,17 @@ namespace Commands {
                                         gi.WriteByte(svc_poi);
                                         gi.WriteShort(POI_PING + (ent->s.number - 1));
                                         gi.WriteShort(5000);
-                                        gi.WritePosition(tr.endPos);
+                                        gi.WritePosition(pointTrace.endPos);
                                         gi.WriteShort(level.picPing);
                                         gi.WriteByte(208);
                                         gi.WriteByte(POI_FLAG_NONE);
                                         gi.unicast(player, false);
 
                                         gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
-                                        gi.LocClient_Print(player, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str());
+                                        if (pointTargetName)
+                                                gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
+                                        else
+                                                gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str());
                                 }
                         }
                 }
@@ -1101,14 +1137,14 @@ namespace Commands {
                                 if (!gi.inPVS(ent->s.origin, targ->s.origin, false))
                                         continue;
 
-                                if (aimingAt && otherNotifyMsg)
-                                        gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), aimingAt->client->sess.netName.c_str());
+                                if (pointTargetName && otherNotifyMsg)
+                                        gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
                                 else if (otherNotifyNoneMsg)
                                         gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
                         }
 
-                        if (aimingAt && otherNotifyMsg)
-                                gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), aimingAt->client->sess.netName.c_str());
+                        if (pointTargetName && otherNotifyMsg)
+                                gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
                         else if (otherNotifyNoneMsg)
                                 gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
                 }
