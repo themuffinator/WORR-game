@@ -666,8 +666,6 @@ THINK(misc_zombie_crucified_think) (gentity_t* self) -> void {
 		zombie_Cidle(self);
 }
 
-} // namespace
-
 /*QUAKED misc_zombie_crucified (1 .5 0) (-16 -16 -24) (16 16 32)
 model="models/monsters/q1zombie/"
 frame="192"

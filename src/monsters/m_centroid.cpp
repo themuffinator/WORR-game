@@ -252,38 +252,38 @@ static void centroid_dodge_jump(gentity_t* self) {
 }
 
 MONSTERINFO_SIDESTEP(centroid_sidestep) (gentity_t* self) -> bool {
-        if (self->monsterInfo.active_move == &centroid_move_jump)
-                return false;
+	if (self->monsterInfo.active_move == &centroid_move_jump)
+		return false;
 
-        if (self->monsterInfo.active_move != &centroid_move_run || self->monsterInfo.active_move != &centroid_move_run2)
-                M_SetAnimation(self, &centroid_move_run2);
+	if (self->monsterInfo.active_move != &centroid_move_run || self->monsterInfo.active_move != &centroid_move_run2)
+		M_SetAnimation(self, &centroid_move_run2);
 
-        return true;
+	return true;
 }
 
 MONSTERINFO_DODGE(centroid_dodge) (gentity_t* self, gentity_t* attacker, GameTime eta, trace_t* tr, bool gravity) -> void {
-        if (!self->groundEntity || self->health <= 0)
-                return;
+	if (!self->groundEntity || self->health <= 0)
+		return;
 
-        if (frandom() <= 0.66f) {
-                centroid_sidestep(self);
-                return;
-        }
+	if (frandom() <= 0.66f) {
+		centroid_sidestep(self);
+		return;
+	}
 
-        if (!self->enemy) {
-                self->enemy = attacker;
-                FoundTarget(self);
-                return;
-        }
+	if (!self->enemy) {
+		self->enemy = attacker;
+		FoundTarget(self);
+		return;
+	}
 
-        if ((eta < FRAME_TIME_MS) || (eta > 5_sec))
-                return;
+	if ((eta < FRAME_TIME_MS) || (eta > 5_sec))
+		return;
 
-        if (self->timeStamp > level.time)
-                return;
+	if (self->timeStamp > level.time)
+		return;
 
-        self->timeStamp = level.time + random_time(1_sec, 5_sec);
-        centroid_dodge_jump(self);
+	self->timeStamp = level.time + random_time(1_sec, 5_sec);
+	centroid_dodge_jump(self);
 }
 
 MONSTERINFO_BLOCKED(centroid_blocked) (gentity_t* self, float dist) -> bool {
@@ -383,10 +383,10 @@ DIE(centroid_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, i
 // -----------------------------------------------------------------------------
 /*QUAKED monster_centroid (1 .5 0) (-16 -16 -24) (16 16 32) Ambush Trigger_Spawn Sight NoJumping */
 void SP_monster_centroid(gentity_t* self) {
-        if (!M_AllowSpawn(self)) {
-                FreeEntity(self);
-                return;
-        }
+	if (!M_AllowSpawn(self)) {
+		FreeEntity(self);
+		return;
+	}
 
 	self->moveType = MoveType::Step;
 	self->solid = SOLID_BBOX;
