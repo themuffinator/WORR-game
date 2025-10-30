@@ -295,28 +295,6 @@ TOUCH(PlasmaballTouch) (gentity_t* self, gentity_t* other, const trace_t& tr, bo
         gi.multicast(self->s.origin, MULTICAST_PHS, false);
 }
 
-THINK(Q1BossExplodeThink) (gentity_t* self) -> void {
-        if (!self->owner || !self->owner->inUse || self->owner->s.modelIndex != self->style ||
-                self->count != self->owner->spawn_count) {
-                FreeEntity(self);
-                return;
-        }
-
-        Vector3 size = self->owner->maxs - self->owner->mins;
-        Vector3 org = self->owner->s.origin + self->owner->mins;
-        org[0] += frandom() * size[0];
-        org[1] += frandom() * size[1];
-        org[2] += frandom() * size[2];
-
-        gi.WriteByte(svc_temp_entity);
-        gi.WriteByte((self->viewHeight % 3) ? TE_EXPLOSION1 : TE_EXPLOSION1_NL);
-        gi.WritePosition(org);
-        gi.multicast(org, MULTICAST_PVS, false);
-
-        ++self->viewHeight;
-        self->nextThink = level.time + random_time(50_ms, 200_ms);
-}
-
 } // namespace
 
 bool TryRandomTeleportPosition(gentity_t* self, float radius) {
@@ -392,19 +370,6 @@ void CheckTeleportReturn(gentity_t* self) {
 
         self->monsterInfo.teleportActive = false;
         self->postThink = nullptr;
-}
-
-void Q1BossExplode(gentity_t* self) {
-        if (!self || self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
-                return;
-
-        gentity_t* exploder = Spawn();
-        exploder->owner = self;
-        exploder->count = self->spawn_count;
-        exploder->style = self->s.modelIndex;
-        exploder->think = Q1BossExplodeThink;
-        exploder->nextThink = level.time + random_time(75_ms, 250_ms);
-        exploder->viewHeight = 0;
 }
 
 gentity_t* fire_lavaball(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
