@@ -487,12 +487,10 @@ static DIE(shambler_die) (gentity_t *self, gentity_t *inflictor, gentity_t *atta
 }
 
 void SP_monster_shambler(gentity_t *self) {
-	const spawn_temp_t &st = ED_GetSpawnTemp();
-
-	if (!M_AllowSpawn(self)) {
-		FreeEntity(self);
-		return;
-	}
+        if (!M_AllowSpawn(self)) {
+                FreeEntity(self);
+                return;
+        }
 
 	// Legacy compatibility: earlier builds used bit 0 (value 1) for precise mode.
 	if (!self->spawnFlags.has(SPAWNFLAG_SHAMBLER_PRECISE) && self->spawnFlags.has(1_spawnflag)) {
