@@ -30,6 +30,7 @@ static void        vore_jump_up(gentity_t* self);
 static void        vore_jump_down(gentity_t* self);
 static void        vore_jump(gentity_t* self, BlockedJumpResult result);
 void               vore_attack(gentity_t* self);
+void               vore_run(gentity_t* self);
 static inline bool VORE_ON_CEILING(gentity_t* ent) { return ent->gravityVector[Z] > 0.0f; }
 static void        vore_update_skin(gentity_t* self);
 
@@ -645,7 +646,6 @@ SP_monster_vore
 ===============
 */
 void SP_monster_vore(gentity_t* self) {
-        const spawn_temp_t& st = ED_GetSpawnTemp();
 
         if (!M_AllowSpawn(self)) {
                 FreeEntity(self);
