@@ -173,23 +173,29 @@ static THINK(Think_Delay) (gentity_t* ent) -> void {
 }
 
 void PrintActivationMessage(gentity_t* ent, gentity_t* activator, bool coop_global) {
-	//
-	// print the message
-	//
-	if ((ent->message) && !(activator->svFlags & SVF_MONSTER)) {
-		if (coop_global && coop->integer)
-			gi.LocBroadcast_Print(PRINT_CENTER, "{}", ent->message);
-		else
-			gi.LocCenter_Print(activator, "{}", ent->message);
+        if (!ent || !ent->message)
+                return;
 
-		// [Paril-KEX] allow non-noisy centerprints
-		if (ent->noiseIndex >= 0) {
-			if (ent->noiseIndex)
-				gi.sound(activator, CHAN_AUTO, ent->noiseIndex, 1, ATTN_NORM, 0);
-			else
-				gi.sound(activator, CHAN_AUTO, gi.soundIndex("misc/talk1.wav"), 1, ATTN_NORM, 0);
-		}
-	}
+        if (!activator) {
+                gi.Com_PrintFmt("{}: activation message suppressed (no activator).\n", __FUNCTION__);
+                return;
+        }
+
+        if (activator->svFlags & SVF_MONSTER)
+                return;
+
+        if (coop_global && coop->integer)
+                gi.LocBroadcast_Print(PRINT_CENTER, "{}", ent->message);
+        else
+                gi.LocCenter_Print(activator, "{}", ent->message);
+
+        // [Paril-KEX] allow non-noisy centerprints
+        if (ent->noiseIndex >= 0) {
+                if (ent->noiseIndex)
+                        gi.sound(activator, CHAN_AUTO, ent->noiseIndex, 1, ATTN_NORM, 0);
+                else
+                        gi.sound(activator, CHAN_AUTO, gi.soundIndex("misc/talk1.wav"), 1, ATTN_NORM, 0);
+        }
 }
 
 void BroadcastFriendlyMessage(Team team, const char* msg) {
