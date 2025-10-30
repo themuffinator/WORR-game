@@ -7,12 +7,12 @@ namespace {
 
 	constexpr GameTime TELEPORT_RETURN_DELAY = 1_sec;
 
-	TOUCH(LavaballTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
-		if (other == ent->owner)
-			return;
+        TOUCH(LavaballTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
+                if (other == ent->owner)
+                        return;
 
-		if (tr.surface && (tr.surface->flags & SURF_SKY)) {
-			FreeEntity(ent);
+                if (tr.surface && (tr.surface->flags & SURF_SKY)) {
+                        FreeEntity(ent);
 			return;
 		}
 
@@ -32,16 +32,36 @@ namespace {
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(ent->waterLevel ? TE_ROCKET_EXPLOSION_WATER : TE_ROCKET_EXPLOSION);
 		gi.WritePosition(origin);
-		gi.multicast(ent->s.origin, MULTICAST_PHS, false);
+                gi.multicast(ent->s.origin, MULTICAST_PHS, false);
 
-		FreeEntity(ent);
-	}
+                FreeEntity(ent);
+        }
 
-	TOUCH(VorepodTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
-		if (other == ent->owner)
-			return;
+        TOUCH(AcidTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
+                if (other == ent->owner)
+                        return;
 
-		if (tr.surface && (tr.surface->flags & SURF_SKY)) {
+                if (tr.surface && (tr.surface->flags & SURF_SKY)) {
+                        FreeEntity(ent);
+                        return;
+                }
+
+                if (ent->owner && ent->owner->client)
+                        G_PlayerNoise(ent->owner, ent->s.origin, PlayerNoise::Impact);
+
+                if (other && other->takeDamage) {
+                        Damage(other, ent, ent->owner ? ent->owner : ent, ent->velocity, ent->s.origin, tr.plane.normal,
+                                ent->dmg, 1, DamageFlags::Energy, ModID::Gekk);
+                }
+
+                FreeEntity(ent);
+        }
+
+        TOUCH(VorepodTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
+                if (other == ent->owner)
+                        return;
+
+                if (tr.surface && (tr.surface->flags & SURF_SKY)) {
 			FreeEntity(ent);
 			return;
 		}
