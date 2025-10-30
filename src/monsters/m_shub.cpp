@@ -362,7 +362,7 @@ static PAIN(oldone_pain) (gentity_t* self, gentity_t* other, float kick, int dam
                 if (!M_ShouldReactToPain(self, mod))
                         return;
 
-                if (sound_pain.is_valid())
+                if (sound_pain)
                         gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
                 M_SetAnimation(self, &oldone_move_pain);
                 return;
@@ -374,7 +374,7 @@ static PAIN(oldone_pain) (gentity_t* self, gentity_t* other, float kick, int dam
                 return;
 
         self->pain_debounce_time = level.time + 1_sec;
-        if (sound_pain.is_valid())
+        if (sound_pain)
                 gi.sound(self, CHAN_VOICE, sound_pain, 1, ATTN_NORM, 0);
         M_SetAnimation(self, &oldone_move_pain);
 }
@@ -526,8 +526,6 @@ static void oldone_configure(gentity_t* self, const spawn_temp_t& st) {
 Shub-Niggurath. Immobile boss that periodically spawns reinforcements.
 */
 void SP_monster_oldone(gentity_t* self) {
-        const spawn_temp_t& st = ED_GetSpawnTemp();
-
         if (!M_AllowSpawn(self)) {
                 FreeEntity(self);
                 return;
