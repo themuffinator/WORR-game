@@ -13,7 +13,6 @@ void fire_vorepod(gentity_t* self, const Vector3& start, const Vector3& dir, int
         float damageRadius, int radiusDamage, float turnFraction, int skin);
 [[nodiscard]] gentity_t* fire_flame(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
         ModID mod = ModID::IonRipper);
-void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed);
 void fire_gib(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
         float rightAdjust, float upAdjust);
 void fire_plasmaball(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed, float damageRadius);
