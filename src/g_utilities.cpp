@@ -20,7 +20,23 @@
 
 #include "g_local.hpp"
 #include <array>
+#include <cctype>
 #include <chrono>	// get real time
+#include <ctime>
+#include <string_view>
+
+namespace {
+std::tm LocalTimeNow() {
+	const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm result{};
+#ifdef _WIN32
+	localtime_s(&result, &now);
+#else
+	localtime_r(&now, &result);
+#endif
+	return result;
+}
+} // namespace
 
 /*
 =========================
@@ -634,14 +650,35 @@ Team Teams_OtherTeam(Team team) {
 CleanSkinName
 =================
 */
-static std::string CleanSkinName(const std::string& in) {
+static std::string SanitizeSkinComponent(std::string_view component) {
 	std::string out;
-	for (char c : in) {
-		if (isalnum(c) || c == '_' || c == '-') {
+	for (char c : component) {
+		if (isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-') {
 			out += c;
 		}
 	}
-	return out.empty() ? "male" : out;
+	return out;
+}
+
+static std::string CleanSkinName(const std::string& in) {
+	const size_t slashPos = in.find('/');
+
+	if (slashPos == std::string::npos) {
+		std::string clean = SanitizeSkinComponent(in);
+		return clean.empty() ? "male" : clean;
+	}
+
+	std::string cleanModel = SanitizeSkinComponent(std::string_view(in).substr(0, slashPos));
+	std::string cleanSkin = SanitizeSkinComponent(std::string_view(in).substr(slashPos + 1));
+
+	if (cleanModel.empty()) {
+		cleanModel = "male";
+	}
+	if (cleanSkin.empty()) {
+		cleanSkin = "default";
+	}
+
+	return cleanModel + "/" + cleanSkin;
 }
 
 /*
@@ -1174,6 +1211,9 @@ TeleportPlayer
 =================
 */
 void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
+	if (!player || !player->client)
+		return;
+
 	Weapon_Grapple_DoReset(player->client);
 
 	// unlink to make sure it can't possibly interfere with KillBox
@@ -1217,6 +1257,9 @@ TeleportPlayerToRandomSpawnPoint
 =================
 */
 void TeleportPlayerToRandomSpawnPoint(gentity_t* ent, bool fx) {
+	if (!ent || !ent->client)
+		return;
+
 	bool	valid_spawn = false;
 	Vector3	spawn_origin, spawn_angles;
 	bool	is_landmark = false;
@@ -1276,13 +1319,18 @@ ClientEntFromString
 =================
 */
 gentity_t* ClientEntFromString(const char* in) {
-	// check by nick first
-	for (auto ec : active_clients())
-		if (!strcmp(in, ec->client->sess.netName))
-			return ec;
+        if (!in)
+                return nullptr;
 
-	// otherwise check client num
-	uint32_t num = strtoul(in, nullptr, 10);
+        // check by nick first
+        if (*in != '\0') {
+                for (auto ec : active_clients())
+                        if (!strcmp(in, ec->client->sess.netName))
+                                return ec;
+        }
+
+        // otherwise check client num
+        uint32_t num = strtoul(in, nullptr, 10);
 	if (num >= 0 && num < game.maxClients)
 		return &g_entities[&game.clients[num] - game.clients + 1];
 
@@ -1804,15 +1852,9 @@ TimeStamp
 =============
 */
 std::string TimeStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02} {:02}:{:02}:{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday, ltime->tm_hour, ltime->tm_min, ltime->tm_sec).data();
+	return G_Fmt("{}-{:02}-{:02} {:02}:{:02}:{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec).data();
 }
 
 /*
@@ -1821,15 +1863,9 @@ FileTimeStamp
 =============
 */
 std::string FileTimeStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02}_{:02}-{:02}-{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday, ltime->tm_hour, ltime->tm_min, ltime->tm_sec).data();
+	return G_Fmt("{}-{:02}-{:02}_{:02}-{:02}-{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec).data();
 }
 
 /*
@@ -1838,16 +1874,9 @@ DateStamp
 =============
 */
 std::string DateStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday).data();
+	return G_Fmt("{}-{:02}-{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday).data();
 }
 
 /*
@@ -1878,7 +1907,9 @@ Returns Weapon::None if not found.
 */
 Weapon GetWeaponIndexByAbbrev(const std::string& abbr) {
 	std::string query = abbr;
-	std::transform(query.begin(), query.end(), query.begin(), ::toupper);
+	std::transform(query.begin(), query.end(), query.begin(), [](unsigned char ch) {
+		return static_cast<char>(std::toupper(ch));
+	});
 
 	for (int i = 0; i < weaponAbbreviations.size(); ++i) {
 		if (weaponAbbreviations[i] == query)
