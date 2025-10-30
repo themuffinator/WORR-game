@@ -33,7 +33,7 @@ static void knight_idle(gentity_t* self) {
         gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
 }
 
-static void knight_search(gentity_t* self) {
+static void knight_search_idle_sound(gentity_t* self) {
     gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
 }
 
@@ -46,7 +46,7 @@ MONSTERINFO_SIGHT(knight_sight) (gentity_t* self, gentity_t* other) -> void {
 }
 
 MONSTERINFO_SEARCH(knight_search) (gentity_t* self) -> void {
-        gi.sound(self, CHAN_VOICE, s_idle, 1, ATTN_IDLE, 0);
+        knight_search_idle_sound(self);
 }
 
 static void knight_sword_sound(gentity_t* self) {
