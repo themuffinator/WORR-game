@@ -21,6 +21,7 @@
 //   older parts of the codebase that have not yet been migrated.
 
 #include "g_local.hpp"
+#include <algorithm>
 
 // -----------------------------------------------------------------------------
 // Modern spawn registration
@@ -460,10 +461,11 @@ force_spawn bypasses the softer checks except hard solids/telefrags.
 ===============
 */
 static std::vector<gentity_t*> FilterEligibleSpawns(
-	const std::vector<gentity_t*>& spawns,
-	const Vector3& avoid_point,
-	bool force_spawn,
-	gentity_t* entForTeamLogic // may be null
+        const std::vector<gentity_t*>& spawns,
+        const Vector3& avoid_point,
+        bool force_spawn,
+        gentity_t* entForTeamLogic, // may be null
+        bool respectAvoidPoint
 ) {
 	constexpr float MIN_AVOID_DIST = 192.0f;   // distance from avoid_point (e.g. last death)
 	constexpr float MIN_PLAYER_RADIUS = 160.0f;   // keep away from nearest player
@@ -480,10 +482,10 @@ static std::vector<gentity_t*> FilterEligibleSpawns(
 		if (!SpotIsSafe(s))
 			continue;
 
-		if (!force_spawn) {
-			// Keep away from the avoid point (e.g., last death)
-			if ((s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
-				continue;
+                if (!force_spawn) {
+                        // Keep away from the avoid point (e.g., last death)
+                        if (respectAvoidPoint && (s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
+                                continue;
 
 			// No nearby mines/traps
 			if (SpawnPointHasNearbyMines(s->s.origin, MINE_RADIUS))
@@ -653,12 +655,12 @@ SelectDeathmatchSpawnPoint
 ===============
 */
 select_spawn_result_t SelectDeathmatchSpawnPoint(
-	gentity_t* ent,
-	Vector3 avoid_point,
-	bool force_spawn,
-	bool fallback_to_ctf_or_start,
-	bool intermission,
-	bool initial
+        gentity_t* ent,
+        Vector3 avoid_point,
+        bool force_spawn,
+        bool fallback_to_ctf_or_start,
+        bool intermission,
+        bool initial
 ) {
 	// Intermission: only pick the intermission camera spot
 	if (intermission) {
@@ -668,14 +670,20 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(
 		return { nullptr, SelectSpawnFlags::Fallback };
 	}
 
-	// Initial spawns: prefer INITIAL-flagged points if any exist
-	std::vector<gentity_t*> baseList = level.spawn.ffa;
-	if (initial) {
-		baseList = FilterInitialSpawns(baseList);
-	}
+        // Initial spawns: prefer INITIAL-flagged points if any exist
+        std::vector<gentity_t*> baseList = level.spawn.ffa;
+        if (initial) {
+                baseList = FilterInitialSpawns(baseList);
+        }
 
-	// Screen for eligibility
-	auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent);
+        const bool hasAvoidPoint = static_cast<bool>(avoid_point);
+
+        if (!hasAvoidPoint) {
+                std::shuffle(baseList.begin(), baseList.end(), game.mapRNG);
+        }
+
+        // Screen for eligibility
+        auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent, hasAvoidPoint);
 
 	// If none survived and fallback is allowed, try relaxed fallback set
 	if (eligible.empty() && fallback_to_ctf_or_start) {
@@ -698,7 +706,7 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(
 
 	// Final fallback: any FFA spot that is at least not embedded
 	if (eligible.empty()) {
-		auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
+                auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
 		if (!loose.empty()) {
 			return { PickRandomly(loose), SelectSpawnFlags::Fallback };
 		}
@@ -831,8 +839,9 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 		return nullptr;
 
 	// Safety-screen the set
-	const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
-	auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent);
+        const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
+        const bool hasAvoidPoint = static_cast<bool>(avoid_point);
+        auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent, hasAvoidPoint);
 	if (eligible.empty())
 		eligible = FilterFallbackSpawns(coopSpots, avoid_point);
 
