@@ -21,6 +21,7 @@
 #include "g_local.hpp"
 #include <chrono>	// get real time
 #include <ctime>
+#include <string_view>
 
 namespace {
 std::tm LocalTimeNow() {
@@ -647,14 +648,35 @@ Team Teams_OtherTeam(Team team) {
 CleanSkinName
 =================
 */
-static std::string CleanSkinName(const std::string& in) {
+static std::string SanitizeSkinComponent(std::string_view component) {
 	std::string out;
-	for (char c : in) {
-		if (isalnum(c) || c == '_' || c == '-') {
+	for (char c : component) {
+		if (isalnum(static_cast<unsigned char>(c)) || c == '_' || c == '-') {
 			out += c;
 		}
 	}
-	return out.empty() ? "male" : out;
+	return out;
+}
+
+static std::string CleanSkinName(const std::string& in) {
+	const size_t slashPos = in.find('/');
+
+	if (slashPos == std::string::npos) {
+		std::string clean = SanitizeSkinComponent(in);
+		return clean.empty() ? "male" : clean;
+	}
+
+	std::string cleanModel = SanitizeSkinComponent(std::string_view(in).substr(0, slashPos));
+	std::string cleanSkin = SanitizeSkinComponent(std::string_view(in).substr(slashPos + 1));
+
+	if (cleanModel.empty()) {
+		cleanModel = "male";
+	}
+	if (cleanSkin.empty()) {
+		cleanSkin = "default";
+	}
+
+	return cleanModel + "/" + cleanSkin;
 }
 
 /*
@@ -1187,6 +1209,9 @@ TeleportPlayer
 =================
 */
 void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
+	if (!player || !player->client)
+		return;
+
 	Weapon_Grapple_DoReset(player->client);
 
 	// unlink to make sure it can't possibly interfere with KillBox
@@ -1230,6 +1255,9 @@ TeleportPlayerToRandomSpawnPoint
 =================
 */
 void TeleportPlayerToRandomSpawnPoint(gentity_t* ent, bool fx) {
+	if (!ent || !ent->client)
+		return;
+
 	bool	valid_spawn = false;
 	Vector3	spawn_origin, spawn_angles;
 	bool	is_landmark = false;
