@@ -1573,6 +1573,49 @@ static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
 	gi.LocClient_Print(frozen, PRINT_CENTER, ".{} is thawing you...", thawer->client->sess.netName);
 }
 
+static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
+	if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
+		return;
+
+	gclient_t* fcl = frozen->client;
+
+	if (thawer == frozen)
+		thawer = nullptr;
+
+	fcl->resp.thawer = thawer;
+
+	if (thawer && thawer->client && awardScore) {
+		++thawer->client->resp.thawed;
+		G_AdjustPlayerScore(thawer->client, 1, false, 0);
+		gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
+	}
+
+	if (thawer && thawer->client) {
+		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
+	}
+	else if (autoThaw) {
+		gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
+	}
+
+	MeansOfDeath thawMod{ ModID::Thaw, false };
+	frozen->lastMOD = thawMod;
+
+	if (frozen->health > frozen->gibHealth)
+		frozen->health = frozen->gibHealth - 1;
+
+	GibPlayer(frozen, 400);
+	ThrowClientHead(frozen, 400);
+
+	fcl->freeze.thawTime = 0_ms;
+	fcl->freeze.frozenTime = 0_ms;
+	fcl->freeze.holdDeadline = 0_ms;
+	fcl->eliminated = false;
+	fcl->respawnMinTime = level.time;
+	fcl->respawnMaxTime = level.time;
+
+	ClientRespawn(frozen);
+}
+
 static bool FreezeTag_UpdateThawHold(gentity_t* frozen) {
 	if (!FreezeTag_IsActive() || !frozen || !frozen->client || !frozen->client->eliminated)
 	        return false;
@@ -1602,49 +1645,6 @@ static bool FreezeTag_UpdateThawHold(gentity_t* frozen) {
 	}
 
 	return false;
-}
-
-static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
-	if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
-	        return;
-
-	gclient_t* fcl = frozen->client;
-
-	if (thawer == frozen)
-		thawer = nullptr;
-
-	fcl->resp.thawer = thawer;
-
-	if (thawer && thawer->client && awardScore) {
-		++thawer->client->resp.thawed;
-		G_AdjustPlayerScore(thawer->client, 1, false, 0);
-		gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
-	}
-
-	if (thawer && thawer->client) {
-		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
-	}
-	else if (autoThaw) {
-		gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
-	}
-
-	MeansOfDeath thawMod{ ModID::Thaw, false };
-	frozen->lastMOD = thawMod;
-
-	if (frozen->health > frozen->gibHealth)
-	        frozen->health = frozen->gibHealth - 1;
-
-	GibPlayer(frozen, 400);
-	ThrowClientHead(frozen, 400);
-
-	fcl->freeze.thawTime = 0_ms;
-	fcl->freeze.frozenTime = 0_ms;
-	fcl->freeze.holdDeadline = 0_ms;
-	fcl->eliminated = false;
-	fcl->respawnMinTime = level.time;
-	fcl->respawnMaxTime = level.time;
-
-	ClientRespawn(frozen);
 }
 
 void FreezeTag_ForceRespawn(gentity_t* ent) {

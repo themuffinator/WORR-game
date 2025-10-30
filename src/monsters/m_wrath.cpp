@@ -233,7 +233,7 @@ static void wrath_fire(gentity_t* self) {
                         localDir.normalize();
 
                         trace_t tr = gi.traceLine(start, fireTarget, self, MASK_PROJECTILE);
-                        if (tr.startsolid || tr.allsolid || tr.fraction < 0.5f)
+                        if (tr.startSolid || tr.allSolid || tr.fraction < 0.5f)
                                 return false;
 
                         fire_vorepod(self, start, localDir, damage, rocketSpeed, static_cast<float>(damage), damage, 0.075f, 1);

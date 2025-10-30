@@ -11,6 +11,8 @@ QUAKE WYVERN / DRAGON (Ionized port)
 #include "m_dragon.hpp"
 #include "q1_support.hpp"
 
+extern const spawn_temp_t& ED_GetSpawnTemp();
+
 namespace {
 
 constexpr Vector3 DRAGON_MINS = { -72.0f, -48.0f, -32.0f };
