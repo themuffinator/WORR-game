@@ -20,6 +20,20 @@
 
 #include "g_local.hpp"
 #include <chrono>	// get real time
+#include <ctime>
+
+namespace {
+std::tm LocalTimeNow() {
+	const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm result{};
+#ifdef _WIN32
+	localtime_s(&result, &now);
+#else
+	localtime_r(&now, &result);
+#endif
+	return result;
+}
+} // namespace
 
 /*
 =========================
@@ -1803,15 +1817,9 @@ TimeStamp
 =============
 */
 std::string TimeStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02} {:02}:{:02}:{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday, ltime->tm_hour, ltime->tm_min, ltime->tm_sec).data();
+	return G_Fmt("{}-{:02}-{:02} {:02}:{:02}:{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec).data();
 }
 
 /*
@@ -1820,15 +1828,9 @@ FileTimeStamp
 =============
 */
 std::string FileTimeStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02}_{:02}-{:02}-{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday, ltime->tm_hour, ltime->tm_min, ltime->tm_sec).data();
+	return G_Fmt("{}-{:02}-{:02}_{:02}-{:02}-{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday, ltime.tm_hour, ltime.tm_min, ltime.tm_sec).data();
 }
 
 /*
@@ -1837,16 +1839,9 @@ DateStamp
 =============
 */
 std::string DateStamp() {
-	struct tm* ltime;
-	time_t gmtime;
+	const std::tm ltime = LocalTimeNow();
 
-
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-	time(&gmtime);
-	ltime = localtime(&gmtime);
-
-	return G_Fmt("{}-{:02}-{:02}", 1900 + ltime->tm_year, ltime->tm_mon + 1, ltime->tm_mday).data();
+	return G_Fmt("{}-{:02}-{:02}", 1900 + ltime.tm_year, ltime.tm_mon + 1, ltime.tm_mday).data();
 }
 
 /*
