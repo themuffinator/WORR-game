@@ -115,16 +115,16 @@ SortLevelEntries
 ===============
 */
 static void SortLevelEntries() {
-	std::sort(game.levelEntries.begin(), game.levelEntries.end(),
-		[](const LevelEntry& a, const LevelEntry& b) {
-			int32_t a_order = a.visit_order
-				? a.visit_order
-				: (!a.longMapName.empty() ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
-			int32_t b_order = b.visit_order
-				? b.visit_order
-				: (!b.longMapName.empty() ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
-			return a_order < b_order;
-		});
+        std::sort(game.levelEntries.begin(), game.levelEntries.end(),
+                [](const LevelEntry& a, const LevelEntry& b) {
+                        int32_t a_order = a.visit_order
+                                ? a.visit_order
+                                : (a.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+                        int32_t b_order = b.visit_order
+                                ? b.visit_order
+                                : (b.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+                        return a_order < b_order;
+                });
 }
 
 /*
@@ -132,22 +132,19 @@ static void SortLevelEntries() {
 BuildEOUTableRow
 
 Appends a single End-of-Unit stats row to the layout.
-If isTotalsRow is true, it renders the total row.
 ===============
 */
-static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry& entry, bool isTotalsRow = false) {
-	layout << G_Fmt("yv {} ", y).data();
+static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry& entry) {
+        layout << G_Fmt("yv {} ", y).data();
 
-	if (!isTotalsRow && entry.longMapName.empty()) {
-		layout << "table_row 1 ??? ";
-		return;
-	}
+        if (!entry.longMapName[0]) {
+                layout << "table_row 1 ??? ";
+                return;
+        }
 
-	const char* name = isTotalsRow ? "Totals" : entry.longMapName.data();
-
-	layout << G_Fmt("table_row 4 \"{}\" ", name).data()
-		<< G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
-		<< G_Fmt("{}/{} ", entry.foundSecrets, entry.totalSecrets).data();
+        layout << G_Fmt("table_row 4 \"{}\" ", entry.longMapName.data()).data()
+                << G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
+                << G_Fmt("{}/{} ", entry.foundSecrets, entry.totalSecrets).data();
 
 	int32_t ms = entry.time.milliseconds();
 	int32_t minutes = ms / 60000;
@@ -162,10 +159,11 @@ static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry&
 AddEOUTotalsRow
 ===============
 */
-static void AddEOUTotalsRow(std::stringstream& layout, int y, const LevelEntry& totals) {
-	y += 8;
-	layout << "table_row 0 ";  // Spacer row
-	BuildEOUTableRow(layout, y, totals, true);
+static void AddEOUTotalsRow(std::stringstream& layout, int y, LevelEntry& totals) {
+        y += 8;
+        layout << "table_row 0 ";
+        totals.longMapName[0] = ' ';
+        BuildEOUTableRow(layout, y, totals);
 }
 
 /*
@@ -188,9 +186,9 @@ static void BroadcastEOULayout(const std::stringstream& layout) {
 	gi.WriteString(out.c_str());
 	gi.multicast(vec3_origin, MULTICAST_ALL, true);
 
-	for (gentity_t* player : active_clients()) {
-		player->client->showEOU = true;
-	}
+        for (gentity_t* player : active_players()) {
+                player->client->showEOU = true;
+        }
 }
 
 /*
@@ -209,11 +207,11 @@ void EndOfUnitMessage() {
 	LevelEntry totals{};
 	int32_t numRows = 0;
 
-	for (auto& entry : game.levelEntries) {
-		if (entry.mapName.empty())
-			break;
+        for (auto& entry : game.levelEntries) {
+                if (!entry.mapName[0])
+                        break;
 
-		BuildEOUTableRow(layout, y, entry);
+                BuildEOUTableRow(layout, y, entry);
 		y += 8;
 
 		totals.killedMonsters += entry.killedMonsters;
@@ -226,10 +224,10 @@ void EndOfUnitMessage() {
 			numRows++;
 	}
 
-	if (numRows > 1)
-		AddEOUTotalsRow(layout, y, totals);
+        if (numRows > 1)
+                AddEOUTotalsRow(layout, y, totals);
 
-	BroadcastEOULayout(layout);
+        BroadcastEOULayout(layout);
 }
 
 /*

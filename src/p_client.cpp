@@ -2699,101 +2699,90 @@ G_SetLevelEntry
 ===============
 */
 static void G_SetLevelEntry() {
-	if (deathmatch->integer)
-		return;
+        if (deathmatch->integer)
+                return;
 
-	// Hub maps do not track visit order; the next map is treated as a fresh start.
-	if (level.campaign.hub_map)
-		return;
+        if (level.campaign.hub_map)
+                return;
 
-	LevelEntry* found = nullptr;
-	int32_t highest_order = 0;
+        LevelEntry* foundEntry = nullptr;
+        int32_t highest_order = 0;
 
-	// Locate an existing entry for this map (or the first empty slot).
-	for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
-		LevelEntry* e = &game.levelEntries[i];
+        for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
+                LevelEntry* entry = &game.levelEntries[i];
 
-		highest_order = std::max(highest_order, e->visit_order);
+                highest_order = std::max(highest_order, entry->visit_order);
 
-		const bool name_empty = (e->mapName[0] == '\0');
-		if (name_empty || std::strcmp(e->mapName.data(), level.mapName.data()) == 0) {
-			found = e;
-			break;
-		}
-	}
+                if (!std::strcmp(entry->mapName.data(), level.mapName.data()) || !entry->mapName[0]) {
+                        foundEntry = entry;
+                        break;
+                }
+        }
 
-	if (!found) {
-		gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest.\n", MAX_LEVELS_PER_UNIT);
-		return;
-	}
+        if (!foundEntry) {
+                gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
+                return;
+        }
 
-	level.entry = found;
-	Q_strlcpy(level.entry->mapName.data(), level.mapName.data(), level.entry->mapName.size());
+        level.entry = foundEntry;
+        Q_strlcpy(level.entry->mapName.data(), level.mapName.data(), level.entry->mapName.size());
 
-	// First visit: record long name and bump visit order; optionally refund a life.
-	if (level.entry->longMapName[0] == '\0') {
-		Q_strlcpy(level.entry->longMapName.data(), level.longName.data(), level.entry->longMapName.size());
-		level.entry->visit_order = highest_order + 1;
+        if (!level.entry->longMapName[0]) {
+                Q_strlcpy(level.entry->longMapName.data(), level.longName.data(), level.entry->longMapName.size());
+                level.entry->visit_order = highest_order + 1;
 
-		if (g_coop_enable_lives->integer) {
-			for (auto ec : active_clients()) {
-				const int max_lives = g_coop_num_lives->integer + 1;
-				ec->client->pers.lives = std::min(max_lives, ec->client->pers.lives + 1);
-				ec->client->pers.limitedLivesStash = ec->client->pers.lives;
-				ec->client->pers.limitedLivesPersist = true;
-			}
-		}
-	}
+                if (g_coop_enable_lives->integer) {
+                        const int maxLives = g_coop_num_lives->integer + 1;
+                        for (size_t i = 0; i < game.maxClients; ++i) {
+                                gclient_t* cl = &game.clients[i];
+                                cl->pers.lives = std::min(maxLives, cl->pers.lives + 1);
+                                cl->pers.limitedLivesStash = cl->pers.lives;
+                                cl->pers.limitedLivesPersist = true;
+                        }
+                }
+        }
 
-	// Scan all target_changelevel entities to pre-register potential secret levels.
-	for (gentity_t* changelevel = nullptr;
-		(changelevel = G_FindByString<&gentity_t::className>(changelevel, "target_changelevel")) != nullptr; ) {
+        gentity_t* changelevel = nullptr;
+        while ((changelevel = G_FindByString<&gentity_t::className>(changelevel, "target_changelevel")) != nullptr) {
+                if (!changelevel->map[0])
+                        continue;
 
-		if (changelevel->map[0] == '\0')
-			continue;
+                if (std::strchr(changelevel->map.data(), '*'))
+                        continue;
 
-		// Skip next-unit markers (e.g. "*unit")
-		if (std::strchr(changelevel->map.data(), '*'))
-			continue;
+                const char* levelName = std::strchr(changelevel->map.data(), '+');
+                if (levelName)
+                        ++levelName;
+                else
+                        levelName = changelevel->map.data();
 
-		// Start from the map name after an optional '+' segment.
-		std::string_view map_sv{ changelevel->map.data() };
-		const char* plus = std::strchr(changelevel->map.data(), '+');
-		if (plus)
-			map_sv = std::string_view{ plus + 1 };
+                if (std::strstr(levelName, ".cin") || std::strstr(levelName, ".pcx"))
+                        continue;
 
-		// Skip end screens
-		if (map_sv.find(".cin") != std::string_view::npos ||
-			map_sv.find(".pcx") != std::string_view::npos)
-			continue;
+                size_t levelLength;
+                if (const char* spawnpoint = std::strchr(levelName, '$'))
+                        levelLength = static_cast<size_t>(spawnpoint - levelName);
+                else
+                        levelLength = std::strlen(levelName);
 
-		// Trim optional spawnpoint suffix (e.g. "map$spawn")
-		size_t base_len = map_sv.size();
-		if (const char* sp = std::strchr(map_sv.data(), '$'))
-			base_len = static_cast<size_t>(sp - map_sv.data());
+                LevelEntry* slot = nullptr;
+                for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
+                        LevelEntry* entry = &game.levelEntries[i];
 
-		// Find or create an entry for this candidate level.
-		LevelEntry* slot = nullptr;
-		for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
-			LevelEntry* e = &game.levelEntries[i];
-			const bool empty = (e->mapName[0] == '\0');
-			if (empty || std::strncmp(e->mapName.data(), map_sv.data(), base_len) == 0) {
-				slot = e;
-				break;
-			}
-		}
+                        if (!entry->mapName[0] || std::strncmp(entry->mapName.data(), levelName, levelLength) == 0) {
+                                slot = entry;
+                                break;
+                        }
+                }
 
-		if (!slot) {
-			gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
-			return;
-		}
+                if (!slot) {
+                        gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
+                        return;
+                }
 
-		// Copy the base map name into the slot (bounded).
-		const size_t cap = slot->mapName.size() - 1;
-		const size_t n = std::min(base_len, cap);
-		std::memcpy(slot->mapName.data(), map_sv.data(), n);
-		slot->mapName[n] = '\0';
-	}
+                const size_t copyLength = std::min(levelLength + 1, slot->mapName.size());
+                Q_strlcpy(slot->mapName.data(), levelName, copyLength);
+        }
 }
 
 /*
