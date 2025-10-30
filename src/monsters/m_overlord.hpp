@@ -112,4 +112,4 @@ enum
 	FRAME_s_wtdt17
 };
 
-constexpr float MODEL_SCALE = 1.000000f;
+inline constexpr float OVERLORD_MODEL_SCALE = 1.000000f;

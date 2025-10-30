@@ -403,7 +403,7 @@ void SP_monster_wrath(gentity_t* self) {
         gi.linkEntity(self);
 
         M_SetAnimation(self, &wrath_move_stand);
-        self->monsterInfo.scale = MODEL_SCALE;
+        self->monsterInfo.scale = WRATH_MODEL_SCALE;
 
         self->flags |= FL_FLY;
         if (!self->yawSpeed)
