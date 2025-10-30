@@ -3396,6 +3396,78 @@ enum class DamageFlags {
 
 MAKE_ENUM_BITFLAGS(DamageFlags);
 
+struct DamageProtectionContext {
+        bool      hasClient = false;
+        bool      combatDisabled = false;
+        bool      proBall = false;
+        bool      selfDamageDisabled = false;
+        bool      isSelfDamage = false;
+        bool      hasBattleSuit = false;
+        bool      isRadiusDamage = false;
+        bool      hasGodMode = false;
+        bool      isMonster = false;
+        GameTime  monsterInvincibilityTime = 0_ms;
+        GameTime  painDebounceTime = 0_ms;
+        GameTime  levelTime = 0_ms;
+};
+
+struct DamageProtectionResult {
+        bool     prevented = false;
+        bool     playBattleSuitSound = false;
+        bool     playMonsterSound = false;
+        GameTime newPainDebounceTime = 0_ms;
+};
+
+inline DamageProtectionResult EvaluateDamageProtection(const DamageProtectionContext& ctx, DamageFlags dFlags,
+        const MeansOfDeath& mod)
+{
+        DamageProtectionResult result{};
+
+        if (static_cast<int>(dFlags & DamageFlags::NoProtection))
+                return result;
+
+        if (ctx.hasClient) {
+                if (ctx.combatDisabled || ctx.proBall) {
+                        result.prevented = true;
+                        return result;
+                }
+
+                if (ctx.isSelfDamage && ctx.selfDamageDisabled) {
+                        result.prevented = true;
+                        return result;
+                }
+        }
+
+        if (mod.id == ModID::Railgun_Splash) {
+                result.prevented = true;
+                return result;
+        }
+
+        if (ctx.hasClient && ctx.hasBattleSuit && ctx.isRadiusDamage) {
+                result.prevented = true;
+                result.playBattleSuitSound = true;
+                return result;
+        }
+
+        if (ctx.hasGodMode) {
+                result.prevented = true;
+                return result;
+        }
+
+        if (ctx.isMonster && (ctx.monsterInvincibilityTime > ctx.levelTime)) {
+                result.prevented = true;
+
+                if (ctx.painDebounceTime < ctx.levelTime) {
+                        result.playMonsterSound = true;
+                        result.newPainDebounceTime = ctx.levelTime + 2_sec;
+                }
+
+                return result;
+        }
+
+        return result;
+}
+
 //
 // g_combat.cpp
 //
