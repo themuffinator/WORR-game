@@ -19,6 +19,7 @@
 //   volume and `TouchTriggers` for activating triggers.
 
 #include "g_local.hpp"
+#include <cctype>
 #include <chrono>	// get real time
 #include <ctime>
 #include <string_view>
@@ -1900,7 +1901,9 @@ Returns Weapon::None if not found.
 */
 Weapon GetWeaponIndexByAbbrev(const std::string& abbr) {
 	std::string query = abbr;
-	std::transform(query.begin(), query.end(), query.begin(), ::toupper);
+	std::transform(query.begin(), query.end(), query.begin(), [](unsigned char ch) {
+		return static_cast<char>(std::toupper(ch));
+	});
 
 	for (int i = 0; i < weaponAbbreviations.size(); ++i) {
 		if (weaponAbbreviations[i] == query)
