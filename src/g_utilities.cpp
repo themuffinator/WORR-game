@@ -1275,13 +1275,18 @@ ClientEntFromString
 =================
 */
 gentity_t* ClientEntFromString(const char* in) {
-	// check by nick first
-	for (auto ec : active_clients())
-		if (!strcmp(in, ec->client->sess.netName))
-			return ec;
+        if (!in)
+                return nullptr;
 
-	// otherwise check client num
-	uint32_t num = strtoul(in, nullptr, 10);
+        // check by nick first
+        if (*in != '\0') {
+                for (auto ec : active_clients())
+                        if (!strcmp(in, ec->client->sess.netName))
+                                return ec;
+        }
+
+        // otherwise check client num
+        uint32_t num = strtoul(in, nullptr, 10);
 	if (num >= 0 && num < game.maxClients)
 		return &g_entities[&game.clients[num] - game.clients + 1];
 
