@@ -26,9 +26,14 @@
 #include <algorithm>	// for std::fill
 
 struct spawn_t {
-	const char* name;
-	void (*spawn)(gentity_t* ent);
+        const char* name;
+        void (*spawn)(gentity_t* ent);
 };
+
+const spawn_temp_t& ED_GetSpawnTemp()
+{
+        return st;
+}
 
 void SP_ambient_suck_wind(gentity_t* ent);
 void SP_ambient_drone(gentity_t* ent);
