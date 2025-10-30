@@ -633,14 +633,25 @@ Team Teams_OtherTeam(Team team) {
 CleanSkinName
 =================
 */
+namespace {
+constexpr bool IsAllowedSkinChar(unsigned char c) noexcept {
+        const bool isLower = (c >= 'a' && c <= 'z');
+        const bool isUpper = (c >= 'A' && c <= 'Z');
+        const bool isDigit = (c >= '0' && c <= '9');
+        return isLower || isUpper || isDigit || c == '_' || c == '-';
+}
+} // namespace
+
 static std::string CleanSkinName(const std::string& in) {
-	std::string out;
-	for (char c : in) {
-		if (isalnum(c) || c == '_' || c == '-') {
-			out += c;
-		}
-	}
-	return out.empty() ? "male" : out;
+        std::string out;
+        out.reserve(in.size());
+        for (char c : in) {
+                const auto uc = static_cast<unsigned char>(c);
+                if (IsAllowedSkinChar(uc)) {
+                        out.push_back(static_cast<char>(uc));
+                }
+        }
+        return out.empty() ? "male" : out;
 }
 
 /*
