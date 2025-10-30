@@ -170,7 +170,7 @@ static void overlord_surprise(gentity_t* self) {
         behindPos[Z] += kHeightOffset;
 
         trace_t tr = gi.trace(behindPos, self->mins, self->maxs, behindPos, self, MASK_MONSTERSOLID);
-        if (tr.startsolid || tr.allsolid || tr.fraction < 1.f)
+        if (tr.startSolid || tr.allSolid || tr.fraction < 1.f)
                 return;
 
         gi.WriteByte(svc_temp_entity);
@@ -323,7 +323,7 @@ static void overlord_fire(gentity_t* self) {
                         localDir.normalize();
 
                         trace_t tr = gi.traceLine(start, fireTarget, self, MASK_PROJECTILE);
-                        if (tr.startsolid || tr.allsolid || tr.fraction < 0.5f)
+                        if (tr.startSolid || tr.allSolid || tr.fraction < 0.5f)
                                 return false;
 
                         fire_vorepod(self, start, localDir, damage, rocketSpeed, static_cast<float>(damage), damage, 0.075f, 1);
