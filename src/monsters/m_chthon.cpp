@@ -59,6 +59,7 @@ static void chthon_sight_sound(gentity_t* self);
 static void chthon_sight_sound2(gentity_t* self);
 static void chthon_idle(gentity_t* self);
 static void chthon_gib(gentity_t* self);
+static void chthon_dead(gentity_t* self);
 static void chthon_think(gentity_t* self);
 static bool chthon_is_energy_mod(const MeansOfDeath& mod);
 
