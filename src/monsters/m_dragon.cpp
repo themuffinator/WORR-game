@@ -284,54 +284,53 @@ namespace {
 
 		trace_t trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
 
-		for (int shot = 0; shot < fireCount; ++shot) {
-			if (blindFire) {
-				if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-					if (self->style == 1)
-						fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-					else
-						fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-				}
-				else {
-					vec = target + (right * -10.0f);
-					dir = vec - start;
-					dir.normalize();
-					trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
+        for (int shot = 0; shot < fireCount; ++shot) {
+                if (blindFire) {
+                        if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                                if (self->style == 1) {
+                                        fire_plasmaball(self, start, dir, damage, speed, damage * 2);
+                                } else {
+                                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                }
+                        } else {
+                                vec = target + (right * -10.0f);
+                                dir = vec - start;
+                                dir.normalize();
+                                trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
 
-					if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-						if (self->style == 1)
-							fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-						else
-							fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-					}
-					else {
-						vec = target + (right * 10.0f);
-						dir = vec - start;
-						dir.normalize();
-						trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
+                                if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                                        if (self->style == 1)
+                                                fire_plasmaball(self, start, dir, damage, speed, damage * 2);
+                                        else
+                                                fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                } else {
+                                        vec = target + (right * 10.0f);
+                                        dir = vec - start;
+                                        dir.normalize();
+                                        trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
 
-						if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-							if (self->style == 1)
-								fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-							else
-								fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-						}
-					}
-				}
-			}
-			else {
-				const float r = crandom() * 1000.0f;
-				vec = start + (forward * 8192.0f) + (right * r);
-				dir = vec - start;
-				dir.normalize();
+                                        if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                                                if (self->style == 1)
+                                                        fire_plasmaball(self, start, dir, damage, speed, damage * 2);
+                                                else
+                                                        fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                        }
+                                }
+                        }
+                } else {
+                        const float r = crandom() * 1000.0f;
+                        vec = start + (forward * 8192.0f) + (right * r);
+                        dir = vec - start;
+                        dir.normalize();
 
-				if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP) {
-					if (self->style == 1)
-						fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-					else
-						fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-				}
-			}
+                        if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP) {
+                                if (self->style == 1)
+                                        fire_plasmaball(self, start, dir, damage, speed, damage * 2);
+                                else
+                                        fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                        }
+                }
 
 			gi.sound(self, CHAN_VOICE, s_attack, 1, ATTN_NORM, 0);
 		}

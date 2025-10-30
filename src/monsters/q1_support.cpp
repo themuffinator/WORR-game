@@ -163,30 +163,9 @@ namespace {
 		FreeEntity(ent);
 	}
 
-	TOUCH(AcidTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
-		if (other == ent->owner)
-			return;
-
-		if (tr.surface && (tr.surface->flags & SURF_SKY)) {
-			FreeEntity(ent);
-			return;
-		}
-
-		if (ent->owner && ent->owner->client)
-			G_PlayerNoise(ent->owner, ent->s.origin, PlayerNoise::Impact);
-
-		if (other->takeDamage) {
-			Damage(other, ent, ent->owner, ent->velocity, ent->s.origin, tr.plane.normal, ent->dmg, 1,
-				DamageFlags::Energy, ModID::Gekk);
-		}
-
-		gi.sound(ent, CHAN_AUTO, gi.soundIndex("gek/loogie_hit.wav"), 1.0f, ATTN_NORM, 0);
-		FreeEntity(ent);
-	}
-
-	TOUCH(ZombieGibTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
-		if (other == ent->owner)
-			return;
+TOUCH(ZombieGibTouch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool /*other_touching_self*/) -> void {
+        if (other == ent->owner)
+                return;
 
 		if (tr.surface && (tr.surface->flags & SURF_SKY)) {
 			FreeEntity(ent);
@@ -298,27 +277,27 @@ namespace {
 		gi.multicast(self->s.origin, MULTICAST_PHS, false);
 	}
 
-	THINK(Q1BossExplodeThink) (gentity_t* self) -> void {
-		if (!self->owner || !self->owner->inUse || self->owner->s.modelIndex != self->style ||
-			self->count != self->owner->spawn_count) {
-			FreeEntity(self);
-			return;
-		}
+THINK(Q1BossExplodeThink) (gentity_t* self) -> void {
+        if (!self->owner || !self->owner->inUse || self->owner->s.modelIndex != self->style ||
+                self->count != self->owner->spawn_count) {
+                FreeEntity(self);
+                return;
+        }
 
-		Vector3 size = self->owner->maxs - self->owner->mins;
-		Vector3 org = self->owner->s.origin + self->owner->mins;
-		org[0] += frandom() * size[0];
-		org[1] += frandom() * size[1];
-		org[2] += frandom() * size[2];
+        Vector3 size = self->owner->maxs - self->owner->mins;
+        Vector3 org = self->owner->s.origin + self->owner->mins;
+        org[0] += frandom() * size[0];
+        org[1] += frandom() * size[1];
+        org[2] += frandom() * size[2];
 
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte((self->viewHeight % 3) ? TE_EXPLOSION1 : TE_EXPLOSION1_NL);
-		gi.WritePosition(org);
-		gi.multicast(org, MULTICAST_PVS, false);
+        gi.WriteByte(svc_temp_entity);
+        gi.WriteByte((self->viewHeight % 3) ? TE_EXPLOSION1 : TE_EXPLOSION1_NL);
+        gi.WritePosition(org);
+        gi.multicast(org, MULTICAST_PVS, false);
 
-		++self->viewHeight;
-		self->nextThink = level.time + random_time(50_ms, 200_ms);
-	}
+        ++self->viewHeight;
+        self->nextThink = level.time + random_time(50_ms, 200_ms);
+}
 
 } // namespace
 
@@ -398,16 +377,16 @@ void CheckTeleportReturn(gentity_t* self) {
 }
 
 void Q1BossExplode(gentity_t* self) {
-	if (!self || self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
-		return;
+        if (!self || self->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
+                return;
 
-	gentity_t* exploder = Spawn();
-	exploder->owner = self;
-	exploder->count = self->spawn_count;
-	exploder->style = self->s.modelIndex;
-	exploder->think = Q1BossExplodeThink;
-	exploder->nextThink = level.time + random_time(75_ms, 250_ms);
-	exploder->viewHeight = 0;
+        gentity_t* exploder = Spawn();
+        exploder->owner = self;
+        exploder->count = self->spawn_count;
+        exploder->style = self->s.modelIndex;
+        exploder->think = Q1BossExplodeThink;
+        exploder->nextThink = level.time + random_time(75_ms, 250_ms);
+        exploder->viewHeight = 0;
 }
 
 gentity_t* fire_lavaball(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
@@ -508,33 +487,33 @@ gentity_t* fire_flame(gentity_t* self, const Vector3& start, const Vector3& dir,
 }
 
 void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed) {
-	gentity_t* acid = Spawn();
-	acid->s.origin = start;
-	acid->s.oldOrigin = start;
-	acid->s.angles = VectorToAngles(dir);
-	acid->velocity = dir * speed;
-	acid->moveType = MoveType::FlyMissile;
-	acid->clipMask = MASK_PROJECTILE;
-	if (self && self->client && !G_ShouldPlayersCollide(true))
-		acid->clipMask &= ~CONTENTS_PLAYER;
-	acid->solid = SOLID_BBOX;
-	acid->svFlags |= SVF_PROJECTILE;
-	acid->s.effects |= EF_GREENGIB;
-	acid->s.renderFX |= RF_FULLBRIGHT;
-	acid->s.modelIndex = gi.modelIndex("models/objects/loogy/tris.md2");
-	acid->owner = self;
-	acid->touch = AcidTouch;
-	acid->nextThink = level.time + 2_sec;
-	acid->think = FreeEntity;
-	acid->dmg = damage;
+        gentity_t* acid = Spawn();
+        acid->s.origin = start;
+        acid->s.oldOrigin = start;
+        acid->s.angles = VectorToAngles(dir);
+        acid->velocity = dir * speed;
+        acid->moveType = MoveType::FlyMissile;
+        acid->clipMask = MASK_PROJECTILE;
+        if (self && self->client && !G_ShouldPlayersCollide(true))
+                acid->clipMask &= ~CONTENTS_PLAYER;
+        acid->solid = SOLID_BBOX;
+        acid->svFlags |= SVF_PROJECTILE;
+        acid->s.effects |= EF_GREENGIB;
+        acid->s.renderFX |= RF_FULLBRIGHT;
+        acid->s.modelIndex = gi.modelIndex("models/objects/loogy/tris.md2");
+        acid->owner = self;
+        acid->touch = AcidTouch;
+        acid->nextThink = level.time + 2_sec;
+        acid->think = FreeEntity;
+        acid->dmg = damage;
 
-	gi.linkEntity(acid);
+        gi.linkEntity(acid);
 
-	trace_t tr = gi.traceLine(self->s.origin, acid->s.origin, acid, acid->clipMask);
-	if (tr.fraction < 1.0f) {
-		acid->s.origin = tr.endPos + (tr.plane.normal * 1.0f);
-		acid->touch(acid, tr.ent, tr, false);
-	}
+        trace_t tr = gi.traceLine(self->s.origin, acid->s.origin, acid, acid->clipMask);
+        if (tr.fraction < 1.0f) {
+                acid->s.origin = tr.endPos + (tr.plane.normal * 1.0f);
+                acid->touch(acid, tr.ent, tr, false);
+        }
 }
 
 void fire_gib(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, float rightAdjust,

@@ -298,30 +298,33 @@ static void wyvern_fireball(gentity_t* self) {
 	constexpr int damage = 100;
 	constexpr int speed = 750;
 
-	if (blindFire) {
-		if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-			fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-		}
-		else {
-			vec = target + (right * -10.f);
-			dir = (vec - start).normalized();
-			trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
-			if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-				fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-			}
-			else {
-				vec = target + (right * 10.f);
-				dir = (vec - start).normalized();
-				trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
-				if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f)))
-					fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-			}
-		}
-	}
-	else {
-		if (trace.fraction > 0.5f || (trace.ent && trace.ent->solid != SOLID_BSP))
-			fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
-	}
+        if (blindFire) {
+                if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                } else {
+                        vec = target + (right * -10.f);
+                        dir = (vec - start).normalized();
+                        trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
+                        if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                                [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                        self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                        } else {
+                                vec = target + (right * 10.f);
+                                dir = (vec - start).normalized();
+                                trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
+                                if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
+                                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                }
+                        }
+                }
+        } else {
+                if (trace.fraction > 0.5f || (trace.ent && trace.ent->solid != SOLID_BSP)) {
+                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                }
+        }
 
 	gi.sound(self, CHAN_VOICE, sound_attack, 1, ATTN_NORM, 0);
 }
@@ -349,10 +352,10 @@ static void wyvern_firebreath(gentity_t* self) {
 		Vector3 sprayEnd = start + (forward * 8192.f) + (right * r) + (up * u);
 		Vector3 dir = (sprayEnd - start).normalized();
 
-		fire_flame(self, start, dir, 12, 500, ModID::IonRipper);
-		gi.sound(self, CHAN_VOICE, sound_attack, 1, ATTN_NORM, 0);
-		gi.sound(self, CHAN_WEAPON, sound_flame, 1, ATTN_NORM, 0);
-	}
+                fire_flame(self, start, dir, 12, 500, ModID::IonRipper);
+                gi.sound(self, CHAN_VOICE, sound_attack, 1, ATTN_NORM, 0);
+                gi.sound(self, CHAN_WEAPON, sound_flame, 1, ATTN_NORM, 0);
+        }
 }
 
 static MonsterFrame wyvern_frames_attack1[] = {
