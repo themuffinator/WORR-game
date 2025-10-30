@@ -1173,6 +1173,9 @@ TeleportPlayer
 =================
 */
 void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
+	if (!player || !player->client)
+		return;
+
 	Weapon_Grapple_DoReset(player->client);
 
 	// unlink to make sure it can't possibly interfere with KillBox
@@ -1216,6 +1219,9 @@ TeleportPlayerToRandomSpawnPoint
 =================
 */
 void TeleportPlayerToRandomSpawnPoint(gentity_t* ent, bool fx) {
+	if (!ent || !ent->client)
+		return;
+
 	bool	valid_spawn = false;
 	Vector3	spawn_origin, spawn_angles;
 	bool	is_landmark = false;
