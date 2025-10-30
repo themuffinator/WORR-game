@@ -95,7 +95,7 @@ static bool chthon_is_energy_mod(const MeansOfDeath& mod) {
 }
 
 static bool chthon_is_lavaman(const gentity_t* self) {
-        return (self->className && !Q_stricmp(self->className, "monster_lavaman"));
+        return (self->className && !Q_strcasecmp(self->className, "monster_lavaman"));
 }
 
 static int chthon_base_skin(const gentity_t* self) {
@@ -338,17 +338,47 @@ MONSTERINFO_STAND(chthon_stand) (gentity_t* self) -> void {
         M_SetAnimation(self, &chthon_move_stand);
 }
 
-	// Heavy, slow "lava ball" matching Quake 1 behaviour.
-	fire_lavaball(self, start, dir, 40, 400, 40.0f, 40);
+MONSTERINFO_WALK(chthon_walk) (gentity_t* self) -> void {
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
+        M_SetAnimation(self, &chthon_move_walk);
 }
 
 MONSTERINFO_RUN(chthon_run) (gentity_t* self) -> void {
         self->monsterInfo.aiFlags |= AI_STAND_GROUND;
-        M_SetAnimation(self, &chthon_move_stand);
+        M_SetAnimation(self, &chthon_move_run);
+}
+
+static void chthon_rise(gentity_t* self) {
+        self->monsterInfo.aiFlags |= AI_STAND_GROUND;
+        M_SetAnimation(self, &chthon_move_rise);
 }
 
 MONSTERINFO_ATTACK(chthon_attack) (gentity_t* self) -> void {
         self->monsterInfo.attackFinished = level.time + CHTHON_ATTACK_PERIOD;
+
+        if (self->monsterInfo.attackState == MonsterAttackState::Blind) {
+                float chance;
+                if (self->monsterInfo.blind_fire_delay < 1_sec)
+                        chance = 1.0f;
+                else if (self->monsterInfo.blind_fire_delay < 7.5_sec)
+                        chance = 0.4f;
+                else
+                        chance = 0.1f;
+
+                const float roll = frandom();
+                self->monsterInfo.blind_fire_delay += random_time(5.5_sec, 6.5_sec);
+
+                if (!self->monsterInfo.blind_fire_target || roll > chance) {
+                        self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
+                        return;
+                }
+
+                self->monsterInfo.aiFlags |= AI_MANUAL_STEERING;
+                M_SetAnimation(self, &chthon_move_attack);
+                return;
+        }
+
+        self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
         M_SetAnimation(self, &chthon_move_attack);
 }
 
@@ -402,15 +432,23 @@ static void chthon_fire_lava(gentity_t* self, float sideSign) {
         dir.normalize();
         trace_t trace = gi.traceLine(start, aimPoint, self, MASK_PROJECTILE);
 
-        auto try_fire = [&](const Vector3& fireDir, const Vector3& fireTarget) {
+        auto is_blocked = [](const trace_t& tr) {
+                if (tr.startSolid || tr.allSolid)
+                        return true;
+                if (tr.fraction < 0.5f && tr.ent && tr.ent->solid == SOLID_BSP)
+                        return true;
+                return false;
+        };
+
+        auto try_fire = [&](const Vector3& fireDir) {
                 gi.sound(self, CHAN_WEAPON, s_throw, 1, ATTN_NORM, 0);
                 int damage = chthon_is_lavaman(self) ? CHTHON_PROJECTILE_DAMAGE_LAVAMAN : CHTHON_PROJECTILE_DAMAGE;
                 monster_fire_rocket(self, start, fireDir, damage, CHTHON_PROJECTILE_SPEED, MZ2_CHTON_ROCKET_1);
         };
 
         if (blindfire) {
-                if (!(trace.startsolid || trace.allsolid || trace.fraction < 0.5f)) {
-                        try_fire(dir, aimPoint);
+                if (!is_blocked(trace)) {
+                        try_fire(dir);
                         return;
                 }
 
@@ -420,14 +458,14 @@ static void chthon_fire_lava(gentity_t* self, float sideSign) {
                         Vector3 nudgedDir = nudged - start;
                         nudgedDir.normalize();
                         trace = gi.traceLine(start, nudged, self, MASK_PROJECTILE);
-                        if (!(trace.startsolid || trace.allsolid || trace.fraction < 0.5f)) {
-                                try_fire(nudgedDir, nudged);
+                        if (!is_blocked(trace)) {
+                                try_fire(nudgedDir);
                                 return;
                         }
                 }
         } else {
-                if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP) {
-                        try_fire(dir, aimPoint);
+                if (!is_blocked(trace)) {
+                        try_fire(dir);
                         return;
                 }
         }
@@ -447,6 +485,17 @@ static void chthon_check_attack(gentity_t* self) {
         if (level.time < self->monsterInfo.attackFinished)
                 return;
         self->monsterInfo.attack(self);
+}
+
+static THINK(chthon_think) (gentity_t* self) -> void {
+        self->think = monster_think;
+        monster_think(self);
+
+        if (!self->inUse)
+                return;
+
+        if (self->think == monster_think && !self->deadFlag && self->health > 0)
+                self->think = chthon_think;
 }
 
 // -----------------------------------------------------------------------------
@@ -543,18 +592,18 @@ static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attack
 		// Optionally alter skin on gib if your model supports it
 		// self->s.skinNum /= 2;
 
-		ThrowGibs(self, damage, {
-			{ 3, "models/objects/gibs/bone/tris.md2" },
-			{ 4, "models/objects/gibs/sm_meat/tris.md2" },
-			{ "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
-			});
+                ThrowGibs(self, damage, {
+                        { 3, "models/objects/gibs/bone/tris.md2" },
+                        { 4, "models/objects/gibs/sm_meat/tris.md2" },
+                        { "models/objects/gibs/head2/tris.md2", GIB_HEAD | GIB_SKINNED }
+                });
 
-		self->deadFlag = true;
-		return;
-	}
+                self->deadFlag = true;
+                return;
+        }
 
-	if (self->deadFlag)
-		return;
+        if (self->deadFlag)
+                return;
 
 	// regular death
 	self->deadFlag = true;
@@ -565,9 +614,13 @@ static DIE(chthon_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attack
 
 	// If you have death animations, trigger them here, e.g.:
 	// M_SetAnimation(self, &chthon_move_death1);
-	// Otherwise, remove the corpse in the standard way.
-	Q1BossExplode(self);
-	chthon_dead(self);
+        // Otherwise, remove the corpse in the standard way.
+        Q1BossExplode(self);
+        chthon_dead(self);
+}
+
+static void chthon_dead(gentity_t* self) {
+        monster_dead(self);
 }
 
 static void chthon_precache() {
