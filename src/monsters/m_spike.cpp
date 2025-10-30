@@ -21,6 +21,7 @@ static cached_soundIndex s_pain;
 
 static void spike_run(gentity_t* self);
 static void spike_explode(gentity_t* self);
+static void spike_finish_explode(gentity_t* self);
 
 /*
 ===============
@@ -154,7 +155,7 @@ MMOVE_T(spike_move_pain) = { FRAME_spike1, FRAME_spike9, spike_frames_pain, spik
 static PAIN(spike_pain) (gentity_t* self, gentity_t* other, float kick, int damage, const MeansOfDeath& mod) -> void {
         if (spike_pain_is_nailgun(mod.id)) {
                 const Vector3 point = other ? other->s.origin : self->s.origin;
-                Damage(self, self, self, Vector3{}, point, Vector3{}, self->health + 10, 0, DamageFlags::None,
+                Damage(self, self, self, Vector3{}, point, Vector3{}, self->health + 10, 0, DamageFlags::Normal,
                         MeansOfDeath{ ModID::Explosives });
                 return;
         }
@@ -267,8 +268,6 @@ void SP_monster_spike(gentity_t* self) {
         }
 
         spike_precache();
-
-        const spawn_temp_t& st = ED_GetSpawnTemp();
 
         self->className = "monster_spike";
         self->moveType = MoveType::Step;
