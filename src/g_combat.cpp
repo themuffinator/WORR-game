@@ -733,78 +733,52 @@ static bool ApplyDamage(
 	return false;
 }
 
-/*
-===============
-CheckDamageProtection
-Gatekeepers for cases where damage should be fully or partly negated.
-Mutates take/save. Caller passes original damage as "damage".
-===============
-*/
 static void CheckDamageProtection(
-	gentity_t* targ,
-	gclient_t* targCl,
-	const gentity_t* attacker,
-	int& take,
-	int& save,
-	int damage,
-	DamageFlags dFlags,
-	const Vector3& point,
-	const Vector3& normal,
-	const MeansOfDeath& mod,
-	int tempEvent)
+        gentity_t* targ,
+        gclient_t* targCl,
+        const gentity_t* attacker,
+        int& take,
+        int& save,
+        int damage,
+        DamageFlags dFlags,
+        const Vector3& point,
+        const Vector3& normal,
+        const MeansOfDeath& mod,
+        int tempEvent)
 {
-	if (!targ->client || (static_cast<int>(dFlags & DamageFlags::NoProtection)))
-		return;
+        DamageProtectionContext ctx{};
+        ctx.hasClient = (targCl != nullptr);
+        ctx.combatDisabled = CombatIsDisabled();
+        ctx.proBall = Game::Is(GameType::ProBall);
+        ctx.selfDamageDisabled = !g_selfDamage->integer;
+        ctx.isSelfDamage = (attacker != nullptr) && (targ == attacker);
+        ctx.hasBattleSuit = (targCl && targCl->powerupTime.battleSuit > level.time);
+        ctx.isRadiusDamage = static_cast<int>(dFlags & DamageFlags::Radius);
+        ctx.hasGodMode = (targ->flags & FL_GODMODE);
+        ctx.isMonster = (targ->svFlags & SVF_MONSTER);
+        ctx.monsterInvincibilityTime = targ->monsterInfo.invincibility_time;
+        ctx.painDebounceTime = targ->pain_debounce_time;
+        ctx.levelTime = level.time;
 
-	// global no-combat or ball mode
-	if (CombatIsDisabled() || Game::Is(GameType::ProBall)) {
-		take = 0;
-		save = damage;
-		return;
-	}
+        (void)point;
+        (void)normal;
+        (void)tempEvent;
 
-	// self-damage disabled
-	if (targ == attacker && !g_selfDamage->integer) {
-		take = 0;
-		save = damage;
-		return;
-	}
+        DamageProtectionResult protection = EvaluateDamageProtection(ctx, dFlags, mod);
+        if (!protection.prevented)
+                return;
 
-	// instagib rail splash never hurts
-	if (mod.id == ModID::Railgun_Splash) {
-		take = 0;
-		save = damage;
-		return;
-	}
+        if (protection.playBattleSuitSound) {
+                gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
+        }
 
-	// battlesuit removes radius damage
-	if (targCl && targCl->powerupTime.battleSuit > level.time && static_cast<int>(dFlags & DamageFlags::Radius)) {
-		gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
-		take = 0;
-		save = damage;
-		return;
-	}
+        if (protection.playMonsterSound) {
+                gi.sound(targ, CHAN_ITEM, gi.soundIndex("items/protect4.wav"), 1, ATTN_NORM, 0);
+                targ->pain_debounce_time = protection.newPainDebounceTime;
+        }
 
-	// godmode
-	if (targ->flags & FL_GODMODE) {
-		take = 0;
-		save = damage;
-		return;
-	}
-
-	// monster invincibility
-	if ((targ->svFlags & SVF_MONSTER) && targ->monsterInfo.invincibility_time > level.time) {
-		if (targ->pain_debounce_time < level.time) {
-			gi.sound(targ, CHAN_ITEM, gi.soundIndex("items/protect4.wav"), 1, ATTN_NORM, 0);
-			targ->pain_debounce_time = level.time + 2_sec;
-		}
-		take = 0;
-		save = damage;
-		return;
-	}
-
-	// freeze-tag special case was intentionally left commented out, see original code
-	// (kept behavior consistent with source provided)
+        take = 0;
+        save = damage;
 }
 
 /*
