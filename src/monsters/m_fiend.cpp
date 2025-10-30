@@ -344,91 +344,13 @@ static void fiend_jump_up(gentity_t* self) {
 }
 
 static void fiend_jump_wait_land(gentity_t* self) {
-        if (!monster_jump_finished(self) && self->groundEntity == nullptr)
-                self->monsterInfo.nextFrame = self->s.frame;
-        else
-                self->monsterInfo.nextFrame = self->s.frame + 1;
-}
-
-static MonsterFrame fiend_frames_jump_up[] = {
-        { ai_move, -8 },
-        { ai_move },
-        { ai_move, -8, fiend_jump_up },
-        { ai_move },
-        { ai_move },
-        { ai_move, 0, fiend_jump_wait_land },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move }
-};
-MMOVE_T(fiend_move_jump_up) = { FRAME_leap01, FRAME_leap12, fiend_frames_jump_up, fiend_run };
-
-static MonsterFrame fiend_frames_jump_down[] = {
-        { ai_move },
-        { ai_move },
-        { ai_move, 0, fiend_jump_down },
-        { ai_move },
-        { ai_move },
-        { ai_move, 0, fiend_jump_wait_land },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move },
-        { ai_move }
-};
-MMOVE_T(fiend_move_jump_down) = { FRAME_leap01, FRAME_leap12, fiend_frames_jump_down, fiend_run };
-
-static void fiend_jump_updown(gentity_t* self, BlockedJumpResult result) {
-        if (!self->enemy)
-                return;
-
-        if (result == BlockedJumpResult::Jump_Turn_Up)
-                M_SetAnimation(self, &fiend_move_jump_up);
-        else
-                M_SetAnimation(self, &fiend_move_jump_down);
-}
-
-MONSTERINFO_BLOCKED(fiend_blocked) (gentity_t* self, float dist) -> bool {
-        if (auto result = blocked_checkjump(self, dist); result != BlockedJumpResult::No_Jump) {
-                if (result != BlockedJumpResult::Jump_Turn)
-                        fiend_jump_updown(self, result);
-                return true;
-        }
-
-        if (blocked_checkplat(self, dist))
-                return true;
-
-        return false;
-}
-
-static void fiend_jump_down(gentity_t* self) {
-        Vector3 forward, up;
-
-        AngleVectors(self->s.angles, forward, nullptr, up);
-        self->velocity += forward * 100.0f;
-        self->velocity += up * 300.0f;
-}
-
-static void fiend_jump_up(gentity_t* self) {
-        Vector3 forward, up;
-
-        AngleVectors(self->s.angles, forward, nullptr, up);
-        self->velocity += forward * 200.0f;
-        self->velocity += up * 450.0f;
-}
-
-static void fiend_jump_wait_land(gentity_t* self) {
         if (!monster_jump_finished(self) && self->groundEntity == nullptr) {
                 self->monsterInfo.nextFrame = self->s.frame;
                 return;
         }
 
         if (self->groundEntity) {
-                gi.sound(self, CHAN_WEAPON, snd_land, 1, ATTN_NORM, 0);
+                gi.sound(self, CHAN_WEAPON, sound_land, 1, ATTN_NORM, 0);
                 self->monsterInfo.attackFinished = level.time + random_time(500_ms, 1.5_sec);
 
                 if (self->monsterInfo.unDuck)
@@ -483,11 +405,6 @@ static void fiend_jump_updown(gentity_t* self, BlockedJumpResult result) {
                 M_SetAnimation(self, &fiend_move_jump_down);
 }
 
-/*
-===
-Blocked
-===
-*/
 MONSTERINFO_BLOCKED(fiend_blocked) (gentity_t* self, float dist) -> bool {
         if (auto result = blocked_checkjump(self, dist); result != BlockedJumpResult::No_Jump) {
                 if (result != BlockedJumpResult::Jump_Turn)
@@ -500,7 +417,6 @@ MONSTERINFO_BLOCKED(fiend_blocked) (gentity_t* self, float dist) -> bool {
 
         return false;
 }
-
 /*
 ===============
 fiend_check_melee
