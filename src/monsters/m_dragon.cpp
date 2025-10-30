@@ -282,10 +282,12 @@ static void dragon_fireball(gentity_t* self) {
         for (int shot = 0; shot < fireCount; ++shot) {
                 if (blindFire) {
                         if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-                                if (self->style == 1)
+                                if (self->style == 1) {
                                         fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-                                else
-                                        fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                } else {
+                                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                }
                         } else {
                                 vec = target + (right * -10.0f);
                                 dir = vec - start;
@@ -293,10 +295,12 @@ static void dragon_fireball(gentity_t* self) {
                                 trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
 
                                 if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-                                        if (self->style == 1)
+                                        if (self->style == 1) {
                                                 fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-                                        else
-                                                fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                        } else {
+                                                [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                        self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                        }
                                 } else {
                                         vec = target + (right * 10.0f);
                                         dir = vec - start;
@@ -304,10 +308,12 @@ static void dragon_fireball(gentity_t* self) {
                                         trace = gi.traceLine(start, vec, self, MASK_PROJECTILE);
 
                                         if (!(trace.startSolid || trace.allSolid || (trace.fraction < 0.5f))) {
-                                                if (self->style == 1)
+                                                if (self->style == 1) {
                                                         fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-                                                else
-                                                        fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                                } else {
+                                                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                                }
                                         }
                                 }
                         }
@@ -318,10 +324,12 @@ static void dragon_fireball(gentity_t* self) {
                         dir.normalize();
 
                         if (trace.fraction > 0.5f || !trace.ent || trace.ent->solid != SOLID_BSP) {
-                                if (self->style == 1)
+                                if (self->style == 1) {
                                         fire_plasmaball(self, start, dir, damage, speed, damage * 2);
-                                else
-                                        fire_lavaball(self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                } else {
+                                        [[maybe_unused]] gentity_t *projectile = fire_lavaball(
+                                                self, start, dir, damage, speed, static_cast<float>(damage), damage);
+                                }
                         }
                 }
 
