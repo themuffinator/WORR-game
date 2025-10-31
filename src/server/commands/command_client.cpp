@@ -3,8 +3,8 @@
 //
 // commands_client.cpp - Implements all general client-side commands.
 
-#include "command_system.hpp"
-#include "command_registration.hpp"
+#include "server/commands/command_system.hpp"
+#include "server/commands/command_registration.hpp"
 #include "g_local.hpp"
 #include "monsters/m_player.hpp"
 #include "weapon_pref_utils.hpp"

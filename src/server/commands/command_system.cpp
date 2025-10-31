@@ -5,8 +5,8 @@
 // This file contains the command map, the main dispatcher logic, and the
 // top-level registration function that calls into each command module.
 
-#include "command_system.hpp"
-#include "command_registration.hpp"
+#include "server/commands/command_system.hpp"
+#include "server/commands/command_registration.hpp"
 #include <unordered_map>
 #include <string>
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "command_system.hpp"
+#include "server/commands/command_system.hpp"
 
 // Declare the global registration function that all modules will use.
 void RegisterCommand(

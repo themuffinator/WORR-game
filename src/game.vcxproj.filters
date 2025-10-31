@@ -189,16 +189,19 @@
     <ClInclude Include="monsters\q1_support.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="command_registration.hpp">
+    <ClInclude Include="server\commands\command_registration.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_system.hpp">
+    <ClInclude Include="server\commands\command_system.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_voting.hpp">
+    <ClInclude Include="server\commands\command_voting.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_voting_utils.hpp">
+    <ClInclude Include="server\commands\command_voting_utils.hpp">
+      <Filter>commands</Filter>
+    </ClInclude>
+    <ClInclude Include="server\commands\commands.hpp">
       <Filter>commands</Filter>
     </ClInclude>
     <ClInclude Include="match_state_helper.hpp">
@@ -448,19 +451,19 @@
       <Filter>monsters</Filter>
     </ClCompile>
     <ClCompile Include="g_spawn_points.cpp" />
-    <ClCompile Include="command_admin.cpp">
+    <ClCompile Include="server\commands\command_admin.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_cheats.cpp">
+    <ClCompile Include="server\commands\command_cheats.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_client.cpp">
+    <ClCompile Include="server\commands\command_client.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_system.cpp">
+    <ClCompile Include="server\commands\command_system.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_voting.cpp">
+    <ClCompile Include="server\commands\command_voting.cpp">
       <Filter>commands</Filter>
     </ClCompile>
     <ClCompile Include="match_logging.cpp">

@@ -4,7 +4,7 @@
 // commands_cheats.cpp - Implementations for cheat and debug commands.
 
 #include "g_local.hpp"
-#include "command_registration.hpp"
+#include "server/commands/command_registration.hpp"
 #include <vector>
 
 namespace Commands {

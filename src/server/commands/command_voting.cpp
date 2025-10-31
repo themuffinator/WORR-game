@@ -5,11 +5,11 @@
 // This module contains all logic for calling votes, casting votes,
 // and processing the results for various game actions.
 
-#include "command_voting.hpp"
+#include "server/commands/command_voting.hpp"
 #include "g_local.hpp"
-#include "command_registration.hpp"
-#include "command_voting_utils.hpp"
-#include "command_system.hpp"
+#include "server/commands/command_registration.hpp"
+#include "server/commands/command_voting_utils.hpp"
+#include "server/commands/command_system.hpp"
 #include <string>
 #include <vector>
 #include <format>
