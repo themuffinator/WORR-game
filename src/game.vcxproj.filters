@@ -1,547 +1,547 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<?xml version='1.0' encoding='utf-8'?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
-    <ClInclude Include="g_local.hpp" />
-    <ClInclude Include="g_statusbar.hpp" />
-    <ClInclude Include="bots\bot_debug.hpp">
+    <ClInclude Include="server\g_local.hpp" />
+    <ClInclude Include="server\gameplay\g_statusbar.hpp" />
+    <ClInclude Include="server\bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_exports.hpp">
+    <ClInclude Include="server\bots\bot_exports.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_includes.hpp">
+    <ClInclude Include="server\bots\bot_includes.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_think.hpp">
+    <ClInclude Include="server\bots\bot_think.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="bots\bot_utils.hpp">
+    <ClInclude Include="server\bots\bot_utils.hpp">
       <Filter>bots</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_actor.hpp">
+    <ClInclude Include="server\monsters\m_actor.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_arachnid.hpp">
+    <ClInclude Include="server\monsters\m_arachnid.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_berserk.hpp">
+    <ClInclude Include="server\monsters\m_berserk.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_hornet.hpp">
+    <ClInclude Include="server\monsters\m_hornet.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_jorg.hpp">
+    <ClInclude Include="server\monsters\m_jorg.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_makron.hpp">
+    <ClInclude Include="server\monsters\m_makron.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_brain.hpp">
+    <ClInclude Include="server\monsters\m_brain.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_carrier.hpp">
+    <ClInclude Include="server\monsters\m_carrier.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_chick.hpp">
+    <ClInclude Include="server\monsters\m_chick.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_fixbot.hpp">
+    <ClInclude Include="server\monsters\m_fixbot.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_flash.hpp">
+    <ClInclude Include="server\monsters\m_flash.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_shark.hpp">
+    <ClInclude Include="server\monsters\m_shark.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_float.hpp">
+    <ClInclude Include="server\monsters\m_float.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_flyer.hpp">
+    <ClInclude Include="server\monsters\m_flyer.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gekk.hpp">
+    <ClInclude Include="server\monsters\m_gekk.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gladiator.hpp">
+    <ClInclude Include="server\monsters\m_gladiator.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_guardian.hpp">
+    <ClInclude Include="server\monsters\m_guardian.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_gunner.hpp">
+    <ClInclude Include="server\monsters\m_gunner.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_hover.hpp">
+    <ClInclude Include="server\monsters\m_hover.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_infantry.hpp">
+    <ClInclude Include="server\monsters\m_infantry.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_insane.hpp">
+    <ClInclude Include="server\monsters\m_insane.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_medic.hpp">
+    <ClInclude Include="server\monsters\m_medic.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_mutant.hpp">
+    <ClInclude Include="server\monsters\m_mutant.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_parasite.hpp">
+    <ClInclude Include="server\monsters\m_parasite.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_player.hpp">
+    <ClInclude Include="server\monsters\m_player.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_rider.hpp">
+    <ClInclude Include="server\monsters\m_rider.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_shambler.hpp">
+    <ClInclude Include="server\monsters\m_shambler.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_soldier.hpp">
+    <ClInclude Include="server\monsters\m_soldier.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_stalker.hpp">
+    <ClInclude Include="server\monsters\m_stalker.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_supertank.hpp">
+    <ClInclude Include="server\monsters\m_supertank.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_tank.hpp">
+    <ClInclude Include="server\monsters\m_tank.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_turret.hpp">
+    <ClInclude Include="server\monsters\m_turret.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_widow.hpp">
+    <ClInclude Include="server\monsters\m_widow.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_widow2.hpp">
+    <ClInclude Include="server\monsters\m_widow2.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_wyvern.hpp">
+    <ClInclude Include="server\monsters\m_wyvern.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_dog.hpp">
+    <ClInclude Include="server\monsters\m_dog.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_ogre.hpp">
+    <ClInclude Include="server\monsters\m_ogre.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_eel.hpp">
+    <ClInclude Include="server\monsters\m_eel.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_rotfish.hpp">
+    <ClInclude Include="server\monsters\m_rotfish.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_grunt.hpp">
+    <ClInclude Include="server\monsters\m_grunt.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_fiend.hpp">
+    <ClInclude Include="server\monsters\m_fiend.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_zombie.hpp">
+    <ClInclude Include="server\monsters\m_zombie.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_spawn.hpp">
+    <ClInclude Include="server\monsters\m_spawn.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_overlord.hpp">
+    <ClInclude Include="server\monsters\m_overlord.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_spike.hpp">
+    <ClInclude Include="server\monsters\m_spike.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_vore.hpp">
+    <ClInclude Include="server\monsters\m_vore.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_wrath.hpp">
+    <ClInclude Include="server\monsters\m_wrath.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_enforcer.hpp">
+    <ClInclude Include="server\monsters\m_enforcer.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_hellknight.hpp">
+    <ClInclude Include="server\monsters\m_hellknight.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_knight.hpp">
+    <ClInclude Include="server\monsters\m_knight.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_sword.hpp">
+    <ClInclude Include="server\monsters\m_sword.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_shub.hpp">
+    <ClInclude Include="server\monsters\m_shub.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_chthon.hpp">
+    <ClInclude Include="server\monsters\m_chthon.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_centroid.hpp">
+    <ClInclude Include="server\monsters\m_centroid.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_dragon.hpp">
+    <ClInclude Include="server\monsters\m_dragon.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\m_scrag.hpp">
+    <ClInclude Include="server\monsters\m_scrag.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="monsters\q1_support.hpp">
+    <ClInclude Include="server\monsters\q1_support.hpp">
       <Filter>monsters</Filter>
     </ClInclude>
-    <ClInclude Include="command_registration.hpp">
+    <ClInclude Include="server\commands\command_registration.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_system.hpp">
+    <ClInclude Include="server\commands\command_system.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_voting.hpp">
+    <ClInclude Include="server\commands\command_voting.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="command_voting_utils.hpp">
+    <ClInclude Include="server\commands\command_voting_utils.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="match_state_helper.hpp">
+    <ClInclude Include="server\match\match_state_helper.hpp">
       <Filter>matches</Filter>
     </ClInclude>
-    <ClInclude Include="match_state_utils.hpp">
+    <ClInclude Include="server\match\match_state_utils.hpp">
       <Filter>matches</Filter>
     </ClInclude>
-    <ClInclude Include="cg_local.hpp">
+    <ClInclude Include="client\cg_local.hpp">
       <Filter>cgame</Filter>
     </ClInclude>
-    <ClInclude Include="q_vec3.hpp">
+    <ClInclude Include="shared\q_vec3.hpp">
       <Filter>shared</Filter>
     </ClInclude>
-    <ClInclude Include="q_std.hpp">
+    <ClInclude Include="shared\q_std.hpp">
       <Filter>shared</Filter>
     </ClInclude>
-    <ClInclude Include="game.hpp">
+    <ClInclude Include="shared\game.hpp">
       <Filter>shared</Filter>
     </ClInclude>
-    <ClInclude Include="bg_local.hpp">
+    <ClInclude Include="shared\bg_local.hpp">
       <Filter>shared</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="g_combat.cpp" />
-    <ClCompile Include="g_main.cpp" />
-    <ClCompile Include="g_misc.cpp" />
-    <ClCompile Include="g_save.cpp" />
-    <ClCompile Include="g_svcmds.cpp" />
-    <ClCompile Include="g_utilities.cpp" />
-    <ClCompile Include="g_weapon.cpp" />
-    <ClCompile Include="bots\bot_debug.cpp">
+    <ClCompile Include="server\gameplay\g_combat.cpp" />
+    <ClCompile Include="server\gameplay\g_main.cpp" />
+    <ClCompile Include="server\gameplay\g_misc.cpp" />
+    <ClCompile Include="server\gameplay\g_save.cpp" />
+    <ClCompile Include="server\gameplay\g_svcmds.cpp" />
+    <ClCompile Include="server\gameplay\g_utilities.cpp" />
+    <ClCompile Include="server\gameplay\g_weapon.cpp" />
+    <ClCompile Include="server\bots\bot_debug.cpp">
       <Filter>bots</Filter>
     </ClCompile>
-    <ClCompile Include="bots\bot_exports.cpp">
+    <ClCompile Include="server\bots\bot_exports.cpp">
       <Filter>bots</Filter>
     </ClCompile>
-    <ClCompile Include="bots\bot_think.cpp">
+    <ClCompile Include="server\bots\bot_think.cpp">
       <Filter>bots</Filter>
     </ClCompile>
-    <ClCompile Include="bots\bot_utils.cpp">
+    <ClCompile Include="server\bots\bot_utils.cpp">
       <Filter>bots</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_actor.cpp">
+    <ClCompile Include="server\monsters\m_actor.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_arachnid.cpp">
+    <ClCompile Include="server\monsters\m_arachnid.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_berserk.cpp">
+    <ClCompile Include="server\monsters\m_berserk.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_hornet.cpp">
+    <ClCompile Include="server\monsters\m_hornet.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_jorg.cpp">
+    <ClCompile Include="server\monsters\m_jorg.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_makron.cpp">
+    <ClCompile Include="server\monsters\m_makron.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_brain.cpp">
+    <ClCompile Include="server\monsters\m_brain.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_carrier.cpp">
+    <ClCompile Include="server\monsters\m_carrier.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_chick.cpp">
+    <ClCompile Include="server\monsters\m_chick.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_fixbot.cpp">
+    <ClCompile Include="server\monsters\m_fixbot.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_shark.cpp">
+    <ClCompile Include="server\monsters\m_shark.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_float.cpp">
+    <ClCompile Include="server\monsters\m_float.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_flyer.cpp">
+    <ClCompile Include="server\monsters\m_flyer.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_gekk.cpp">
+    <ClCompile Include="server\monsters\m_gekk.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_gladiator.cpp">
+    <ClCompile Include="server\monsters\m_gladiator.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_guardian.cpp">
+    <ClCompile Include="server\monsters\m_guardian.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_guncmdr.cpp">
+    <ClCompile Include="server\monsters\m_guncmdr.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_gunner.cpp">
+    <ClCompile Include="server\monsters\m_gunner.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_hover.cpp">
+    <ClCompile Include="server\monsters\m_hover.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_infantry.cpp">
+    <ClCompile Include="server\monsters\m_infantry.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_insane.cpp">
+    <ClCompile Include="server\monsters\m_insane.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_medic.cpp">
+    <ClCompile Include="server\monsters\m_medic.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_move.cpp">
+    <ClCompile Include="server\monsters\m_move.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_mutant.cpp">
+    <ClCompile Include="server\monsters\m_mutant.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_parasite.cpp">
+    <ClCompile Include="server\monsters\m_parasite.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_shambler.cpp">
+    <ClCompile Include="server\monsters\m_shambler.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_soldier.cpp">
+    <ClCompile Include="server\monsters\m_soldier.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_stalker.cpp">
+    <ClCompile Include="server\monsters\m_stalker.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_supertank.cpp">
+    <ClCompile Include="server\monsters\m_supertank.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_tank.cpp">
+    <ClCompile Include="server\monsters\m_tank.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_turret.cpp">
+    <ClCompile Include="server\monsters\m_turret.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_widow.cpp">
+    <ClCompile Include="server\monsters\m_widow.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_widow2.cpp">
+    <ClCompile Include="server\monsters\m_widow2.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_wyvern.cpp">
+    <ClCompile Include="server\monsters\m_wyvern.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="g_teamplay.cpp" />
-    <ClCompile Include="g_map_manager.cpp" />
-    <ClCompile Include="menu\menu_page_admin.cpp">
+    <ClCompile Include="server\gameplay\g_teamplay.cpp" />
+    <ClCompile Include="server\gameplay\g_map_manager.cpp" />
+    <ClCompile Include="server\menu\menu_page_admin.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_callvote.cpp">
+    <ClCompile Include="server\menu\menu_page_callvote.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_hostinfo.cpp">
+    <ClCompile Include="server\menu\menu_page_hostinfo.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_welcome.cpp">
+    <ClCompile Include="server\menu\menu_page_welcome.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_mapselector.cpp">
+    <ClCompile Include="server\menu\menu_page_mapselector.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_matchinfo.cpp">
+    <ClCompile Include="server\menu\menu_page_matchinfo.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_matchstats.cpp">
+    <ClCompile Include="server\menu\menu_page_matchstats.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_voting.cpp">
+    <ClCompile Include="server\menu\menu_page_voting.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_main.cpp">
+    <ClCompile Include="server\menu\menu_main.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_system.cpp">
+    <ClCompile Include="server\menu\menu_system.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="menu\menu_page_setup.cpp">
+    <ClCompile Include="server\menu\menu_page_setup.cpp">
       <Filter>menu</Filter>
     </ClCompile>
-    <ClCompile Include="g_combat_heatmap.cpp" />
-    <ClCompile Include="monsters\m_dog.cpp">
+    <ClCompile Include="server\gameplay\g_combat_heatmap.cpp" />
+    <ClCompile Include="server\monsters\m_dog.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_ogre.cpp">
+    <ClCompile Include="server\monsters\m_ogre.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_rotfish.cpp">
+    <ClCompile Include="server\monsters\m_rotfish.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_eel.cpp">
+    <ClCompile Include="server\monsters\m_eel.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_grunt.cpp">
+    <ClCompile Include="server\monsters\m_grunt.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_fiend.cpp">
+    <ClCompile Include="server\monsters\m_fiend.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_zombie.cpp">
+    <ClCompile Include="server\monsters\m_zombie.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_spawn.cpp">
+    <ClCompile Include="server\monsters\m_spawn.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_overlord.cpp">
+    <ClCompile Include="server\monsters\m_overlord.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_spike.cpp">
+    <ClCompile Include="server\monsters\m_spike.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_vore.cpp">
+    <ClCompile Include="server\monsters\m_vore.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_wrath.cpp">
+    <ClCompile Include="server\monsters\m_wrath.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_enforcer.cpp">
+    <ClCompile Include="server\monsters\m_enforcer.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_hellknight.cpp">
+    <ClCompile Include="server\monsters\m_hellknight.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_knight.cpp">
+    <ClCompile Include="server\monsters\m_knight.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_sword.cpp">
+    <ClCompile Include="server\monsters\m_sword.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_shub.cpp">
+    <ClCompile Include="server\monsters\m_shub.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_chthon.cpp">
+    <ClCompile Include="server\monsters\m_chthon.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_centroid.cpp">
+    <ClCompile Include="server\monsters\m_centroid.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_dragon.cpp">
+    <ClCompile Include="server\monsters\m_dragon.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\m_scrag.cpp">
+    <ClCompile Include="server\monsters\m_scrag.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="monsters\q1_support.cpp">
+    <ClCompile Include="server\monsters\q1_support.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="g_spawn_points.cpp" />
-    <ClCompile Include="command_admin.cpp">
+    <ClCompile Include="server\gameplay\g_spawn_points.cpp" />
+    <ClCompile Include="server\commands\command_admin.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_cheats.cpp">
+    <ClCompile Include="server\commands\command_cheats.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_client.cpp">
+    <ClCompile Include="server\commands\command_client.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_system.cpp">
+    <ClCompile Include="server\commands\command_system.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="command_voting.cpp">
+    <ClCompile Include="server\commands\command_voting.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="match_logging.cpp">
+    <ClCompile Include="server\match\match_logging.cpp">
       <Filter>matches</Filter>
     </ClCompile>
-    <ClCompile Include="match_state.cpp">
+    <ClCompile Include="server\match\match_state.cpp">
       <Filter>matches</Filter>
     </ClCompile>
-    <ClCompile Include="g_ai.cpp">
+    <ClCompile Include="server\gameplay\g_ai.cpp">
       <Filter>ai</Filter>
     </ClCompile>
-    <ClCompile Include="g_ai_new.cpp">
+    <ClCompile Include="server\gameplay\g_ai_new.cpp">
       <Filter>ai</Filter>
     </ClCompile>
-    <ClCompile Include="g_monster_spawn.cpp">
+    <ClCompile Include="server\gameplay\g_monster_spawn.cpp">
       <Filter>ai</Filter>
     </ClCompile>
-    <ClCompile Include="g_monster.cpp">
+    <ClCompile Include="server\gameplay\g_monster.cpp">
       <Filter>ai</Filter>
     </ClCompile>
-    <ClCompile Include="cg_screen.cpp">
+    <ClCompile Include="client\cg_screen.cpp">
       <Filter>cgame</Filter>
     </ClCompile>
-    <ClCompile Include="cg_main.cpp">
+    <ClCompile Include="client\cg_main.cpp">
       <Filter>cgame</Filter>
     </ClCompile>
-    <ClCompile Include="p_client.cpp">
+    <ClCompile Include="server\player\p_client.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_hud_main.cpp">
+    <ClCompile Include="server\player\p_hud_main.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_hud_scoreboard.cpp">
+    <ClCompile Include="server\player\p_hud_scoreboard.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_move.cpp">
+    <ClCompile Include="server\player\p_move.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_trail.cpp">
+    <ClCompile Include="server\player\p_trail.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_view.cpp">
+    <ClCompile Include="server\player\p_view.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="p_weapon.cpp">
+    <ClCompile Include="server\player\p_weapon.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="g_client_cfg.cpp">
+    <ClCompile Include="server\gameplay\g_client_cfg.cpp">
       <Filter>clients</Filter>
     </ClCompile>
-    <ClCompile Include="g_turret.cpp">
+    <ClCompile Include="server\gameplay\g_turret.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_trigger.cpp">
+    <ClCompile Include="server\gameplay\g_trigger.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_target.cpp">
+    <ClCompile Include="server\gameplay\g_target.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_spawn.cpp">
+    <ClCompile Include="server\gameplay\g_spawn.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_items.cpp">
+    <ClCompile Include="server\gameplay\g_items.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_item_list.cpp">
+    <ClCompile Include="server\gameplay\g_item_list.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_func.cpp">
+    <ClCompile Include="server\gameplay\g_func.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="g_horde.cpp">
+    <ClCompile Include="server\gameplay\g_horde.cpp">
       <Filter>matches</Filter>
     </ClCompile>
-    <ClCompile Include="g_phys.cpp">
+    <ClCompile Include="server\gameplay\g_phys.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="q_std.cpp">
+    <ClCompile Include="server\q_std.cpp">
       <Filter>shared</Filter>
     </ClCompile>
-    <ClCompile Include="g_spectator.cpp">
+    <ClCompile Include="server\gameplay\g_spectator.cpp">
       <Filter>matches</Filter>
     </ClCompile>
   </ItemGroup>

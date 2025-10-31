@@ -1,4 +1,4 @@
-#include "weapon_pref_utils.hpp"
+#include "shared/weapon_pref_utils.hpp"
 
 #include <cassert>
 #include <string>

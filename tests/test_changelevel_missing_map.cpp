@@ -1,4 +1,4 @@
-#include "char_array_utils.hpp"
+#include "shared/char_array_utils.hpp"
 
 #include <array>
 #include <cassert>
