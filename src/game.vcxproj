@@ -121,6 +121,7 @@
     <ClInclude Include="server\bots\bot_utils.hpp" />
     <ClInclude Include="client\cg_local.hpp" />
     <ClInclude Include="server\commands\command_registration.hpp" />
+    <ClInclude Include="server\commands\commands.hpp" />
     <ClInclude Include="server\commands\command_system.hpp" />
     <ClInclude Include="server\commands\command_voting.hpp" />
     <ClInclude Include="server\commands\command_voting_utils.hpp" />
