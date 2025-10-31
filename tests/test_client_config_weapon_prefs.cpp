@@ -11,7 +11,19 @@ std::mt19937 mt_rand{};
 
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 
+namespace {
+void NoOpBroadcastPrint(print_type_t, const char*) {}
+void NoOpComPrint(const char*) {}
+void NoOpClientPrint(gentity_t*, print_type_t, const char*) {}
+void NoOpComError(const char*) {}
+}
+
 int main() {
+        gi.Broadcast_Print = NoOpBroadcastPrint;
+        gi.Com_Print = NoOpComPrint;
+        gi.Client_Print = NoOpClientPrint;
+        gi.Com_Error = NoOpComError;
+
         const std::string playerID = "test_weapon_pref_roundtrip";
         const std::string playerName = "TestPlayer";
         const std::string gameType = "FFA";
