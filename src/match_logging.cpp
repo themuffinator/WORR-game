@@ -733,9 +733,9 @@ Html_WriteTeamsComparison
 =============
 */
 static inline void Html_WriteTeamsComparison(std::ofstream& html,
-	const std::vector<const PlayerStats*>& redPlayers,
-	const std::vector<const PlayerStats*>& bluePlayers,
-	double matchDuration) {
+        const std::vector<const PlayerStats*>& redPlayers,
+        const std::vector<const PlayerStats*>& bluePlayers,
+        double matchDurationMs) {
 	html << "<div class=\"section\">\n<h2>Team Comparison</h2>\n<table>\n";
 
 	html << "<tr>"
@@ -758,7 +758,7 @@ static inline void Html_WriteTeamsComparison(std::ofstream& html,
 		return { kdr, kpm, dmr };
 		};
 
-	double matchMinutes = matchDuration / 60.0;
+	const double matchMinutes = matchDurationMs / 60000.0;
 
 	auto [redKDR, redKPM, redDMR] = calcTeamStats(redPlayers, matchMinutes);
 	auto [blueKDR, blueKPM, blueDMR] = calcTeamStats(bluePlayers, matchMinutes);
@@ -1379,7 +1379,8 @@ static void MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 
 	if (Teams()) {
 		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
-		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchStats.durationMS);
+		const double matchDurationMs = static_cast<double>(matchStats.durationMS);
+		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
 	}
 	else {
 		Html_WriteOverallScores(html, matchStats, allPlayers);
