@@ -1373,6 +1373,58 @@ void ClientSpawn(gentity_t* ent) {
 
 	CalculateRanks();
 
+	if (cl->resp.hasPendingGhostSpawn) {
+		Vector3 ghostOrigin = cl->resp.pendingGhostOrigin;
+		Vector3 ghostAngles = cl->resp.pendingGhostAngles;
+		gentity_t* blockingEnt = G_UnsafeSpawnPosition(ghostOrigin, /*check_players=*/true);
+		bool ghostSpotSafe = (blockingEnt == nullptr);
+
+		if (!ghostSpotSafe) {
+			gentity_t* geometryBlocker = G_UnsafeSpawnPosition(ghostOrigin, /*check_players=*/false);
+			if (!geometryBlocker) {
+				ghostSpotSafe = true;
+			}
+			else {
+				blockingEnt = geometryBlocker;
+			}
+		}
+
+		if (ghostSpotSafe) {
+			spawnOrigin = ghostOrigin;
+			spawnAngles = ghostAngles;
+			cl->resp.cmdAngles = spawnAngles;
+		}
+		else {
+			const char* playerName = cl->sess.netName[0] ? cl->sess.netName : cl->pers.netName;
+			if (!playerName || !*playerName) {
+				playerName = "player";
+			}
+
+			const char* blockerDesc = "solid geometry";
+			if (blockingEnt) {
+				if (blockingEnt->client) {
+					const char* occupant = blockingEnt->client->pers.netName;
+					if (!occupant || !*occupant) {
+						occupant = blockingEnt->client->sess.netName;
+					}
+					blockerDesc = (occupant && *occupant) ? occupant : "another player";
+				}
+				else if (blockingEnt->className) {
+					blockerDesc = blockingEnt->className;
+				}
+			}
+
+			gi.dprintf("Ghost respawn for %s denied at (%.1f %.1f %.1f); blocked by %s\n",
+				playerName,
+				ghostOrigin[0], ghostOrigin[1], ghostOrigin[2],
+				blockerDesc);
+		}
+
+		cl->resp.hasPendingGhostSpawn = false;
+		cl->resp.pendingGhostOrigin = vec3_origin;
+		cl->resp.pendingGhostAngles = vec3_origin;
+	}
+
 	ent->s.frame = 0;
 
 	if (!is_landmark) {

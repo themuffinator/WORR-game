@@ -4308,6 +4308,9 @@ struct client_respawn_t {
 	int32_t				score = 0;					// frags, etc
 	int32_t				oldScore = 0;				// track changes in score
 	Vector3				cmdAngles = vec3_origin;	// angles sent over in the last command
+	bool				hasPendingGhostSpawn = false;	// awaiting placement using a restored ghost slot
+	Vector3				pendingGhostOrigin = vec3_origin;	// ghost-slot origin to resume from
+	Vector3				pendingGhostAngles = vec3_origin;	// ghost-slot angles to resume from
 
 	int32_t				ctf_state = 0;
 	GameTime				ctf_lasthurtcarrier = 0_ms;

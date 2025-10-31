@@ -317,15 +317,17 @@ void P_RestoreFromGhostSlot(gentity_t* ent) {
 		cl->sess.team = g.team;
 		cl->ps.teamID = static_cast<int>(cl->sess.team);
 		cl->resp.score = g.score;
-		cl->sess.skillRating = g.skillRating;
-		cl->sess.skillRatingChange = g.skillRatingChange;
-		ent->s.origin = g.origin;
-		ent->s.angles = g.angles;
-		cl->resp.totalMatchPlayRealTime = g.totalMatchPlayRealTime;
+                cl->sess.skillRating = g.skillRating;
+                cl->sess.skillRatingChange = g.skillRatingChange;
+                cl->resp.totalMatchPlayRealTime = g.totalMatchPlayRealTime;
 
-		gi.Client_Print(ent, PRINT_HIGH, "Your game state has been restored.\n");
+                cl->resp.hasPendingGhostSpawn = true;
+                cl->resp.pendingGhostOrigin = g.origin;
+                cl->resp.pendingGhostAngles = g.angles;
 
-		// Clear the ghost slot
+                gi.Client_Print(ent, PRINT_HIGH, "Your game state has been restored.\n");
+
+                // Clear the ghost slot
 		g = Ghosts{};
 		return;
 	}
