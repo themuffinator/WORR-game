@@ -1,4 +1,4 @@
-#include "command_voting_utils.hpp"
+#include "server/commands/command_voting_utils.hpp"
 
 #include <array>
 #include <cassert>
