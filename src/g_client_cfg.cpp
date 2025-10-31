@@ -23,6 +23,8 @@
 #include <string>
 #include <unordered_map>
 #include <sstream>
+#include <filesystem>
+#include <system_error>
 #include <json/json.h>
 
 #include <set>
@@ -59,6 +61,25 @@ std::string GetPlayerNameForSocialID(const std::string& socialID) {
 		return {};
 
         return root["playerName"].asString();
+}
+
+const int DEFAULT_RATING = 1500;
+const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
+
+static bool EnsurePlayerConfigDirectory() {
+        std::error_code ec;
+        std::filesystem::create_directories(PLAYER_CONFIG_PATH, ec);
+        if (ec) {
+                gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
+                        PLAYER_CONFIG_PATH.c_str(), ec.message().c_str());
+        }
+
+        if (!std::filesystem::exists(PLAYER_CONFIG_PATH)) {
+                gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", PLAYER_CONFIG_PATH.c_str());
+                return false;
+        }
+
+        return true;
 }
 
 int ClientConfig_DefaultSkillRating() {
@@ -115,10 +136,14 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	newFile["lastSeen"] = TimeStamp();
 	newFile["firstSeen"] = TimeStamp();
 
-	try {
-		const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
-		std::ofstream file(path);
-		if (file.is_open()) {
+        try {
+                const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+
+                if (!EnsurePlayerConfigDirectory())
+                        return;
+
+                std::ofstream file(path);
+                if (file.is_open()) {
 			Json::StreamWriterBuilder builder;
 			builder["indentation"] = "    "; // 4 spaces
 			std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
@@ -420,10 +445,13 @@ static void ClientConfig_SaveInternal(
 
 	playerData["lastUpdated"] = now;
 
-	// Write updated file
-	try {
-		std::ofstream outFile(path);
-		if (outFile.is_open()) {
+        // Write updated file
+        try {
+                if (!EnsurePlayerConfigDirectory())
+                        return;
+
+                std::ofstream outFile(path);
+                if (outFile.is_open()) {
 			Json::StreamWriterBuilder writerBuilder;
 			writerBuilder["indentation"] = "    ";
 			std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
@@ -535,9 +563,12 @@ static bool ClientConfig_Update(
 	cfg["lastUpdated"] = TimeStamp();
 
 	// 6) write back
-	try {
-		std::ofstream out(path);
-		if (!out.is_open()) {
+        try {
+                if (!EnsurePlayerConfigDirectory())
+                        return false;
+
+                std::ofstream out(path);
+                if (!out.is_open()) {
 			gi.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
 			return false;
 		}
