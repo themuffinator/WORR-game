@@ -265,6 +265,10 @@ static void OffsetThirdPersonDeathView(gentity_t* ent) {
 	ent->svFlags &= ~SVF_INSTANCED;
 	ent->s.instanceBits = 0;
 
+	// Force model visibility (critical for third-person)
+	ent->svFlags &= ~SVF_NOCLIENT;
+	ent->flags &= ~FL_NOVISIBLE;
+
 	constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
 	constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
 	constexpr float focusDist = 512.0f;
@@ -843,12 +847,24 @@ ClientSetEffects
 ===============
 */
 static void ClientSetEffects(gentity_t* ent) {
-	int pa_type;
-
 	ent->s.effects = EF_NONE;
 	ent->s.renderFX &= RF_STAIR_STEP;
 	ent->s.renderFX |= RF_IR_VISIBLE;
 	ent->s.alpha = 1.0;
+
+	// Early check for third-person death cam
+	// If active, apply minimal effects and ensure player model visibility
+	if (ent->health <= 0 && ClientIsPlaying(ent->client)) {
+		// Force model visibility (critical for third-person)
+		ent->svFlags &= ~SVF_NOCLIENT;
+		ent->flags &= ~FL_NOVISIBLE;
+
+		// Link entity to propagate changes
+		gi.linkEntity(ent);
+
+		// Exit early to prevent other effects from interfering
+		return;
+	}
 
 	if (ent->health <= 0 || ent->client->eliminated || level.intermission.time)
 		return;
@@ -859,14 +875,17 @@ static void ClientSetEffects(gentity_t* ent) {
 	if (ent->flags & FL_DISGUISED)
 		ent->s.renderFX |= RF_USE_DISGUISE;
 
-	if (ent->powerarmor_time > level.time) {
-		pa_type = PowerArmorType(ent);
-		if (pa_type == IT_POWER_SCREEN) {
+	if (ent->powerArmorTime > level.time) {
+		switch (PowerArmorType(ent)) {
+		case IT_POWER_SCREEN:
 			ent->s.effects |= EF_POWERSCREEN;
-		}
-		else if (pa_type == IT_POWER_SHIELD) {
+			break;
+		case IT_POWER_SHIELD:
 			ent->s.effects |= EF_COLOR_SHELL;
 			ent->s.renderFX |= RF_SHELL_GREEN;
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -1449,12 +1468,12 @@ void ClientEndServerFrame(gentity_t* ent) {
 			ent->client->menu.updateTime = 0_ms;
 		}
 
-/*freeze*/
+		/*freeze*/
 		if (FreezeTag_IsActive() && ent->client->eliminated) {	// || level.framenum & 8) {
 			ent->s.effects |= EF_COLOR_SHELL;
 			ent->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 		}
-/*freeze*/
+		/*freeze*/
 
 		return;
 	}

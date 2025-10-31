@@ -1282,10 +1282,10 @@ void BeginIntermission(gentity_t* targ) {
 	if (level.intermission.time)
 		return; // already triggered
 
-        if (!targ || CharArrayIsBlank(targ->map)) {
-                gi.Com_ErrorFmt("{}: called with null map target.", __FUNCTION__);
-                return;
-        }
+	if (!targ || CharArrayIsBlank(targ->map)) {
+		gi.Com_ErrorFmt("{}: called with null map target.", __FUNCTION__);
+		return;
+	}
 
 	// Score adjustment (for duel, gauntlet, etc.)
 	Gauntlet_MatchEnd_AdjustScores();
@@ -1307,10 +1307,10 @@ void BeginIntermission(gentity_t* targ) {
 		}
 	}
 
-        level.intermission.serverFrame = gi.ServerFrame();
+	level.intermission.serverFrame = gi.ServerFrame();
 
-        const auto mapEnd = std::find(targ->map.begin(), targ->map.end(), '\0');
-        level.changeMap.assign(targ->map.begin(), mapEnd);
+	const auto mapEnd = std::find(targ->map.begin(), targ->map.end(), '\0');
+	level.changeMap.assign(targ->map.begin(), mapEnd);
 	level.intermission.clear = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_CLEAR_INVENTORY);
 	level.intermission.endOfUnit = false;
 	level.intermission.fade = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_FADE_OUT);
@@ -1348,19 +1348,19 @@ void BeginIntermission(gentity_t* targ) {
 	}
 
 	// Immediate transition case (SP only)
-        if (!deathmatch->integer && isImmediateLeave) {
-                ReportMatchDetails(true);
-                level.intermission.postIntermission = true;
-                level.intermission.exit = true;
-                return;
-        }
+	if (!deathmatch->integer && isImmediateLeave) {
+		ReportMatchDetails(true);
+		level.intermission.postIntermission = true;
+		level.intermission.exit = true;
+		return;
+	}
 
-        // SP with direct map change (non end-of-unit)
-        if (!deathmatch->integer && !isEndOfUnit) {
-                level.intermission.postIntermission = true;
-                level.intermission.exit = true;
-                return;
-        }
+	// SP with direct map change (non end-of-unit)
+	if (!deathmatch->integer && !isEndOfUnit) {
+		level.intermission.postIntermission = true;
+		level.intermission.exit = true;
+		return;
+	}
 
 	// Final match reporting before vote/menu/nextmap
 	ReportMatchDetails(true);
@@ -1375,7 +1375,7 @@ void BeginIntermission(gentity_t* targ) {
 			AnnouncerSound(ec, level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)] ? "red_wins" : "blue_wins");
 		}
 		else if (ClientIsPlaying(ec->client)) {
-AnnouncerSound(ec, ec->client->pers.currentRank == 0 ? "you_win" : "you_lose");
+			AnnouncerSound(ec, ec->client->pers.currentRank == 0 ? "you_win" : "you_lose");
 		}
 	}
 }
@@ -1456,12 +1456,12 @@ void ExitLevel(bool forceImmediate) {
 	ClientEndServerFrames();
 	TakeIntermissionScreenshot();
 
-        // Cache intermission flags that need to persist through the struct reset
-        const bool shouldClearInventory = level.intermission.clear;
-        const bool shouldHandleEndOfUnit = level.intermission.endOfUnit;
+	// Cache intermission flags that need to persist through the struct reset
+	const bool shouldClearInventory = level.intermission.clear;
+	const bool shouldHandleEndOfUnit = level.intermission.endOfUnit;
 
-        // Reset intermission state
-        level.intermission = {};
+	// Reset intermission state
+	level.intermission = {};
 
 	if (deathmatch->integer) {
 		// In Gauntlet mode, rotate the loser
@@ -1479,10 +1479,10 @@ void ExitLevel(bool forceImmediate) {
 			return;
 	}
 
-        // Singleplayer or coop logic
-        if (shouldClearInventory) {
-                for (auto ec : active_clients()) {
-                        auto& cl = *ec->client;
+	// Singleplayer or coop logic
+	if (shouldClearInventory) {
+		for (auto ec : active_clients()) {
+			auto& cl = *ec->client;
 
 			// Preserve userinfo across the wipe
 			char userInfo[MAX_INFO_STRING];
@@ -1497,8 +1497,8 @@ void ExitLevel(bool forceImmediate) {
 		}
 	}
 
-        if (shouldHandleEndOfUnit) {
-                game.levelEntries = {};
+	if (shouldHandleEndOfUnit) {
+		game.levelEntries = {};
 
 		// Restore lives to all players in coop
 		if (g_coop_enable_lives->integer) {
@@ -1752,17 +1752,17 @@ static void HostAutoScreenshotsRun() {
 			level.autoScreenshotTool_delayTime = level.time + 300_ms;
 		}
 		else {
-                        Match_End();
-                        level.intermission.time = level.time + 30_sec;
-                        ExitLevel(true);
-                }
-                break;
-        case 6:
-                Match_End();
-                level.intermission.time = level.time + 30_sec;
-                ExitLevel(true);
-                break;
-        }
+			Match_End();
+			level.intermission.time = level.time + 30_sec;
+			ExitLevel(true);
+		}
+		break;
+	case 6:
+		Match_End();
+		level.intermission.time = level.time + 30_sec;
+		ExitLevel(true);
+		break;
+	}
 }
 
 /*
@@ -1860,13 +1860,13 @@ static inline void G_RunFrame_(bool main_loop) {
 		level.inFrame = false;
 		return;
 	}
-        if (level.intermission.exit) {
-                if (!level.intermission.postIntermission)
-                        PreExitLevel();
+	if (level.intermission.exit) {
+		if (!level.intermission.postIntermission)
+			PreExitLevel();
 
-                level.inFrame = false;
-                return;
-        }
+		level.inFrame = false;
+		return;
+	}
 
 	// --- Campaign Restart ---
 	if (!deathmatch->integer) {

@@ -1006,7 +1006,7 @@ FIELD_AUTO(gibHealth),
 FIELD_AUTO(deadFlag),
 FIELD_AUTO(show_hostile),
 
-FIELD_AUTO(powerarmor_time),
+FIELD_AUTO(powerArmorTime),
 
 FIELD_AUTO(map),
 

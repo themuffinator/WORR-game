@@ -17,7 +17,6 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "g_local.hpp"
-#include "match_grace_scope.hpp"
 #include "command_registration.hpp"
 #include "match_state_utils.hpp"
 #include "match_state_helper.hpp"
@@ -28,31 +27,62 @@ static void SetMatchState(LevelMatchTransition transition) {
 	ApplyMatchState(level, transition);
 }
 
+// Utility scope guard used by CheckDMExitRules to track whether any
+// grace-based endmatch condition fired during the current frame. When the
+// scope ends without a condition being marked active, it automatically resets
+// the grace timer so future violations receive a full grace window.
+template<typename TimeT>
+class EndmatchGraceScope {
+public:
+	EndmatchGraceScope(TimeT& timer, TimeT zeroValue)
+		: timer(timer)
+		, zeroValue(zeroValue) {
+	}
+
+	void MarkConditionActive() {
+		active = true;
+	}
+
+	[[nodiscard]] bool ConditionWasActive() const {
+		return active;
+	}
+
+	~EndmatchGraceScope() {
+		if (!active && timer)
+			timer = zeroValue;
+	}
+
+private:
+	TimeT& timer;
+	TimeT zeroValue;
+	bool active = false;
+};
+
 /*
 =================
 str_split
 =================
 */
 static inline std::vector<std::string> str_split(const std::string_view& str, char by) {
-        std::vector<std::string> out;
+	std::vector<std::string> out;
 
-        size_t start = 0;
-        while (start < str.size()) {
-                start = str.find_first_not_of(by, start);
-                if (start == std::string_view::npos)
-                        break;
+	size_t start = 0;
+	while (start < str.size()) {
+		start = str.find_first_not_of(by, start);
+		if (start == std::string_view::npos)
+			break;
 
-                const size_t end = str.find(by, start);
-                if (end == std::string_view::npos) {
-                        out.emplace_back(str.substr(start));
-                        break;
-                }
+		const size_t end = str.find(by, start);
+		if (end == std::string_view::npos) {
+			out.emplace_back(str.substr(start));
+			break;
+		}
 
-                out.emplace_back(str.substr(start, end - start));
-                start = end + 1;
-        }
+		out.emplace_back(str.substr(start, end - start));
+		start = end + 1;
+	}
 
-        return out;
+	return out;
 }
 
 constexpr struct GameTypeRules {
@@ -470,10 +500,10 @@ static bool Round_StartNew() {
 	level.roundStateTimer = level.time + 10_sec;
 	level.countdownTimerCheck = 0_sec;
 
-        if (!horde) {
-                ResetMatchWorldState(true);
-                ResetMatchPlayers(false, false);
-        }
+	if (!horde) {
+		ResetMatchWorldState(true);
+		ResetMatchPlayers(false, false);
+	}
 
 	if (Game::Is(GameType::FreezeTag)) {
 		for (auto ec : active_clients()) {
@@ -578,9 +608,9 @@ void Match_Start() {
 
 	level.match = {};
 
-        Monsters_KillAll();
-        ResetMatchWorldState(true);
-        ResetMatchPlayers(true, true);
+	Monsters_KillAll();
+	ResetMatchWorldState(true);
+	ResetMatchPlayers(true, true);
 	UnReadyAll();
 
 	for (auto ec : active_players())
@@ -1023,8 +1053,8 @@ void Match_Reset() {
 		return;
 	}
 
-        ResetMatchWorldState(true);
-        ResetMatchPlayers(true, true, LimitedLivesResetMode::Force);
+	ResetMatchWorldState(true);
+	ResetMatchPlayers(true, true, LimitedLivesResetMode::Force);
 	UnReadyAll();
 
 	level.matchStartRealTime = GetCurrentRealTimeMillis();
@@ -1110,7 +1140,7 @@ void ReadyAll() {
 	for (auto ec : active_clients()) {
 		if (!ClientIsPlaying(ec->client))
 			continue;
-ec->client->pers.readyStatus = true;
+		ec->client->pers.readyStatus = true;
 	}
 }
 
@@ -1123,7 +1153,7 @@ void UnReadyAll() {
 	for (auto ec : active_clients()) {
 		if (!ClientIsPlaying(ec->client))
 			continue;
-ec->client->pers.readyStatus = false;
+		ec->client->pers.readyStatus = false;
 	}
 }
 
@@ -1147,7 +1177,7 @@ static bool CheckReady() {
 			continue;
 		}
 
-if (ec->client->pers.readyStatus)
+		if (ec->client->pers.readyStatus)
 			count_ready++;
 		count_humans++;
 	}

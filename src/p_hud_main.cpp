@@ -115,16 +115,16 @@ SortLevelEntries
 ===============
 */
 static void SortLevelEntries() {
-        std::sort(game.levelEntries.begin(), game.levelEntries.end(),
-                [](const LevelEntry& a, const LevelEntry& b) {
-                        int32_t a_order = a.visit_order
-                                ? a.visit_order
-                                : (a.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
-                        int32_t b_order = b.visit_order
-                                ? b.visit_order
-                                : (b.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
-                        return a_order < b_order;
-                });
+	std::sort(game.levelEntries.begin(), game.levelEntries.end(),
+		[](const LevelEntry& a, const LevelEntry& b) {
+			int32_t a_order = a.visit_order
+				? a.visit_order
+				: (a.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+			int32_t b_order = b.visit_order
+				? b.visit_order
+				: (b.longMapName[0] ? MAX_LEVELS_PER_UNIT + 1 : MAX_LEVELS_PER_UNIT + 2);
+			return a_order < b_order;
+		});
 }
 
 /*
@@ -135,16 +135,16 @@ Appends a single End-of-Unit stats row to the layout.
 ===============
 */
 static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry& entry) {
-        layout << G_Fmt("yv {} ", y).data();
+	layout << G_Fmt("yv {} ", y).data();
 
-        if (!entry.longMapName[0]) {
-                layout << "table_row 1 ??? ";
-                return;
-        }
+	if (!entry.longMapName[0]) {
+		layout << "table_row 1 ??? ";
+		return;
+	}
 
-        layout << G_Fmt("table_row 4 \"{}\" ", entry.longMapName.data()).data()
-                << G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
-                << G_Fmt("{}/{} ", entry.foundSecrets, entry.totalSecrets).data();
+	layout << G_Fmt("table_row 4 \"{}\" ", entry.longMapName.data()).data()
+		<< G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
+		<< G_Fmt("{}/{} ", entry.foundSecrets, entry.totalSecrets).data();
 
 	int32_t ms = entry.time.milliseconds();
 	int32_t minutes = ms / 60000;
@@ -160,10 +160,10 @@ AddEOUTotalsRow
 ===============
 */
 static void AddEOUTotalsRow(std::stringstream& layout, int y, LevelEntry& totals) {
-        y += 8;
-        layout << "table_row 0 ";
-        totals.longMapName[0] = ' ';
-        BuildEOUTableRow(layout, y, totals);
+	y += 8;
+	layout << "table_row 0 ";
+	totals.longMapName[0] = ' ';
+	BuildEOUTableRow(layout, y, totals);
 }
 
 /*
@@ -186,9 +186,9 @@ static void BroadcastEOULayout(const std::stringstream& layout) {
 	gi.WriteString(out.c_str());
 	gi.multicast(vec3_origin, MULTICAST_ALL, true);
 
-        for (gentity_t* player : active_players()) {
-                player->client->showEOU = true;
-        }
+	for (gentity_t* player : active_players()) {
+		player->client->showEOU = true;
+	}
 }
 
 /*
@@ -207,11 +207,11 @@ void EndOfUnitMessage() {
 	LevelEntry totals{};
 	int32_t numRows = 0;
 
-        for (auto& entry : game.levelEntries) {
-                if (!entry.mapName[0])
-                        break;
+	for (auto& entry : game.levelEntries) {
+		if (!entry.mapName[0])
+			break;
 
-                BuildEOUTableRow(layout, y, entry);
+		BuildEOUTableRow(layout, y, entry);
 		y += 8;
 
 		totals.killedMonsters += entry.killedMonsters;
@@ -224,10 +224,10 @@ void EndOfUnitMessage() {
 			numRows++;
 	}
 
-        if (numRows > 1)
-                AddEOUTotalsRow(layout, y, totals);
+	if (numRows > 1)
+		AddEOUTotalsRow(layout, y, totals);
 
-        BroadcastEOULayout(layout);
+	BroadcastEOULayout(layout);
 }
 
 /*
@@ -355,18 +355,18 @@ void DrawHelpComputer(gentity_t* ent) {
 	else {
 		int y = 66;
 
-	        if (!game.help[0].empty()) {
-	                helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
-	                        "xv 0 yv {} loc_cstring 0 \"{}\" ",
-	                        y, y + 11, game.help[0].message.data());
-	                y += 58;
-	        }
+		if (!game.help[0].empty()) {
+			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_primary_objective\" "
+				"xv 0 yv {} loc_cstring 0 \"{}\" ",
+				y, y + 11, game.help[0].message.data());
+			y += 58;
+		}
 
-	        if (!game.help[1].empty()) {
-	                helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
-	                        "xv 0 yv {} loc_cstring 0 \"{}\" ",
-	                        y, y + 11, game.help[1].message.data());
-	        }
+		if (!game.help[1].empty()) {
+			helpString += fmt::format("xv 0 yv {} loc_cstring2 0 \"$g_pc_secondary_objective\" "
+				"xv 0 yv {} loc_cstring 0 \"{}\" ",
+				y, y + 11, game.help[1].message.data());
+		}
 	}
 
 	helpString += fmt::format(
@@ -663,11 +663,11 @@ static void SetMiniScoreStats(gentity_t* ent) {
 
 	int16_t pos1 = -1, pos2 = -1, own = -1;
 
-    const PlayerMedal medalType = ent->client->pers.medalType;
+	const PlayerMedal medalType = ent->client->pers.medalType;
 
 	// Medal HUD display
 	if (medalType != PlayerMedal::None) {
-	    const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
+		const auto count = ent->client->pers.match.medalCount[static_cast<size_t>(medalType)];
 		if (count >= 2 && static_cast<size_t>(medalType) < awardNames.size()) {
 			const std::string& medalName = awardNames[static_cast<size_t>(medalType)];
 			const std::string medalText = fmt::format("{} (x{})", medalName, count);
@@ -688,7 +688,7 @@ static void SetMiniScoreStats(gentity_t* ent) {
 		if (ent->client->sess.team == Team::Free || ent->client->follow.target) {
 			const gentity_t* target = ent->client->follow.target ? ent->client->follow.target : ent;
 			own = target->s.number - 1;
-	            ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
+			ownRank = game.clients[own].pers.currentRank & ~RANK_TIED_FLAG;
 		}
 
 		for (int i = 0; i < MAX_CLIENTS; ++i) {
@@ -1370,28 +1370,28 @@ void SetStats(gentity_t* ent) {
 	if (deathmatch->integer) {
 		int countdown = level.countdownTimerCheck.seconds<int>();
 
-	        if (freezeActive && ent->client->eliminated) {
-	                frozen = true;
+		if (freezeActive && ent->client->eliminated) {
+			frozen = true;
 
-	                if (ent->client->freeze.holdDeadline && ent->client->freeze.holdDeadline > level.time) {
-	                        countdown = std::max(0, (ent->client->freeze.holdDeadline - level.time).seconds<int>());
-	                }
-	                else if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
-	                        countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
-	                }
-	                else {
-	                        countdown = 0;
-	                }
+			if (ent->client->freeze.holdDeadline && ent->client->freeze.holdDeadline > level.time) {
+				countdown = std::max(0, (ent->client->freeze.holdDeadline - level.time).seconds<int>());
+			}
+			else if (ent->client->freeze.thawTime && ent->client->freeze.thawTime > level.time) {
+				countdown = std::max(0, (ent->client->freeze.thawTime - level.time).seconds<int>());
+			}
+			else {
+				countdown = 0;
+			}
 
-	                if (ent->client->resp.thawer && ent->client->freeze.holdDeadline &&
-	                        ent->client->freeze.holdDeadline > level.time && ent->client->resp.thawer->client) {
-	                        freezeStatus = fmt::format("Being thawed by {}",
-	                                ent->client->resp.thawer->client->sess.netName);
-	                }
-	                else {
-	                        freezeStatus = "Frozen - waiting for thaw";
-	                }
-	        }
+			if (ent->client->resp.thawer && ent->client->freeze.holdDeadline &&
+				ent->client->freeze.holdDeadline > level.time && ent->client->resp.thawer->client) {
+				freezeStatus = fmt::format("Being thawed by {}",
+					ent->client->resp.thawer->client->sess.netName);
+			}
+			else {
+				freezeStatus = "Frozen - waiting for thaw";
+			}
+		}
 
 		ent->client->ps.stats[STAT_COUNTDOWN] = countdown;
 
@@ -1403,15 +1403,15 @@ void SetStats(gentity_t* ent) {
 	}
 
 	if (freezeActive && frozen) {
-	        ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
-	        gi.configString(CONFIG_MATCH_STATE2, freezeStatus.c_str());
+		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+		gi.configString(CONFIG_MATCH_STATE2, freezeStatus.c_str());
 	}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 	}
 
 	// Medal time blocking FOLLOWING tag
-   if (ent->client->pers.medalTime + 3_sec > level.time)
+	if (ent->client->pers.medalTime + 3_sec > level.time)
 		//todo
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;
 	else

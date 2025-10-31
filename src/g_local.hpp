@@ -1094,8 +1094,8 @@ enum monster_ai_flags_t : uint64_t {
 
 	AI_CHTHON_VULNERABLE = bit_v<40>, // can be damaged
 	AI_OLDONE_VULNERABLE = bit_v<41>, // can be damaged
-        AI_SPAWNED_OVERLORD = bit_v<42>,
-        AI_ENFORCER_SECOND_VOLLEY = bit_v<43>,
+	AI_SPAWNED_OVERLORD = bit_v<42>,
+	AI_ENFORCER_SECOND_VOLLEY = bit_v<43>,
 };
 MAKE_ENUM_BITFLAGS(monster_ai_flags_t);
 
@@ -2824,22 +2824,22 @@ struct MonsterInfo {
 
 	// alternate flying mechanics
 	float fly_max_distance, fly_min_distance; // how far we should try to stay
-        float fly_acceleration; // accel/decel speed
-        float fly_speed; // max speed from flying
-        Vector3 fly_ideal_position; // ideally where we want to end up to hover, relative to our target if not pinned
-        GameTime fly_position_time; // if <= level.time, we can try changing positions
-        bool fly_buzzard, fly_above; // orbit around all sides of their enemy, not just the sides
-        bool fly_pinned; // whether we're currently pinned to ideal position (made absolute)
-        bool fly_thrusters; // slightly different flight mechanics, for melee attacks
-        GameTime fly_recovery_time; // time to try a new dir to get away from hazards
-        Vector3 fly_recovery_dir;
+	float fly_acceleration; // accel/decel speed
+	float fly_speed; // max speed from flying
+	Vector3 fly_ideal_position; // ideally where we want to end up to hover, relative to our target if not pinned
+	GameTime fly_position_time; // if <= level.time, we can try changing positions
+	bool fly_buzzard, fly_above; // orbit around all sides of their enemy, not just the sides
+	bool fly_pinned; // whether we're currently pinned to ideal position (made absolute)
+	bool fly_thrusters; // slightly different flight mechanics, for melee attacks
+	GameTime fly_recovery_time; // time to try a new dir to get away from hazards
+	Vector3 fly_recovery_dir;
 
-        // teleport helpers
-        Vector3 teleport_saved_origin;
-        GameTime teleport_return_time;
-        bool teleport_active;
+	// teleport helpers
+	Vector3 teleport_saved_origin;
+	GameTime teleport_return_time;
+	bool teleport_active;
 
-        GameTime checkattack_time;
+	GameTime checkattack_time;
 	int32_t startFrame;
 	GameTime dodge_time;
 	int32_t move_block_counter;
@@ -3397,75 +3397,75 @@ enum class DamageFlags {
 MAKE_ENUM_BITFLAGS(DamageFlags);
 
 struct DamageProtectionContext {
-        bool      hasClient = false;
-        bool      combatDisabled = false;
-        bool      proBall = false;
-        bool      selfDamageDisabled = false;
-        bool      isSelfDamage = false;
-        bool      hasBattleSuit = false;
-        bool      isRadiusDamage = false;
-        bool      hasGodMode = false;
-        bool      isMonster = false;
-        GameTime  monsterInvincibilityTime = 0_ms;
-        GameTime  painDebounceTime = 0_ms;
-        GameTime  levelTime = 0_ms;
+	bool      hasClient = false;
+	bool      combatDisabled = false;
+	bool      proBall = false;
+	bool      selfDamageDisabled = false;
+	bool      isSelfDamage = false;
+	bool      hasBattleSuit = false;
+	bool      isRadiusDamage = false;
+	bool      hasGodMode = false;
+	bool      isMonster = false;
+	GameTime  monsterInvincibilityTime = 0_ms;
+	GameTime  painDebounceTime = 0_ms;
+	GameTime  levelTime = 0_ms;
 };
 
 struct DamageProtectionResult {
-        bool     prevented = false;
-        bool     playBattleSuitSound = false;
-        bool     playMonsterSound = false;
-        GameTime newPainDebounceTime = 0_ms;
+	bool     prevented = false;
+	bool     playBattleSuitSound = false;
+	bool     playMonsterSound = false;
+	GameTime newPainDebounceTime = 0_ms;
 };
 
 inline DamageProtectionResult EvaluateDamageProtection(const DamageProtectionContext& ctx, DamageFlags dFlags,
-        const MeansOfDeath& mod)
+	const MeansOfDeath& mod)
 {
-        DamageProtectionResult result{};
+	DamageProtectionResult result{};
 
-        if (static_cast<int>(dFlags & DamageFlags::NoProtection))
-                return result;
+	if (static_cast<int>(dFlags & DamageFlags::NoProtection))
+		return result;
 
-        if (ctx.hasClient) {
-                if (ctx.combatDisabled || ctx.proBall) {
-                        result.prevented = true;
-                        return result;
-                }
+	if (ctx.hasClient) {
+		if (ctx.combatDisabled || ctx.proBall) {
+			result.prevented = true;
+			return result;
+		}
 
-                if (ctx.isSelfDamage && ctx.selfDamageDisabled) {
-                        result.prevented = true;
-                        return result;
-                }
-        }
+		if (ctx.isSelfDamage && ctx.selfDamageDisabled) {
+			result.prevented = true;
+			return result;
+		}
+	}
 
-        if (mod.id == ModID::Railgun_Splash) {
-                result.prevented = true;
-                return result;
-        }
+	if (mod.id == ModID::Railgun_Splash) {
+		result.prevented = true;
+		return result;
+	}
 
-        if (ctx.hasClient && ctx.hasBattleSuit && ctx.isRadiusDamage) {
-                result.prevented = true;
-                result.playBattleSuitSound = true;
-                return result;
-        }
+	if (ctx.hasClient && ctx.hasBattleSuit && ctx.isRadiusDamage) {
+		result.prevented = true;
+		result.playBattleSuitSound = true;
+		return result;
+	}
 
-        if (ctx.hasGodMode) {
-                result.prevented = true;
-                return result;
-        }
+	if (ctx.hasGodMode) {
+		result.prevented = true;
+		return result;
+	}
 
-        if (ctx.isMonster && (ctx.monsterInvincibilityTime > ctx.levelTime)) {
-                result.prevented = true;
+	if (ctx.isMonster && (ctx.monsterInvincibilityTime > ctx.levelTime)) {
+		result.prevented = true;
 
-                if (ctx.painDebounceTime < ctx.levelTime) {
-                        result.playMonsterSound = true;
-                        result.newPainDebounceTime = ctx.levelTime + 2_sec;
-                }
+		if (ctx.painDebounceTime < ctx.levelTime) {
+			result.playMonsterSound = true;
+			result.newPainDebounceTime = ctx.levelTime + 2_sec;
+		}
 
-                return result;
-        }
+		return result;
+	}
 
-        return result;
+	return result;
 }
 
 //
@@ -3518,21 +3518,21 @@ void monster_fire_shotgun(gentity_t* self, const Vector3& start, const Vector3& 
 void monster_fire_blaster(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType, Effect effect);
 void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
-        MonsterMuzzleFlashID flashType);
+	MonsterMuzzleFlashID flashType);
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
 void monster_fire_flakcannon(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType);
+	int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType);
 void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
+	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
-        MonsterMuzzleFlashID flashType);
+	MonsterMuzzleFlashID flashType);
 void monster_fire_homing_pod(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_railgun(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int kick,
-        MonsterMuzzleFlashID flashType);
+	MonsterMuzzleFlashID flashType);
 void monster_fire_bfg(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, int kick,
-        float splashRadius, MonsterMuzzleFlashID flashType);
+	float splashRadius, MonsterMuzzleFlashID flashType);
 void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed);
 bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDelay);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset);
@@ -4399,11 +4399,11 @@ struct gclient_t {
 	Vector3			oldVelocity = vec3_origin;
 	gentity_t* oldGroundEntity; // [Paril-KEX]
 
-        struct {
-                bool                    active = false;
-                GameTime                startTime = 0_ms;
-                Vector3                 startOffset = vec3_origin;
-        } deathView;
+	struct {
+		bool                    active = false;
+		GameTime                startTime = 0_ms;
+		Vector3                 startOffset = vec3_origin;
+	} deathView;
 
 	GameTime			nextDrownTime = 0_ms;
 	water_level_t	oldWaterLevel = WATER_NONE;
@@ -4718,7 +4718,7 @@ struct gentity_t {
 	int32_t		gibHealth;
 	GameTime		show_hostile;
 
-	GameTime powerarmor_time;
+	GameTime powerArmorTime;
 
 	std::array<char, MAX_QPATH> map; // target_changelevel
 

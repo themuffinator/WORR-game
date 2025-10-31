@@ -964,193 +964,193 @@ namespace Commands {
 		ValidateSelectedItem(ent);
 	}
 
-        void Wave(gentity_t* ent, const CommandArgs& args) {
-                if (ent->deadFlag || ent->moveType == MoveType::NoClip) return;
+	void Wave(gentity_t* ent, const CommandArgs& args) {
+		if (ent->deadFlag || ent->moveType == MoveType::NoClip) return;
 
-                const int gesture = args.getInt(1).value_or(GESTURE_FLIP_OFF);
+		const int gesture = args.getInt(1).value_or(GESTURE_FLIP_OFF);
 
-                const bool doAnimate = ent->client->anim.priority <= ANIM_WAVE && !(ent->client->ps.pmove.pmFlags & PMF_DUCKED);
+		const bool doAnimate = ent->client->anim.priority <= ANIM_WAVE && !(ent->client->ps.pmove.pmFlags & PMF_DUCKED);
 
-                if (doAnimate)
-                        ent->client->anim.priority = ANIM_WAVE;
+		if (doAnimate)
+			ent->client->anim.priority = ANIM_WAVE;
 
-                const char* otherNotifyMsg = nullptr;
-                const char* otherNotifyNoneMsg = nullptr;
+		const char* otherNotifyMsg = nullptr;
+		const char* otherNotifyNoneMsg = nullptr;
 
-                Vector3 start{};
-                Vector3 dir{};
-                P_ProjectSource(ent, ent->client->vAngle, vec3_origin, start, dir);
+		Vector3 start{};
+		Vector3 dir{};
+		P_ProjectSource(ent, ent->client->vAngle, vec3_origin, start, dir);
 
-                gentity_t* aimingAt = nullptr;
-                float bestDist = -9999.0f;
+		gentity_t* aimingAt = nullptr;
+		float bestDist = -9999.0f;
 
-                for (auto player : active_players()) {
-                        if (player == ent)
-                                continue;
+		for (auto player : active_players()) {
+			if (player == ent)
+				continue;
 
-                        Vector3 cdir = player->s.origin - start;
-                        float dist = cdir.normalize();
+			Vector3 cdir = player->s.origin - start;
+			float dist = cdir.normalize();
 
-                        float dot = ent->client->vForward.dot(cdir);
+			float dot = ent->client->vForward.dot(cdir);
 
-                        if (dot < 0.97f)
-                                continue;
-                        else if (dist < bestDist)
-                                continue;
+			if (dot < 0.97f)
+				continue;
+			else if (dist < bestDist)
+				continue;
 
-                        bestDist = dist;
-                        aimingAt = player;
-                }
+			bestDist = dist;
+			aimingAt = player;
+		}
 
-                trace_t pointTrace{};
-                gentity_t* tracedEnt = nullptr;
-                const Item* pointingItem = nullptr;
+		trace_t pointTrace{};
+		gentity_t* tracedEnt = nullptr;
+		const Item* pointingItem = nullptr;
 
-                if (gesture == GESTURE_POINT) {
-                        pointTrace = gi.traceLine(start, start + (ent->client->vForward * 2048.0f), ent, static_cast<contents_t>(MASK_SHOT & ~CONTENTS_WINDOW));
+		if (gesture == GESTURE_POINT) {
+			pointTrace = gi.traceLine(start, start + (ent->client->vForward * 2048.0f), ent, static_cast<contents_t>(MASK_SHOT & ~CONTENTS_WINDOW));
 
-                        if (pointTrace.fraction != 1.0f)
-                                tracedEnt = pointTrace.ent;
+			if (pointTrace.fraction != 1.0f)
+				tracedEnt = pointTrace.ent;
 
-                        if (tracedEnt && tracedEnt->item) {
-                                const Item* candidate = tracedEnt->item;
+			if (tracedEnt && tracedEnt->item) {
+				const Item* candidate = tracedEnt->item;
 
-                                if (candidate && ((candidate->flags & IF_WEAPON) || candidate->highValue != HighValueItems::None))
-                                        pointingItem = candidate;
-                        }
-                }
+				if (candidate && ((candidate->flags & IF_WEAPON) || candidate->highValue != HighValueItems::None))
+					pointingItem = candidate;
+			}
+		}
 
-                const char* pointingItemName = nullptr;
+		const char* pointingItemName = nullptr;
 
-                if (pointingItem) {
-                        pointingItemName = pointingItem->pickupName;
+		if (pointingItem) {
+			pointingItemName = pointingItem->pickupName;
 
-                        if ((!pointingItemName || !pointingItemName[0]) && pointingItem->pickupNameDefinitive)
-                                pointingItemName = pointingItem->pickupNameDefinitive;
-                }
+			if ((!pointingItemName || !pointingItemName[0]) && pointingItem->pickupNameDefinitive)
+				pointingItemName = pointingItem->pickupNameDefinitive;
+		}
 
-                switch (gesture) {
-                case GESTURE_FLIP_OFF:
-                        otherNotifyMsg = "$g_flipoff_other";
-                        otherNotifyNoneMsg = "$g_flipoff_none";
-                        if (doAnimate) {
-                                ent->s.frame = FRAME_flip01 - 1;
-                                ent->client->anim.end = FRAME_flip12;
-                        }
-                        break;
-                case GESTURE_SALUTE:
-                        otherNotifyMsg = "$g_salute_other";
-                        otherNotifyNoneMsg = "$g_salute_none";
-                        if (doAnimate) {
-                                ent->s.frame = FRAME_salute01 - 1;
-                                ent->client->anim.end = FRAME_salute11;
-                        }
-                        break;
-                case GESTURE_TAUNT:
-                        otherNotifyMsg = "$g_taunt_other";
-                        otherNotifyNoneMsg = "$g_taunt_none";
-                        if (doAnimate) {
-                                ent->s.frame = FRAME_taunt01 - 1;
-                                ent->client->anim.end = FRAME_taunt17;
-                        }
-                        break;
-                case GESTURE_WAVE:
-                        otherNotifyMsg = "$g_wave_other";
-                        otherNotifyNoneMsg = "$g_wave_none";
-                        if (doAnimate) {
-                                ent->s.frame = FRAME_wave01 - 1;
-                                ent->client->anim.end = FRAME_wave11;
-                        }
-                        break;
-                case GESTURE_POINT:
-                default:
-                        otherNotifyMsg = "$g_point_other";
-                        otherNotifyNoneMsg = "$g_point_none";
-                        if (doAnimate) {
-                                ent->s.frame = FRAME_point01 - 1;
-                                ent->client->anim.end = FRAME_point12;
-                        }
-                        break;
-                }
+		switch (gesture) {
+		case GESTURE_FLIP_OFF:
+			otherNotifyMsg = "$g_flipoff_other";
+			otherNotifyNoneMsg = "$g_flipoff_none";
+			if (doAnimate) {
+				ent->s.frame = FRAME_flip01 - 1;
+				ent->client->anim.end = FRAME_flip12;
+			}
+			break;
+		case GESTURE_SALUTE:
+			otherNotifyMsg = "$g_salute_other";
+			otherNotifyNoneMsg = "$g_salute_none";
+			if (doAnimate) {
+				ent->s.frame = FRAME_salute01 - 1;
+				ent->client->anim.end = FRAME_salute11;
+			}
+			break;
+		case GESTURE_TAUNT:
+			otherNotifyMsg = "$g_taunt_other";
+			otherNotifyNoneMsg = "$g_taunt_none";
+			if (doAnimate) {
+				ent->s.frame = FRAME_taunt01 - 1;
+				ent->client->anim.end = FRAME_taunt17;
+			}
+			break;
+		case GESTURE_WAVE:
+			otherNotifyMsg = "$g_wave_other";
+			otherNotifyNoneMsg = "$g_wave_none";
+			if (doAnimate) {
+				ent->s.frame = FRAME_wave01 - 1;
+				ent->client->anim.end = FRAME_wave11;
+			}
+			break;
+		case GESTURE_POINT:
+		default:
+			otherNotifyMsg = "$g_point_other";
+			otherNotifyNoneMsg = "$g_point_none";
+			if (doAnimate) {
+				ent->s.frame = FRAME_point01 - 1;
+				ent->client->anim.end = FRAME_point12;
+			}
+			break;
+		}
 
-                bool hasTarget = false;
+		bool hasTarget = false;
 
-                if (gesture == GESTURE_POINT) {
-                        for (auto player : active_players()) {
-                                if (player == ent)
-                                        continue;
-                                else if (!OnSameTeam(ent, player))
-                                        continue;
+		if (gesture == GESTURE_POINT) {
+			for (auto player : active_players()) {
+				if (player == ent)
+					continue;
+				else if (!OnSameTeam(ent, player))
+					continue;
 
-                                hasTarget = true;
-                                break;
-                        }
-                }
+				hasTarget = true;
+				break;
+			}
+		}
 
-                const char* pointTargetName = nullptr;
+		const char* pointTargetName = nullptr;
 
-                if (aimingAt)
-                        pointTargetName = aimingAt->client->sess.netName.c_str();
-                else if (pointingItemName)
-                        pointTargetName = pointingItemName;
+		if (aimingAt)
+			pointTargetName = aimingAt->client->sess.netName;
+		else if (pointingItemName)
+			pointTargetName = pointingItemName;
 
-                if (gesture == GESTURE_POINT && hasTarget) {
-                        if (CheckFlood(ent))
-                                return;
+		if (gesture == GESTURE_POINT && hasTarget) {
+			if (CheckFlood(ent))
+				return;
 
-                        const char* pingNotifyMsg = pointTargetName ? "$g_point_other" : "$g_point_other_ping";
+			const char* pingNotifyMsg = pointTargetName ? "$g_point_other" : "$g_point_other_ping";
 
-                        const uint32_t key = GetUnicastKey();
+			const uint32_t key = GetUnicastKey();
 
-                        if (pointTrace.fraction != 1.0f) {
-                                for (auto player : active_players()) {
-                                        if (player != ent && !OnSameTeam(ent, player))
-                                                continue;
+			if (pointTrace.fraction != 1.0f) {
+				for (auto player : active_players()) {
+					if (player != ent && !OnSameTeam(ent, player))
+						continue;
 
-                                        gi.WriteByte(svc_poi);
-                                        gi.WriteShort(POI_PING + (ent->s.number - 1));
-                                        gi.WriteShort(5000);
-                                        gi.WritePosition(pointTrace.endPos);
-                                        gi.WriteShort(level.picPing);
-                                        gi.WriteByte(208);
-                                        gi.WriteByte(POI_FLAG_NONE);
-                                        gi.unicast(player, false);
+					gi.WriteByte(svc_poi);
+					gi.WriteShort(POI_PING + (ent->s.number - 1));
+					gi.WriteShort(5000);
+					gi.WritePosition(pointTrace.endPos);
+					gi.WriteShort(level.picPing);
+					gi.WriteByte(208);
+					gi.WriteByte(POI_FLAG_NONE);
+					gi.unicast(player, false);
 
-                                        gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
-                                        if (pointTargetName)
-                                                gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
-                                        else
-                                                gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str());
-                                }
-                        }
-                }
-                else {
-                        if (CheckFlood(ent))
-                                return;
+					gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
+					if (pointTargetName)
+						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
+					else
+						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
+				}
+			}
+		}
+		else {
+			if (CheckFlood(ent))
+				return;
 
-                        gentity_t* targ = nullptr;
-                        while ((targ = FindRadius(targ, ent->s.origin, 1024.0f)) != nullptr) {
-                                if (ent == targ)
-                                        continue;
-                                if (!targ->client)
-                                        continue;
-                                if (!gi.inPVS(ent->s.origin, targ->s.origin, false))
-                                        continue;
+			gentity_t* targ = nullptr;
+			while ((targ = FindRadius(targ, ent->s.origin, 1024.0f)) != nullptr) {
+				if (ent == targ)
+					continue;
+				if (!targ->client)
+					continue;
+				if (!gi.inPVS(ent->s.origin, targ->s.origin, false))
+					continue;
 
-                                if (pointTargetName && otherNotifyMsg)
-                                        gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
-                                else if (otherNotifyNoneMsg)
-                                        gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
-                        }
+				if (pointTargetName && otherNotifyMsg)
+					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+				else if (otherNotifyNoneMsg)
+					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+			}
 
-                        if (pointTargetName && otherNotifyMsg)
-                                gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
-                        else if (otherNotifyNoneMsg)
-                                gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
-                }
+			if (pointTargetName && otherNotifyMsg)
+				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+			else if (otherNotifyNoneMsg)
+				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+		}
 
-                ent->client->anim.time = 0_ms;
-        }
+		ent->client->anim.time = 0_ms;
+	}
 
 	void WeapLast(gentity_t* ent, const CommandArgs& args) {
 		gclient_t* cl = ent->client;

@@ -43,37 +43,37 @@ void monster_fire_flechette(gentity_t* self, const Vector3& start, const Vector3
 }
 
 void monster_fire_grenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
-        fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
-        monster_muzzleflash(self, start, flashType);
+	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+	fire_grenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust, true);
+	monster_muzzleflash(self, start, flashType);
 }
 
 void monster_fire_flakcannon(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType) {
-        Vector3 forward, right, up;
-        const Vector3 angles = VectorToAngles(aimDir);
-        AngleVectors(angles, forward, right, up);
+	int hSpread, int vSpread, int count, MonsterMuzzleFlashID flashType) {
+	Vector3 forward, right, up;
+	const Vector3 angles = VectorToAngles(aimDir);
+	AngleVectors(angles, forward, right, up);
 
-        for (int i = 0; i < count; ++i) {
-                const float r = crandom_open() * static_cast<float>(hSpread);
-                const float u = crandom_open() * static_cast<float>(vSpread);
-                Vector3 dir = (forward * 8192.0f) + (right * r) + (up * u);
-                dir.normalize();
-                fire_flechette(self, start, dir, damage, speed, damage);
-        }
+	for (int i = 0; i < count; ++i) {
+		const float r = crandom_open() * static_cast<float>(hSpread);
+		const float u = crandom_open() * static_cast<float>(vSpread);
+		Vector3 dir = (forward * 8192.0f) + (right * r) + (up * u);
+		dir.normalize();
+		fire_flechette(self, start, dir, damage, speed, damage);
+	}
 
-        monster_muzzleflash(self, start, flashType);
+	monster_muzzleflash(self, start, flashType);
 }
 
 static void fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        GameTime timer, float splashRadius, float rightAdjust, float upAdjust) {
-        fire_grenade(self, start, aimDir, damage, speed, timer, splashRadius, rightAdjust, upAdjust, true);
+	GameTime timer, float splashRadius, float rightAdjust, float upAdjust) {
+	fire_grenade(self, start, aimDir, damage, speed, timer, splashRadius, rightAdjust, upAdjust, true);
 }
 
 void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed,
-        MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
-        fire_multigrenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust);
-        monster_muzzleflash(self, start, flashType);
+	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust) {
+	fire_multigrenade(self, start, aimDir, damage, speed, 2.5_sec, damage + 40.f, rightAdjust, upAdjust);
+	monster_muzzleflash(self, start, flashType);
 }
 
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
@@ -99,144 +99,144 @@ void monster_fire_railgun(gentity_t* self, const Vector3& start, const Vector3& 
 }
 
 void monster_fire_bfg(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int speed, int kick,
-        float splashRadius, MonsterMuzzleFlashID flashType) {
-        fire_bfg(self, start, aimDir, damage, speed, splashRadius);
-        monster_muzzleflash(self, start, flashType);
+	float splashRadius, MonsterMuzzleFlashID flashType) {
+	fire_bfg(self, start, aimDir, damage, speed, splashRadius);
+	monster_muzzleflash(self, start, flashType);
 }
 
 namespace {
 
-static cached_modelIndex acid_projectile_model;
-static cached_soundIndex acid_hit_sound;
+	static cached_modelIndex acid_projectile_model;
+	static cached_soundIndex acid_hit_sound;
 
-static PRETHINK(monster_teleport_return) (gentity_t* self) -> void {
-        if (!self->monsterInfo.teleport_active) {
-                self->postThink = nullptr;
-                return;
-        }
+	static PRETHINK(monster_teleport_return) (gentity_t* self) -> void {
+		if (!self->monsterInfo.teleport_active) {
+			self->postThink = nullptr;
+			return;
+		}
 
-        if (level.time < self->monsterInfo.teleport_return_time)
-                return;
+		if (level.time < self->monsterInfo.teleport_return_time)
+			return;
 
-        if (self->enemy && visible(self, self->enemy))
-                return;
+		if (self->enemy && visible(self, self->enemy))
+			return;
 
-        gi.WriteByte(svc_temp_entity);
-        gi.WriteByte(TE_TELEPORT_EFFECT);
-        gi.WritePosition(self->s.origin);
-        gi.multicast(self->s.origin, MULTICAST_PVS, false);
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_TELEPORT_EFFECT);
+		gi.WritePosition(self->s.origin);
+		gi.multicast(self->s.origin, MULTICAST_PVS, false);
 
-        self->s.origin = self->monsterInfo.teleport_saved_origin;
-        self->s.oldOrigin = self->monsterInfo.teleport_saved_origin;
-        gi.linkEntity(self);
+		self->s.origin = self->monsterInfo.teleport_saved_origin;
+		self->s.oldOrigin = self->monsterInfo.teleport_saved_origin;
+		gi.linkEntity(self);
 
-        gi.WriteByte(svc_temp_entity);
-        gi.WriteByte(TE_TELEPORT_EFFECT);
-        gi.WritePosition(self->s.origin);
-        gi.multicast(self->s.origin, MULTICAST_PVS, false);
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_TELEPORT_EFFECT);
+		gi.WritePosition(self->s.origin);
+		gi.multicast(self->s.origin, MULTICAST_PVS, false);
 
-        self->monsterInfo.teleport_active = false;
-        self->monsterInfo.teleport_return_time = 0_ms;
-        self->monsterInfo.teleport_saved_origin = vec3_origin;
-        self->postThink = nullptr;
-}
+		self->monsterInfo.teleport_active = false;
+		self->monsterInfo.teleport_return_time = 0_ms;
+		self->monsterInfo.teleport_saved_origin = vec3_origin;
+		self->postThink = nullptr;
+	}
 
-static TOUCH(acid_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool /*otherTouchingSelf*/) -> void {
-        if (other == self->owner)
-                return;
+	static TOUCH(acid_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool /*otherTouchingSelf*/) -> void {
+		if (other == self->owner)
+			return;
 
-        if (tr.surface && (tr.surface->flags & SURF_SKY)) {
-                FreeEntity(self);
-                return;
-        }
+		if (tr.surface && (tr.surface->flags & SURF_SKY)) {
+			FreeEntity(self);
+			return;
+		}
 
-        if (self->owner && self->owner->client)
-                G_PlayerNoise(self->owner, self->s.origin, PlayerNoise::Impact);
+		if (self->owner && self->owner->client)
+			G_PlayerNoise(self->owner, self->s.origin, PlayerNoise::Impact);
 
-        if (other && other->takeDamage)
-                Damage(other, self, self->owner ? self->owner : self, self->velocity, self->s.origin, tr.plane.normal, self->dmg,
-                        1, DamageFlags::Energy, ModID::Gekk);
+		if (other && other->takeDamage)
+			Damage(other, self, self->owner ? self->owner : self, self->velocity, self->s.origin, tr.plane.normal, self->dmg,
+				1, DamageFlags::Energy, ModID::Gekk);
 
-        gi.sound(self, CHAN_AUTO, acid_hit_sound, 1.0f, ATTN_NORM, 0);
+		gi.sound(self, CHAN_AUTO, acid_hit_sound, 1.0f, ATTN_NORM, 0);
 
-        FreeEntity(self);
-}
+		FreeEntity(self);
+	}
 
 } // namespace
 
 void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed) {
-        gentity_t* acid = Spawn();
-        trace_t    tr;
+	gentity_t* acid = Spawn();
+	trace_t    tr;
 
-        acid_projectile_model.assign("models/objects/loogy/tris.md2");
-        acid_hit_sound.assign("gek/loogie_hit.wav");
+	acid_projectile_model.assign("models/objects/loogy/tris.md2");
+	acid_hit_sound.assign("gek/loogie_hit.wav");
 
-        acid->s.origin = start;
-        acid->s.oldOrigin = start;
-        acid->s.angles = VectorToAngles(dir);
-        acid->velocity = dir * speed;
-        acid->moveType = MoveType::FlyMissile;
-        acid->clipMask = MASK_PROJECTILE;
-        acid->solid = SOLID_BBOX;
-        acid->s.effects |= EF_GREENGIB;
-        acid->s.renderFX |= RF_FULLBRIGHT;
-        acid->s.modelIndex = acid_projectile_model;
-        acid->owner = self;
-        acid->touch = acid_touch;
-        acid->nextThink = level.time + 2_sec;
-        acid->think = FreeEntity;
-        acid->dmg = damage;
-        acid->svFlags |= SVF_PROJECTILE;
-        gi.linkEntity(acid);
+	acid->s.origin = start;
+	acid->s.oldOrigin = start;
+	acid->s.angles = VectorToAngles(dir);
+	acid->velocity = dir * speed;
+	acid->moveType = MoveType::FlyMissile;
+	acid->clipMask = MASK_PROJECTILE;
+	acid->solid = SOLID_BBOX;
+	acid->s.effects |= EF_GREENGIB;
+	acid->s.renderFX |= RF_FULLBRIGHT;
+	acid->s.modelIndex = acid_projectile_model;
+	acid->owner = self;
+	acid->touch = acid_touch;
+	acid->nextThink = level.time + 2_sec;
+	acid->think = FreeEntity;
+	acid->dmg = damage;
+	acid->svFlags |= SVF_PROJECTILE;
+	gi.linkEntity(acid);
 
-        tr = gi.traceLine(self->s.origin, acid->s.origin, acid, MASK_PROJECTILE);
-        if (tr.fraction < 1.0f) {
-                acid->s.origin = tr.endPos + (tr.plane.normal * 1.0f);
-                acid->touch(acid, tr.ent, tr, false);
-        }
+	tr = gi.traceLine(self->s.origin, acid->s.origin, acid, MASK_PROJECTILE);
+	if (tr.fraction < 1.0f) {
+		acid->s.origin = tr.endPos + (tr.plane.normal * 1.0f);
+		acid->touch(acid, tr.ent, tr, false);
+	}
 }
 
 bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDelay) {
-        if (!self || self->monsterInfo.teleport_active)
-                return false;
+	if (!self || self->monsterInfo.teleport_active)
+		return false;
 
-        for (int attempt = 0; attempt < 10; ++attempt) {
-                Vector3 offset = { crandom() * radius, crandom() * radius, crandom() * (radius * 0.5f) };
-                Vector3 target = self->s.origin + offset;
+	for (int attempt = 0; attempt < 10; ++attempt) {
+		Vector3 offset = { crandom() * radius, crandom() * radius, crandom() * (radius * 0.5f) };
+		Vector3 target = self->s.origin + offset;
 
-                trace_t trace = gi.trace(self->s.origin, self->mins, self->maxs, target, self, MASK_SOLID);
-                if (trace.startSolid || trace.allSolid)
-                        continue;
+		trace_t trace = gi.trace(self->s.origin, self->mins, self->maxs, target, self, MASK_SOLID);
+		if (trace.startSolid || trace.allSolid)
+			continue;
 
-                Vector3 destination = (trace.fraction < 1.0f) ? trace.endPos : target;
+		Vector3 destination = (trace.fraction < 1.0f) ? trace.endPos : target;
 
-                trace_t occupancy = gi.trace(destination, self->mins, self->maxs, destination, self, MASK_MONSTERSOLID);
-                if (occupancy.fraction < 1.0f)
-                        continue;
+		trace_t occupancy = gi.trace(destination, self->mins, self->maxs, destination, self, MASK_MONSTERSOLID);
+		if (occupancy.fraction < 1.0f)
+			continue;
 
-                gi.WriteByte(svc_temp_entity);
-                gi.WriteByte(TE_TELEPORT_EFFECT);
-                gi.WritePosition(self->s.origin);
-                gi.multicast(self->s.origin, MULTICAST_PVS, false);
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_TELEPORT_EFFECT);
+		gi.WritePosition(self->s.origin);
+		gi.multicast(self->s.origin, MULTICAST_PVS, false);
 
-                self->monsterInfo.teleport_saved_origin = self->s.origin;
-                self->monsterInfo.teleport_return_time = level.time + returnDelay;
-                self->monsterInfo.teleport_active = true;
-                self->postThink = monster_teleport_return;
+		self->monsterInfo.teleport_saved_origin = self->s.origin;
+		self->monsterInfo.teleport_return_time = level.time + returnDelay;
+		self->monsterInfo.teleport_active = true;
+		self->postThink = monster_teleport_return;
 
-                self->s.origin = destination;
-                self->s.oldOrigin = destination;
-                gi.linkEntity(self);
+		self->s.origin = destination;
+		self->s.oldOrigin = destination;
+		gi.linkEntity(self);
 
-                gi.WriteByte(svc_temp_entity);
-                gi.WriteByte(TE_TELEPORT_EFFECT);
-                gi.WritePosition(self->s.origin);
-                gi.multicast(self->s.origin, MULTICAST_PVS, false);
+		gi.WriteByte(svc_temp_entity);
+		gi.WriteByte(TE_TELEPORT_EFFECT);
+		gi.WritePosition(self->s.origin);
+		gi.multicast(self->s.origin, MULTICAST_PVS, false);
 
-                return true;
-        }
+		return true;
+	}
 
-        return false;
+	return false;
 }
 
 // [Paril-KEX]
@@ -558,7 +558,7 @@ void M_SetEffects(gentity_t* ent) {
 	if (ent->health <= 0)
 		return;
 
-	if (ent->powerarmor_time > level.time) {
+	if (ent->powerArmorTime > level.time) {
 		if (ent->monsterInfo.powerArmorType == IT_POWER_SCREEN) {
 			ent->s.effects |= EF_POWERSCREEN;
 		}
@@ -796,14 +796,14 @@ void M_ProcessPain(gentity_t* e) {
 					e->monsterInfo.commander = nullptr;
 				}
 			}
-                              if (e->monsterInfo.aiFlags & AI_SPAWNED_OVERLORD) {
-                                if (e->monsterInfo.commander && e->monsterInfo.commander->inUse &&
-                                        !strcmp(e->monsterInfo.commander->className, "monster_overlord")) {
-                                        if (e->monsterInfo.commander->monsterInfo.monster_used > 0)
-                                                e->monsterInfo.commander->monsterInfo.monster_used--;
-                                        e->monsterInfo.commander = nullptr;
-                                }
-                        }
+			if (e->monsterInfo.aiFlags & AI_SPAWNED_OVERLORD) {
+				if (e->monsterInfo.commander && e->monsterInfo.commander->inUse &&
+					!strcmp(e->monsterInfo.commander->className, "monster_overlord")) {
+					if (e->monsterInfo.commander->monsterInfo.monster_used > 0)
+						e->monsterInfo.commander->monsterInfo.monster_used--;
+					e->monsterInfo.commander = nullptr;
+				}
+			}
 
 			if (!(e->monsterInfo.aiFlags & AI_DO_NOT_COUNT) && e->spawnFlags.has(SPAWNFLAG_MONSTER_CORPSE))
 				G_MonsterKilled(e);

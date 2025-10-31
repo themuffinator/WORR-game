@@ -1448,14 +1448,14 @@ static bool FreezeTag_CanThawTarget(gentity_t* thawer, gentity_t* frozen) {
 		return false;
 
 	if (frozen->client->resp.thawer && frozen->client->resp.thawer != thawer)
-	        return false;
+		return false;
 
 	return true;
 }
 
 static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
 	if (!FreezeTag_IsActive() || !thawer || !thawer->client)
-	        return nullptr;
+		return nullptr;
 
 	constexpr float THAW_RANGE = 96.0f;
 
@@ -1503,22 +1503,22 @@ static constexpr float FREEZETAG_THAW_RANGE = MELEE_DISTANCE;
 
 static bool FreezeTag_IsValidThawHelper(gentity_t* thawer, gentity_t* frozen) {
 	if (!FreezeTag_IsActive())
-	        return false;
+		return false;
 
 	if (!thawer || !thawer->client || !frozen || !frozen->client)
-	        return false;
+		return false;
 
 	if (thawer == frozen)
-	        return false;
+		return false;
 
 	if (!ClientIsPlaying(thawer->client) || thawer->client->eliminated)
-	        return false;
+		return false;
 
 	if (!ClientIsPlaying(frozen->client) || !frozen->client->eliminated)
-	        return false;
+		return false;
 
 	if (!Teams() || thawer->client->sess.team != frozen->client->sess.team)
-	        return false;
+		return false;
 
 	const Vector3 delta = frozen->s.origin - thawer->s.origin;
 	return delta.length() <= FREEZETAG_THAW_RANGE;
@@ -1529,15 +1529,15 @@ static gentity_t* FreezeTag_FindNearbyThawer(gentity_t* frozen) {
 	float       bestDistance = 0.0f;
 
 	for (gentity_t* candidate : active_clients()) {
-	        if (!FreezeTag_IsValidThawHelper(candidate, frozen))
-	                continue;
+		if (!FreezeTag_IsValidThawHelper(candidate, frozen))
+			continue;
 
-	        const float distance = (frozen->s.origin - candidate->s.origin).length();
+		const float distance = (frozen->s.origin - candidate->s.origin).length();
 
-	        if (!best || distance < bestDistance) {
-	                best = candidate;
-	                bestDistance = distance;
-	        }
+		if (!best || distance < bestDistance) {
+			best = candidate;
+			bestDistance = distance;
+		}
 	}
 
 	return best;
@@ -1545,14 +1545,14 @@ static gentity_t* FreezeTag_FindNearbyThawer(gentity_t* frozen) {
 
 static void FreezeTag_StopThawHold(gentity_t* frozen, bool notify) {
 	if (!frozen || !frozen->client)
-	        return;
+		return;
 
 	gclient_t* fcl = frozen->client;
 	gentity_t* thawer = fcl->resp.thawer;
 
 	if (notify && thawer && thawer->client) {
-	        gi.LocClient_Print(thawer, PRINT_CENTER, ".You stopped thawing {}.", fcl->sess.netName);
-	        gi.LocClient_Print(frozen, PRINT_CENTER, ".{} stopped thawing you.", thawer->client->sess.netName);
+		gi.LocClient_Print(thawer, PRINT_CENTER, ".You stopped thawing {}.", fcl->sess.netName);
+		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} stopped thawing you.", thawer->client->sess.netName);
 	}
 
 	fcl->resp.thawer = nullptr;
@@ -1561,7 +1561,7 @@ static void FreezeTag_StopThawHold(gentity_t* frozen, bool notify) {
 
 static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
 	if (!frozen || !frozen->client || !thawer || !thawer->client)
-	        return;
+		return;
 
 	gclient_t* fcl = frozen->client;
 
@@ -1618,30 +1618,30 @@ static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awar
 
 static bool FreezeTag_UpdateThawHold(gentity_t* frozen) {
 	if (!FreezeTag_IsActive() || !frozen || !frozen->client || !frozen->client->eliminated)
-	        return false;
+		return false;
 
 	gclient_t* fcl = frozen->client;
 	gentity_t* thawer = fcl->resp.thawer;
 
 	if (thawer) {
-	        if (!FreezeTag_IsValidThawHelper(thawer, frozen)) {
-	                FreezeTag_StopThawHold(frozen, true);
-	        }
-	        else if (fcl->freeze.holdDeadline && level.time >= fcl->freeze.holdDeadline) {
-	                FreezeTag_ThawPlayer(thawer, frozen, true, false);
-	                return true;
-	        }
+		if (!FreezeTag_IsValidThawHelper(thawer, frozen)) {
+			FreezeTag_StopThawHold(frozen, true);
+		}
+		else if (fcl->freeze.holdDeadline && level.time >= fcl->freeze.holdDeadline) {
+			FreezeTag_ThawPlayer(thawer, frozen, true, false);
+			return true;
+		}
 	}
 
 	if (!fcl->resp.thawer) {
-	        gentity_t* helper = FreezeTag_FindNearbyThawer(frozen);
+		gentity_t* helper = FreezeTag_FindNearbyThawer(frozen);
 
-	        if (helper) {
-	                FreezeTag_StartThawHold(helper, frozen);
-	        }
-	        else {
-	                fcl->freeze.holdDeadline = 0_ms;
-	        }
+		if (helper) {
+			FreezeTag_StartThawHold(helper, frozen);
+		}
+		else {
+			fcl->freeze.holdDeadline = 0_ms;
+		}
 	}
 
 	return false;
@@ -1706,16 +1706,16 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 			}
 		}
 
-                PushDeathStats(self, attacker, mod);
+		PushDeathStats(self, attacker, mod);
 
-                LookAtKiller(self, inflictor, attacker);
+		LookAtKiller(self, inflictor, attacker);
 
-                self->client->deathView.active = true;
-                self->client->deathView.startTime = level.time;
-                self->client->deathView.startOffset = self->client->ps.viewOffset;
+		self->client->deathView.active = true;
+		self->client->deathView.startTime = level.time;
+		self->client->deathView.startOffset = self->client->ps.viewOffset;
 
-                self->client->ps.pmove.pmType = PM_DEAD;
-                ClientObituary(self, inflictor, attacker, mod);
+		self->client->ps.pmove.pmType = PM_DEAD;
+		ClientObituary(self, inflictor, attacker, mod);
 
 		CTF_ScoreBonuses(self, inflictor, attacker);
 		TossClientItems(self);
@@ -1772,8 +1772,8 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 	}
 
 	if (FreezeTag_IsActive() && self->client->eliminated) {
-	        self->s.effects |= EF_COLOR_SHELL;
-	        self->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
+		self->s.effects |= EF_COLOR_SHELL;
+		self->s.renderFX |= (RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 	}
 	else {
 		self->s.effects = EF_NONE;
@@ -2387,12 +2387,12 @@ static void ClientCompleteSpawn(gentity_t* ent) {
 }
 
 void ClientRespawn(gentity_t* ent) {
-        if (!ent || !ent->client)
-                return;
+	if (!ent || !ent->client)
+		return;
 
-        ent->client->deathView = {};
+	ent->client->deathView = {};
 
-        if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
+	if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
 		const bool gibbed = ent->health <= ent->gibHealth;
 		if (!ent->client->resp.thawer && !gibbed)
 			return;
@@ -2705,90 +2705,90 @@ G_SetLevelEntry
 ===============
 */
 static void G_SetLevelEntry() {
-        if (deathmatch->integer)
-                return;
+	if (deathmatch->integer)
+		return;
 
-        if (level.campaign.hub_map)
-                return;
+	if (level.campaign.hub_map)
+		return;
 
-        LevelEntry* foundEntry = nullptr;
-        int32_t highest_order = 0;
+	LevelEntry* foundEntry = nullptr;
+	int32_t highest_order = 0;
 
-        for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
-                LevelEntry* entry = &game.levelEntries[i];
+	for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
+		LevelEntry* entry = &game.levelEntries[i];
 
-                highest_order = std::max(highest_order, entry->visit_order);
+		highest_order = std::max(highest_order, entry->visit_order);
 
-                if (!std::strcmp(entry->mapName.data(), level.mapName.data()) || !entry->mapName[0]) {
-                        foundEntry = entry;
-                        break;
-                }
-        }
+		if (!std::strcmp(entry->mapName.data(), level.mapName.data()) || !entry->mapName[0]) {
+			foundEntry = entry;
+			break;
+		}
+	}
 
-        if (!foundEntry) {
-                gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
-                return;
-        }
+	if (!foundEntry) {
+		gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
+		return;
+	}
 
-        level.entry = foundEntry;
-        Q_strlcpy(level.entry->mapName.data(), level.mapName.data(), level.entry->mapName.size());
+	level.entry = foundEntry;
+	Q_strlcpy(level.entry->mapName.data(), level.mapName.data(), level.entry->mapName.size());
 
-        if (!level.entry->longMapName[0]) {
-                Q_strlcpy(level.entry->longMapName.data(), level.longName.data(), level.entry->longMapName.size());
-                level.entry->visit_order = highest_order + 1;
+	if (!level.entry->longMapName[0]) {
+		Q_strlcpy(level.entry->longMapName.data(), level.longName.data(), level.entry->longMapName.size());
+		level.entry->visit_order = highest_order + 1;
 
-                if (g_coop_enable_lives->integer) {
-                        const int maxLives = g_coop_num_lives->integer + 1;
-                        for (size_t i = 0; i < game.maxClients; ++i) {
-                                gclient_t* cl = &game.clients[i];
-                                cl->pers.lives = std::min(maxLives, cl->pers.lives + 1);
-                                cl->pers.limitedLivesStash = cl->pers.lives;
-                                cl->pers.limitedLivesPersist = true;
-                        }
-                }
-        }
+		if (g_coop_enable_lives->integer) {
+			const int maxLives = g_coop_num_lives->integer + 1;
+			for (size_t i = 0; i < game.maxClients; ++i) {
+				gclient_t* cl = &game.clients[i];
+				cl->pers.lives = std::min(maxLives, cl->pers.lives + 1);
+				cl->pers.limitedLivesStash = cl->pers.lives;
+				cl->pers.limitedLivesPersist = true;
+			}
+		}
+	}
 
-        gentity_t* changelevel = nullptr;
-        while ((changelevel = G_FindByString<&gentity_t::className>(changelevel, "target_changelevel")) != nullptr) {
-                if (!changelevel->map[0])
-                        continue;
+	gentity_t* changelevel = nullptr;
+	while ((changelevel = G_FindByString<&gentity_t::className>(changelevel, "target_changelevel")) != nullptr) {
+		if (!changelevel->map[0])
+			continue;
 
-                if (std::strchr(changelevel->map.data(), '*'))
-                        continue;
+		if (std::strchr(changelevel->map.data(), '*'))
+			continue;
 
-                const char* levelName = std::strchr(changelevel->map.data(), '+');
-                if (levelName)
-                        ++levelName;
-                else
-                        levelName = changelevel->map.data();
+		const char* levelName = std::strchr(changelevel->map.data(), '+');
+		if (levelName)
+			++levelName;
+		else
+			levelName = changelevel->map.data();
 
-                if (std::strstr(levelName, ".cin") || std::strstr(levelName, ".pcx"))
-                        continue;
+		if (std::strstr(levelName, ".cin") || std::strstr(levelName, ".pcx"))
+			continue;
 
-                size_t levelLength;
-                if (const char* spawnpoint = std::strchr(levelName, '$'))
-                        levelLength = static_cast<size_t>(spawnpoint - levelName);
-                else
-                        levelLength = std::strlen(levelName);
+		size_t levelLength;
+		if (const char* spawnpoint = std::strchr(levelName, '$'))
+			levelLength = static_cast<size_t>(spawnpoint - levelName);
+		else
+			levelLength = std::strlen(levelName);
 
-                LevelEntry* slot = nullptr;
-                for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
-                        LevelEntry* entry = &game.levelEntries[i];
+		LevelEntry* slot = nullptr;
+		for (size_t i = 0; i < MAX_LEVELS_PER_UNIT; ++i) {
+			LevelEntry* entry = &game.levelEntries[i];
 
-                        if (!entry->mapName[0] || std::strncmp(entry->mapName.data(), levelName, levelLength) == 0) {
-                                slot = entry;
-                                break;
-                        }
-                }
+			if (!entry->mapName[0] || std::strncmp(entry->mapName.data(), levelName, levelLength) == 0) {
+				slot = entry;
+				break;
+			}
+		}
 
-                if (!slot) {
-                        gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
-                        return;
-                }
+		if (!slot) {
+			gi.Com_PrintFmt("WARNING: more than {} maps in unit, can't track the rest\n", MAX_LEVELS_PER_UNIT);
+			return;
+		}
 
-                const size_t copyLength = std::min(levelLength + 1, slot->mapName.size());
-                Q_strlcpy(slot->mapName.data(), levelName, copyLength);
-        }
+		const size_t copyLength = std::min(levelLength + 1, slot->mapName.size());
+		Q_strlcpy(slot->mapName.data(), levelName, copyLength);
+	}
 }
 
 /*
@@ -4129,15 +4129,15 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	cl->cmd = *ucmd;
 
 	if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
-	        if (gentity_t* target = FreezeTag_FindFrozenTarget(ent)) {
-	                gclient_t* targetCl = target->client;
+		if (gentity_t* target = FreezeTag_FindFrozenTarget(ent)) {
+			gclient_t* targetCl = target->client;
 
-	                if (targetCl && !targetCl->resp.thawer && FreezeTag_IsValidThawHelper(ent, target)) {
-	                        FreezeTag_StartThawHold(ent, target);
-	                }
-	        }
+			if (targetCl && !targetCl->resp.thawer && FreezeTag_IsValidThawHelper(ent, target)) {
+				FreezeTag_StartThawHold(ent, target);
+			}
+		}
 
-	        cl->latchedButtons &= ~BUTTON_USE;
+		cl->latchedButtons &= ~BUTTON_USE;
 	}
 
 	if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
@@ -4722,13 +4722,13 @@ void ClientBeginServerFrame(gentity_t* ent) {
 	client = ent->client;
 
 	if (FreezeTag_IsActive() && client->eliminated) {
-	        if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
-	                FreezeTag_ThawPlayer(nullptr, ent, false, true);
-	                return;
-	        }
+		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+			FreezeTag_ThawPlayer(nullptr, ent, false, true);
+			return;
+		}
 
-	        if (FreezeTag_UpdateThawHold(ent))
-	                return;
+		if (FreezeTag_UpdateThawHold(ent))
+			return;
 	}
 
 	if (client->awaitingRespawn) {

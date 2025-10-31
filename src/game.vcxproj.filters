@@ -201,16 +201,10 @@
     <ClInclude Include="command_voting_utils.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="match_grace_scope.hpp">
-      <Filter>matches</Filter>
-    </ClInclude>
     <ClInclude Include="match_state_helper.hpp">
       <Filter>matches</Filter>
     </ClInclude>
     <ClInclude Include="match_state_utils.hpp">
-      <Filter>matches</Filter>
-    </ClInclude>
-    <ClInclude Include="freezetag_damage.hpp">
       <Filter>matches</Filter>
     </ClInclude>
     <ClInclude Include="cg_local.hpp">
@@ -453,7 +447,7 @@
     <ClCompile Include="monsters\q1_support.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="g_player_spawn.cpp" />
+    <ClCompile Include="g_spawn_points.cpp" />
     <ClCompile Include="command_admin.cpp">
       <Filter>commands</Filter>
     </ClCompile>

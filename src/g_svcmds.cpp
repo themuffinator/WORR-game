@@ -1,317 +1,395 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-// g_svcmds.cpp (Game Server Commands)
-// This file implements the server-side logic for commands that are executed
-// from the server console or via RCON (Remote Console). These commands
-// typically begin with the "sv" prefix.
+// g_svcmds.cpp (Game Server Commands) - modernized C++
 //
-// Key Responsibilities:
-// - `ServerCommand()`: The main entry point that the engine calls when an "sv"
-//   command is issued. It acts as a dispatcher, matching the command name
-//   to the appropriate handler function.
-// - IP Filtering: Implements commands for managing server access based on IP
-//   addresses (`addip`, `removeip`, `listip`, `writeip`). This allows server
-//   administrators to create ban lists or allow lists.
-// - Packet Filtering: Contains the logic for `G_FilterPacket`, which is called
-//   by the engine to determine if an incoming connection from a specific IP
-//   address should be allowed or denied based on the configured filter list
-//   and mode (ban vs. allow).
+// Responsibilities:
+// - ServerCommand(): dispatch "sv" console/RCON commands
+// - IP filtering: addip/removeip/listip/writeip
+// - G_FilterPacket(): packet gate using configured filters
 
 #include "g_local.hpp"
 
-static void Svcmd_Test_f() {
-	gi.LocClient_Print(nullptr, PRINT_HIGH, "Svcmd_Test_f()\n");
-}
+#include <array>
+#include <vector>
+#include <string_view>
+#include <cstdint>
+#include <cstdio>
+#include <algorithm>
+#include <charconv>
 
-/*
-==============================================================================
+// External cvars/engine globals expected from g_local.hpp
+// extern cvar_t* filterBan; // 1 = matching IPs are banned, 0 = only matching IPs are allowed
 
-PACKET FILTERING
+namespace
+{
 
+	/*
+	===============
+	IPFilter
+	===============
+	*/
+	struct IPFilter
+	{
+		std::array<uint8_t, 4> compare{}; // value to compare
+		std::array<uint8_t, 4> mask{};    // mask; 255 means must match, 0 means wildcard
+	};
 
-You can add or remove addresses from the filter list with:
+	constexpr size_t MAX_IPFILTERS = 1024;
 
-addip <ip>
-removeip <ip>
+	static std::vector<IPFilter> g_filters; // active filters
 
-The ip address is specified in dot format, and any unspecified digits will match any value, so you can specify an entire
-class C network with "addip 192.246.40".
-
-Removeip will only remove an address specified exactly the same way.  You cannot addip a subnet, then removeip a single
-host.
-
-listip
-Prints the current list of filters.
-
-writeip
-Dumps "addip <ip>" commands to listip.cfg so it can be execed at a later date.  The filter lists are not saved and
-restored by default, because I beleive it would cause too much confusion.
-
-filterBan <0 or 1>
-
-If 1 (the default), then ip addresses matching the current list will be prohibited from entering the game.  This is the
-default setting.
-
-If 0, then only addresses matching the list will be allowed.  This lets you easily set up a private game, or a game that
-only allows players from your local network.
-
-
-==============================================================================
-*/
-
-struct ipFilter_t {
-	unsigned mask;
-	unsigned compare;
-};
-
-constexpr size_t MAX_IPFILTERS = 1024;
-
-ipFilter_t ipfilters[MAX_IPFILTERS];
-int		   numipfilters;
-
-/*
-===============
-StringToFilter
-
-Parses an IP string into filter structure.
-===============
-*/
-static bool StringToFilter(const char* s, ipFilter_t* f) {
-	if (!s || !f)
-		return false;
-
-	std::array<uint8_t, 4> b{};
-	std::array<uint8_t, 4> m{};
-
-	for (int i = 0; i < 4; ++i) {
-		if (*s < '0' || *s > '9') {
-			gi.LocClient_Print(nullptr, PRINT_HIGH, "Bad filter address: {}\n", s);
-			return false;
-		}
-
-		char num[4] = {};
-		int j = 0;
-
-		while (*s >= '0' && *s <= '9' && j < 3) {
-			num[j++] = *s++;
-		}
-		num[j] = '\0';
-
-		const unsigned val = std::strtoul(num, nullptr, 10);
-		b[i] = static_cast<uint8_t>(val);
-		m[i] = (val != 0) ? 255 : 0;
-
-		if (!*s)
-			break;
-		if (*s != '.')
-			return false; // malformed IP segment separator
-		++s;
+	/*
+	===============
+	IsDigit
+	===============
+	*/
+	inline bool IsDigit(char c) noexcept
+	{
+		return c >= '0' && c <= '9';
 	}
 
-	std::memcpy(&f->compare, b.data(), sizeof(uint32_t));
-	std::memcpy(&f->mask, m.data(), sizeof(uint32_t));
-	return true;
-}
+	/*
+	===============
+	ParseOctet
+
+	Parses a decimal octet [0..255] from the head of s.
+	Advances sv to the first non-digit.
+	Returns std::optional style via bool success + out value.
+	===============
+	*/
+	static bool ParseOctet(std::string_view& sv, uint8_t& out) noexcept
+	{
+		if (sv.empty() || !IsDigit(sv.front()))
+			return false;
+
+		unsigned value = 0;
+		size_t i = 0;
+		while (i < sv.size() && IsDigit(sv[i]) && value <= 255u) {
+			value = (value * 10u) + static_cast<unsigned>(sv[i] - '0');
+			++i;
+		}
+
+		if (value > 255u)
+			return false;
+
+		out = static_cast<uint8_t>(value);
+		sv.remove_prefix(i);
+		return true;
+	}
+
+	/*
+	===============
+	StringToFilter
+
+	Parses an IP mask string into an IPFilter.
+	Behavior matches classic Quake II semantics:
+	- Dotted quad with optional trailing segments.
+	- Any segment set to 0 acts as a wildcard (mask 0).
+	Examples:
+	  "192.168.1.15"  => exact host
+	  "192.168.0.0"   => wildcard last two (class C style)
+	  "10"            => wildcard last three
+	===============
+	*/
+	static bool StringToFilter(std::string_view s, IPFilter& out)
+	{
+		std::array<uint8_t, 4> b{ 0, 0, 0, 0 };
+		std::array<uint8_t, 4> m{ 0, 0, 0, 0 };
+
+		for (int seg = 0; seg < 4; ++seg) {
+			// empty segment list: stop early (remaining stay as 0/wildcards)
+			if (s.empty())
+				break;
+
+			// malformed: non-digit at start (except we allow immediate '.' to mean empty which we reject)
+			if (!IsDigit(s.front())) {
+				gi.LocClient_Print(nullptr, PRINT_HIGH, "Bad filter address: {}\n", std::string(s).c_str());
+				return false;
+			}
+
+			uint8_t oct = 0;
+			if (!ParseOctet(s, oct)) {
+				gi.LocClient_Print(nullptr, PRINT_HIGH, "Bad filter address: {}\n", std::string(s).c_str());
+				return false;
+			}
+
+			b[seg] = oct;
+			m[seg] = (oct != 0) ? 255 : 0;
+
+			// expect '.' between segments, otherwise we stop
+			if (!s.empty()) {
+				if (s.front() == '.') {
+					s.remove_prefix(1);
+					continue;
+				}
+				// allow stopping if not '.' (e.g. end or port ':' etc.)
+				break;
+			}
+		}
+
+		out.compare = b;
+		out.mask = m;
+		return true;
+	}
+
+	/*
+	===============
+	ParseFromAddress
+
+	Extract dotted IPv4 left side of "a.b.c.d[:port]" into 4 octets.
+	Silently ignores trailing ":port". Non-digit leading chars are skipped.
+	Returns true on success.
+	===============
+	*/
+	static bool ParseFromAddress(std::string_view s, std::array<uint8_t, 4>& out)
+	{
+		// Skip up to the first digit
+		while (!s.empty() && !IsDigit(s.front()))
+			s.remove_prefix(1);
+
+		std::array<uint8_t, 4> b{ 0, 0, 0, 0 };
+		int seg = 0;
+		while (!s.empty() && seg < 4) {
+			if (!IsDigit(s.front()))
+				break;
+
+			uint8_t oct = 0;
+			if (!ParseOctet(s, oct))
+				return false;
+
+			b[seg++] = oct;
+
+			if (!s.empty() && s.front() == '.') {
+				s.remove_prefix(1);
+				continue;
+			}
+			break;
+		}
+
+		if (seg == 0)
+			return false;
+
+		out = b;
+		return true;
+	}
+
+	/*
+	===============
+	Matches
+	===============
+	*/
+	static bool Matches(const IPFilter& f, const std::array<uint8_t, 4>& in) noexcept
+	{
+		for (int i = 0; i < 4; ++i) {
+			if ((in[i] & f.mask[i]) != f.compare[i])
+				return false;
+		}
+		return true;
+	}
+
+	/*
+	===============
+	PrintIP
+	===============
+	*/
+	static void PrintIP(const std::array<uint8_t, 4>& b)
+	{
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}.{}.{}.{}\n",
+			static_cast<int>(b[0]),
+			static_cast<int>(b[1]),
+			static_cast<int>(b[2]),
+			static_cast<int>(b[3]));
+	}
+
+	/*
+	===============
+	Svcmd_Test_f
+	===============
+	*/
+	static void Svcmd_Test_f()
+	{
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "Svcmd_Test_f()\n");
+	}
+
+	/*
+	===============
+	SVCmd_AddIP_f
+	===============
+	*/
+	static void SVCmd_AddIP_f()
+	{
+		if (gi.argc() < 3) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Usage: sv {} <ip-mask>\n", gi.argv(1));
+			return;
+		}
+
+		if (g_filters.size() >= MAX_IPFILTERS) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "IP filter list is full\n");
+			return;
+		}
+
+		IPFilter f{};
+		if (!StringToFilter(gi.argv(2), f))
+			return;
+
+		// If identical exists, do not duplicate.
+		auto it = std::find_if(g_filters.begin(), g_filters.end(),
+			[&](const IPFilter& x)
+			{
+				return x.compare == f.compare && x.mask == f.mask;
+			});
+		if (it == g_filters.end()) {
+			g_filters.emplace_back(f);
+		}
+	}
+
+	/*
+	===============
+	SVCmd_RemoveIP_f
+	===============
+	*/
+	static void SVCmd_RemoveIP_f()
+	{
+		if (gi.argc() < 3) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Usage: sv {} <ip-mask>\n", gi.argv(1));
+			return;
+		}
+
+		IPFilter f{};
+		if (!StringToFilter(gi.argv(2), f))
+			return;
+
+		const auto oldSize = g_filters.size();
+		g_filters.erase(std::remove_if(g_filters.begin(), g_filters.end(),
+			[&](const IPFilter& x)
+			{
+				return x.mask == f.mask && x.compare == f.compare;
+			}),
+			g_filters.end());
+
+		if (g_filters.size() != oldSize) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Removed.\n");
+		}
+		else {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Did not find {}.\n", gi.argv(2));
+		}
+	}
+
+	/*
+	===============
+	SVCmd_ListIP_f
+	===============
+	*/
+	static void SVCmd_ListIP_f()
+	{
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "Filter list:\n");
+		for (const auto& f : g_filters) {
+			PrintIP(f.compare);
+		}
+	}
+
+	/*
+	===============
+	SVCmd_WriteIP_f
+
+	Note: Original implementation wrote list to listip.cfg.
+	Left as a no-op unless file I/O helpers are provided.
+	===============
+	*/
+	static void SVCmd_WriteIP_f()
+	{
+		// Intentionally left inert until file IO helper is available.
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "writeip not implemented.\n");
+	}
+
+	/*
+	===============
+	SVCmd_NextMap_f
+	===============
+	*/
+	static void SVCmd_NextMap_f()
+	{
+		gi.LocBroadcast_Print(PRINT_HIGH, "$g_map_ended_by_server");
+		Match_End();
+	}
+
+} // anonymous namespace
 
 /*
 ===============
 G_FilterPacket
 
 Determines whether a given IP address should be blocked.
+Respects filterBan:
+- filterBan = 1 (default): matching IPs are rejected
+- filterBan = 0: ONLY matching IPs are accepted
 ===============
 */
-bool G_FilterPacket(const char* from) {
-	if (!from)
+bool G_FilterPacket(const char* from)
+{
+	if (!from || !*from)
 		return false;
 
-	std::array<uint8_t, 4> m{};
-	int segment = 0;
-	const char* p = from;
+	std::array<uint8_t, 4> in{};
+	if (!ParseFromAddress(std::string_view{ from }, in))
+		return false;
 
-	while (*p && segment < 4) {
-		if (*p < '0' || *p > '9') {
-			if (*p == ':' || *p == '\0')
-				break;
-			++p;
-			continue;
-		}
+	const bool anyMatch = std::any_of(g_filters.begin(), g_filters.end(),
+		[&](const IPFilter& f) { return Matches(f, in); });
 
-		uint8_t value = 0;
-		while (*p >= '0' && *p <= '9') {
-			value = value * 10 + static_cast<uint8_t>(*p - '0');
-			++p;
-		}
-
-		m[segment++] = value;
-
-		if (*p == '.')
-			++p;
-		else
-			break;
-	}
-
-	uint32_t in = 0;
-	std::memcpy(&in, m.data(), sizeof(uint32_t));
-
-	for (int i = 0; i < numipfilters; ++i) {
-		if ((in & ipfilters[i].mask) == ipfilters[i].compare)
-			return filterBan->integer != 0;
-	}
-
-	return filterBan->integer == 0;
-}
-
-/*
-=================
-SVCmd_AddIP_f
-=================
-*/
-static void SVCmd_AddIP_f() {
-	int i;
-
-	if (gi.argc() < 3) {
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "Usage: sv {} <ip-mask>\n", gi.argv(1));
-		return;
-	}
-
-	for (i = 0; i < numipfilters; i++)
-		if (ipfilters[i].compare == 0xffffffff)
-			break; // free spot
-	if (i == numipfilters) {
-		if (numipfilters == MAX_IPFILTERS) {
-			gi.LocClient_Print(nullptr, PRINT_HIGH, "IP filter list is full\n");
-			return;
-		}
-		numipfilters++;
-	}
-
-	if (!StringToFilter(gi.argv(2), &ipfilters[i]))
-		ipfilters[i].compare = 0xffffffff;
-}
-
-/*
-=================
-G_RemoveIP_f
-=================
-*/
-static void SVCmd_RemoveIP_f() {
-	ipFilter_t f;
-	int		   i, j;
-
-	if (gi.argc() < 3) {
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "Usage: sv {} <ip-mask>\n", gi.argv(1));
-		return;
-	}
-
-	if (!StringToFilter(gi.argv(2), &f))
-		return;
-
-	for (i = 0; i < numipfilters; i++)
-		if (ipfilters[i].mask == f.mask && ipfilters[i].compare == f.compare) {
-			for (j = i + 1; j < numipfilters; j++)
-				ipfilters[j - 1] = ipfilters[j];
-			numipfilters--;
-			gi.LocClient_Print(nullptr, PRINT_HIGH, "Removed.\n");
-			return;
-		}
-	gi.LocClient_Print(nullptr, PRINT_HIGH, "Didn't find {}.\n", gi.argv(2));
-}
-
-/*
-===============
-SVCmd_ListIP_f
-
-Prints all active IP filter entries.
-===============
-*/
-static void SVCmd_ListIP_f() {
-	gi.LocClient_Print(nullptr, PRINT_HIGH, "Filter list:\n");
-
-	for (int i = 0; i < numipfilters; ++i) {
-		const uint32_t ip = ipfilters[i].compare;
-		const uint8_t b0 = static_cast<uint8_t>(ip & 0xFF);
-		const uint8_t b1 = static_cast<uint8_t>((ip >> 8) & 0xFF);
-		const uint8_t b2 = static_cast<uint8_t>((ip >> 16) & 0xFF);
-		const uint8_t b3 = static_cast<uint8_t>((ip >> 24) & 0xFF);
-
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}.{}.{}.{}\n", b0, b1, b2, b3);
-	}
-}
-
-// [Paril-KEX]
-static void SVCmd_NextMap_f() {
-	gi.LocBroadcast_Print(PRINT_HIGH, "$g_map_ended_by_server");
-	Match_End();
-}
-
-/*
-=================
-G_WriteIP_f
-=================
-*/
-static void SVCmd_WriteIP_f(void) {
-	// KEX_FIXME: Sys_FOpen isn't available atm, just commenting this out since i don't think we even need this functionality - sponge
-	/*
-	FILE* f;
-
-	byte	b[4];
-	int		i;
-	cvar_t* game;
-
-	game = gi.cvar("game", "", 0);
-
-	std::string name;
-	if (!*game->string)
-		name = GAMEVERSION + "/listip.cfg";
+	// If filterBan==1, a match means block; if ==0, a match means allow-only
+	if (filterBan && filterBan->integer != 0)
+		return anyMatch;      // match => blocked
 	else
-		name = std::string(game->string) + "/listip.cfg";
-
-	gi.LocClient_Print(nullptr, PRINT_HIGH, "Writing {}.\n", name.c_str());
-
-	f = Sys_FOpen(name.c_str(), "wb");
-	if (!f)
-	{
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "Couldn't open {}\n", name.c_str());
-		return;
-	}
-
-	fprintf(f, "set filterBan %d\n", filterBan->integer);
-
-	for (i = 0; i < numipfilters; i++)
-	{
-		*(unsigned*)b = ipfilters[i].compare;
-		fprintf(f, "sv addip %i.%i.%i.%i\n", b[0], b[1], b[2], b[3]);
-	}
-
-	fclose(f);
-	*/
+		return !anyMatch;     // no match => blocked
 }
 
 /*
-=================
+===============
 ServerCommand
 
-ServerCommand will be called when an "sv" command is issued.
-The game can issue gi.argc() / gi.argv() commands to get the rest
-of the parameters
-=================
+Dispatch "sv" commands
+===============
 */
-void ServerCommand() {
+void ServerCommand()
+{
 	const char* cmd = gi.argv(1);
+	if (!cmd || !*cmd) {
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "No server command provided.\n");
+		return;
+	}
 
-	if (Q_strcasecmp(cmd, "test") == 0)
+	if (Q_strcasecmp(cmd, "test") == 0) {
 		Svcmd_Test_f();
-	else if (Q_strcasecmp(cmd, "addip") == 0)
+	}
+	else if (Q_strcasecmp(cmd, "addip") == 0) {
 		SVCmd_AddIP_f();
-	else if (Q_strcasecmp(cmd, "removeip") == 0)
+	}
+	else if (Q_strcasecmp(cmd, "removeip") == 0) {
 		SVCmd_RemoveIP_f();
-	else if (Q_strcasecmp(cmd, "listip") == 0)
+	}
+	else if (Q_strcasecmp(cmd, "listip") == 0) {
 		SVCmd_ListIP_f();
-	else if (Q_strcasecmp(cmd, "writeip") == 0)
+	}
+	else if (Q_strcasecmp(cmd, "writeip") == 0) {
 		SVCmd_WriteIP_f();
-	else if (Q_strcasecmp(cmd, "nextmap") == 0)
+	}
+	else if (Q_strcasecmp(cmd, "nextmap") == 0) {
 		SVCmd_NextMap_f();
-	else
+	}
+	else {
 		gi.LocClient_Print(nullptr, PRINT_HIGH, "Unknown server command \"{}\"\n", cmd);
+	}
 }
+
+/*
+===============
+Notes
+
+- Endian safety: we compare per-octet with masks, avoiding memcpy to uint32_t.
+- Wildcard semantics: identical to legacy code; an octet value of 0 becomes mask 0.
+- Capacity: up to MAX_IPFILTERS entries, de-duplicates identical filters.
+- I/O: writeip is a stub until file helpers are available (Sys_FOpen etc.).
+- Threading: expects main thread usage like original.
+*/

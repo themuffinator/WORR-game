@@ -19,9 +19,38 @@
 //   damage falloff and checking line-of-sight to affected entities.
 
 #include "g_local.hpp"
-#include "freezetag_damage.hpp"
 
 #include <cassert>
+
+struct FreezeTagDamageQuery {
+	bool freezeTagActive = false;
+	bool targetEliminated = false;
+	bool targetThawing = false;
+	bool attackerHasClient = false;
+	bool modIsThaw = false;
+};
+
+inline bool FreezeTag_ShouldSuppressDamage(const FreezeTagDamageQuery& query) {
+	if (!query.freezeTagActive)
+		return false;
+	if (!query.targetEliminated)
+		return false;
+	if (query.targetThawing)
+		return false;
+	if (query.modIsThaw)
+		return false;
+	if (!query.attackerHasClient)
+		return false;
+	return true;
+}
+
+inline int FreezeTag_ClampDamage(const FreezeTagDamageQuery& query, int take) {
+	if (take <= 0)
+		return 0;
+	return FreezeTag_ShouldSuppressDamage(query) ? 0 : take;
+}
+
+
 
 /*
 ============
@@ -217,7 +246,7 @@ static int CheckPowerArmor(gentity_t* ent, const Vector3& point, const Vector3& 
 	power_used = std::max(damagePerCell, std::max(1, power_used));
 
 	SpawnDamage(TE_SCREEN_SPARKS, point, normal, save);
-	ent->powerarmor_time = level.time + 200_ms;
+	ent->powerArmorTime = level.time + 200_ms;
 
 	*power = std::max(0, *power - power_used);
 
@@ -734,51 +763,51 @@ static bool ApplyDamage(
 }
 
 static void CheckDamageProtection(
-        gentity_t* targ,
-        gclient_t* targCl,
-        const gentity_t* attacker,
-        int& take,
-        int& save,
-        int damage,
-        DamageFlags dFlags,
-        const Vector3& point,
-        const Vector3& normal,
-        const MeansOfDeath& mod,
-        int tempEvent)
+	gentity_t* targ,
+	gclient_t* targCl,
+	const gentity_t* attacker,
+	int& take,
+	int& save,
+	int damage,
+	DamageFlags dFlags,
+	const Vector3& point,
+	const Vector3& normal,
+	const MeansOfDeath& mod,
+	int tempEvent)
 {
-        DamageProtectionContext ctx{};
-        ctx.hasClient = (targCl != nullptr);
-        ctx.combatDisabled = CombatIsDisabled();
-        ctx.proBall = Game::Is(GameType::ProBall);
-        ctx.selfDamageDisabled = !g_selfDamage->integer;
-        ctx.isSelfDamage = (attacker != nullptr) && (targ == attacker);
-        ctx.hasBattleSuit = (targCl && targCl->powerupTime.battleSuit > level.time);
-        ctx.isRadiusDamage = static_cast<int>(dFlags & DamageFlags::Radius);
-        ctx.hasGodMode = (targ->flags & FL_GODMODE);
-        ctx.isMonster = (targ->svFlags & SVF_MONSTER);
-        ctx.monsterInvincibilityTime = targ->monsterInfo.invincibility_time;
-        ctx.painDebounceTime = targ->pain_debounce_time;
-        ctx.levelTime = level.time;
+	DamageProtectionContext ctx{};
+	ctx.hasClient = (targCl != nullptr);
+	ctx.combatDisabled = CombatIsDisabled();
+	ctx.proBall = Game::Is(GameType::ProBall);
+	ctx.selfDamageDisabled = !g_selfDamage->integer;
+	ctx.isSelfDamage = (attacker != nullptr) && (targ == attacker);
+	ctx.hasBattleSuit = (targCl && targCl->powerupTime.battleSuit > level.time);
+	ctx.isRadiusDamage = static_cast<int>(dFlags & DamageFlags::Radius);
+	ctx.hasGodMode = (targ->flags & FL_GODMODE);
+	ctx.isMonster = (targ->svFlags & SVF_MONSTER);
+	ctx.monsterInvincibilityTime = targ->monsterInfo.invincibility_time;
+	ctx.painDebounceTime = targ->pain_debounce_time;
+	ctx.levelTime = level.time;
 
-        (void)point;
-        (void)normal;
-        (void)tempEvent;
+	(void)point;
+	(void)normal;
+	(void)tempEvent;
 
-        DamageProtectionResult protection = EvaluateDamageProtection(ctx, dFlags, mod);
-        if (!protection.prevented)
-                return;
+	DamageProtectionResult protection = EvaluateDamageProtection(ctx, dFlags, mod);
+	if (!protection.prevented)
+		return;
 
-        if (protection.playBattleSuitSound) {
-                gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
-        }
+	if (protection.playBattleSuitSound) {
+		gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
+	}
 
-        if (protection.playMonsterSound) {
-                gi.sound(targ, CHAN_ITEM, gi.soundIndex("items/protect4.wav"), 1, ATTN_NORM, 0);
-                targ->pain_debounce_time = protection.newPainDebounceTime;
-        }
+	if (protection.playMonsterSound) {
+		gi.sound(targ, CHAN_ITEM, gi.soundIndex("items/protect4.wav"), 1, ATTN_NORM, 0);
+		targ->pain_debounce_time = protection.newPainDebounceTime;
+	}
 
-        take = 0;
-        save = damage;
+	take = 0;
+	save = damage;
 }
 
 /*
@@ -820,19 +849,19 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	}
 
 	// global damage scale
-        const float scaleValue = (targ->svFlags & SVF_MONSTER) ? ai_damage_scale->value : g_damage_scale->value;
-        const float clampedScale = std::max(0.0f, scaleValue);
-        const float baseDamage = std::max(0.0f, static_cast<float>(damage));
-        const float scaledDamage = baseDamage * clampedScale;
-        const bool  hadPositiveScaledDamage = scaledDamage > 0.0f;
+	const float scaleValue = (targ->svFlags & SVF_MONSTER) ? ai_damage_scale->value : g_damage_scale->value;
+	const float clampedScale = std::max(0.0f, scaleValue);
+	const float baseDamage = std::max(0.0f, static_cast<float>(damage));
+	const float scaledDamage = baseDamage * clampedScale;
+	const bool  hadPositiveScaledDamage = scaledDamage > 0.0f;
 
 #ifndef NDEBUG
-        zeroDamageScaleActive = (clampedScale == 0.0f) && (baseDamage > 0.0f);
+	zeroDamageScaleActive = (clampedScale == 0.0f) && (baseDamage > 0.0f);
 #endif
 
-        damage = static_cast<int>(scaledDamage);
-        if (hadPositiveScaledDamage && damage <= 0)
-                damage = 1;
+	damage = static_cast<int>(scaledDamage);
+	if (hadPositiveScaledDamage && damage <= 0)
+		damage = 1;
 
 	// defender sphere halves damage
 	if (damage > 0 && targCl && targCl->ownedSphere && (targCl->ownedSphere->spawnFlags == SF_SPHERE_DEFENDER)) {
@@ -869,11 +898,11 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	ApplyKnockback(targ, attacker, dir, knockback, dFlags);
 
 	// always give half damage if hurting self (after knockback calc)
-        if (targ == attacker && damage > 0)
-                damage = std::max(1, damage / 2);
+	if (targ == attacker && damage > 0)
+		damage = std::max(1, damage / 2);
 
-        if (damage <= 0)
-                damage = 0;
+	if (damage <= 0)
+		damage = 0;
 
 	int take = damage;
 	int save = 0;

@@ -26,16 +26,16 @@
 #include <string_view>
 
 namespace {
-std::tm LocalTimeNow() {
-	const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::tm result{};
+	std::tm LocalTimeNow() {
+		const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+		std::tm result{};
 #ifdef _WIN32
-	localtime_s(&result, &now);
+		localtime_s(&result, &now);
 #else
-	localtime_r(&now, &result);
+		localtime_r(&now, &result);
 #endif
-	return result;
-}
+		return result;
+	}
 } // namespace
 
 /*
@@ -173,29 +173,29 @@ static THINK(Think_Delay) (gentity_t* ent) -> void {
 }
 
 void PrintActivationMessage(gentity_t* ent, gentity_t* activator, bool coop_global) {
-        if (!ent || !ent->message)
-                return;
+	if (!ent || !ent->message)
+		return;
 
-        if (!activator) {
-                gi.Com_PrintFmt("{}: activation message suppressed (no activator).\n", __FUNCTION__);
-                return;
-        }
+	if (!activator) {
+		gi.Com_PrintFmt("{}: activation message suppressed (no activator).\n", __FUNCTION__);
+		return;
+	}
 
-        if (activator->svFlags & SVF_MONSTER)
-                return;
+	if (activator->svFlags & SVF_MONSTER)
+		return;
 
-        if (coop_global && coop->integer)
-                gi.LocBroadcast_Print(PRINT_CENTER, "{}", ent->message);
-        else
-                gi.LocCenter_Print(activator, "{}", ent->message);
+	if (coop_global && coop->integer)
+		gi.LocBroadcast_Print(PRINT_CENTER, "{}", ent->message);
+	else
+		gi.LocCenter_Print(activator, "{}", ent->message);
 
-        // [Paril-KEX] allow non-noisy centerprints
-        if (ent->noiseIndex >= 0) {
-                if (ent->noiseIndex)
-                        gi.sound(activator, CHAN_AUTO, ent->noiseIndex, 1, ATTN_NORM, 0);
-                else
-                        gi.sound(activator, CHAN_AUTO, gi.soundIndex("misc/talk1.wav"), 1, ATTN_NORM, 0);
-        }
+	// [Paril-KEX] allow non-noisy centerprints
+	if (ent->noiseIndex >= 0) {
+		if (ent->noiseIndex)
+			gi.sound(activator, CHAN_AUTO, ent->noiseIndex, 1, ATTN_NORM, 0);
+		else
+			gi.sound(activator, CHAN_AUTO, gi.soundIndex("misc/talk1.wav"), 1, ATTN_NORM, 0);
+	}
 }
 
 void BroadcastFriendlyMessage(Team team, const char* msg) {
@@ -1325,18 +1325,18 @@ ClientEntFromString
 =================
 */
 gentity_t* ClientEntFromString(const char* in) {
-        if (!in)
-                return nullptr;
+	if (!in)
+		return nullptr;
 
-        // check by nick first
-        if (*in != '\0') {
-                for (auto ec : active_clients())
-                        if (!strcmp(in, ec->client->sess.netName))
-                                return ec;
-        }
+	// check by nick first
+	if (*in != '\0') {
+		for (auto ec : active_clients())
+			if (!strcmp(in, ec->client->sess.netName))
+				return ec;
+	}
 
-        // otherwise check client num
-        uint32_t num = strtoul(in, nullptr, 10);
+	// otherwise check client num
+	uint32_t num = strtoul(in, nullptr, 10);
 	if (num >= 0 && num < game.maxClients)
 		return &g_entities[&game.clients[num] - game.clients + 1];
 
@@ -1377,10 +1377,10 @@ AnnouncerSound
 ===============
 */
 void AnnouncerSound(gentity_t* announcer, std::string_view soundKey) {
-        if (soundKey.empty()) return;
+	if (soundKey.empty()) return;
 
-        if (!deathmatch || !deathmatch->integer)
-                return;
+	if (!deathmatch || !deathmatch->integer)
+		return;
 
 	const std::string path = G_Fmt("vo/{}.wav", soundKey).data();
 	const int idx = gi.soundIndex(path.c_str());
@@ -1915,7 +1915,7 @@ Weapon GetWeaponIndexByAbbrev(const std::string& abbr) {
 	std::string query = abbr;
 	std::transform(query.begin(), query.end(), query.begin(), [](unsigned char ch) {
 		return static_cast<char>(std::toupper(ch));
-	});
+		});
 
 	for (int i = 0; i < weaponAbbreviations.size(); ++i) {
 		if (weaponAbbreviations[i] == query)
@@ -2034,7 +2034,7 @@ int TeamBalance(bool force) {
 	for (auto ec : active_clients()) {
 		if (ec->client->sess.team != stack_team)
 			continue;
-                index[count] = ec->client - game.clients;
+		index[count] = ec->client - game.clients;
 		count++;
 	}
 	// sort client num list by join time

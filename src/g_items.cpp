@@ -3760,10 +3760,9 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 
 	// Powerups in deathmatch spawn with a delay
 	if (deathmatch->integer && (ent->item->flags & IF_POWERUP)) {
-		const int32_t delay = irandom(30, 60);
 		ent->svFlags |= SVF_NOCLIENT;
 		ent->solid = SOLID_NOT;
-		ent->nextThink = level.time + GameTime::from_sec(delay);
+		ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
 		ent->think = RespawnItem;
 		return;
 	}

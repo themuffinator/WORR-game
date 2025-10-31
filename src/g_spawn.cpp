@@ -26,13 +26,13 @@
 #include <algorithm>	// for std::fill
 
 struct spawn_t {
-        const char* name;
-        void (*spawn)(gentity_t* ent);
+	const char* name;
+	void (*spawn)(gentity_t* ent);
 };
 
 const spawn_temp_t& ED_GetSpawnTemp()
 {
-        return st;
+	return st;
 }
 
 void SP_ambient_suck_wind(gentity_t* ent);
@@ -514,8 +514,8 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_tank", SP_monster_tank },
 	{ "monster_tank_commander", SP_monster_tank },
 	{ "monster_medic", SP_monster_medic },
-        { "monster_flipper", SP_monster_flipper },
-        { "monster_eel", SP_monster_eel },
+	{ "monster_flipper", SP_monster_flipper },
+	{ "monster_eel", SP_monster_eel },
 	{ "monster_chick", SP_monster_chick },
 	{ "monster_parasite", SP_monster_parasite },
 	{ "monster_flyer", SP_monster_flyer },
@@ -561,9 +561,9 @@ static const std::initializer_list<spawn_t> spawns = {
 
 	{ "monster_shambler", SP_monster_shambler },
 	{ "monster_dog", SP_monster_dog },
-        { "monster_ogre", SP_monster_ogre },
-        { "monster_ogre_marksman", SP_monster_ogre_marksman },
-        { "monster_ogre_multigrenade", SP_monster_ogre_multigrenade },
+	{ "monster_ogre", SP_monster_ogre },
+	{ "monster_ogre_marksman", SP_monster_ogre_marksman },
+	{ "monster_ogre_multigrenade", SP_monster_ogre_multigrenade },
 	{ "monster_fish", SP_monster_fish },
 	{ "monster_army", SP_monster_army },
 	{ "monster_centroid", SP_monster_centroid },
@@ -580,15 +580,15 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "monster_knight", SP_monster_knight },
 	{ "monster_sword", SP_monster_sword },
 	{ "monster_hell_knight", SP_monster_hell_knight },
-        { "monster_wizard", SP_monster_wizard },
-        { "monster_oldone", SP_monster_oldone },
-        { "monster_chthon", SP_monster_chthon },
-        { "monster_dragon", SP_monster_dragon },
-        { "monster_lavaman", SP_monster_lavaman },
-        { "monster_boss", SP_monster_boss },
-        { "monster_wyvern", SP_monster_wyvern },
+	{ "monster_wizard", SP_monster_wizard },
+	{ "monster_oldone", SP_monster_oldone },
+	{ "monster_chthon", SP_monster_chthon },
+	{ "monster_dragon", SP_monster_dragon },
+	{ "monster_lavaman", SP_monster_lavaman },
+	{ "monster_boss", SP_monster_boss },
+	{ "monster_wyvern", SP_monster_wyvern },
 
-        { "target_chthon_lightning", SP_target_chthon_lightning }
+	{ "target_chthon_lightning", SP_target_chthon_lightning }
 };
 // clang-format on
 
@@ -701,7 +701,7 @@ void ED_CallSpawn(gentity_t* ent) {
 	SpawnEnt_MapFixes(ent);
 
 	// check item spawn functions
-	for (size_t index = IT_NULL + 1; index < itemList.size(); ++index) {
+	for (size_t index = static_cast<size_t>(IT_NULL + 1); index < itemList.size(); ++index) {
 		Item* item = &itemList[index];
 		if (!item->className)
 			continue;
@@ -1154,7 +1154,7 @@ Takes a key/value pair and sets the binary values
 in an entity
 ===============
 */
-void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
+static void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
 
 	// check st first
 	for (auto& f : temp_fields) {
@@ -1454,25 +1454,69 @@ void PrecacheInventoryItems() {
 }
 
 static void PrecacheStartItems() {
-	if (!*g_start_items->string)
+	const char* raw = g_start_items && g_start_items->string ? g_start_items->string : "";
+	if (*raw == '\0') {
 		return;
+	}
 
-	char token_copy[MAX_TOKEN_CHARS];
-	const char* token;
-	const char* ptr = g_start_items->string;
+	using std::string;
+	using std::string_view;
 
-	while (*(token = COM_ParseEx(&ptr, ";"))) {
-		Q_strlcpy(token_copy, token, sizeof(token_copy));
-		const char* ptr_copy = token_copy;
+	auto ltrim = [](string_view sv) -> string_view {
+		size_t i = 0;
+		while (i < sv.size() && (sv[i] == ' ' || sv[i] == '\t' || sv[i] == '\r' || sv[i] == '\n')) { ++i; }
+		return sv.substr(i);
+		};
+	auto rtrim = [](string_view sv) -> string_view {
+		size_t i = sv.size();
+		while (i > 0) {
+			char c = sv[i - 1];
+			if (c == ' ' || c == '\t' || c == '\r' || c == '\n') { --i; }
+			else { break; }
+		}
+		return sv.substr(0, i);
+		};
+	auto trim = [&](string_view sv) -> string_view { return rtrim(ltrim(sv)); };
 
-		const char* item_name = COM_Parse(&ptr_copy);
-		Item* item = FindItemByClassname(item_name);
+	auto next_token_ws = [](string_view sv) -> std::pair<string_view, string_view> {
+		// split on ASCII whitespace
+		size_t i = 0;
+		while (i < sv.size() && sv[i] != ' ' && sv[i] != '\t' && sv[i] != '\r' && sv[i] != '\n') { ++i; }
+		string_view head = sv.substr(0, i);
+		// skip whitespace to remainder
+		while (i < sv.size() && (sv[i] == ' ' || sv[i] == '\t' || sv[i] == '\r' || sv[i] == '\n')) { ++i; }
+		return { head, sv.substr(i) };
+		};
 
-		if (!item || !item->pickup)
-			gi.Com_ErrorFmt("Invalid g_start_item entry: {}\n", item_name);
+	string_view all{ raw };
+	// Walk semicolon-separated entries
+	while (!all.empty()) {
+		// Find next ';'
+		size_t pos = all.find(';');
+		string_view entry = pos == string_view::npos ? all : all.substr(0, pos);
+		all = pos == string_view::npos ? string_view{} : all.substr(pos + 1);
 
-		if (*ptr_copy)
-			COM_Parse(&ptr_copy);
+		entry = trim(entry);
+		if (entry.empty()) {
+			continue;
+		}
+
+		// First token is the item classname; ignore any extra fields
+		auto split = next_token_ws(entry);
+		string_view item_sv = trim(split.first);
+		if (item_sv.empty()) {
+			continue;
+		}
+
+		// Ensure null-terminated for legacy APIs
+		string item_name{ item_sv };
+
+		Item* item = FindItemByClassname(item_name.c_str());
+		if (!item || !item->pickup) {
+			gi.Com_ErrorFmt("Invalid g_start_item entry: {}\n", item_name.c_str());
+			// Com_ErrorFmt should not return, but guard just in case
+			continue;
+		}
 
 		PrecacheItem(item);
 	}
@@ -1686,25 +1730,6 @@ static void PrecacheForRandomRespawn() {
 
 /*
 ==============
-ClearWorldEntities
-==============
-*/
-void ClearWorldEntities() {
-	gentity_t* ent = nullptr;
-	//memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
-
-	for (size_t i = MAX_CLIENTS; i < game.maxEntities; i++) {
-		ent = &g_entities[i];
-
-		if (!ent || !ent->inUse || ent->client)
-			continue;
-
-		memset(&g_entities[i], 0, sizeof(g_entities[i]));
-	}
-}
-
-/*
-==============
 MapPostProcess
 ==============
 */
@@ -1774,19 +1799,19 @@ parsing textual entity definitions out of an ent file.
 ===============
 */
 void SpawnEntities(const char* mapName, const char* entities, const char* spawnPoint) {
-    if (entities && *entities) {
-        entities = TryLoadEntityOverride(mapName, entities);
-        level.savedEntityString.assign(entities);
-    }
-    else {
-        if (g_verbose->integer) {
-            gi.Com_PrintFmt("{}: Empty entity string for map \"{}\".\n", __FUNCTION__, mapName);
-        }
+	if (entities && *entities) {
+		entities = TryLoadEntityOverride(mapName, entities);
+		level.savedEntityString.assign(entities);
+	}
+	else {
+		if (g_verbose->integer) {
+			gi.Com_PrintFmt("{}: Empty entity string for map \"{}\".\n", __FUNCTION__, mapName);
+		}
 
-        level.savedEntityString.clear();
-        static const char emptyEntityString[] = "";
-        entities = emptyEntityString;
-    }
+		level.savedEntityString.clear();
+		static const char emptyEntityString[] = "";
+		entities = emptyEntityString;
+	}
 
 	// Clamp skill level to valid range [0, 4]
 	const int skillLevel = std::clamp(skill->integer, 0, 4);
@@ -1801,8 +1826,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	// Reset all persistent game state
 	SaveClientData();
 	gi.FreeTags(TAG_LEVEL);
-        level = LevelLocals{};
-        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+	level = LevelLocals{};
+	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
 	globals.serverFlags &= SERVER_FLAG_LOADING;
@@ -1898,12 +1923,12 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 
 
 bool G_ResetWorldEntitiesFromSavedString() {
-        if (level.savedEntityString.empty())
-                return false;
+	if (level.savedEntityString.empty())
+		return false;
 
-        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 
-        for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
+	for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
 		gentity_t* ent = &g_entities[i];
 		if (!ent->inUse)
 			continue;
@@ -1966,37 +1991,37 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
-        if (inhibited > 0 && g_verbose->integer) {
-                gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-        }
+	if (inhibited > 0 && g_verbose->integer) {
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+	}
 
-        PrecacheStartItems();
-        PrecacheInventoryItems();
-        G_FindTeams();
-        QuadHog_SetupSpawn(5_sec);
-        Tech_SetupSpawn();
+	PrecacheStartItems();
+	PrecacheInventoryItems();
+	G_FindTeams();
+	QuadHog_SetupSpawn(5_sec);
+	Tech_SetupSpawn();
 
-        if (deathmatch->integer) {
-                if (g_dm_random_items->integer) {
-                        PrecacheForRandomRespawn();
-                }
-                game.item_inhibit_pu = 0;
-                game.item_inhibit_pa = 0;
-                game.item_inhibit_ht = 0;
-                game.item_inhibit_ar = 0;
-                game.item_inhibit_am = 0;
-                game.item_inhibit_wp = 0;
-        }
-        else {
-                InitHintPaths();
-        }
+	if (deathmatch->integer) {
+		if (g_dm_random_items->integer) {
+			PrecacheForRandomRespawn();
+		}
+		game.item_inhibit_pu = 0;
+		game.item_inhibit_pa = 0;
+		game.item_inhibit_ht = 0;
+		game.item_inhibit_ar = 0;
+		game.item_inhibit_am = 0;
+		game.item_inhibit_wp = 0;
+	}
+	else {
+		InitHintPaths();
+	}
 
-        G_LocateSpawnSpots();
-        setup_shadow_lights();
+	G_LocateSpawnSpots();
+	setup_shadow_lights();
 
-        level.init = true;
+	level.init = true;
 
-        return true;
+	return true;
 }
 
 //===================================================================

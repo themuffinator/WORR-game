@@ -1,7 +1,7 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
 
-// g_player_spawn.cpp (Game Player Spawning)
+// g_spawn_points.cpp (Game Player Spawning)
 // This file handles the logic for finding and managing player spawn points.
 // It scans the map for `info_player_*` entities at level start, categorizes
 // them by team or gametype, and provides the logic for selecting an
@@ -461,11 +461,11 @@ force_spawn bypasses the softer checks except hard solids/telefrags.
 ===============
 */
 static std::vector<gentity_t*> FilterEligibleSpawns(
-        const std::vector<gentity_t*>& spawns,
-        const Vector3& avoid_point,
-        bool force_spawn,
-        gentity_t* entForTeamLogic, // may be null
-        bool respectAvoidPoint
+	const std::vector<gentity_t*>& spawns,
+	const Vector3& avoid_point,
+	bool force_spawn,
+	gentity_t* entForTeamLogic, // may be null
+	bool respectAvoidPoint
 ) {
 	constexpr float MIN_AVOID_DIST = 192.0f;   // distance from avoid_point (e.g. last death)
 	constexpr float MIN_PLAYER_RADIUS = 160.0f;   // keep away from nearest player
@@ -482,10 +482,10 @@ static std::vector<gentity_t*> FilterEligibleSpawns(
 		if (!SpotIsSafe(s))
 			continue;
 
-                if (!force_spawn) {
-                        // Keep away from the avoid point (e.g., last death)
-                        if (respectAvoidPoint && (s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
-                                continue;
+		if (!force_spawn) {
+			// Keep away from the avoid point (e.g., last death)
+			if (respectAvoidPoint && (s->s.origin - avoid_point).length() < MIN_AVOID_DIST)
+				continue;
 
 			// No nearby mines/traps
 			if (SpawnPointHasNearbyMines(s->s.origin, MINE_RADIUS))
@@ -655,12 +655,12 @@ SelectDeathmatchSpawnPoint
 ===============
 */
 select_spawn_result_t SelectDeathmatchSpawnPoint(
-        gentity_t* ent,
-        Vector3 avoid_point,
-        bool force_spawn,
-        bool fallback_to_ctf_or_start,
-        bool intermission,
-        bool initial
+	gentity_t* ent,
+	Vector3 avoid_point,
+	bool force_spawn,
+	bool fallback_to_ctf_or_start,
+	bool intermission,
+	bool initial
 ) {
 	// Intermission: only pick the intermission camera spot
 	if (intermission) {
@@ -670,20 +670,20 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(
 		return { nullptr, SelectSpawnFlags::Fallback };
 	}
 
-        // Initial spawns: prefer INITIAL-flagged points if any exist
-        std::vector<gentity_t*> baseList = level.spawn.ffa;
-        if (initial) {
-                baseList = FilterInitialSpawns(baseList);
-        }
+	// Initial spawns: prefer INITIAL-flagged points if any exist
+	std::vector<gentity_t*> baseList = level.spawn.ffa;
+	if (initial) {
+		baseList = FilterInitialSpawns(baseList);
+	}
 
-        const bool hasAvoidPoint = static_cast<bool>(avoid_point);
+	const bool hasAvoidPoint = static_cast<bool>(avoid_point);
 
-        if (!hasAvoidPoint) {
-                std::shuffle(baseList.begin(), baseList.end(), game.mapRNG);
-        }
+	if (!hasAvoidPoint) {
+		std::shuffle(baseList.begin(), baseList.end(), game.mapRNG);
+	}
 
-        // Screen for eligibility
-        auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent, hasAvoidPoint);
+	// Screen for eligibility
+	auto eligible = FilterEligibleSpawns(baseList, avoid_point, force_spawn, ent, hasAvoidPoint);
 
 	// If none survived and fallback is allowed, try relaxed fallback set
 	if (eligible.empty() && fallback_to_ctf_or_start) {
@@ -706,7 +706,7 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(
 
 	// Final fallback: any FFA spot that is at least not embedded
 	if (eligible.empty()) {
-                auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
+		auto loose = FilterFallbackSpawns(level.spawn.ffa, avoid_point);
 		if (!loose.empty()) {
 			return { PickRandomly(loose), SelectSpawnFlags::Fallback };
 		}
@@ -839,9 +839,9 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 		return nullptr;
 
 	// Safety-screen the set
-        const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
-        const bool hasAvoidPoint = static_cast<bool>(avoid_point);
-        auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent, hasAvoidPoint);
+	const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
+	const bool hasAvoidPoint = static_cast<bool>(avoid_point);
+	auto eligible = FilterEligibleSpawns(coopSpots, avoid_point, /*force_spawn=*/false, ent, hasAvoidPoint);
 	if (eligible.empty())
 		eligible = FilterFallbackSpawns(coopSpots, avoid_point);
 
@@ -862,56 +862,56 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 }
 
 static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
-        // if transitioning from another level with a landmark seamless transition
-        // just set the location here
-        if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
-                return false;
-        }
+	// if transitioning from another level with a landmark seamless transition
+	// just set the location here
+	if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
+		return false;
+	}
 
-        gentity_t* landmark = PickTarget(ent->client->landmark_name);
-        if (!landmark) {
-                return false;
-        }
+	gentity_t* landmark = PickTarget(ent->client->landmark_name);
+	if (!landmark) {
+		return false;
+	}
 
-        Vector3 originalOrigin = origin;
-        Vector3 spot_origin = origin;
-        Vector3 originalAngles = angles;
-        origin = ent->client->landmark_rel_pos;
+	Vector3 originalOrigin = origin;
+	Vector3 spot_origin = origin;
+	Vector3 originalAngles = angles;
+	origin = ent->client->landmark_rel_pos;
 
-        // rotate our relative landmark into our new landmark's frame of reference
-        origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
-        origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
-        origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
+	// rotate our relative landmark into our new landmark's frame of reference
+	origin = RotatePointAroundVector({ 1, 0, 0 }, origin, landmark->s.angles[PITCH]);
+	origin = RotatePointAroundVector({ 0, 1, 0 }, origin, landmark->s.angles[ROLL]);
+	origin = RotatePointAroundVector({ 0, 0, 1 }, origin, landmark->s.angles[YAW]);
 
-        origin += landmark->s.origin;
+	origin += landmark->s.origin;
 
-        Vector3 destAngles = landmark->s.angles;
+	Vector3 destAngles = landmark->s.angles;
 
-        if (landmark->target) {
-                if (gentity_t* lookTarget = PickTarget(landmark->target); lookTarget && lookTarget->inUse) {
-                        Vector3 dir = lookTarget->s.origin - landmark->s.origin;
-                        if (dir.lengthSquared() > 0.0f) {
-                                destAngles = VectorToAngles(dir.normalized());
-                        }
-                }
-        }
+	if (landmark->target) {
+		if (gentity_t* lookTarget = PickTarget(landmark->target); lookTarget && lookTarget->inUse) {
+			Vector3 dir = lookTarget->s.origin - landmark->s.origin;
+			if (dir.lengthSquared() > 0.0f) {
+				destAngles = VectorToAngles(dir.normalized());
+			}
+		}
+	}
 
-        angles = destAngles;
+	angles = destAngles;
 
-        if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
-                origin[Z] = spot_origin[2];
+	if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
+		origin[Z] = spot_origin[2];
 
-        // sometimes, landmark spawns can cause slight inconsistencies in collision;
-        // we'll do a bit of tracing to make sure the bbox is clear
-        if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-                return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
-                }) == StuckResult::NoGoodPosition) {
-                origin = originalOrigin;
-                angles = originalAngles;
-                return false;
-        }
+	// sometimes, landmark spawns can cause slight inconsistencies in collision;
+	// we'll do a bit of tracing to make sure the bbox is clear
+	if (G_FixStuckObject_Generic(origin, PLAYER_MINS, PLAYER_MAXS, [ent](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+		return gi.trace(start, mins, maxs, end, ent, MASK_PLAYERSOLID & ~CONTENTS_PLAYER);
+		}) == StuckResult::NoGoodPosition) {
+		origin = originalOrigin;
+		angles = originalAngles;
+		return false;
+	}
 
-        ent->s.origin = origin;
+	ent->s.origin = origin;
 
 	// rotate the velocity that we grabbed from the map
 	if (ent->velocity) {
@@ -994,24 +994,24 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 				false
 			);
 
-                        if (!result.spot) {
-                                if (level.time <= level.entityReloadGraceUntil) {
-                                        if (g_verbose->integer) {
-                                                const GameTime remaining = level.entityReloadGraceUntil - level.time;
-                                                gi.Com_PrintFmt(
-                                                        "{}: waiting for spawn points after entity reload ({} ms remaining)\n",
-                                                        __FUNCTION__,
-                                                        remaining.milliseconds()
-                                                );
-                                        }
+			if (!result.spot) {
+				if (level.time <= level.entityReloadGraceUntil) {
+					if (g_verbose->integer) {
+						const GameTime remaining = level.entityReloadGraceUntil - level.time;
+						gi.Com_PrintFmt(
+							"{}: waiting for spawn points after entity reload ({} ms remaining)\n",
+							__FUNCTION__,
+							remaining.milliseconds()
+						);
+					}
 
-                                        return false;
-                                }
+					return false;
+				}
 
-                                gi.Com_Error("No valid spawn points found.");
-                        }
+				gi.Com_Error("No valid spawn points found.");
+			}
 
-                        spot = result.spot;
+			spot = result.spot;
 		}
 
 		if (!spot) {
@@ -1105,12 +1105,12 @@ static inline void PutClientOnSpawnPoint(gentity_t* ent, const Vector3& spawnOri
 	ent->s.angles = spawnAngles;
 	//ent->s.angles[PITCH] /= 3;		//muff: why??
 
-        cl->ps.viewAngles = ent->s.angles;
-        cl->vAngle = ent->s.angles;
+	cl->ps.viewAngles = ent->s.angles;
+	cl->vAngle = ent->s.angles;
 
-        cl->oldViewAngles = ent->s.angles;
+	cl->oldViewAngles = ent->s.angles;
 
-        AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
+	AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
 }
 
 /*
@@ -1150,15 +1150,16 @@ a deathmatch.
 ============
 */
 void ClientSpawn(gentity_t* ent) {
-	int						index = ent - g_entities - 1;
-	Vector3					spawnOrigin, spawnAngles;
 	gclient_t* cl = ent->client;
-	client_persistant_t		savedPers;
-	client_respawn_t		savedResp;
-	client_session_t		savedSess;
 
 	if (!cl)
 		return;
+
+	int					index = ent - g_entities - 1;
+	Vector3				spawnOrigin, spawnAngles;
+	client_persistant_t	savedPers;
+	client_respawn_t	savedResp;
+	client_session_t	savedSess;
 
 	cl->coopRespawnState = CoopRespawn::None;
 
@@ -1378,14 +1379,14 @@ void ClientSpawn(gentity_t* ent) {
 
 	ent->s.frame = 0;
 
-        if (!is_landmark && !cl->coopRespawn.useSquad) {
-                // When spawning at a map-defined point, ensure the saved command angles
-                // match the mapper-provided orientation so the player faces the spot's
-                // direction after transitions (e.g., coop level changes).
-                cl->resp.cmdAngles = spawnAngles;
-        }
+	if (!is_landmark && !cl->coopRespawn.useSquad) {
+		// When spawning at a map-defined point, ensure the saved command angles
+		// match the mapper-provided orientation so the player faces the spot's
+		// direction after transitions (e.g., coop level changes).
+		cl->resp.cmdAngles = spawnAngles;
+	}
 
-        PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
+	PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
 
 	// [Paril-KEX] set up world fog & send it instantly
 	ent->client->pers.wanted_fog = {
@@ -1448,11 +1449,10 @@ void ClientSpawn(gentity_t* ent) {
 
 	// my tribute to cash's level-specific hacks. I hope I live
 	// up to his trailblazing cheese.
-	if (Q_strcasecmp(level.mapName.data(), "rboss") == 0) {
+	if (!deathmatch->integer && Q_strcasecmp(level.mapName.data(), "rboss") == 0) {
 		// if you get on to rboss in single player or coop, ensure
 		// the player has the nuke key. (not in DM)
-		if (!deathmatch->integer)
-			cl->pers.inventory[IT_KEY_NUKE] = 1;
+		cl->pers.inventory[IT_KEY_NUKE] = 1;
 	}
 
 	// force the current weapon up

@@ -1533,17 +1533,17 @@ void MatchStats_End() {
 			p.playerName = cl->sess.netName;
 			p.skillRating = cl->sess.skillRating;
 			p.skillRatingChange = cl->sess.skillRatingChange;
-p.totalKills = cl->pers.match.totalKills;
-p.totalSpawnKills = cl->pers.match.totalSpawnKills;
-p.totalTeamKills = cl->pers.match.totalTeamKills;
-p.totalDeaths = cl->pers.match.totalDeaths;
-p.totalSuicides = cl->pers.match.totalSuicides;
+			p.totalKills = cl->pers.match.totalKills;
+			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
+			p.totalTeamKills = cl->pers.match.totalTeamKills;
+			p.totalDeaths = cl->pers.match.totalDeaths;
+			p.totalSuicides = cl->pers.match.totalSuicides;
 			p.calculateKDR();
 			p.totalScore = cl->resp.score;
-p.totalShots = cl->pers.match.totalShots;
-p.totalHits = cl->pers.match.totalHits;
-p.totalDmgDealt = cl->pers.match.totalDmgDealt;
-p.totalDmgReceived = cl->pers.match.totalDmgReceived;
+			p.totalShots = cl->pers.match.totalShots;
+			p.totalHits = cl->pers.match.totalHits;
+			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
+			p.totalDmgReceived = cl->pers.match.totalDmgReceived;
 
 			p.playTimeMsec = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
 			if (p.playTimeMsec > 0)
@@ -1555,8 +1555,8 @@ p.totalDmgReceived = cl->pers.match.totalDmgReceived;
 				if (index < Weapon::None || index >= Weapon::Total)
 					continue;
 
-int shots = cl->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(index)];
-int hits = cl->pers.match.totalHitsPerWeapon[static_cast<uint8_t>(index)];
+				int shots = cl->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(index)];
+				int hits = cl->pers.match.totalHitsPerWeapon[static_cast<uint8_t>(index)];
 				if (shots > 0) {
 					p.totalShotsPerWeapon[weapon] = shots;
 					p.totalHitsPerWeapon[weapon] = hits;
@@ -1571,13 +1571,13 @@ int hits = cl->pers.match.totalHitsPerWeapon[static_cast<uint8_t>(index)];
 
 			// Pickup stats
 			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
-p.pickupCounts[i] = cl->pers.match.pickupCounts[i];
+				p.pickupCounts[i] = cl->pers.match.pickupCounts[i];
 			}
 
 			// MOD stats
 			for (const auto& mod : modr) {
-int kills = cl->pers.match.modTotalKills[static_cast<int>(mod.mod)];
-int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
+				int kills = cl->pers.match.modTotalKills[static_cast<int>(mod.mod)];
+				int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
 				if (kills > 0 || deaths > 0) {
 					p.modTotalKills[mod.mod] = kills;
 					p.modTotalDeaths[mod.mod] = deaths;
@@ -1589,7 +1589,7 @@ int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
 			}
 
 			// Medals
-p.awards = cl->pers.match.medalCount;
+			p.awards = cl->pers.match.medalCount;
 
 			// Bot sanitization
 			if (cl->sess.is_a_bot) {

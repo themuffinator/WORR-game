@@ -126,8 +126,6 @@
     <ClInclude Include="command_voting_utils.hpp" />
     <ClInclude Include="game.hpp" />
     <ClInclude Include="g_local.hpp" />
-    <ClInclude Include="freezetag_damage.hpp" />
-    <ClInclude Include="match_grace_scope.hpp" />
     <ClInclude Include="match_state_utils.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
     <ClInclude Include="match_state_helper.hpp" />
@@ -207,7 +205,7 @@
     <ClCompile Include="g_ai_new.cpp" />
     <ClCompile Include="g_combat_heatmap.cpp" />
     <ClCompile Include="g_horde.cpp" />
-    <ClCompile Include="g_player_spawn.cpp" />
+    <ClCompile Include="g_spawn_points.cpp" />
     <ClCompile Include="g_spectator.cpp" />
     <ClCompile Include="g_client_cfg.cpp" />
     <ClCompile Include="g_combat.cpp" />
