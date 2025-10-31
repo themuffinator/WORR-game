@@ -6,6 +6,7 @@
 
 class Menu;
 #include "bg_local.hpp"
+#include "server/match/match.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset

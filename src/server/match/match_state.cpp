@@ -18,8 +18,7 @@
 
 #include "g_local.hpp"
 #include "command_registration.hpp"
-#include "match_state_utils.hpp"
-#include "match_state_helper.hpp"
+#include "server/match/match.hpp"
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 
@@ -584,7 +583,6 @@ Starts a match
 ============
 */
 
-extern void MatchStats_Init();
 void Match_Start() {
 	if (!deathmatch->integer)
 		return;
@@ -910,7 +908,6 @@ Match_End
 An end of match condition has been reached
 =================
 */
-extern void MatchStats_End();
 void Match_End() {
 	gentity_t* ent;
 

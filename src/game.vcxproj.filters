@@ -201,10 +201,13 @@
     <ClInclude Include="command_voting_utils.hpp">
       <Filter>commands</Filter>
     </ClInclude>
-    <ClInclude Include="match_state_helper.hpp">
+    <ClInclude Include="server\match\match_state_helper.hpp">
       <Filter>matches</Filter>
     </ClInclude>
-    <ClInclude Include="match_state_utils.hpp">
+    <ClInclude Include="server\match\match_state_utils.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
+    <ClInclude Include="server\match\match.hpp">
       <Filter>matches</Filter>
     </ClInclude>
     <ClInclude Include="cg_local.hpp">
@@ -463,10 +466,10 @@
     <ClCompile Include="command_voting.cpp">
       <Filter>commands</Filter>
     </ClCompile>
-    <ClCompile Include="match_logging.cpp">
+    <ClCompile Include="server\match\match_logging.cpp">
       <Filter>matches</Filter>
     </ClCompile>
-    <ClCompile Include="match_state.cpp">
+    <ClCompile Include="server\match\match_state.cpp">
       <Filter>matches</Filter>
     </ClCompile>
     <ClCompile Include="g_ai.cpp">

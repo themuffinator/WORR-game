@@ -504,7 +504,6 @@ only happens when a new game is started or a save game
 is loaded.
 ============
 */
-extern void GT_Init();
 static void PreInitGame() {
 	maxclients = gi.cvar("maxclients", G_Fmt("{}", MAX_SPLIT_PLAYERS).data(), CVAR_SERVERINFO | CVAR_LATCH);
 	minplayers = gi.cvar("minplayers", "2", CVAR_NOFLAGS);
@@ -1277,7 +1276,6 @@ BeginIntermission
 Initiates the intermission state and prepares for level transition.
 =============
 */
-extern void Gauntlet_MatchEnd_AdjustScores();
 void BeginIntermission(gentity_t* targ) {
 	if (level.intermission.time)
 		return; // already triggered
@@ -1438,7 +1436,6 @@ Handles transitioning to the next map or endgame sequence,
 depending on mode and configured changeMap.
 =================
 */
-extern void Gauntlet_RemoveLoser();
 void ExitLevel(bool forceImmediate) {
 	// Ensure a valid map transition is set
 	if (level.changeMap.empty()) {
@@ -1772,9 +1769,6 @@ G_RunFrame
 Advances the world by 0.1 seconds
 ================
 */
-extern void AnnounceCountdown(int t, GameTime& checkRef);
-extern void CheckVote(void);
-extern void CheckDMEndFrame();
 
 /*
 =================

@@ -126,9 +126,10 @@
     <ClInclude Include="command_voting_utils.hpp" />
     <ClInclude Include="game.hpp" />
     <ClInclude Include="g_local.hpp" />
-    <ClInclude Include="match_state_utils.hpp" />
+    <ClInclude Include="server\match\match_state_utils.hpp" />
     <ClInclude Include="g_statusbar.hpp" />
-    <ClInclude Include="match_state_helper.hpp" />
+    <ClInclude Include="server\match\match_state_helper.hpp" />
+    <ClInclude Include="server\match\match.hpp" />
     <ClInclude Include="monsters\m_actor.hpp" />
     <ClInclude Include="monsters\m_arachnid.hpp" />
     <ClInclude Include="monsters\m_berserk.hpp" />
@@ -213,10 +214,10 @@
     <ClCompile Include="g_func.cpp" />
     <ClCompile Include="g_item_list.cpp" />
     <ClCompile Include="g_items.cpp" />
-    <ClCompile Include="match_logging.cpp" />
+    <ClCompile Include="server\match\match_logging.cpp" />
     <ClCompile Include="g_main.cpp" />
     <ClCompile Include="g_map_manager.cpp" />
-    <ClCompile Include="match_state.cpp" />
+    <ClCompile Include="server\match\match_state.cpp" />
     <ClCompile Include="g_misc.cpp" />
     <ClCompile Include="g_monster.cpp" />
     <ClCompile Include="g_monster_spawn.cpp" />
