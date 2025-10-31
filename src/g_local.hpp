@@ -4267,7 +4267,7 @@ struct client_session_t {
 	int				command_flood_count = 0;
 	GameTime			command_flood_time = 0_ms;
 
-	std::vector<std::string> weaponPrefs;
+        std::vector<Weapon> weaponPrefs;
 
 };
 

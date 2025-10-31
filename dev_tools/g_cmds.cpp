@@ -19,6 +19,7 @@
 
 #include "g_local.hpp"
 #include "monsters/m_player.hpp"
+#include "weapon_pref_utils.hpp"
 /*freeze*/
 #if 0
 #include "freeze.h"
@@ -3398,17 +3399,16 @@ static void Cmd_SetWeaponPref_f(gentity_t* ent) {
 		return;
 	auto* cl = ent->client;
 	cl->sess.weaponPrefs.clear();
-	for (int i = 1; i < gi.argc(); ++i) {
-		std::string token = gi.argv(i);
-		std::transform(token.begin(), token.end(), token.begin(), ::tolower);
-		// Validate against known weapons
-		if (GetWeaponIndexByAbbrev(token) != Weapon::None) {
-			cl->sess.weaponPrefs.push_back(token);
-		}
-		else {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token.c_str());
-		}
-	}
+        for (int i = 1; i < gi.argc(); ++i) {
+                std::string token = gi.argv(i);
+                if (auto weapon = ParseWeaponAbbreviation(token)) {
+                        cl->sess.weaponPrefs.push_back(*weapon);
+                }
+                else {
+                        const std::string normalized = NormalizeWeaponAbbreviation(token);
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", normalized.c_str());
+                }
+        }
 #if 0
 	// Save it to config
 	ClientConfig_BulkUpdate(cl->sess.socialID, {
