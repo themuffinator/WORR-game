@@ -885,18 +885,10 @@ static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
 
 	origin += landmark->s.origin;
 
-	Vector3 destAngles = landmark->s.angles;
-
-	if (landmark->target) {
-		if (gentity_t* lookTarget = PickTarget(landmark->target); lookTarget && lookTarget->inUse) {
-			Vector3 dir = lookTarget->s.origin - landmark->s.origin;
-			if (dir.lengthSquared() > 0.0f) {
-				destAngles = VectorToAngles(dir.normalized());
-			}
-		}
-	}
-
-	angles = destAngles;
+	// Preserve the player's relative view when transitioning between maps.
+	// The rerelease originally summed the previous view angles with the
+	// landmark orientation to provide a seamless experience.
+	angles = ent->client->oldViewAngles + landmark->s.angles;
 
 	if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
 		origin[Z] = spot_origin[2];
@@ -1069,6 +1061,9 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 	if (TryLandmarkSpawn(ent, origin, angles)) {
 		landmark = true;
 	}
+	else {
+		angles[ROLL] = 0.0f;
+	}
 
 	return true;
 }
@@ -1202,6 +1197,7 @@ void ClientSpawn(gentity_t* ent) {
 	if (cl->coopRespawn.useSquad) {
 		spawnOrigin = cl->coopRespawn.squadOrigin;
 		spawnAngles = cl->coopRespawn.squadAngles;
+		spawnAngles[ROLL] = 0.0f;
 		valid_spawn = true;
 	}
 	else
@@ -1379,7 +1375,7 @@ void ClientSpawn(gentity_t* ent) {
 
 	ent->s.frame = 0;
 
-	if (!is_landmark && !cl->coopRespawn.useSquad) {
+	if (!is_landmark) {
 		// When spawning at a map-defined point, ensure the saved command angles
 		// match the mapper-provided orientation so the player faces the spot's
 		// direction after transitions (e.g., coop level changes).
