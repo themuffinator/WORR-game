@@ -214,13 +214,18 @@ struct PlayerStats {
 		}
 
 		json pickupsJson;
+		json pickupDelayJson;
 		for (int i = static_cast<size_t>(HighValueItems::None) + 1; i < static_cast<size_t>(HighValueItems::Total); ++i) {
 			auto item = i;
 			if (pickupCounts[item] > 0)
 				pickupsJson[HighValueItemNames[item]] = pickupCounts[item];
+			if (pickupDelays[item] > 0.0)
+				pickupDelayJson[HighValueItemNames[item]] = pickupDelays[item];
 		}
 		if (!pickupsJson.empty())
 			result["pickupCounts"] = std::move(pickupsJson);
+		if (!pickupDelayJson.empty())
+			result["pickupDelays"] = std::move(pickupDelayJson);
 
 		return result;
 	}
@@ -1594,12 +1599,21 @@ void MatchStats_End() {
 			// Pickup stats
 			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
 				p.pickupCounts[i] = cl->pers.match.pickupCounts[i];
+				p.pickupDelays[i] = cl->pers.match.pickupDelay[i].seconds<double>();
 			}
 
 			// MOD stats
 			for (const auto& mod : modr) {
 				int kills = cl->pers.match.modTotalKills[static_cast<int>(mod.mod)];
 				int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
+				int dmgDealt = cl->pers.match.modTotalDmgD[static_cast<int>(mod.mod)];
+				int dmgReceived = cl->pers.match.modTotalDmgR[static_cast<int>(mod.mod)];
+
+				if (dmgDealt > 0)
+					p.modTotalDmgD[mod.mod] = dmgDealt;
+				if (dmgReceived > 0)
+					p.modTotalDmgR[mod.mod] = dmgReceived;
+
 				if (kills > 0 || deaths > 0) {
 					p.modTotalKills[mod.mod] = kills;
 					p.modTotalDeaths[mod.mod] = deaths;
