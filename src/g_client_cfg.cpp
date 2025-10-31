@@ -22,6 +22,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include <sstream>
 #include <vector>
 #include <filesystem>
@@ -643,4 +644,23 @@ static bool ClientConfig_Update(
 		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
 		return false;
 	}
+}
+
+void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
+        if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
+                return;
+
+        Client_RebuildWeaponPreferenceOrder(cl);
+        std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
+
+        ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {
+                if (!cfg.isMember("config") || !cfg["config"].isObject())
+                        cfg["config"] = Json::Value(Json::objectValue);
+
+                Json::Value prefs(Json::arrayValue);
+                for (const auto& pref : sanitized)
+                        prefs.append(pref);
+
+                cfg["config"]["weaponPrefs"] = prefs;
+        });
 }

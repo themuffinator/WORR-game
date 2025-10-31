@@ -846,6 +846,8 @@ namespace Commands {
                                 gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", normalized.c_str());
                         }
                 }
+                Client_RebuildWeaponPreferenceOrder(ent->client);
+                ClientConfig_SaveWeaponPreferences(ent->client);
                 gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
         }
 
