@@ -412,10 +412,12 @@ void LoadMapPool(gentity_t* ent) {
 		if (entry.isMember("ruleset"))        map.suggestedRuleset = static_cast<ruleset_t>(entry["ruleset"].asInt());
 		if (entry.isMember("scorelimit"))     map.scoreLimit = entry["scorelimit"].asInt();
 		if (entry.isMember("timeLimit"))      map.timeLimit = entry["timeLimit"].asInt();
-		if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
-		if (entry.isMember("custom"))         map.isCustom = entry["custom"].asBool();
-		if (entry.isMember("custom_textures")) map.isCustom = entry["custom_textures"].asBool();
-		if (entry.isMember("custom_sounds"))   map.isCustom = entry["custom_sounds"].asBool();
+                if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
+
+                const bool isCustom = entry.get("custom", false).asBool();
+                const bool hasCustomTextures = entry.get("custom_textures", false).asBool();
+                const bool hasCustomSounds = entry.get("custom_sounds", false).asBool();
+                ApplyCustomResourceFlags(map, isCustom, hasCustomTextures, hasCustomSounds);
 
 		map.mapTypeFlags |= MAP_DM;
 		if (entry.get("sp", false).asBool())   map.mapTypeFlags |= MAP_SP;
@@ -543,14 +545,8 @@ std::optional<MapEntry> AutoSelectNextMap() {
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
 			return false;
 
-		if (avoidCustom && map.isCustom)
-			return false;
-
-		if (avoidCustomTextures && map.hasCustomTextures)
-			return false;
-
-		if (avoidCustomSounds && map.hasCustomSounds)
-			return false;
+                if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+                        return false;
 
 		return true;
 		};
@@ -573,12 +569,8 @@ std::optional<MapEntry> AutoSelectNextMap() {
 
 	if (eligible.empty()) {
 		for (const auto& map : pool) {
-			if (avoidCustom && map.isCustom)
-				continue;
-			if (avoidCustomTextures && map.hasCustomTextures)
-				continue;
-			if (avoidCustomSounds && map.hasCustomSounds)
-				continue;
+                        if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+                                continue;
 			eligible.push_back(&map);
 		}
 	}
@@ -605,10 +597,11 @@ MapSelectorVoteCandidates
 =========================
 */
 std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
-	std::vector<const MapEntry*> pool;
-	const int playerCount = level.pop.num_playing_human_clients;
-	const bool avoidCustom = (level.pop.num_console_clients > 0);
-	const bool avoidCustomTextures = !g_maps_allow_custom_textures->integer;
+        std::vector<const MapEntry*> pool;
+        const int playerCount = level.pop.num_playing_human_clients;
+        const bool avoidCustom = (level.pop.num_console_clients > 0);
+        const bool avoidCustomTextures = g_maps_allow_custom_textures && !g_maps_allow_custom_textures->integer;
+        const bool avoidCustomSounds = g_maps_allow_custom_sounds && !g_maps_allow_custom_sounds->integer;
 	int64_t now = GetCurrentRealTimeMillis();
 	bool isCTF = Game::Has(GameFlags::CTF);
 	bool isDuel = Game::Has(GameFlags::OneVOne);
@@ -619,11 +612,11 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 			continue;
 		if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
 			continue;
-		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
-			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
-			continue;
-		if (avoidCustomTextures && map.hasCustomTextures)
-			continue;
+                if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
+                        (map.maxPlayers > 0 && playerCount > map.maxPlayers))
+                        continue;
+                if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+                        continue;
 		if (!Q_strcasecmp(level.mapName.data(), map.filename.c_str()))
 			continue;
 
@@ -647,8 +640,8 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 		for (const auto& map : game.mapSystem.mapPool) {
 			if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
 				continue;
-			if (avoidCustomTextures && map.hasCustomTextures)
-				continue;
+                        if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+                                continue;
 			pool.push_back(&map);
 		}
 	}
