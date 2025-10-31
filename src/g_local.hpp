@@ -1814,6 +1814,30 @@ struct MapEntry {
 	bool			preferredDuel = false;
 };
 
+inline void ApplyCustomResourceFlags(MapEntry& map,
+        bool customFlag,
+        bool hasCustomTextures,
+        bool hasCustomSounds)
+{
+        map.hasCustomTextures = hasCustomTextures;
+        map.hasCustomSounds = hasCustomSounds;
+        map.isCustom = customFlag || hasCustomTextures || hasCustomSounds;
+}
+
+inline bool ShouldAvoidCustomResources(const MapEntry& map,
+        bool avoidCustom,
+        bool avoidCustomTextures,
+        bool avoidCustomSounds)
+{
+        if (avoidCustom && map.isCustom)
+                return true;
+        if (avoidCustomTextures && map.hasCustomTextures)
+                return true;
+        if (avoidCustomSounds && map.hasCustomSounds)
+                return true;
+        return false;
+}
+
 enum MyMapOverride : uint16_t {
 	MAPFLAG_NONE = 0,
 	MAPFLAG_PU = 1 << 0, // powerups

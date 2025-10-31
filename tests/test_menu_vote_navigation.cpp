@@ -75,5 +75,36 @@ int main() {
         singleAction.Prev();
         assert(singleAction.current == 1);
 
+        // Custom resource flags parsed from map pools must propagate to both helpers.
+        MapEntry customMap{};
+        ApplyCustomResourceFlags(customMap, false, true, false);
+        assert(customMap.isCustom);
+        assert(customMap.hasCustomTextures);
+        assert(!customMap.hasCustomSounds);
+        assert(ShouldAvoidCustomResources(customMap, true, false, false));
+        assert(ShouldAvoidCustomResources(customMap, false, true, false));
+        assert(!ShouldAvoidCustomResources(customMap, false, false, false));
+
+        ApplyCustomResourceFlags(customMap, false, false, true);
+        assert(customMap.isCustom);
+        assert(!customMap.hasCustomTextures);
+        assert(customMap.hasCustomSounds);
+        assert(ShouldAvoidCustomResources(customMap, true, false, false));
+        assert(ShouldAvoidCustomResources(customMap, false, false, true));
+
+        ApplyCustomResourceFlags(customMap, true, false, false);
+        assert(customMap.isCustom);
+        assert(!customMap.hasCustomTextures);
+        assert(!customMap.hasCustomSounds);
+        assert(ShouldAvoidCustomResources(customMap, true, false, false));
+        assert(!ShouldAvoidCustomResources(customMap, false, false, false));
+
+        ApplyCustomResourceFlags(customMap, false, false, false);
+        assert(!customMap.isCustom);
+        assert(!customMap.hasCustomTextures);
+        assert(!customMap.hasCustomSounds);
+        assert(!ShouldAvoidCustomResources(customMap, true, false, false));
+        assert(!ShouldAvoidCustomResources(customMap, false, true, true));
+
         return 0;
 }
