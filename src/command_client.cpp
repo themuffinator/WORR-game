@@ -7,6 +7,7 @@
 #include "command_registration.hpp"
 #include "g_local.hpp"
 #include "monsters/m_player.hpp"
+#include "weapon_pref_utils.hpp"
 #include <string>
 #include <format>
 #include <vector>
@@ -834,19 +835,19 @@ namespace Commands {
 	}
 
 	void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.weaponPrefs.clear();
-		for (int i = 1; i < args.count(); ++i) {
-			std::string token(args.getString(i));
-			std::ranges::transform(token, token.begin(), ::tolower);
-			if (GetWeaponIndexByAbbrev(token) != Weapon::None) {
-				ent->client->sess.weaponPrefs.push_back(token);
-			}
-			else {
-				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token.c_str());
-			}
-		}
-		gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
-	}
+                ent->client->sess.weaponPrefs.clear();
+                for (int i = 1; i < args.count(); ++i) {
+                        std::string token(args.getString(i));
+                        if (auto weapon = ParseWeaponAbbreviation(token)) {
+                                ent->client->sess.weaponPrefs.push_back(*weapon);
+                        }
+                        else {
+                                const std::string normalized = NormalizeWeaponAbbreviation(token);
+                                gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", normalized.c_str());
+                        }
+                }
+                gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
+        }
 
 	void Stats(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::Has(GameFlags::CTF)) {

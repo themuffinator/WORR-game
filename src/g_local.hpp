@@ -1808,7 +1808,7 @@ struct MapEntry {
 	bool			hasCustomTextures = false;		// Optional
 	bool			hasCustomSounds = false;		// Optional
 	uint8_t			mapTypeFlags = 0;         // MAP_DM | MAP_SP | MAP_COOP
-	int64_t			lastPlayed = 0;				// Set after play
+	int64_t			lastPlayed = 0;				// Seconds since server start when last played
 	bool			preferredTDM = false;
 	bool			preferredCTF = false;
 	bool			preferredDuel = false;
@@ -4291,7 +4291,7 @@ struct client_session_t {
 	int				command_flood_count = 0;
 	GameTime			command_flood_time = 0_ms;
 
-	std::vector<std::string> weaponPrefs;
+        std::vector<Weapon> weaponPrefs;
 
 };
 
