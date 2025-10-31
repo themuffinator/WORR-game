@@ -1847,7 +1847,13 @@ void CheckDMExitRules() {
 				}
 			}
 			else {
-				auto& winner = game.clients[level.sortedClients[0]];
+				const int winnerIndex = level.sortedClients[0];
+				if (winnerIndex < 0) {
+					QueueIntermission("Timelimit hit.", false, false);
+					return;
+				}
+
+				auto& winner = game.clients[winnerIndex];
 				QueueIntermission(G_Fmt("{} WINS with a final score of {}.", winner.sess.netName, winner.resp.score).data(), false, false);
 				return;
 			}
@@ -1867,8 +1873,14 @@ void CheckDMExitRules() {
 			}
 		}
 		else if (Game::IsNot(GameType::Horde)) {
-			auto& cl1 = game.clients[level.sortedClients[0]];
-			auto& cl2 = game.clients[level.sortedClients[1]];
+			const int leaderIndex = level.sortedClients[0];
+			const int runnerUpIndex = level.sortedClients[1];
+
+			if (leaderIndex < 0 || runnerUpIndex < 0)
+				return;
+
+			auto& cl1 = game.clients[leaderIndex];
+			auto& cl2 = game.clients[runnerUpIndex];
 			if (cl1.resp.score >= cl2.resp.score + mercyLimit->integer) {
 				QueueIntermission(G_Fmt("{} hit the mercy limit ({}).", cl1.sess.netName, mercyLimit->integer).data(), true, false);
 				return;
