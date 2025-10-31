@@ -17,7 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "server/g_local.hpp"
-#include "server/commands/command_registration.hpp"
+#include "server/commands/commands.hpp"
 #include "match_state_utils.hpp"
 #include "match_state_helper.hpp"
 

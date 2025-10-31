@@ -192,6 +192,9 @@
     <ClInclude Include="server\commands\command_registration.hpp">
       <Filter>commands</Filter>
     </ClInclude>
+    <ClInclude Include="server\commands\commands.hpp">
+      <Filter>commands</Filter>
+    </ClInclude>
     <ClInclude Include="server\commands\command_system.hpp">
       <Filter>commands</Filter>
     </ClInclude>

@@ -21,7 +21,7 @@
 //   holds all of a player's game-related state.
 
 #include "server/g_local.hpp"
-#include "server/commands/command_registration.hpp"
+#include "server/commands/commands.hpp"
 #include "server/monsters/m_player.hpp"
 #include "server/bots/bot_includes.hpp"
 

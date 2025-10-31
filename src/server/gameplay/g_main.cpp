@@ -23,8 +23,7 @@
 #include "server/g_local.hpp"
 #include "server/bots/bot_includes.hpp"
 #include "shared/char_array_utils.hpp"
-#include "server/commands/command_registration.hpp"
-#include "server/commands/command_voting.hpp"
+#include "server/commands/commands.hpp"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
