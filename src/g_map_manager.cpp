@@ -586,15 +586,14 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	if (eligible.empty())
 		return std::nullopt;
 
-	std::vector<const MapEntry*> weighted;
+	std::vector<double> weights;
+	weights.reserve(eligible.size());
 	for (const auto* map : eligible) {
-		weighted.push_back(map);
-		if (map->isPopular)
-			weighted.push_back(map); // 2x chance
+		weights.push_back(map->isPopular ? 2.0 : 1.0);
 	}
 
-	std::shuffle(eligible.begin(), eligible.end(), game.mapRNG);
-	const MapEntry* chosen = eligible[0];
+	std::discrete_distribution<size_t> distribution(weights.begin(), weights.end());
+	const MapEntry* chosen = eligible[distribution(game.mapRNG)];
 
 	return *chosen;
 }
