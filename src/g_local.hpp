@@ -3343,6 +3343,8 @@ std::string FileTimeStamp();
 std::string DateStamp();
 std::string FormatDuration(int seconds);
 Weapon GetWeaponIndexByAbbrev(const std::string& abbr);
+void Client_RebuildWeaponPreferenceOrder(gclient_t* cl);
+std::vector<std::string> GetSanitizedWeaponPrefStrings(const gclient_t& cl);
 int64_t GetCurrentRealTimeMillis();
 double GetRealTimeSeconds();
 bool Vote_Menu_Active(gentity_t* ent);
@@ -3944,6 +3946,7 @@ void Match_End();
 //
 void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch);
 void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won);
+bool ClientConfig_SaveWeaponPrefs(const gclient_t& cl);
 int ClientConfig_DefaultSkillRating();
 //bool ClientConfig_BulkUpdate(const std::string &playerID, const std::initializer_list<std::pair<std::string, json>> &updates);
 
@@ -4268,6 +4271,7 @@ struct client_session_t {
 	GameTime			command_flood_time = 0_ms;
 
 	std::vector<std::string> weaponPrefs;
+	std::vector<Weapon> weaponPrefOrder;
 
 };
 

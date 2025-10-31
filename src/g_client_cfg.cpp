@@ -268,6 +268,7 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 	}
 
 	// Apply weapon prefs if present
+	cl->sess.weaponPrefs.clear();
 	if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
 		const auto& prefs = playerData["config"]["weaponPrefs"];
 		if (prefs.isArray()) {
@@ -277,6 +278,7 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 			}
 		}
 	}
+	Client_RebuildWeaponPreferenceOrder(cl);
 
 	// Apply visual/audio config settings
 	if (playerData.isMember("config")) {
@@ -324,7 +326,8 @@ static void ClientConfig_SaveInternal(
 	bool won,
 	bool isGhost,
 	bool updateStats,
-	const client_config_t* pc = nullptr
+	const client_config_t* pc = nullptr,
+	const std::vector<std::string>* weaponPrefs = nullptr
 ) {
 	if (playerID.empty())
 		return;
@@ -405,12 +408,21 @@ static void ClientConfig_SaveInternal(
 	playerData["ratings"][Game::GetCurrentInfo().short_name_upper.data()] = skillRating;
 
 	// Save visual/audio config from session
+	if (!playerData.isMember("config") || !playerData["config"].isObject())
+		playerData["config"] = Json::Value(Json::objectValue);
 	if (pc) {
 		playerData["config"]["drawCrosshairID"] = pc->show_id;
 		playerData["config"]["drawTimer"] = pc->show_timer;
 		playerData["config"]["drawFragMessages"] = pc->show_fragmessages;
 		playerData["config"]["eyeCam"] = pc->use_eyecam;
 		playerData["config"]["killBeep"] = pc->killbeep_num;
+	}
+
+	if (weaponPrefs) {
+		Json::Value prefsJson(Json::arrayValue);
+		for (const auto& pref : *weaponPrefs)
+			prefsJson.append(pref);
+		playerData["config"]["weaponPrefs"] = prefsJson;
 	}
 
 	playerData["lastUpdated"] = now;
@@ -446,6 +458,7 @@ void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 		return;
 
 	const int timePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+	const auto weaponPrefs = GetSanitizedWeaponPrefStrings(*cl);
 	ClientConfig_SaveInternal(
 		cl->sess.socialID,
 		cl->sess.skillRating,
@@ -454,7 +467,8 @@ void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 		wonMatch,
 		false,  // isGhost
 		true,   // updateStats
-		&cl->sess.pc
+		&cl->sess.pc,
+		&weaponPrefs
 	);
 }
 
@@ -477,7 +491,8 @@ void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won) {
 		won,
 		true,   // isGhost
 		true,   // updateStats
-		nullptr // no pc settings
+		nullptr, // no pc settings
+		nullptr
 	);
 }
 
@@ -551,3 +566,21 @@ static bool ClientConfig_Update(
 		return false;
 	}
 }
+
+bool ClientConfig_SaveWeaponPrefs(const gclient_t& cl) {
+	if (cl.sess.is_a_bot || !cl.sess.socialID[0])
+		return false;
+
+	const auto sanitized = GetSanitizedWeaponPrefStrings(cl);
+
+	return ClientConfig_Update(cl.sess.socialID, [&](Json::Value& cfg) {
+		if (!cfg.isMember("config") || !cfg["config"].isObject())
+			cfg["config"] = Json::Value(Json::objectValue);
+
+		Json::Value prefsJson(Json::arrayValue);
+		for (const auto& pref : sanitized)
+			prefsJson.append(pref);
+		cfg["config"]["weaponPrefs"] = prefsJson;
+	});
+}
+

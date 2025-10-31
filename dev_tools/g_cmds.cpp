@@ -3409,14 +3409,8 @@ static void Cmd_SetWeaponPref_f(gentity_t* ent) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", token.c_str());
 		}
 	}
-#if 0
-	// Save it to config
-	ClientConfig_BulkUpdate(cl->sess.socialID, {
-		{"config", {
-			{"weaponPrefs", cl->sess.weaponPrefs}
-		}}
-		});
-#endif
+	Client_RebuildWeaponPreferenceOrder(cl);
+	ClientConfig_SaveWeaponPrefs(*cl);
 	gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
 }
 
