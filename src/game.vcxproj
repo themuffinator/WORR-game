@@ -127,6 +127,7 @@
     <ClInclude Include="server\commands\command_voting_utils.hpp" />
     <ClInclude Include="shared\game.hpp" />
     <ClInclude Include="server\g_local.hpp" />
+    <ClInclude Include="server\match\match.hpp" />
     <ClInclude Include="server\match\match_state_utils.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
     <ClInclude Include="server\match\match_state_helper.hpp" />
