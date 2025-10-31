@@ -31,16 +31,19 @@
 
 using json = Json::Value;
 
+const int DEFAULT_RATING = 1500;
+const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
+
 /*
 ================
 GetPlayerNameForSocialID
 ================
 */
 std::string GetPlayerNameForSocialID(const std::string& socialID) {
-	if (socialID.empty())
-		return {};
+        if (socialID.empty())
+                return {};
 
-	const std::string path = "pcfg/" + socialID + ".json";
+        const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, socialID).data();
 
 	std::ifstream file(path);
 	if (!file.is_open())
@@ -57,7 +60,7 @@ std::string GetPlayerNameForSocialID(const std::string& socialID) {
 	if (!root.isMember("playerName") || !root["playerName"].isString())
 		return {};
 
-	return root["playerName"].asString();
+        return root["playerName"].asString();
 }
 
 const int DEFAULT_RATING = 1500;
