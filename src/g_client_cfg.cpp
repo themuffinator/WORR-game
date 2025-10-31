@@ -22,6 +22,7 @@
 #include <fstream>
 #include <string>
 #include <unordered_map>
+#include <vector>
 #include <sstream>
 #include <json/json.h>
 
@@ -269,6 +270,7 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 	}
 
 	// Apply weapon prefs if present
+	cl->sess.weaponPrefs.clear();
 	if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
 		const auto& prefs = playerData["config"]["weaponPrefs"];
 		if (prefs.isArray()) {
@@ -282,6 +284,7 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
                         }
 		}
 	}
+	Client_RebuildWeaponPreferenceOrder(cl);
 
 	// Apply visual/audio config settings
 	if (playerData.isMember("config")) {
@@ -329,7 +332,8 @@ static void ClientConfig_SaveInternal(
 	bool won,
 	bool isGhost,
 	bool updateStats,
-	const client_config_t* pc = nullptr
+	const client_config_t* pc = nullptr,
+	const std::vector<std::string>* weaponPrefs = nullptr
 ) {
 	if (playerID.empty())
 		return;
@@ -418,6 +422,17 @@ static void ClientConfig_SaveInternal(
 		playerData["config"]["killBeep"] = pc->killbeep_num;
 	}
 
+	if (weaponPrefs) {
+		if (!playerData.isMember("config") || !playerData["config"].isObject())
+			playerData["config"] = Json::Value(Json::objectValue);
+
+		Json::Value serialized(Json::arrayValue);
+		for (const auto& pref : *weaponPrefs)
+			serialized.append(pref);
+
+		playerData["config"]["weaponPrefs"] = serialized;
+	}
+
 	playerData["lastUpdated"] = now;
 
 	// Write updated file
@@ -451,6 +466,8 @@ void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 		return;
 
 	const int timePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+	Client_RebuildWeaponPreferenceOrder(cl);
+	std::vector<std::string> weaponPrefs = GetSanitizedWeaponPrefStrings(*cl);
 	ClientConfig_SaveInternal(
 		cl->sess.socialID,
 		cl->sess.skillRating,
@@ -459,7 +476,8 @@ void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 		wonMatch,
 		false,  // isGhost
 		true,   // updateStats
-		&cl->sess.pc
+		&cl->sess.pc,
+		&weaponPrefs
 	);
 }
 
@@ -482,7 +500,8 @@ void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won) {
 		won,
 		true,   // isGhost
 		true,   // updateStats
-		nullptr // no pc settings
+		nullptr, // no pc settings
+		nullptr
 	);
 }
 
@@ -555,4 +574,23 @@ static bool ClientConfig_Update(
 		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
 		return false;
 	}
+}
+
+void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
+        if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
+                return;
+
+        Client_RebuildWeaponPreferenceOrder(cl);
+        std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
+
+        ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {
+                if (!cfg.isMember("config") || !cfg["config"].isObject())
+                        cfg["config"] = Json::Value(Json::objectValue);
+
+                Json::Value prefs(Json::arrayValue);
+                for (const auto& pref : sanitized)
+                        prefs.append(pref);
+
+                cfg["config"]["weaponPrefs"] = prefs;
+        });
 }
