@@ -4,6 +4,7 @@
 
 #include "g_local.hpp"
 #include "monsters/m_player.hpp"
+#include "weapon_pref_utils.hpp"
 
 bool			isQuad = false;
 bool			isHaste = false;
@@ -465,17 +466,16 @@ static std::vector<item_id_t> BuildEffectiveWeaponPriority(gclient_t* cl) {
 	std::unordered_set<item_id_t> seen;
 
 	// 1. Add preferred weapons first, in client-specified order
-	for (const std::string& abbr : cl->sess.weaponPrefs) {
-		Weapon weaponIndex = GetWeaponIndexByAbbrev(abbr);
-		if (weaponIndex == Weapon::None)
-			continue;
+        for (Weapon weaponIndex : cl->sess.weaponPrefs) {
+                if (weaponIndex == Weapon::None)
+                        continue;
 
-		item_id_t item = weaponIndexToItemID(weaponIndex); // You'll need this lookup
-		if (item && seen.find(item) == seen.end()) {
-			finalList.push_back(item);
-			seen.insert(item);
-		}
-	}
+                item_id_t item = weaponIndexToItemID(weaponIndex);
+                if (item && seen.find(item) == seen.end()) {
+                        finalList.push_back(item);
+                        seen.insert(item);
+                }
+        }
 
 	// 2. Add all other weapons from default list, preserving order
 	for (item_id_t def : weaponPriorityList) {
@@ -494,31 +494,24 @@ Lower index = higher priority.
 =============
 */
 static int GetWeaponPriorityIndex(gclient_t* cl, const std::string& abbr) {
-	std::string upperAbbr = abbr;
-	std::transform(upperAbbr.begin(), upperAbbr.end(), upperAbbr.begin(), ::toupper);
+        const auto weapon = ParseWeaponAbbreviation(abbr);
+        if (!weapon)
+                return 9999; // unknown weapon = lowest priority
 
-	// First: check client preference list
-	auto& prefs = cl->sess.weaponPrefs;
-	for (size_t i = 0; i < prefs.size(); ++i) {
-		std::string pref = prefs[i];
-		std::transform(pref.begin(), pref.end(), pref.begin(), ::toupper);
-		if (pref == upperAbbr)
-			return static_cast<int>(i); // higher priority
-	}
+        auto& prefs = cl->sess.weaponPrefs;
+        for (size_t i = 0; i < prefs.size(); ++i) {
+                if (prefs[i] == *weapon)
+                        return static_cast<int>(i); // higher priority
+        }
 
-	// Then: fall back to default priority list
-	Weapon weaponIndex = GetWeaponIndexByAbbrev(upperAbbr);
-	if (weaponIndex == Weapon::None)
-		return 9999; // unknown weapon = lowest priority
+        item_id_t item = weaponIndexToItemID(*weapon);
 
-	item_id_t item = weaponIndexToItemID(weaponIndex);
+        for (size_t i = 0; i < sizeof(weaponPriorityList) / sizeof(weaponPriorityList[0]); ++i) {
+                if (weaponPriorityList[i] == item)
+                        return static_cast<int>(100 + i); // below any client-listed
+        }
 
-	for (size_t i = 0; i < sizeof(weaponPriorityList) / sizeof(weaponPriorityList[0]); ++i) {
-		if (weaponPriorityList[i] == item)
-			return static_cast<int>(100 + i); // below any client-listed
-	}
-
-	return 9999; // not in known weapon list
+        return 9999; // not in known weapon list
 }
 
 /*

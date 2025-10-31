@@ -16,6 +16,7 @@
 // - Player Identity: Manages player name changes by tracking aliases.
 
 #include "g_local.hpp"
+#include "weapon_pref_utils.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -271,10 +272,14 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 	if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
 		const auto& prefs = playerData["config"]["weaponPrefs"];
 		if (prefs.isArray()) {
-			for (const auto& p : prefs) {
-				if (p.isString())
-					cl->sess.weaponPrefs.push_back(p.asString());
-			}
+                        for (const auto& p : prefs) {
+                                if (!p.isString())
+                                        continue;
+
+                                if (auto weapon = ParseWeaponAbbreviation(p.asString())) {
+                                        cl->sess.weaponPrefs.push_back(*weapon);
+                                }
+                        }
 		}
 	}
 
