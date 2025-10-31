@@ -94,9 +94,9 @@ struct PlayerStats {
 	std::map<std::string, double> accuracyPerWeapon;
 
 	// MOD-based stats
-	std::map<ModID, int> modTotalKills;
-	std::map<ModID, int> modTotalDeaths;
-	std::map<ModID, int> modTotalKDR;
+        std::map<ModID, int> modTotalKills;
+        std::map<ModID, int> modTotalDeaths;
+        std::map<ModID, double> modTotalKDR;
 	std::map<ModID, int> modTotalDmgD;
 	std::map<ModID, int> modTotalDmgR;
 
@@ -109,11 +109,11 @@ struct PlayerStats {
 			accuracyPerWeapon[weapon] = 0.0;
 		}
 		for (const auto& mod : modr) {
-			modTotalKills[mod.mod] = 0;
-			modTotalDeaths[mod.mod] = 0;
-			modTotalKDR[mod.mod] = 0;
-			modTotalDmgD[mod.mod] = 0;
-			modTotalDmgR[mod.mod] = 0;
+                        modTotalKills[mod.mod] = 0;
+                        modTotalDeaths[mod.mod] = 0;
+                        modTotalKDR[mod.mod] = 0.0;
+                        modTotalDmgD[mod.mod] = 0;
+                        modTotalDmgR[mod.mod] = 0;
 		}
 	}
 
@@ -186,11 +186,11 @@ struct PlayerStats {
 
 		json modKillsJson, modDeathsJson, modKDRJson, modDmgDJson, modDmgRJson;
 		for (const auto& mod : modr) {
-			if (modTotalKills.at(mod.mod) > 0) modKillsJson[mod.name] = modTotalKills.at(mod.mod);
-			if (modTotalDeaths.at(mod.mod) > 0) modDeathsJson[mod.name] = modTotalDeaths.at(mod.mod);
-			if (modTotalKDR.at(mod.mod) > 0)   modKDRJson[mod.name] = modTotalKDR.at(mod.mod);
-			if (modTotalDmgD.at(mod.mod) > 0)  modDmgDJson[mod.name] = modTotalDmgD.at(mod.mod);
-			if (modTotalDmgR.at(mod.mod) > 0)  modDmgRJson[mod.name] = modTotalDmgR.at(mod.mod);
+                        if (modTotalKills.at(mod.mod) > 0) modKillsJson[mod.name] = modTotalKills.at(mod.mod);
+                        if (modTotalDeaths.at(mod.mod) > 0) modDeathsJson[mod.name] = modTotalDeaths.at(mod.mod);
+                        if (modTotalKDR.at(mod.mod) > 0.0) modKDRJson[mod.name] = modTotalKDR.at(mod.mod);
+                        if (modTotalDmgD.at(mod.mod) > 0)  modDmgDJson[mod.name] = modTotalDmgD.at(mod.mod);
+                        if (modTotalDmgR.at(mod.mod) > 0)  modDmgRJson[mod.name] = modTotalDmgR.at(mod.mod);
 		}
 		if (!modKillsJson.empty()) result["totalKillsByMOD"] = modKillsJson;
 		if (!modDeathsJson.empty()) result["totalDeathsByMOD"] = modDeathsJson;
