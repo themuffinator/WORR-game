@@ -248,12 +248,12 @@ struct TeamStats {
 
 struct MatchStats {
 	std::string matchID;           // Unique match identifier
-	std::string serverName;          // Server name
-	std::string serverHostName;    // Name of the server host
-	std::string gameType;          // Game type (e.g., "FFA", "TDM")
-	std::string ruleSet;
-	std::string mapName;           // Name of the map
-	std::string ranked;
+        std::string serverName;          // Server name
+        std::string serverHostName;    // Name of the server host
+        std::string gameType;          // Game type (e.g., "FFA", "TDM")
+        std::string ruleSet;
+        std::string mapName;           // Name of the map
+        bool ranked = false;
 	int totalKills = 0;            // Total kills in the match
 	int totalSpawnKills = 0;        // Total spawn kills in the match
 	int totalTeamKills = 0;        // Total team kills in the match
@@ -300,17 +300,22 @@ struct MatchStats {
 
 	// Generate JSON object for the match stats
 	json toJson() const {
-		json matchJson;
-		matchJson["matchID"] = matchID;
-		matchJson["gameType"] = gameType;
-		matchJson["ruleSet"] = ruleSet;
-		matchJson["mapName"] = mapName;
-		matchJson["matchRanked"] = ranked;
-		matchJson["totalKills"] = totalKills;
-		matchJson["totalSpawnKills"] = totalSpawnKills;
-		matchJson["totalTeamKills"] = totalTeamKills;
-		matchJson["totalDeaths"] = totalDeaths;
-		matchJson["avKillsPerMinute"] = avKillsPerMinute;
+                json matchJson;
+                matchJson["matchID"] = matchID;
+                matchJson["serverName"] = serverName;
+                if (!serverHostName.empty()) {
+                        matchJson["serverHostName"] = serverHostName;
+                }
+                matchJson["gameType"] = gameType;
+                matchJson["ruleSet"] = ruleSet;
+                matchJson["mapName"] = mapName;
+                matchJson["matchRanked"] = ranked;
+                matchJson["totalKills"] = totalKills;
+                matchJson["totalSpawnKills"] = totalSpawnKills;
+                matchJson["totalTeamKills"] = totalTeamKills;
+                matchJson["totalDeaths"] = totalDeaths;
+                matchJson["totalSuicides"] = totalSuicides;
+                matchJson["avKillsPerMinute"] = avKillsPerMinute;
 		matchJson["totalFlagsCaptured"] = ctf_totalFlagsCaptured;
 		matchJson["totalFlagAssists"] = ctf_totalFlagAssists;
 		matchJson["totalFlagDefends"] = ctf_totalFlagDefends;
@@ -1508,12 +1513,20 @@ void MatchStats_End() {
 
 	try {
 		matchStats.matchID = level.matchID;
-		matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
-		matchStats.ruleSet = rs_long_name[game.ruleset];
-		matchStats.serverName = hostname->string;
-		const auto mapNameEnd = std::find(level.mapName.begin(), level.mapName.end(), '\0');
-		matchStats.mapName.assign(level.mapName.begin(), mapNameEnd);
-		matchStats.ranked = "false";
+                matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
+                matchStats.ruleSet = rs_long_name[game.ruleset];
+                matchStats.serverName = hostname->string ? hostname->string : "";
+                matchStats.serverHostName.clear();
+                if (host && host->client) {
+                        char hostNameValue[MAX_INFO_VALUE] = { 0 };
+                        gi.Info_ValueForKey(host->client->pers.userInfo, "name", hostNameValue, sizeof(hostNameValue));
+                        if (hostNameValue[0] != '\0') {
+                                matchStats.serverHostName = hostNameValue;
+                        }
+                }
+                const auto mapNameEnd = std::find(level.mapName.begin(), level.mapName.end(), '\0');
+                matchStats.mapName.assign(level.mapName.begin(), mapNameEnd);
+                matchStats.ranked = false;
 		matchStats.totalKills = level.match.totalKills;
 		matchStats.totalSpawnKills = level.match.totalSpawnKills;
 		matchStats.totalTeamKills = level.match.totalTeamKills;
