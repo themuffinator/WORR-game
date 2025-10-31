@@ -454,48 +454,44 @@ static item_id_t weaponIndexToItemID(Weapon weaponIndex) {
 	default:				return IT_NULL;
 	}
 
-void Client_RebuildWeaponPreferenceOrder(gclient_t* cl) {
-        if (!cl)
-                return;
-
-        auto& cache = cl->weapon.preferenceOrder;
+void Client_RebuildWeaponPreferenceOrder(gclient_t& cl) {
+        auto& cache = cl.sess.weaponPrefOrder;
         cache.clear();
 
-        std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-
-        for (Weapon weaponIndex : cl->sess.weaponPrefs) {
-                const auto index = static_cast<size_t>(weaponIndex);
-                if (weaponIndex == Weapon::None || index >= seen.size())
-                        continue;
-
-                if (seen[index])
-                        continue;
+        std::array<bool, static_cast<size_t>(IT_TOTAL)> seen{};
+        auto add_item = [&](item_id_t item) {
+                const auto index = static_cast<size_t>(item);
+                if (!item || index >= seen.size() || seen[index])
+                        return;
 
                 seen[index] = true;
-                cache.push_back(weaponIndex);
+                cache.push_back(item);
+        };
+
+        for (Weapon weaponIndex : cl.sess.weaponPrefs) {
+                if (weaponIndex == Weapon::None)
+                        continue;
+
+                add_item(weaponIndexToItemID(weaponIndex));
         }
+
+        for (item_id_t def : weaponPriorityList)
+                add_item(def);
 }
 
 std::vector<std::string> GetSanitizedWeaponPrefStrings(const gclient_t& cl) {
         std::vector<std::string> result;
-        const std::vector<Weapon>* order = &cl.weapon.preferenceOrder;
-        std::vector<Weapon> tempOrder;
 
-        if (order->empty() && !cl.sess.weaponPrefs.empty()) {
-                std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-                for (Weapon weaponIndex : cl.sess.weaponPrefs) {
-                        const auto index = static_cast<size_t>(weaponIndex);
-                        if (weaponIndex == Weapon::None || index >= seen.size() || seen[index])
-                                continue;
+        if (cl.sess.weaponPrefs.empty())
+                return result;
 
-                        seen[index] = true;
-                        tempOrder.push_back(weaponIndex);
-                }
-                order = &tempOrder;
-        }
+        std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+        for (Weapon weaponIndex : cl.sess.weaponPrefs) {
+                const auto index = static_cast<size_t>(weaponIndex);
+                if (weaponIndex == Weapon::None || index >= seen.size() || seen[index])
+                        continue;
 
-        result.reserve(order->size());
-        for (Weapon weaponIndex : *order) {
+                seen[index] = true;
                 std::string_view abbr = WeaponToAbbreviation(weaponIndex);
                 if (!abbr.empty())
                         result.emplace_back(abbr);
@@ -511,37 +507,6 @@ BuildEffectiveWeaponPriority
 Combines client preferences with default weapon priority list.
 =============
 */
-static std::vector<item_id_t> BuildEffectiveWeaponPriority(gclient_t* cl) {
-	std::vector<item_id_t> finalList;
-	std::unordered_set<item_id_t> seen;
-
-	if (!cl)
-		return finalList;
-
-	Client_RebuildWeaponPreferenceOrder(cl);
-	const auto& order = cl->weapon.preferenceOrder;
-
-	// 1. Add preferred weapons first, in client-specified order
-	for (Weapon weaponIndex : order) {
-		if (weaponIndex == Weapon::None)
-			continue;
-
-		item_id_t item = weaponIndexToItemID(weaponIndex);
-		if (item && seen.find(item) == seen.end()) {
-			finalList.push_back(item);
-			seen.insert(item);
-		}
-	}
-
-	// 2. Add all other weapons from default list, preserving order
-	for (item_id_t def : weaponPriorityList) {
-		if (seen.find(def) == seen.end())
-			finalList.push_back(def);
-	}
-
-	return finalList;
-}
-
 /*
 =============
 GetWeaponPriorityIndex
@@ -549,23 +514,21 @@ Returns effective priority index for a weapon based on client preference.
 Lower index = higher priority.
 =============
 */
-static int GetWeaponPriorityIndex(gclient_t* cl, const std::string& abbr) {
+static int GetWeaponPriorityIndex(gclient_t& cl, const std::string& abbr) {
         const auto weapon = ParseWeaponAbbreviation(abbr);
         if (!weapon)
                 return 9999; // unknown weapon = lowest priority
 
         Client_RebuildWeaponPreferenceOrder(cl);
-        const auto& prefs = cl->weapon.preferenceOrder;
-        for (size_t i = 0; i < prefs.size(); ++i) {
-                if (prefs[i] == *weapon)
-                        return static_cast<int>(i); // higher priority
-        }
+        const auto& order = cl.sess.weaponPrefOrder;
 
-        item_id_t item = weaponIndexToItemID(*weapon);
+        const item_id_t item = weaponIndexToItemID(*weapon);
+        if (!item)
+                return 9999;
 
-        for (size_t i = 0; i < sizeof(weaponPriorityList) / sizeof(weaponPriorityList[0]); ++i) {
-                if (weaponPriorityList[i] == item)
-                        return static_cast<int>(100 + i); // below any client-listed
+        for (size_t i = 0; i < order.size(); ++i) {
+                if (order[i] == item)
+                        return static_cast<int>(i);
         }
 
         return 9999; // not in known weapon list
@@ -580,51 +543,43 @@ Optionally plays a "click" sound indicating no ammo.
 =================
 */
 void NoAmmoWeaponChange(gentity_t* ent, bool playSound) {
-	auto* client = ent->client;
+        auto* client = ent->client;
 
-	if (playSound && level.time >= client->emptyClickSound) {
-		gi.sound(ent, CHAN_WEAPON, gi.soundIndex("weapons/noammo.wav"), 1, ATTN_NORM, 0);
-		client->emptyClickSound = level.time + 1_sec;
-	}
+        if (playSound && level.time >= client->emptyClickSound) {
+                gi.sound(ent, CHAN_WEAPON, gi.soundIndex("weapons/noammo.wav"), 1, ATTN_NORM, 0);
+                client->emptyClickSound = level.time + 1_sec;
+        }
 
-	constexpr std::array<item_id_t, 20> fallbackWeapons = {
-		IT_WEAPON_DISRUPTOR,
-		IT_WEAPON_BFG,
-		IT_WEAPON_RAILGUN,
-		IT_WEAPON_THUNDERBOLT,
-		IT_WEAPON_PLASMABEAM,
-		IT_WEAPON_IONRIPPER,
-		IT_WEAPON_HYPERBLASTER,
-		IT_WEAPON_ETF_RIFLE,
-		IT_WEAPON_CHAINGUN,
-		IT_WEAPON_MACHINEGUN,
-		IT_WEAPON_SSHOTGUN,
-		IT_WEAPON_SHOTGUN,
-		IT_WEAPON_PHALANX,
-		IT_WEAPON_RLAUNCHER,
-		IT_WEAPON_GLAUNCHER,
-		IT_WEAPON_PROXLAUNCHER,
-		IT_AMMO_GRENADES,
-		IT_WEAPON_BLASTER,
-		IT_WEAPON_CHAINFIST
-	};
+        Client_RebuildWeaponPreferenceOrder(*client);
 
-	for (item_id_t id : fallbackWeapons) {
-		Item* item = GetItemByIndex(id);
-		if (!item) {
-			gi.Com_ErrorFmt("Invalid fallback weapon ID: {}\n", static_cast<int32_t>(id));
-			continue;
-		}
+        auto try_list = [&](const auto& ids) {
+                for (item_id_t id : ids) {
+                        Item* item = GetItemByIndex(id);
+                        if (!item) {
+                                gi.Com_ErrorFmt("Invalid fallback weapon ID: {}\n", static_cast<int32_t>(id));
+                                continue;
+                        }
 
-		if (client->pers.inventory[item->id] <= 0)
-			continue;
+                        if (client->pers.inventory[item->id] <= 0)
+                                continue;
 
-		if (item->ammo && client->pers.inventory[item->ammo] < item->quantity)
-			continue;
+                        if (item->ammo && client->pers.inventory[item->ammo] < item->quantity)
+                                continue;
 
-		client->weapon.pending = item;
-		return;
-	}
+                        client->weapon.pending = item;
+                        return true;
+                }
+
+                return false;
+        };
+
+        if (client->sess.weaponPrefOrder.empty()) {
+                if (try_list(weaponPriorityList))
+                        return;
+        }
+        else if (try_list(client->sess.weaponPrefOrder)) {
+                return;
+        }
 }
 
 /*

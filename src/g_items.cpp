@@ -23,6 +23,8 @@
 #include "bots/bot_includes.hpp"
 #include "monsters/m_player.hpp"	//doppelganger
 
+#include <limits>
+
 bool Pickup_Weapon(gentity_t* ent, gentity_t* other);
 void Use_Weapon(gentity_t* ent, Item* inv);
 
@@ -2887,72 +2889,102 @@ bool Add_Ammo(gentity_t* ent, Item* item, int count) {
 
 // we just got weapon `item`, check if we should switch to it
 void G_CheckAutoSwitch(gentity_t* ent, Item* item, bool is_new) {
-	// already using or switching to
-	if (ent->client->pers.weapon == item ||
-		ent->client->weapon.pending == item)
-		return;
-	// need ammo
-	else if (item->ammo) {
-		int32_t required_ammo = (item->flags & IF_AMMO) ? 1 : item->quantity;
+        // already using or switching to
+        if (ent->client->pers.weapon == item ||
+                ent->client->weapon.pending == item)
+                return;
+        // need ammo
+        else if (item->ammo) {
+                int32_t required_ammo = (item->flags & IF_AMMO) ? 1 : item->quantity;
 
-		if (ent->client->pers.inventory[item->ammo] < required_ammo)
-			return;
-	}
+                if (ent->client->pers.inventory[item->ammo] < required_ammo)
+                        return;
+        }
 
-	// check autoswitch setting
-	if (ent->client->pers.autoswitch == WeaponAutoSwitch::Never)
-		return;
-	else if ((item->flags & IF_AMMO) && ent->client->pers.autoswitch == WeaponAutoSwitch::Always_No_Ammo)
-		return;
-	else if (ent->client->pers.autoswitch == WeaponAutoSwitch::Smart) {
-		// smartness algorithm: in DM, we will always switch if we have the blaster out
-		// otherwise leave our active weapon alone
-		if (deathmatch->integer) {
-			// wor: make it smarter!
-			// switch to better weapons
-			if (ent->client->pers.weapon) {
-				switch (ent->client->pers.weapon->id) {
-				case IT_WEAPON_CHAINFIST:
-					// always switch from chainfist
-					break;
-				case IT_WEAPON_BLASTER:
-					// should never auto-switch to chainfist
-					if (item->id == IT_WEAPON_CHAINFIST)
-						return;
-					break;
-				case IT_WEAPON_SHOTGUN:
-					if (RS(RS_Q1)) {
-						// always switch from sg in Q1
-					}
-					else {
-						// switch only to SSG
-						if (item->id != IT_WEAPON_SSHOTGUN)
-							return;
-					}
-					break;
-				case IT_WEAPON_MACHINEGUN:
-					if (RS(RS_Q3A)) {
-						// always switch from mg in Q3A
-					}
-					else {
-						// switch only to CG
-						if (item->id != IT_WEAPON_CHAINGUN)
-							return;
-					}
-					break;
-				default:
-					// otherwise don't switch!
-					return;
-				}
-			}
-		}
-		// in SP, only switch if it's a new weapon, or we have the blaster out
-		else if (!deathmatch->integer && !(ent->client->pers.weapon && ent->client->pers.weapon->id == IT_WEAPON_BLASTER) && !is_new)
-			return;
-	}
+        const WeaponAutoSwitch autoswitch = ent->client->pers.autoswitch;
+        if (autoswitch == WeaponAutoSwitch::Never)
+                return;
 
-	// switch!
-	ent->client->weapon.pending = item;
+        if ((item->flags & IF_AMMO) && autoswitch == WeaponAutoSwitch::Always_No_Ammo)
+                return;
+
+        bool allowSwitch = true;
+
+        if (autoswitch == WeaponAutoSwitch::Smart) {
+                // smartness algorithm: in DM, we will always switch if we have the blaster out
+                // otherwise leave our active weapon alone
+                if (deathmatch->integer) {
+                        // wor: make it smarter!
+                        // switch to better weapons
+                        if (ent->client->pers.weapon) {
+                                switch (ent->client->pers.weapon->id) {
+                                case IT_WEAPON_CHAINFIST:
+                                        // always switch from chainfist
+                                        break;
+                                case IT_WEAPON_BLASTER:
+                                        // should never auto-switch to chainfist
+                                        if (item->id == IT_WEAPON_CHAINFIST)
+                                                return;
+                                        break;
+                                case IT_WEAPON_SHOTGUN:
+                                        if (RS(RS_Q1)) {
+                                                // always switch from sg in Q1
+                                        }
+                                        else {
+                                                // switch only to SSG
+                                                if (item->id != IT_WEAPON_SSHOTGUN)
+                                                        allowSwitch = false;
+                                        }
+                                        break;
+                                case IT_WEAPON_MACHINEGUN:
+                                        if (RS(RS_Q3A)) {
+                                                // always switch from mg in Q3A
+                                        }
+                                        else {
+                                                // switch only to CG
+                                                if (item->id != IT_WEAPON_CHAINGUN)
+                                                        allowSwitch = false;
+                                        }
+                                        break;
+                                default:
+                                        // otherwise don't switch!
+                                        allowSwitch = false;
+                                        break;
+                                }
+                        }
+                }
+                // in SP, only switch if it's a new weapon, or we have the blaster out
+                else if (!deathmatch->integer && !(ent->client->pers.weapon && ent->client->pers.weapon->id == IT_WEAPON_BLASTER) && !is_new) {
+                        allowSwitch = false;
+                }
+        }
+
+        if (!allowSwitch)
+                return;
+
+        Client_RebuildWeaponPreferenceOrder(*ent->client);
+        const auto& order = ent->client->sess.weaponPrefOrder;
+
+        auto priority_of = [&order](item_id_t id) {
+                if (!id)
+                        return std::numeric_limits<size_t>::max();
+
+                for (size_t i = 0; i < order.size(); ++i) {
+                        if (order[i] == id)
+                                return i;
+                }
+
+                return std::numeric_limits<size_t>::max();
+        };
+
+        const size_t pickupPriority = priority_of(item->id);
+        const size_t currentPriority = ent->client->pers.weapon ? priority_of(ent->client->pers.weapon->id) : std::numeric_limits<size_t>::max();
+
+        if (pickupPriority >= currentPriority)
+                return;
+
+        // switch!
+        ent->client->weapon.pending = item;
 }
 
 bool Pickup_Ammo(gentity_t* ent, gentity_t* other) {
