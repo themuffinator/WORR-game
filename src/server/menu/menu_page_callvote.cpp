@@ -15,7 +15,7 @@
 // - Integration with Vote System: The `onSelect` callbacks for each menu item
 //   call the core `Commands::TryLaunchVote` helper to actually begin the voting process.
 
-#include "../command_voting.hpp"
+#include "../commands/commands.hpp"
 #include "../g_local.hpp"
 #include <string>
 #include <string_view>

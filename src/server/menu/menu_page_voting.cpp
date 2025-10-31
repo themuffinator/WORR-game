@@ -13,7 +13,7 @@
 //   (either by passing, failing, or timing out) while it is open.
 
 #include "../g_local.hpp"
-#include "../command_system.hpp"
+#include "../commands/commands.hpp"
 
 void OpenVoteMenu(gentity_t* ent) {
 	if (!Vote_Menu_Active(ent)) return;
