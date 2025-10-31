@@ -17,9 +17,9 @@
 // - Team and Match Management: Handles commands for joining teams (`team`),
 //   following other players (`follow`), and managing match state (`timeout`).
 
-#include "g_local.hpp"
-#include "monsters/m_player.hpp"
-#include "weapon_pref_utils.hpp"
+#include "server/g_local.hpp"
+#include "server/monsters/m_player.hpp"
+#include "shared/weapon_pref_utils.hpp"
 /*freeze*/
 #if 0
 #include "freeze.h"

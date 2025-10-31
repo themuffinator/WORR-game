@@ -15,7 +15,7 @@
 // - Vote Execution: Contains the `Vote_Pass_*` functions that are executed
 //   when a vote succeeds, such as changing the map or shuffling teams.
 
-#include "g_local.hpp"
+#include "server/g_local.hpp"
 /*----------------------------------------------------------------*/
 
 bool TeamSkillShuffle();

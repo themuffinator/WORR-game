@@ -6,7 +6,7 @@ namespace std {
 
 #include <memory>
 
-#include "g_local.hpp"
+#include "server/g_local.hpp"
 
 #include <cassert>
 
