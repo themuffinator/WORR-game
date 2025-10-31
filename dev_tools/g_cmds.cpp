@@ -3417,7 +3417,7 @@ static void Cmd_SetWeaponPref_f(gentity_t* ent) {
 		}}
 		});
 #endif
-        Client_RebuildWeaponPreferenceOrder(cl);
+        Client_RebuildWeaponPreferenceOrder(*cl);
         ClientConfig_SaveWeaponPreferences(cl);
         gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
 }

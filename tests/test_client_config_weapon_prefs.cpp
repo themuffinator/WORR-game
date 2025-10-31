@@ -34,7 +34,7 @@ int main() {
                 Weapon::Blaster,
                 Weapon::Thunderbolt
         };
-        Client_RebuildWeaponPreferenceOrder(&client);
+        Client_RebuildWeaponPreferenceOrder(client);
         auto sanitized = GetSanitizedWeaponPrefStrings(client);
         assert(sanitized.size() == 3);
         assert(sanitized[0] == "BL");
@@ -49,7 +49,7 @@ int main() {
         reloaded.sess.weaponPrefs.push_back(Weapon::BFG10K);
 
         ClientConfig_Init(&reloaded, playerID, playerName, gameType);
-        Client_RebuildWeaponPreferenceOrder(&reloaded);
+        Client_RebuildWeaponPreferenceOrder(reloaded);
         auto roundTripped = GetSanitizedWeaponPrefStrings(reloaded);
 
         assert(roundTripped == sanitized);

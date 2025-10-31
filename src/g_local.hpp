@@ -3872,7 +3872,7 @@ void Throw_Generic(gentity_t* ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int
 uint8_t PlayerDamageModifier(gentity_t* ent);
 bool InfiniteAmmoOn(Item* item);
 void Weapon_PowerupSound(gentity_t* ent);
-void Client_RebuildWeaponPreferenceOrder(gclient_t* cl);
+void Client_RebuildWeaponPreferenceOrder(gclient_t& cl);
 std::vector<std::string> GetSanitizedWeaponPrefStrings(const gclient_t& cl);
 
 // GRAPPLE
@@ -4296,6 +4296,7 @@ struct client_session_t {
 	GameTime			command_flood_time = 0_ms;
 
         std::vector<Weapon> weaponPrefs;
+        std::vector<item_id_t> weaponPrefOrder;
 
 };
 
@@ -4382,8 +4383,7 @@ struct gclient_t {
 		bool		fireBuffered = false;
 		bool		thunk = false;
 
-		Item* pending = nullptr;
-		std::vector<Weapon> preferenceOrder;
+                Item* pending = nullptr;
 	} weapon;
 
 	// sum up damage over an entire frame, so

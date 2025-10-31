@@ -339,9 +339,11 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
                 }
         }
 
-	// Apply visual/audio config settings
-	if (playerData.isMember("config")) {
-		const auto& cfg = playerData["config"];
+        Client_RebuildWeaponPreferenceOrder(*cl);
+
+        // Apply visual/audio config settings
+        if (playerData.isMember("config")) {
+                const auto& cfg = playerData["config"];
 
                 auto get_bool = [&](const std::string& key, bool def) {
                         return cfg.isMember(key) && cfg[key].isBool() ? cfg[key].asBool() : def;
@@ -650,7 +652,7 @@ void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
         if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
                 return;
 
-        Client_RebuildWeaponPreferenceOrder(cl);
+        Client_RebuildWeaponPreferenceOrder(*cl);
         std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
 
         ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {

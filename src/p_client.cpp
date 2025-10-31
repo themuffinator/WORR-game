@@ -3687,8 +3687,10 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 		}
 	}
 
-	if (level.endmatch_grace)
-		level.endmatch_grace = 0_ms;
+        Client_RebuildWeaponPreferenceOrder(*ent->client);
+
+        if (level.endmatch_grace)
+                level.endmatch_grace = 0_ms;
 
 	// set skin
 	std::array<char, MAX_INFO_VALUE> val = {};
