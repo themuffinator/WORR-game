@@ -910,25 +910,29 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 	}
 	html << "</tr>\n";
 
-	for (auto* p : allPlayers) {
-		bool hasPickup = false;
-		for (const auto& name : sortedItems) {
-			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
-				if (HighValueItemNames[i] == name && getPickup(p, static_cast<HighValueItems>(i)) > 0) {
-					hasPickup = true;
+        bool wrotePlayerRow = false;
+
+        for (auto* p : allPlayers) {
+                bool hasPickup = false;
+                for (const auto& name : sortedItems) {
+                        for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
+                                if (HighValueItemNames[i] == name && getPickup(p, static_cast<HighValueItems>(i)) > 0) {
+                                        hasPickup = true;
 					break;
 				}
 			}
 			if (hasPickup) break;
-		}
-		if (!hasPickup)
-			continue;
+                }
+                if (!hasPickup)
+                        continue;
 
-		std::string color = "green";
-		if (Teams()) {
-			for (const auto& rp : matchStats.teams[0].players)
-				if (&rp == p) { color = "red"; break; }
-			for (const auto& bp : matchStats.teams[1].players)
+                wrotePlayerRow = true;
+
+                std::string color = "green";
+                if (Teams()) {
+                        for (const auto& rp : matchStats.teams[0].players)
+                                if (&rp == p) { color = "red"; break; }
+                        for (const auto& bp : matchStats.teams[1].players)
 				if (&bp == p) { color = "blue"; break; }
 		}
 
@@ -954,29 +958,33 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 				int avgSecs = static_cast<int>((delay / pickups) + 0.5);
 				html << "<td>" << pickups << " (" << FormatDuration(avgSecs) << ")</td>";
 			}
-			else {
-				html << "<td>-</td>";
-			}
-		}
+                        else {
+                                html << "<td>-</td>";
+                        }
+                }
 
-		html << "<tr><td><b>Totals</b></td>";
+                html << "</tr>\n";
+        }
 
-		for (const auto& name : sortedItems) {
-			auto total = itemTotals[name];
-			auto totalDelay = itemDelays[name];
-			if (total > 0) {
-				int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
-				html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
-			}
-			else {
-				html << "<td>-</td>";
-			}
-		}
+        if (wrotePlayerRow) {
+                html << "<tr><td><b>Totals</b></td>";
 
-		html << "</tr>\n";
-	}
+                for (const auto& name : sortedItems) {
+                        auto total = itemTotals[name];
+                        auto totalDelay = itemDelays[name];
+                        if (total > 0) {
+                                int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
+                                html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
+                        }
+                        else {
+                                html << "<td>-</td>";
+                        }
+                }
 
-	html << "</table>\n</div>\n"; // flex-item (players)
+                html << "</tr>\n";
+        }
+
+        html << "</table>\n</div>\n"; // flex-item (players)
 
 	// --- Team Totals Table ---
 	if (Teams()) {
