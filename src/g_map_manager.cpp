@@ -21,6 +21,7 @@
 #include <json/json.h>
 #include <fstream>
 #include <regex>
+#include <algorithm>
 
 /*
 =============
@@ -522,22 +523,24 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	const bool avoidCustomSounds = g_maps_allow_custom_sounds && !g_maps_allow_custom_sounds->integer;
 
 	const int cooldown = 1800;
-	int secondsSinceStart = static_cast<int>(time(nullptr) - game.serverStartTime);
+	const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
 
 	auto mapValid = [&](const MapEntry& map) -> bool {
-		int lastPlayed = map.lastPlayed / 1000;
+                const int64_t lastPlayed = map.lastPlayed;
 
-		if (lastPlayed > 0) {
-			int delta = secondsSinceStart - lastPlayed;
-			if (delta < 0 || delta < cooldown) {
-				gi.Com_PrintFmt("Map {} skipped: played {} ago (cooldown: {})\n",
-					map.filename.c_str(),
-					FormatDuration(delta).c_str(),
-					FormatDuration(cooldown - delta).c_str()
-				);
-				return false;
-			}
-		}
+                if (lastPlayed > 0) {
+                        const int64_t delta = secondsSinceStart - lastPlayed;
+                        if (delta < 0 || delta < cooldown) {
+                                const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
+                                const int remaining = std::max(0, cooldown - elapsed);
+                                gi.Com_PrintFmt("Map {} skipped: played {} ago (cooldown: {})\n",
+                                        map.filename.c_str(),
+                                        FormatDuration(elapsed).c_str(),
+                                        FormatDuration(remaining).c_str()
+                                );
+                                return false;
+                        }
+                }
 
 		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
@@ -609,16 +612,17 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 	const int playerCount = level.pop.num_playing_human_clients;
 	const bool avoidCustom = (level.pop.num_console_clients > 0);
 	const bool avoidCustomTextures = !g_maps_allow_custom_textures->integer;
-	int64_t now = GetCurrentRealTimeMillis();
+	const int cooldownSeconds = 1800;
+	const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
 	bool isCTF = Game::Has(GameFlags::CTF);
 	bool isDuel = Game::Has(GameFlags::OneVOne);
 	bool isTDM = Teams();
 
 	for (const auto& map : game.mapSystem.mapPool) {
-		if (!map.isCycleable)
-			continue;
-		if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
-			continue;
+                if (!map.isCycleable)
+                        continue;
+                if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
+                        continue;
 		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
 			continue;
@@ -643,10 +647,10 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 	}
 
 	if (pool.size() < 2) {
-		pool.clear();
-		for (const auto& map : game.mapSystem.mapPool) {
-			if (map.lastPlayed && (now - map.lastPlayed) < 1800000)
-				continue;
+        	pool.clear();
+        	for (const auto& map : game.mapSystem.mapPool) {
+                        if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
+                                continue;
 			if (avoidCustomTextures && map.hasCustomTextures)
 				continue;
 			pool.push_back(&map);

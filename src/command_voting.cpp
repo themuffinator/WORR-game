@@ -187,15 +187,19 @@ namespace Commands {
 			gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' not found in map pool.\n", mapName.data());
 			return false;
 		}
-		if (map->lastPlayed) {
-			int64_t timeSince = GetCurrentRealTimeMillis() - map->lastPlayed;
-			if (timeSince < 1800000) {
-				gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' was played recently, please wait {}.\n", mapName.data(), FormatDuration(1800000 - timeSince).c_str());
-				return false;
-			}
-		}
-		return true;
-	}
+                if (map->lastPlayed) {
+                        const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
+                        const int64_t delta = secondsSinceStart - map->lastPlayed;
+                        const int cooldownSeconds = 1800;
+                        if (delta < 0 || delta < cooldownSeconds) {
+                                const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
+                                const int remaining = std::max(0, cooldownSeconds - elapsed);
+                                gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' was played recently, please wait {}.\n", mapName.data(), FormatDuration(remaining).c_str());
+                                return false;
+                        }
+                }
+                return true;
+        }
 
 	static bool Validate_Gametype(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::FromString(args.getString(2))) {
