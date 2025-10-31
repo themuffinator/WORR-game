@@ -33,7 +33,7 @@
 namespace fmt = std;
 #define FMT_STRING(s) s
 #else
-#include <fmt/format.h>
+#include "third_party/fmt/format.h"
 #endif
 
 struct g_fmt_data_t {

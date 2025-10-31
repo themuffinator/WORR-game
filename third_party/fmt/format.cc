@@ -5,7 +5,7 @@
 //
 // For the license information refer to format.h.
 
-#include "fmt/format-inl.h"
+#include "third_party/fmt/format-inl.h"
 
 FMT_BEGIN_NAMESPACE
 namespace detail {

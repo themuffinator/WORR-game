@@ -20,7 +20,7 @@
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
-#include <json/json.h>
+#include "third_party/json/json.h"
 #include <unordered_set>
 #include <string_view>
 

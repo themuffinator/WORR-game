@@ -9,8 +9,8 @@
 #pragma clang diagnostic push
 #pragma GCC diagnostic ignored "-Weverything"
 #endif
-#include "json/json.h"
-#include "json/config.h"
+#include "third_party/json/json.h"
+#include "third_party/json/config.h"
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif

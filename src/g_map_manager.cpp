@@ -18,7 +18,7 @@
 //   a specific map next.
 
 #include "g_local.hpp"
-#include <json/json.h>
+#include "third_party/json/json.h"
 #include <fstream>
 #include <regex>
 #include <algorithm>

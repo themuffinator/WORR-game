@@ -27,7 +27,7 @@
 #include <vector>
 #include <filesystem>
 #include <system_error>
-#include <json/json.h>
+#include "third_party/json/json.h"
 
 #include <set>
 
