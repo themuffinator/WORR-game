@@ -18,8 +18,7 @@
 
 #include "server/g_local.hpp"
 #include "server/commands/command_registration.hpp"
-#include "match_state_utils.hpp"
-#include "match_state_helper.hpp"
+#include "server/match/match.hpp"
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 

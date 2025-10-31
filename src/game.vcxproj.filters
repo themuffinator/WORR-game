@@ -201,6 +201,9 @@
     <ClInclude Include="server\commands\command_voting_utils.hpp">
       <Filter>commands</Filter>
     </ClInclude>
+    <ClInclude Include="server\match\match.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
     <ClInclude Include="server\match\match_state_helper.hpp">
       <Filter>matches</Filter>
     </ClInclude>
