@@ -285,7 +285,7 @@ void P_SaveGhostSlot(gentity_t* ent) {
 	slot->skillRatingChange = cl->sess.skillRatingChange;
 	slot->origin = ent->s.origin;
 	slot->angles = ent->s.angles;
-	slot->totalMatchPlayRealTime = cl->resp.totalMatchPlayRealTime + cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+        slot->totalMatchPlayRealTime = cl->resp.totalMatchPlayRealTime;
 }
 
 /*
@@ -3725,56 +3725,64 @@ Will not be called between levels.
 ============
 */
 void ClientDisconnect(gentity_t* ent) {
-	if (!ent->client)
-		return;
+        if (!ent->client)
+                return;
 
-	// make sure no trackers are still hurting us.
-	if (ent->client->trackerPainTime)
-		RemoveAttackingPainDaemons(ent);
+        gclient_t* cl = ent->client;
+        const int64_t now = GetCurrentRealTimeMillis();
+        cl->sess.playEndRealTime = now;
+        if (cl->sess.playStartRealTime > 0) {
+                cl->resp.totalMatchPlayRealTime += now - cl->sess.playStartRealTime;
+                cl->sess.playStartRealTime = now;
+        }
 
-	if (ent->client->ownedSphere) {
-		if (ent->client->ownedSphere->inUse)
-			FreeEntity(ent->client->ownedSphere);
-		ent->client->ownedSphere = nullptr;
-	}
+        // make sure no trackers are still hurting us.
+        if (cl->trackerPainTime)
+                RemoveAttackingPainDaemons(ent);
 
-	PlayerTrail_Destroy(ent);
+        if (cl->ownedSphere) {
+                if (cl->ownedSphere->inUse)
+                        FreeEntity(cl->ownedSphere);
+                cl->ownedSphere = nullptr;
+        }
 
-	if (!(ent->svFlags & SVF_NOCLIENT)) {
-		TossClientItems(ent);
+        PlayerTrail_Destroy(ent);
 
-		// send effect
-		gi.WriteByte(svc_muzzleflash);
-		gi.WriteEntity(ent);
+        if (!(ent->svFlags & SVF_NOCLIENT)) {
+                TossClientItems(ent);
+
+                // send effect
+                gi.WriteByte(svc_muzzleflash);
+                gi.WriteEntity(ent);
 		gi.WriteByte(MZ_LOGOUT);
 		gi.multicast(ent->s.origin, MULTICAST_PVS, false);
 	}
 
-	if (ent->client->pers.connected && ent->client->sess.initialised && !ent->client->sess.is_a_bot)
-		if (ent->client->sess.netName && ent->client->sess.netName[0])
-			gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", ent->client->sess.netName);
+        if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot)
+                if (cl->sess.netName && cl->sess.netName[0])
+                        gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
 
-	// free any followers
-	FreeClientFollowers(ent);
+        // free any followers
+        FreeClientFollowers(ent);
 
-	G_RevertVote(ent->client);
+        G_RevertVote(cl);
 
-	P_SaveGhostSlot(ent);
+        P_SaveGhostSlot(ent);
 
-	gi.unlinkEntity(ent);
-	ent->s.modelIndex = 0;
-	ent->solid = SOLID_NOT;
-	ent->inUse = false;
-	ent->sv.init = false;
-	ent->className = "disconnected";
-	ent->client->pers.connected = false;
-	ent->client->pers.limitedLivesPersist = false;
-	ent->client->pers.limitedLivesStash = 0;
-	ent->client->pers.spawned = false;
-	ent->timeStamp = level.time + 1_sec;
+        gi.unlinkEntity(ent);
+        ent->s.modelIndex = 0;
+        ent->solid = SOLID_NOT;
+        ent->inUse = false;
+        ent->sv.init = false;
+        ent->className = "disconnected";
+        cl->pers.connected = false;
+        cl->pers.limitedLivesPersist = false;
+        cl->pers.limitedLivesStash = 0;
+        cl->pers.spawned = false;
+        ent->timeStamp = level.time + 1_sec;
 
-	if (ent->client->pers.spawned)
-		ClientConfig_SaveStats(ent->client, false);
+        if (cl->pers.spawned)
+                ClientConfig_SaveStats(cl, false);
 
 	// update active scoreboards
 	if (deathmatch->integer) {
