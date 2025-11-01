@@ -314,7 +314,7 @@ static void OpenCallvoteScorelimit(gentity_t* ent) {
 	builder.add("Callvote: Scorelimit", MenuAlign::Center).spacer();
 
 	// Label depends on gametype. Use helpers already present server-side.
-	const char* metric = GT_ScoreLimitString(); // e.g. "frag" or "capture"
+        const char* metric = GT_ScoreLimitDisplayString(); // e.g. "frag", "capture", or "point"
 	const int cur = GT_ScoreLimit();
 
 	builder.add(G_Fmt("Current: {} {}", cur ? cur : 0, cur ? metric : "(Disabled)").data(), MenuAlign::Left);

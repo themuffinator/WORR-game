@@ -31,7 +31,7 @@ void OpenMatchInfoMenu(gentity_t* ent) {
 	builder.add(fmt::format("ruleset: {}", rs_long_name[(int)game.ruleset]), MenuAlign::Left);
 
 	if (GT_ScoreLimit())
-		builder.add(fmt::format("{} limit: {}", GT_ScoreLimitString(), GT_ScoreLimit()), MenuAlign::Left);
+		builder.add(fmt::format("{} limit: {}", GT_ScoreLimitDisplayString(), GT_ScoreLimit()), MenuAlign::Left);
 
 	if (timeLimit->value > 0)
 		builder.add(fmt::format("time limit: {}", TimeString(timeLimit->value * 60000, false, false)), MenuAlign::Left);

@@ -3983,6 +3983,7 @@ void Marathon_RegisterClientBaseline(gclient_t* cl);
 void CheckDMExitRules();
 int GT_ScoreLimit();
 const char* GT_ScoreLimitString();
+const char* GT_ScoreLimitDisplayString();
 void ChangeGametype(GameType gt);
 void Match_End();
 void Match_UpdateDuelRecords();

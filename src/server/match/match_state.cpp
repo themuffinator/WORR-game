@@ -1953,13 +1953,17 @@ int GT_ScoreLimit() {
 }
 
 const char* GT_ScoreLimitString() {
-        if (Game::Is(GameType::Domination))
-                return "point";
         if (Game::Is(GameType::CaptureTheFlag))
                 return "capture";
         if (Game::Has(GameFlags::Rounds))
                 return "round";
         return "frag";
+}
+
+const char* GT_ScoreLimitDisplayString() {
+        if (Game::Is(GameType::Domination))
+                return "point";
+        return GT_ScoreLimitString();
 }
 
 /*
@@ -2247,7 +2251,7 @@ void CheckDMExitRules() {
 	if (teams) {
 		for (Team team : { Team::Red, Team::Blue }) {
 			if (level.teamScores[static_cast<int>(team)] >= scoreLimit) {
-				QueueIntermission(G_Fmt("{} WINS! (hit the {} limit)", Teams_TeamName(team), GT_ScoreLimitString()).data(), false, false);
+				QueueIntermission(G_Fmt("{} WINS! (hit the {} limit)", Teams_TeamName(team), GT_ScoreLimitDisplayString()).data(), false, false);
 				return;
 			}
 		}
@@ -2258,7 +2262,7 @@ void CheckDMExitRules() {
 				continue;
 
 			if (ec->client->resp.score >= scoreLimit) {
-				QueueIntermission(G_Fmt("{} WINS! (hit the {} limit)", ec->client->sess.netName, GT_ScoreLimitString()).data(), false, false);
+				QueueIntermission(G_Fmt("{} WINS! (hit the {} limit)", ec->client->sess.netName, GT_ScoreLimitDisplayString()).data(), false, false);
 				return;
 			}
 		}
