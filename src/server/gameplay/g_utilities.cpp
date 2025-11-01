@@ -1756,6 +1756,10 @@ void CalculateRanks() {
 
 		if (!caPlaying && !cbPlaying) {
 			if (ca->sess.matchQueued && cb->sess.matchQueued) {
+				const uint64_t caTicket = ca->sess.duelQueueTicket;
+				const uint64_t cbTicket = cb->sess.duelQueueTicket;
+				if (caTicket && cbTicket && caTicket != cbTicket)
+					return caTicket < cbTicket;
 				if (ca->sess.teamJoinTime != cb->sess.teamJoinTime)
 					return ca->sess.teamJoinTime < cb->sess.teamJoinTime;
 			}

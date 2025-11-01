@@ -415,8 +415,24 @@ static gclient_t* GetNextQueuedPlayer() {
 	gclient_t* next = nullptr;
 	for (auto ec : active_clients()) {
 		if (ec->client->sess.matchQueued && !ClientIsPlaying(ec->client)) {
-			if (!next || ec->client->sess.teamJoinTime < next->sess.teamJoinTime)
-				next = ec->client;
+			gclient_t* candidate = ec->client;
+			if (!next) {
+				next = candidate;
+				continue;
+			}
+			const uint64_t candidateTicket = candidate->sess.duelQueueTicket;
+			const uint64_t nextTicket = next->sess.duelQueueTicket;
+			if (candidateTicket && nextTicket) {
+				if (candidateTicket < nextTicket)
+					next = candidate;
+			}
+			else if (candidateTicket && !nextTicket) {
+				next = candidate;
+			}
+			else if (!candidateTicket && !nextTicket) {
+				if (candidate->sess.teamJoinTime < next->sess.teamJoinTime)
+					next = candidate;
+			}
 		}
 	}
 	return next;
