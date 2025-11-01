@@ -309,7 +309,7 @@ std::vector<VoteCommand> vote_cmds = {
 	{ "map",        Vote_Val_Map,          Vote_Pass_Map,          1,     2, "<mapname>",                         "Changes to the specified map" },
 	{ "nextMap",    Vote_Val_None,         Vote_Pass_NextMap,      2,     1, "",                                 "Moves to the next map in the rotation" },
 	{ "restart",    Vote_Val_None,         Vote_Pass_RestartMatch, 4,     1, "",                                 "Restarts the current match" },
-	{ "gametype",   Vote_Val_Gametype,     Vote_Pass_Gametype,     8,     2, "<ffa|duel|tdm|ctf|ca|ft|horde|gauntlet>", "Changes the current gametype" },
+        { "gametype",   Vote_Val_Gametype,     Vote_Pass_Gametype,     8,     2, "<ffa|duel|tdm|dom|ctf|ca|ft|horde|gauntlet>", "Changes the current gametype" },
 	{ "timeLimit",  Vote_Val_Timelimit,    Vote_Pass_Timelimit,    16,    2, "<0..$>",                            "Alters the match time limit, 0 for no time limit" },
 	{ "scorelimit", Vote_Val_Scorelimit,   Vote_Pass_Scorelimit,   32,    2, "<0..$>",                            "Alters the match score limit, 0 for no score limit" },
 	{ "shuffle",    Vote_Val_ShuffleTeams, Vote_Pass_ShuffleTeams, 64,    2, "",                                 "Shuffles teams" },

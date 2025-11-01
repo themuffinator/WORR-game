@@ -178,7 +178,7 @@ Use **callvote [command] [arg]** for the below listed vote commands:
  - **map**: changes the level to the specified map, map needs to be a part of the map list.
  - **nextmap**: forces level change to the next map.
  - **restart**: force the match to reset to warmup, requires a match in progress.
- - **gametype**: changes gametype to the specified type (ffa|duel|tdm|ctf|ca|ft|rr|strike|lms|horde)
+ - **gametype**: changes gametype to the specified type (ffa|duel|tdm|dom|ctf|ca|ft|rr|strike|lms|horde)
  - **timelimit**: changes timelimit to the minutes specified.
  - **scorelimit**: changes scorelimit to the value specified.
  - **shuffle**: shuffles and balances the teams, resets the match. Requires a team gametype.
