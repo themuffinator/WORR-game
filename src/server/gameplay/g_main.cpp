@@ -391,34 +391,42 @@ static void GT_Changes() {
 	GameType gt = GameType::None;
 
 	if (gt_g_gametype != g_gametype->modifiedCount) {
-		if (gt >= GT_LAST)
-			gt = GT_LAST;
-		else if (gt < GT_FIRST)
-			gt = GT_FIRST;
+	        int raw = g_gametype->integer;
+	        if (raw > static_cast<int>(GT_LAST))
+	                raw = static_cast<int>(GT_LAST);
+	        else if (raw < static_cast<int>(GT_FIRST))
+	                raw = static_cast<int>(GT_FIRST);
+
+	        gt = static_cast<GameType>(raw);
 
 		if (gt != gt_check) {
-			switch (gt) {
-			case GameType::TeamDeathmatch:
-				if (!teamplay->integer)
-					gi.cvarForceSet("teamplay", "1");
-				break;
-			case GameType::CaptureTheFlag:
-				if (!ctf->integer)
-					gi.cvarForceSet("ctf", "1");
-				break;
-			default:
-				if (teamplay->integer)
-					gi.cvarForceSet("teamplay", "0");
-				if (ctf->integer)
-					gi.cvarForceSet("ctf", "0");
-				break;
-			}
-			gt_teamplay = teamplay->modifiedCount;
-			gt_ctf = ctf->modifiedCount;
-			changed = true;
-		}
+	                switch (gt) {
+	                case GameType::TeamDeathmatch:
+	                        if (!teamplay->integer)
+	                                gi.cvarForceSet("teamplay", "1");
+	                        break;
+	                case GameType::Domination:
+	                        if (!teamplay->integer)
+	                                gi.cvarForceSet("teamplay", "1");
+	                        if (ctf->integer)
+	                                gi.cvarForceSet("ctf", "0");
+	                        break;
+	                case GameType::CaptureTheFlag:
+	                        if (!ctf->integer)
+	                                gi.cvarForceSet("ctf", "1");
+	                        break;
+	                default:
+	                        if (teamplay->integer)
+	                                gi.cvarForceSet("teamplay", "0");
+	                        if (ctf->integer)
+	                                gi.cvarForceSet("ctf", "0");
+	                        break;
+	                }
+	                gt_teamplay = teamplay->modifiedCount;
+	                gt_ctf = ctf->modifiedCount;
+	                changed = true;
+	        }
 	}
-
 	if (!changed) {
 		if (gt_teamplay != teamplay->modifiedCount) {
 			if (teamplay->integer) {
@@ -502,7 +510,7 @@ static void GT_Changes() {
 	if (gt != gt_check) {
 		gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
 		gt_g_gametype = g_gametype->modifiedCount;
-		gt_check = (GameType)g_gametype->integer;
+		gt_check = gt;
 	}
 	else return;
 
