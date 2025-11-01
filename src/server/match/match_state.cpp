@@ -1081,7 +1081,11 @@ An end of match condition has been reached
 */
 extern void MatchStats_End();
 void Match_End() {
-	MarathonResetState();
+        const bool marathonTransitionPending = game.marathon.active && game.marathon.transitionPending;
+        if (!marathonTransitionPending) {
+                // Only wipe marathon data when we're not in the middle of rolling to the next leg.
+                MarathonResetState();
+        }
 
 	gentity_t* ent;
 
