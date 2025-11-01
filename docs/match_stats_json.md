@@ -8,7 +8,7 @@ following table summarizes the top-level fields that analytics pipelines typical
 | `matchID` | string | Unique identifier for the match instance. |
 | `serverName` | string | Configured server name (`hostname` cvar). |
 | `serverHostName` | string | Optional. Present when the lobby host is connected and exposes a `name` in their user info. |
-| `gameType` | string | Short identifier for the current game type (e.g., `FFA`, `TDM`). |
+| `gameType` | string | Short identifier for the current game type (e.g., `FFA`, `TDM`, `DOM`). |
 | `ruleSet` | string | Long-form ruleset name. |
 | `mapName` | string | Active map at match end. |
 | `matchRanked` | boolean | Whether ranked rules were active. |
