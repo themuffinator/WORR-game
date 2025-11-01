@@ -170,6 +170,11 @@ cvar_t* match_doOvertime;
 cvar_t* match_powerupDrops;
 cvar_t* match_powerupMinPlayerLock;
 cvar_t* g_dm_random_items;
+cvar_t* g_domination_tick_interval;
+cvar_t* g_domination_points_per_tick;
+cvar_t* g_domination_capture_bonus;
+cvar_t* g_domination_capture_time;
+cvar_t* g_domination_neutralize_time;
 cvar_t* match_playerRespawnMinDelay;
 cvar_t* match_playerRespawnMinDistance;
 cvar_t* match_playerRespawnMinDistanceDebug;
@@ -724,6 +729,11 @@ static void InitGame() {
 	g_huntercam = gi.cvar("g_hunter_cam", "1", CVAR_SERVERINFO | CVAR_LATCH);
 	g_dm_strong_mines = gi.cvar("g_dm_strong_mines", "0", CVAR_NOFLAGS);
 	g_dm_random_items = gi.cvar("g_dm_random_items", "0", CVAR_NOFLAGS);
+	g_domination_tick_interval = gi.cvar("g_domination_tick_interval", "1.0", CVAR_NOFLAGS);
+	g_domination_points_per_tick = gi.cvar("g_domination_points_per_tick", "1", CVAR_NOFLAGS);
+	g_domination_capture_bonus = gi.cvar("g_domination_capture_bonus", "5", CVAR_NOFLAGS);
+	g_domination_capture_time = gi.cvar("g_domination_capture_time", "3.0", CVAR_NOFLAGS);
+	g_domination_neutralize_time = gi.cvar("g_domination_neutralize_time", "2.0", CVAR_NOFLAGS);
 
 	// freeze tag
 	g_frozen_time = gi.cvar("g_frozen_time", "180", CVAR_NOFLAGS);
