@@ -1243,14 +1243,17 @@ void QueueIntermission(const char* msg, bool boo, bool reset) {
 	std::strncpy(level.intermission.victorMessage.data(), msg, level.intermission.victorMessage.size() - 1);
 	level.intermission.victorMessage.back() = '\0'; // Ensure null-termination
 
-	const char* reason = level.intermission.victorMessage[0] ? level.intermission.victorMessage.data() : "Unknown Reason";
-	gi.Com_PrintFmt("MATCH END: {}\n", reason);
+        const char* reason = level.intermission.victorMessage[0] ? level.intermission.victorMessage.data() : "Unknown Reason";
+        gi.Com_PrintFmt("MATCH END: {}\n", reason);
 
-	const char* sound = boo ? "insane/insane4.wav" : "world/xian1.wav";
-	gi.positionedSound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundIndex(sound), 1, ATTN_NONE, 0);
+        if (!reset)
+                Match_UpdateDuelRecords();
 
-	if (reset) {
-		Match_Reset();
+        const char* sound = boo ? "insane/insane4.wav" : "world/xian1.wav";
+        gi.positionedSound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundIndex(sound), 1, ATTN_NONE, 0);
+
+        if (reset) {
+                Match_Reset();
 		return;
 	}
 

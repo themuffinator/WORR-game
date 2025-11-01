@@ -2178,6 +2178,7 @@ struct LevelLocals {
 		int32_t		serverFrame;		// server frame when intermission was set, used to prevent
 		// intermission from being set multiple times in the same frame
 		std::array<char, 64> victorMessage;	// winner message to show on intermission
+		bool            duelWinLossApplied = false; // prevents duplicate duel win/loss updates per match end
 	};
 	Intermission intermission{};
 
@@ -3965,6 +3966,7 @@ int GT_ScoreLimit();
 const char* GT_ScoreLimitString();
 void ChangeGametype(GameType gt);
 void Match_End();
+void Match_UpdateDuelRecords();
 
 //
 // match_logging.cpp

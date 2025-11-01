@@ -3776,6 +3776,8 @@ void ClientDisconnect(gentity_t* ent) {
         ent->sv.init = false;
         ent->className = "disconnected";
         cl->pers.connected = false;
+        cl->sess.matchWins = 0;
+        cl->sess.matchLosses = 0;
         cl->pers.limitedLivesPersist = false;
         cl->pers.limitedLivesStash = 0;
         cl->pers.spawned = false;
