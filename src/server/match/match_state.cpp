@@ -487,6 +487,8 @@ static size_t CollectActiveDuelists(std::array<gclient_t*, 2>& duelists) {
 void Match_UpdateDuelRecords() {
         if (!Game::Has(GameFlags::OneVOne))
                 return;
+        if (Game::Is(GameType::Gauntlet))
+                return;
         if (level.intermission.duelWinLossApplied)
                 return;
 
