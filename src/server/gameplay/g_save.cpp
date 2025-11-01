@@ -20,6 +20,7 @@
 // - Pointer Marshalling: Safely handles saving and restoring function pointers
 //   and entity pointers by converting them to names or ID numbers.
 
+#include <new>
 #include <sstream>
 
 #include "../g_local.hpp"
@@ -32,6 +33,24 @@
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
+
+namespace {
+    void ConstructClients(gclient_t* clients, size_t count) {
+        if (!clients)
+            return;
+
+        for (size_t i = 0; i < count; ++i)
+            new (&clients[i]) gclient_t();
+    }
+
+    void DestroyClients(gclient_t* clients, size_t count) {
+        if (!clients)
+            return;
+
+        for (size_t i = 0; i < count; ++i)
+            clients[i].~gclient_t();
+    }
+}
 
 // new save format;
 // - simple JSON format
@@ -2298,17 +2317,24 @@ void PrecacheInventoryItems();
 // takes in pointer to JSON data. does
 // not store or modify it.
 void ReadGameJson(const char* jsonString) {
-	gi.FreeTags(TAG_GAME);
+        const uint32_t maxEntities = game.maxEntities;
+        const uint32_t max_clients = game.maxClients;
 
-	Json::Value json = parseJson(jsonString);
+        DestroyClients(game.clients, max_clients);
+        game.clients = nullptr;
+        game.maxClients = 0;
 
-	uint32_t maxEntities = game.maxEntities;
-	uint32_t max_clients = game.maxClients;
+        gi.FreeTags(TAG_GAME);
 
-	game = {};
-	g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
-	game.clients = (gclient_t*)gi.TagMalloc(max_clients * sizeof(game.clients[0]), TAG_GAME);
-	globals.gentities = g_entities;
+        Json::Value json = parseJson(jsonString);
+
+        game = {};
+        g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
+        game.clients = (gclient_t*)gi.TagMalloc(max_clients * sizeof(game.clients[0]), TAG_GAME);
+        ConstructClients(game.clients, max_clients);
+        game.maxEntities = maxEntities;
+        game.maxClients = max_clients;
+        globals.gentities = g_entities;
 
 	// read game
 	json_push_stack("game");
