@@ -1943,19 +1943,23 @@ static bool ScoreIsTied(void) {
 
 
 int GT_ScoreLimit() {
-	if (Game::Has(GameFlags::Rounds))
-		return roundLimit->integer;
-	if (Game::Is(GameType::CaptureTheFlag))
-		return captureLimit->integer;
-	return fragLimit->integer;
+        if (Game::Is(GameType::Domination))
+                return fragLimit->integer;
+        if (Game::Has(GameFlags::Rounds))
+                return roundLimit->integer;
+        if (Game::Is(GameType::CaptureTheFlag))
+                return captureLimit->integer;
+        return fragLimit->integer;
 }
 
 const char* GT_ScoreLimitString() {
-	if (Game::Is(GameType::CaptureTheFlag))
-		return "capture";
-	if (Game::Has(GameFlags::Rounds))
-		return "round";
-	return "frag";
+        if (Game::Is(GameType::Domination))
+                return "point";
+        if (Game::Is(GameType::CaptureTheFlag))
+                return "capture";
+        if (Game::Has(GameFlags::Rounds))
+                return "round";
+        return "frag";
 }
 
 /*

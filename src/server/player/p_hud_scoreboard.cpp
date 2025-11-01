@@ -367,49 +367,54 @@ AddTeamScoreOverlay
 ===============
 */
 static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
-	if (Game::Is(GameType::CaptureTheFlag)) {
-		fmt::format_to(std::back_inserter(layout),
-			"if 25 xv -32 yv 8 pic 25 endif "
-			"xv 0 yv 28 string \"{}/{}\" "
-			"xv 58 yv 12 num 2 19 "
-			"xv -40 yv 42 string \"SC\" "
-			"xv -12 yv 42 picn ping "
-			"if 26 xv 208 yv 8 pic 26 endif "
-			"xv 240 yv 28 string \"{}/{}\" "
-			"xv 296 yv 12 num 2 21 "
-			"xv 200 yv 42 string \"SC\" "
-			"xv 228 yv 42 picn ping ",
-			total[0], teamsize, total[1], teamsize);
-	}
-	else if (Game::Has(GameFlags::Rounds)) {
-		fmt::format_to(std::back_inserter(layout),
-			"if 25 xv -32 yv 8 pic 25 endif "
-			"xv 0 yv 28 string \"{}/{}/{}\" "
-			"xv 58 yv 12 num 2 19 "
-			"xv -40 yv 42 string \"SC\" "
-			"xv -12 yv 42 picn ping "
-			"if 26 xv 208 yv 8 pic 26 endif "
-			"xv 240 yv 28 string \"{}/{}/{}\" "
-			"xv 296 yv 12 num 2 21 "
-			"xv 200 yv 42 string \"SC\" "
-			"xv 228 yv 42 picn ping ",
-			totalLiving[0], total[0], teamsize,
-			totalLiving[1], total[1], teamsize);
-	}
-	else {
-		fmt::format_to(std::back_inserter(layout),
-			"if 25 xv -32 yv 8 pic 25 endif "
-			"xv -123 yv 28 cstring \"{}/{}\" "
-			"xv 41 yv 12 num 3 19 "
-			"xv -40 yv 42 string \"SC\" "
-			"xv -12 yv 42 picn ping "
-			"if 26 xv 208 yv 8 pic 26 endif "
-			"xv 117 yv 28 cstring \"{}/{}\" "
-			"xv 280 yv 12 num 3 21 "
-			"xv 200 yv 42 string \"SC\" "
-			"xv 228 yv 42 picn ping ",
-			total[0], teamsize, total[1], teamsize);
-	}
+        const bool domination = Game::Is(GameType::Domination);
+        const char* scoreLabel = domination ? "PT/points" : "SC";
+
+        if (Game::Is(GameType::CaptureTheFlag)) {
+                fmt::format_to(std::back_inserter(layout),
+                        "if 25 xv -32 yv 8 pic 25 endif "
+                        "xv 0 yv 28 string \"{}/{}\" "
+                        "xv 58 yv 12 num 2 19 "
+                        "xv -40 yv 42 string \"{}\" "
+                        "xv -12 yv 42 picn ping "
+                        "if 26 xv 208 yv 8 pic 26 endif "
+                        "xv 240 yv 28 string \"{}/{}\" "
+                        "xv 296 yv 12 num 2 21 "
+                        "xv 200 yv 42 string \"{}\" "
+                        "xv 228 yv 42 picn ping ",
+                        total[0], teamsize, scoreLabel,
+                        total[1], teamsize, scoreLabel);
+        }
+        else if (Game::Has(GameFlags::Rounds)) {
+                fmt::format_to(std::back_inserter(layout),
+                        "if 25 xv -32 yv 8 pic 25 endif "
+                        "xv 0 yv 28 string \"{}/{}/{}\" "
+                        "xv 58 yv 12 num 2 19 "
+                        "xv -40 yv 42 string \"{}\" "
+                        "xv -12 yv 42 picn ping "
+                        "if 26 xv 208 yv 8 pic 26 endif "
+                        "xv 240 yv 28 string \"{}/{}/{}\" "
+                        "xv 296 yv 12 num 2 21 "
+                        "xv 200 yv 42 string \"{}\" "
+                        "xv 228 yv 42 picn ping ",
+                        totalLiving[0], total[0], teamsize, scoreLabel,
+                        totalLiving[1], total[1], teamsize, scoreLabel);
+        }
+        else {
+                fmt::format_to(std::back_inserter(layout),
+                        "if 25 xv -32 yv 8 pic 25 endif "
+                        "xv -123 yv 28 cstring \"{}/{}\" "
+                        "xv 41 yv 12 num 3 19 "
+                        "xv -40 yv 42 string \"{}\" "
+                        "xv -12 yv 42 picn ping "
+                        "if 26 xv 208 yv 8 pic 26 endif "
+                        "xv 117 yv 28 cstring \"{}/{}\" "
+                        "xv 280 yv 12 num 3 21 "
+                        "xv 200 yv 42 string \"{}\" "
+                        "xv 228 yv 42 picn ping ",
+                        total[0], teamsize, scoreLabel,
+                        total[1], teamsize, scoreLabel);
+        }
 }
 
 /*
