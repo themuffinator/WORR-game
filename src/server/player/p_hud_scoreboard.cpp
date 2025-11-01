@@ -204,63 +204,63 @@ static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode 
 			if ((lineIndex & 1) == 0)
 				y += 8;
 		}
-	}
+        }
+}
 
-	static int AddDuelistSummary(std::string & layout, int startY) {
-		if (!Game::Has(GameFlags::OneVOne))
-			return startY;
+static int AddDuelistSummary(std::string& layout, int startY) {
+        if (!Game::Has(GameFlags::OneVOne))
+                return startY;
 
-		std::array<int, 2> duelists{};
-		uint8_t found = 0;
+        std::array<int, 2> duelists{};
+        uint8_t found = 0;
 
-		for (int clientIndex : level.sortedClients) {
-			if (clientIndex < 0 || clientIndex >= game.maxClients)
-				continue;
+        for (int clientIndex : level.sortedClients) {
+                if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients))
+                        continue;
 
-			gclient_t* cl = &game.clients[clientIndex];
-			if (!cl->pers.connected || !ClientIsPlaying(cl))
-				continue;
+                gclient_t* cl = &game.clients[clientIndex];
+                if (!cl->pers.connected || !ClientIsPlaying(cl))
+                        continue;
 
-			duelists[found++] = clientIndex;
+                duelists[found++] = clientIndex;
 
-			if (found == duelists.size())
-				break;
-		}
+                if (found == duelists.size())
+                        break;
+        }
 
-		if (!found)
-			return startY;
+        if (!found)
+                return startY;
 
-		uint32_t y = startY;
-		fmt::format_to(std::back_inserter(layout),
-			"xv 0 yv {} loc_string2 0 \\\"Current Duelists:\\\" "
-			"xv -40 yv {} loc_string2 0 \\\"w  l  name\\\" ",
-			y, y + 8);
-		y += 16;
+        uint32_t y = startY;
+        fmt::format_to(std::back_inserter(layout),
+                "xv 0 yv {} loc_string2 0 \\\"Current Duelists:\\\" "
+                "xv -40 yv {} loc_string2 0 \\\"w  l  name\\\" ",
+                y, y + 8);
+        y += 16;
 
-		uint8_t lineIndex = 0;
-		for (uint8_t i = 0; i < found; ++i) {
-			int x = (lineIndex & 1) ? 200 : -40;
-			gclient_t* cl = &game.clients[duelists[i]];
+        uint8_t lineIndex = 0;
+        for (uint8_t i = 0; i < found; ++i) {
+                int x = (lineIndex & 1) ? 200 : -40;
+                gclient_t* cl = &game.clients[duelists[i]];
 
-			std::string_view entry = G_Fmt("ctf {} {} {} {} {} \\\"\\\" ",
-				x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
+                std::string_view entry = G_Fmt("ctf {} {} {} {} {} \\\"\\\" ",
+                        x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
 
-			if (layout.size() + entry.size() >= MAX_STRING_CHARS)
-				break;
+                if (layout.size() + entry.size() >= MAX_STRING_CHARS)
+                        break;
 
-			layout += entry;
+                layout += entry;
 
-			lineIndex++;
+                lineIndex++;
 
-			if ((lineIndex & 1) == 0)
-				y += 8;
-		}
+                if ((lineIndex & 1) == 0)
+                        y += 8;
+        }
 
-		if (lineIndex & 1)
-			y += 8;
+        if (lineIndex & 1)
+                y += 8;
 
-		return static_cast<int>(y + 8);
-	}
+        return static_cast<int>(y + 8);
 }
 
 /*
