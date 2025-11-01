@@ -26,6 +26,7 @@
 #include "../commands/commands.hpp"
 #include <algorithm>
 #include <fstream>
+#include <new>
 #include <sstream>
 #include <string>
 
@@ -54,6 +55,24 @@ cached_modelIndex		sm_meat_index;
 cached_soundIndex		snd_fry;
 
 gentity_t* g_entities;
+
+namespace {
+    void ConstructClients(gclient_t* clients, size_t count) {
+        if (!clients)
+            return;
+
+        for (size_t i = 0; i < count; ++i)
+            new (&clients[i]) gclient_t();
+    }
+
+    void DestroyClients(gclient_t* clients, size_t count) {
+        if (!clients)
+            return;
+
+        for (size_t i = 0; i < count; ++i)
+            clients[i].~gclient_t();
+    }
+}
 
 cvar_t* hostname;
 
@@ -895,7 +914,8 @@ static void InitGame() {
 
 	// initialize all clients for this game
 	game.maxClients = maxclients->integer > MAX_CLIENTS_KEX ? MAX_CLIENTS_KEX : maxclients->integer;
-	game.clients = (gclient_t*)gi.TagMalloc(game.maxClients * sizeof(game.clients[0]), TAG_GAME);
+        game.clients = (gclient_t*)gi.TagMalloc(game.maxClients * sizeof(game.clients[0]), TAG_GAME);
+        ConstructClients(game.clients, game.maxClients);
 	globals.numEntities = game.maxClients + 1;
 
 	// how far back we should support lag origins for
@@ -1069,10 +1089,14 @@ void SetIntermissionPoint(void) {
 //===================================================================
 
 static void ShutdownGame() {
-	gi.Com_Print("==== ShutdownGame ====\n");
+        gi.Com_Print("==== ShutdownGame ====\n");
 
-	gi.FreeTags(TAG_LEVEL);
-	gi.FreeTags(TAG_GAME);
+        DestroyClients(game.clients, game.maxClients);
+        game.clients = nullptr;
+        game.maxClients = 0;
+
+        gi.FreeTags(TAG_LEVEL);
+        gi.FreeTags(TAG_GAME);
 }
 
 static void* G_GetExtension(const char* name) {
