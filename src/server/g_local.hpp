@@ -155,9 +155,6 @@ enum class Team : uint8_t {
         Total
 };
 
-constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_RED = 0x00000001_spawnflag;
-constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_BLUE = 0x00000002_spawnflag;
-
 enum class GameType : uint8_t {
 	None,
 
@@ -740,6 +737,9 @@ constexpr SpawnFlags operator "" _spawnflag_bit(unsigned long long int v) {
 
 	return static_cast<SpawnFlags>(static_cast<uint32_t>(v));
 }
+
+constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_RED = 0x00000001_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_BLUE = 0x00000002_spawnflag;
 
 // stores a level time; most newer engines use int64_t for
 // time storage, but seconds are handy for compatibility
