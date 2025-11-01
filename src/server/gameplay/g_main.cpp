@@ -1308,8 +1308,7 @@ void BeginIntermission(gentity_t* targ) {
 
 	level.intermission.serverFrame = gi.ServerFrame();
 
-	const auto mapEnd = std::find(targ->map.begin(), targ->map.end(), '\0');
-	level.changeMap.assign(targ->map.begin(), mapEnd);
+        level.changeMap.assign(CharArrayToStringView(targ->map));
 	level.intermission.clear = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_CLEAR_INVENTORY);
 	level.intermission.endOfUnit = false;
 	level.intermission.fade = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_FADE_OUT);
