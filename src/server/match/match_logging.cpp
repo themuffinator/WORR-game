@@ -17,6 +17,7 @@
 //   to generate a unique match ID and reset all statistical counters.
 
 #include "../g_local.hpp"
+#include "../../shared/char_array_utils.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
@@ -1538,8 +1539,7 @@ void MatchStats_End() {
                                 matchStats.serverHostName = hostNameValue;
                         }
                 }
-                const auto mapNameEnd = std::find(level.mapName.begin(), level.mapName.end(), '\0');
-                matchStats.mapName.assign(level.mapName.begin(), mapNameEnd);
+                matchStats.mapName.assign(CharArrayToStringView(level.mapName));
                 matchStats.ranked = false;
 		matchStats.totalKills = level.match.totalKills;
 		matchStats.totalSpawnKills = level.match.totalSpawnKills;
