@@ -23,6 +23,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <array>
 #include <sstream>
 #include <vector>
 #include <filesystem>
@@ -325,13 +326,49 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
         if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
                 const auto& prefs = playerData["config"]["weaponPrefs"];
                 if (prefs.isArray()) {
+                        std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+                        std::vector<Weapon> parsed;
+                        parsed.reserve(static_cast<size_t>(prefs.size()));
+                        std::vector<std::string> invalidTokens;
+                        bool capacityExceeded = false;
+
                         for (const auto& p : prefs) {
                                 if (!p.isString())
                                         continue;
 
-                                if (auto weapon = ParseWeaponAbbreviation(p.asString())) {
-                                        cl->sess.weaponPrefs.push_back(*weapon);
+                                const std::string token = p.asString();
+                                std::string normalized;
+                                switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
+                                case WeaponPrefAppendResult::Added:
+                                        break;
+                                case WeaponPrefAppendResult::Duplicate:
+                                        break;
+                                case WeaponPrefAppendResult::Invalid:
+                                        if (!normalized.empty())
+                                                invalidTokens.emplace_back(std::move(normalized));
+                                        break;
+                                case WeaponPrefAppendResult::CapacityExceeded:
+                                        capacityExceeded = true;
+                                        break;
                                 }
+                        }
+
+                        cl->sess.weaponPrefs.swap(parsed);
+
+                        if (!invalidTokens.empty()) {
+                                std::ostringstream joined;
+                                for (size_t i = 0; i < invalidTokens.size(); ++i) {
+                                        if (i)
+                                                joined << ", ";
+                                        joined << invalidTokens[i];
+                                }
+                                gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
+                                        __FUNCTION__, playerName.c_str(), joined.str().c_str());
+                        }
+
+                        if (capacityExceeded) {
+                                gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
+                                        __FUNCTION__, playerName.c_str(), cl->sess.weaponPrefs.size());
                         }
                 }
         }

@@ -2,9 +2,11 @@
 
 #include "../server/g_local.hpp"
 
+#include <array>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 inline char ToLowerASCII(char c) {
         const unsigned char uc = static_cast<unsigned char>(c);
@@ -47,6 +49,48 @@ inline std::optional<Weapon> ParseWeaponAbbreviation(std::string_view abbr) {
                 return std::nullopt;
         }
         return weapon;
+}
+
+enum class WeaponPrefAppendResult {
+        Added,
+        Duplicate,
+        Invalid,
+        CapacityExceeded,
+};
+
+constexpr size_t WeaponPreferenceCapacity = static_cast<size_t>(Weapon::Total) - 1;
+
+inline WeaponPrefAppendResult TryAppendWeaponPreference(
+        std::string_view token,
+        std::vector<Weapon>& outPrefs,
+        std::array<bool, static_cast<size_t>(Weapon::Total)>& seen,
+        std::string* normalizedOut = nullptr) {
+        const std::string normalized = NormalizeWeaponAbbreviation(token);
+        if (normalizedOut) {
+                *normalizedOut = normalized;
+        }
+
+        auto weapon = ParseNormalizedWeaponAbbreviation(normalized);
+        if (!weapon || *weapon == Weapon::None) {
+                return WeaponPrefAppendResult::Invalid;
+        }
+
+        const auto index = static_cast<size_t>(*weapon);
+        if (index >= seen.size()) {
+                return WeaponPrefAppendResult::Invalid;
+        }
+
+        if (outPrefs.size() >= WeaponPreferenceCapacity) {
+                return WeaponPrefAppendResult::CapacityExceeded;
+        }
+
+        if (seen[index]) {
+                return WeaponPrefAppendResult::Duplicate;
+        }
+
+        seen[index] = true;
+        outPrefs.push_back(*weapon);
+        return WeaponPrefAppendResult::Added;
 }
 
 inline std::string_view WeaponToAbbreviation(Weapon weapon) {

@@ -11,6 +11,7 @@
 #include <string>
 #include <format>
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <ranges>
 #include <sstream>
@@ -834,20 +835,57 @@ namespace Commands {
 		}
 	}
 
-	void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
-                ent->client->sess.weaponPrefs.clear();
+        void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
+                if (!ent || !ent->client)
+                        return;
+
+                auto* cl = ent->client;
+                std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+                std::vector<Weapon> parsed;
+                parsed.reserve(static_cast<size_t>(std::max(args.count() - 1, 0)));
+                std::vector<std::string> invalidTokens;
+                bool capacityExceeded = false;
+
                 for (int i = 1; i < args.count(); ++i) {
-                        std::string token(args.getString(i));
-                        if (auto weapon = ParseWeaponAbbreviation(token)) {
-                                ent->client->sess.weaponPrefs.push_back(*weapon);
-                        }
-                        else {
-                                const std::string normalized = NormalizeWeaponAbbreviation(token);
-                                gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation: {}\n", normalized.c_str());
+                        std::string_view token = args.getString(i);
+                        if (token.empty())
+                                continue;
+
+                        std::string normalized;
+                        switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
+                        case WeaponPrefAppendResult::Added:
+                                break;
+                        case WeaponPrefAppendResult::Duplicate:
+                                break;
+                        case WeaponPrefAppendResult::Invalid:
+                                if (!normalized.empty())
+                                        invalidTokens.emplace_back(std::move(normalized));
+                                break;
+                        case WeaponPrefAppendResult::CapacityExceeded:
+                                capacityExceeded = true;
+                                break;
                         }
                 }
-                Client_RebuildWeaponPreferenceOrder(*ent->client);
-                ClientConfig_SaveWeaponPreferences(ent->client);
+
+                cl->sess.weaponPrefs.swap(parsed);
+                Client_RebuildWeaponPreferenceOrder(*cl);
+                ClientConfig_SaveWeaponPreferences(cl);
+
+                if (!invalidTokens.empty()) {
+                        std::ostringstream joined;
+                        for (size_t i = 0; i < invalidTokens.size(); ++i) {
+                                if (i)
+                                        joined << ", ";
+                                joined << invalidTokens[i];
+                        }
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation(s): {}\n", joined.str().c_str());
+                }
+
+                if (capacityExceeded) {
+                        gi.LocClient_Print(ent, PRINT_HIGH, "Only the first {} unique weapon preferences were kept.\n",
+                                static_cast<int>(WeaponPreferenceCapacity));
+                }
+
                 gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
         }
 
