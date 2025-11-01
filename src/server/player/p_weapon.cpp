@@ -2148,7 +2148,7 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		int vSpread = DEFAULT_BULLET_VSPREAD;
 
 		if (RS(RS_Q3A)) {
-			damage = Game::Is(GameType::TeamDeathmatch) ? 5 : 7;
+			damage = (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination)) ? 5 : 7;
 			hSpread = 200;
 			vSpread = 200;
 		}

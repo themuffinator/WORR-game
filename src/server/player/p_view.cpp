@@ -1394,7 +1394,7 @@ void ClientEndServerFrame(gentity_t* ent) {
 			ent->health -= quantity;
 			ent->client->vampiricExpireTime = level.time + 1_sec;
 			if (ent->health <= 0) {
-				G_AdjustPlayerScore(ent->client, -1, Game::Is(GameType::TeamDeathmatch), -1);
+				G_AdjustPlayerScore(ent->client, -1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), -1);
 
 				player_die(ent, ent, ent, 1, vec3_origin, { ModID::Expiration, true });
 				if (!ent->client->eliminated)
