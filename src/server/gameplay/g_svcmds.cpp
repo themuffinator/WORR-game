@@ -8,7 +8,7 @@
 // - IP filtering: addip/removeip/listip/writeip
 // - G_FilterPacket(): packet gate using configured filters
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 #include <array>
 #include <vector>

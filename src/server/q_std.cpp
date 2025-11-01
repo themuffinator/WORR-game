@@ -17,7 +17,7 @@
 // - String Comparison: Implements case-insensitive string comparison functions
 //   like `Q_strcasecmp` and `Q_strncasecmp`.
 
-#include "server/g_local.hpp"
+#include "../server/g_local.hpp"
 
 //====================================================================================
 

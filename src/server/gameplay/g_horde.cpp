@@ -15,7 +15,7 @@
 //   number of monsters currently alive to determine when a wave has been
 //   successfully completed.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 static gentity_t* FindClosestPlayerToPoint(const Vector3& point) {
 	float best_player_distance = 999999.0f;

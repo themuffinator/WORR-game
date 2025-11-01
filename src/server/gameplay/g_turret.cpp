@@ -17,7 +17,7 @@
 // - Activation: Handles the logic for turrets that are spawned inactive and
 //   must be triggered by another entity before they begin operating.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 constexpr SpawnFlags SPAWNFLAG_TURRET_BREACH_FIRE = 65536_spawnflag;
 

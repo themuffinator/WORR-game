@@ -5,7 +5,7 @@
 #pragma once
 
 class Menu;
-#include "shared/bg_local.hpp"
+#include "../shared/bg_local.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset

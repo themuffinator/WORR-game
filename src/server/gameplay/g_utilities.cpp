@@ -18,8 +18,8 @@
 // - World Interaction: Implements `KillBox` for killing entities within a
 //   volume and `TouchTriggers` for activating triggers.
 
-#include "server/g_local.hpp"
-#include "shared/weapon_pref_utils.hpp"
+#include "../g_local.hpp"
+#include "../../shared/weapon_pref_utils.hpp"
 #include <array>
 #include <cctype>
 #include <chrono>	// get real time

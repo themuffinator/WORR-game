@@ -18,7 +18,7 @@
 // - State Management: Manages the internal state machines for these entities
 //   (e.g., a door's state being 'up', 'down', 'moving up', etc.).
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 /*
 =========================================================

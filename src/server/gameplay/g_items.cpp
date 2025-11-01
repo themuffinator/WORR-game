@@ -19,9 +19,9 @@
 // - Initialization: `InitItems` and `SetItemNames` are called at startup to
 //   precache assets and set up server configuration strings for all items.
 
-#include "server/g_local.hpp"
-#include "server/bots/bot_includes.hpp"
-#include "server/monsters/m_player.hpp"	//doppelganger
+#include "../g_local.hpp"
+#include "../bots/bot_includes.hpp"
+#include "../monsters/m_player.hpp"	//doppelganger
 
 #include <limits>
 

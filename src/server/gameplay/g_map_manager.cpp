@@ -17,7 +17,7 @@
 // - "MyMap" Queue: Manages a player-driven queue where users can vote to play
 //   a specific map next.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include <json/json.h>
 #include <fstream>
 #include <regex>

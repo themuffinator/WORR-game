@@ -13,7 +13,7 @@
 //   spawning logic, to query the "danger level" of a specific area to avoid
 //   placing players in overly active combat zones.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include <unordered_map>
 
 // Tunables (cvars can be promoted later)

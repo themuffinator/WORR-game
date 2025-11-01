@@ -19,7 +19,7 @@
 // - Team-Based Checks: Provides utility functions for team-based logic, such
 //   as checking if a player has hurt their own flag carrier.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 namespace CTF {
 	// Capture the Flag scoring bonuses

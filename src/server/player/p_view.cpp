@@ -20,9 +20,9 @@
 //   moves other players back in time to their positions as seen by the attacker,
 //   ensuring accurate hit detection in a networked environment.
 
-#include "server/g_local.hpp"
-#include "server/monsters/m_player.hpp"
-#include "server/bots/bot_includes.hpp"
+#include "../g_local.hpp"
+#include "../monsters/m_player.hpp"
+#include "../bots/bot_includes.hpp"
 
 static gentity_t* currentPlayer{};
 static gclient_t* currentClient{};

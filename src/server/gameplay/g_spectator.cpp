@@ -19,7 +19,7 @@
 // - State Management: Handles freeing and attaching followers when players
 //   connect, disconnect, or switch between playing and spectating.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 void FreeFollower(gentity_t* ent) {
 	if (!ent)

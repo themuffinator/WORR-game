@@ -16,7 +16,7 @@
 // - Visual Effects: Contains the logic for the "spawngrow" effect, a visual
 //   cue that plays where a monster is about to materialize.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 //
 // Monster spawning code

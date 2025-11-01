@@ -18,8 +18,8 @@
 // - Initialization: The `InitTrigger` function sets up the common properties
 //   for all trigger entities.
 
-#include "server/g_local.hpp"
-#include "shared/char_array_utils.hpp"
+#include "../g_local.hpp"
+#include "../../shared/char_array_utils.hpp"
 
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_MONSTER = 0x01_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_TRIGGER_NOT_PLAYER = 0x02_spawnflag;

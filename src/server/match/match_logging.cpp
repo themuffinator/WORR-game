@@ -16,7 +16,7 @@
 // - Match Initialization: `MatchStats_Init` is called at the start of a match
 //   to generate a unique match ID and reset all statistical counters.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include <algorithm>
 #include <fstream>
 #include <iomanip>

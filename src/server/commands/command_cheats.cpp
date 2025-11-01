@@ -3,7 +3,7 @@
 //
 // commands_cheats.cpp - Implementations for cheat and debug commands.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include "command_registration.hpp"
 #include <vector>
 

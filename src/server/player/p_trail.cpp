@@ -16,7 +16,7 @@
 // - Cleanup: `PlayerTrail_Destroy` cleans up all trail entities associated with
 //   a player, for example, when they disconnect.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 /*
 ==============================================================================

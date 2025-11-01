@@ -19,10 +19,10 @@
 //   simulation, updating the player's origin, velocity, and ground status.
 // - Special Moves: Handles the physics for actions like jumping and crouching.
 
-#include "shared/q_std.hpp"
+#include "../../shared/q_std.hpp"
 
 #define GAME_INCLUDE
-#include "shared/bg_local.hpp"
+#include "../../shared/bg_local.hpp"
 
 /*
 ===============

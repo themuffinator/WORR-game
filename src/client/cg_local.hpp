@@ -18,7 +18,7 @@
 
 #pragma once
 
-#include "shared/bg_local.hpp"
+#include "../shared/bg_local.hpp"
 
 extern cgame_import_t cgi;
 extern cgame_export_t cglobals;

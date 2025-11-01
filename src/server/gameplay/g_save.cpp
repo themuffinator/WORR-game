@@ -22,7 +22,7 @@
 
 #include <sstream>
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma GCC diagnostic ignored "-Weverything"

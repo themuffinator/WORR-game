@@ -5,9 +5,9 @@
 
 #include "command_system.hpp"
 #include "command_registration.hpp"
-#include "server/g_local.hpp"
-#include "server/monsters/m_player.hpp"
-#include "shared/weapon_pref_utils.hpp"
+#include "../g_local.hpp"
+#include "../monsters/m_player.hpp"
+#include "../../shared/weapon_pref_utils.hpp"
 #include <string>
 #include <format>
 #include <vector>

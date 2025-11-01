@@ -19,8 +19,8 @@
 //   in the map and is used to set up level-wide properties like the skybox,
 //   music, and global game rules.
 
-#include "server/g_local.hpp"
-#include "server/monsters/m_actor.hpp"
+#include "../g_local.hpp"
+#include "../monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
 #include <algorithm>	// for std::fill

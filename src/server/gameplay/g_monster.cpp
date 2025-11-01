@@ -1,7 +1,7 @@
 // Copyright (c) ZeniMax Media Inc.
 // Licensed under the GNU General Public License 2.0.
-#include "server/g_local.hpp"
-#include "server/bots/bot_includes.hpp"
+#include "../g_local.hpp"
+#include "../bots/bot_includes.hpp"
 
 //
 // monster weapons

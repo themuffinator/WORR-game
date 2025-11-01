@@ -20,10 +20,10 @@
 // - Cvar Management: Handles the checking and application of various cvars
 //   that can change game behavior on the fly.
 
-#include "server/g_local.hpp"
-#include "server/bots/bot_includes.hpp"
-#include "shared/char_array_utils.hpp"
-#include "server/commands/commands.hpp"
+#include "../g_local.hpp"
+#include "../bots/bot_includes.hpp"
+#include "../../shared/char_array_utils.hpp"
+#include "../commands/commands.hpp"
 #include <algorithm>
 #include <fstream>
 #include <sstream>

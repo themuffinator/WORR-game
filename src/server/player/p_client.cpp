@@ -20,10 +20,10 @@
 // - State Management: Initializes and maintains the `gclient_t` struct, which
 //   holds all of a player's game-related state.
 
-#include "server/g_local.hpp"
-#include "server/commands/commands.hpp"
-#include "server/monsters/m_player.hpp"
-#include "server/bots/bot_includes.hpp"
+#include "../g_local.hpp"
+#include "../commands/commands.hpp"
+#include "../monsters/m_player.hpp"
+#include "../bots/bot_includes.hpp"
 
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 

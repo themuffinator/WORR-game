@@ -19,7 +19,7 @@
 //   physics settings (`pm_config`).
 
 #include "cg_local.hpp"
-#include "server/monsters/m_flash.hpp"
+#include "../server/monsters/m_flash.hpp"
 
 cgame_import_t cgi;
 cgame_export_t cglobals;

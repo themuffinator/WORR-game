@@ -23,7 +23,7 @@ namespace std {
 }
 
 #include "../g_local.hpp"
-#include "../g_statusbar.hpp"
+#include "../gameplay/g_statusbar.hpp"
 
 #include <algorithm>
 

@@ -18,8 +18,8 @@
 // - Crosshair ID: Updates the stats that show the name of the player being
 //   aimed at.
 
-#include "server/g_local.hpp"
-#include "g_statusbar.hpp"
+#include "../g_local.hpp"
+#include "../gameplay/g_statusbar.hpp"
 
 /*
 ======================================================================

@@ -18,8 +18,8 @@
 // - Scripting Utilities: Provides helper entities like `target_relay` (to chain
 //   triggers) and `target_delay` (to time events).
 
-#include "server/g_local.hpp"
-#include "shared/char_array_utils.hpp"
+#include "../g_local.hpp"
+#include "../../shared/char_array_utils.hpp"
 
 /*QUAKED target_temp_entity (1 0 0) (-8 -8 -8) (8 8 8) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
 Fire an origin based temp entity event to the clients.

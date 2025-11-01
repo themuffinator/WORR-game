@@ -1,4 +1,4 @@
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 void Drop_Ammo(gentity_t* ent, Item* item);
 void Drop_Ball(gentity_t* ent, Item* item);
 void Drop_General(gentity_t* ent, Item* item);

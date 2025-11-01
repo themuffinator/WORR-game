@@ -20,7 +20,7 @@
 //   system back into the old-style flat array to maintain compatibility with
 //   older parts of the codebase that have not yet been migrated.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include <algorithm>
 
 // -----------------------------------------------------------------------------
@@ -1414,7 +1414,7 @@ void ClientSpawn(gentity_t* ent) {
 				}
 			}
 
-			gi.dprintf("Ghost respawn for %s denied at (%.1f %.1f %.1f); blocked by %s\n",
+			gi.Com_PrintFmt("Ghost respawn for {} denied at ({} {} {}); blocked by {}\n",
 				playerName,
 				ghostOrigin[0], ghostOrigin[1], ghostOrigin[2],
 				blockerDesc);

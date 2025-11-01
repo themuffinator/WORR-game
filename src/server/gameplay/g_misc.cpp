@@ -18,7 +18,7 @@
 // - Gibs and Corpses: Manages the spawning and physics of gibs (`ThrowGib`)
 //   and player heads (`ThrowClientHead`) upon death.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 //=====================================================
 
@@ -1942,7 +1942,7 @@ void SP_info_world_text(gentity_t* self) {
 	}
 }
 
-#include "server/monsters/m_player.hpp"
+#include "../monsters/m_player.hpp"
 
 static USE(misc_player_mannequin_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	self->monsterInfo.aiFlags |= AI_TARGET_ANGER;

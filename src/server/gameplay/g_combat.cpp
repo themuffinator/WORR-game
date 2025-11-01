@@ -18,7 +18,7 @@
 // - Radius Damage: Implements `RadiusDamage` for explosions, calculating
 //   damage falloff and checking line-of-sight to affected entities.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 #include <cassert>
 

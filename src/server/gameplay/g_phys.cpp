@@ -20,7 +20,7 @@
 // - Core Utilities: Contains fundamental physics helpers like `G_AddGravity`
 //   and `G_Impact` for handling collisions.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 /*
 

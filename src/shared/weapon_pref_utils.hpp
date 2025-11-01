@@ -1,6 +1,6 @@
 #pragma once
 
-#include "server/g_local.hpp"
+#include "../server/g_local.hpp"
 
 #include <optional>
 #include <string>

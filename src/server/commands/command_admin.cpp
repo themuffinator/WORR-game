@@ -3,7 +3,7 @@
 //
 // commands_admin.cpp - Implementations for admin-level commands.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include "command_registration.hpp"
 #include <string>
 #include <format>

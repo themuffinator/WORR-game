@@ -16,13 +16,13 @@
 //   core player movement function (Pmove).
 
 #pragma once
-#include "shared/q_std.hpp"
+#include "../shared/q_std.hpp"
 
 // define GAME_INCLUDE so that game.h does not define the
 // short, server-visible gclient_t and gentity_t structures,
 // because we define the full size ones in this file
 #define GAME_INCLUDE
-#include "shared/game.hpp"
+#include "../shared/game.hpp"
 
 //
 // p_move.c

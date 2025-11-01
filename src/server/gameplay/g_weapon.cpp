@@ -19,7 +19,7 @@
 //   machine to handle the animation sequence of firing a weapon (ready, fire,
 //   idle, etc.).
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 static void PlayClientPowerupFireSound(gentity_t* self) {
 	if (!self->owner || !self->owner->client)

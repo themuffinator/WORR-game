@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include <string_view>
 #include <optional>
 #include <functional>

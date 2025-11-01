@@ -18,7 +18,7 @@
 // - Gametype-Specific Scoreboards: Contains specialized functions for rendering
 //   scoreboards for different modes like FFA, Duel, and Team Deathmatch.
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 /*
 ===============

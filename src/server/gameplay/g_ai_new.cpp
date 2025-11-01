@@ -17,7 +17,7 @@
 // - Utility Functions: Provides various helper functions for AI, like checking
 //   if a target is behind a monster (`inback`) or exploding bosses (`BossExplode`).
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 //===============================
 // BLOCKED Logic

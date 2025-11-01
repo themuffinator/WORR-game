@@ -6,7 +6,7 @@
 // and processing the results for various game actions.
 
 #include "command_voting.hpp"
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 #include "command_registration.hpp"
 #include "command_voting_utils.hpp"
 #include "command_system.hpp"

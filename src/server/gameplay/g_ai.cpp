@@ -19,7 +19,7 @@
 // - Sensory Functions: Provides utility functions for visibility (`visible`),
 //   field of view (`infront`), and distance checking (`range_to`).
 
-#include "server/g_local.hpp"
+#include "../g_local.hpp"
 
 bool FindTarget(gentity_t* self);
 bool ai_checkattack(gentity_t* self, float dist);
