@@ -147,13 +147,16 @@ bool isStockMap(const std::string& mapName) {
 #endif
 
 enum class Team : uint8_t {
-	None,
-	Spectator,
-	Free,
-	Red,
-	Blue,
-	Total
+        None,
+        Spectator,
+        Free,
+        Red,
+        Blue,
+        Total
 };
+
+constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_RED = 0x00000001_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_BLUE = 0x00000002_spawnflag;
 
 enum class GameType : uint8_t {
 	None,
@@ -2286,6 +2289,20 @@ struct LevelLocals {
 	std::array<int, static_cast<int>(Team::Total)>	teamScores{};
 	std::array<int, static_cast<int>(Team::Total)>	teamOldScores{};
 
+	struct DominationState {
+		static constexpr size_t MAX_POINTS = 8;
+
+		struct Point {
+			gentity_t* ent = nullptr;
+			Team owner = Team::None;
+			size_t index = 0;
+		};
+
+		std::array<Point, MAX_POINTS> points{};
+		size_t count = 0;
+		GameTime nextScoreTime = 0_ms;
+	} domination{};
+
 	MatchState	matchState = MatchState::None;
 	WarmupState	warmupState = WarmupState::Default;
 	GameTime		warmupNoticeTime = 0_ms;
@@ -3355,6 +3372,9 @@ void Horde_AdjustPlayerScore(gclient_t* cl, int32_t offset);
 void G_SetPlayerScore(gclient_t* cl, int32_t value);
 void G_AdjustTeamScore(Team team, int32_t offset);
 void G_SetTeamScore(Team team, int32_t value);
+void Domination_ClearState();
+void Domination_InitLevel();
+void Domination_RunFrame();
 const char* PlaceString(int rank);
 bool ItemSpawnsEnabled();
 bool LocCanSee(gentity_t* targetEnt, gentity_t* sourceEnt);

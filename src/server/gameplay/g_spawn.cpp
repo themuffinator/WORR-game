@@ -198,6 +198,7 @@ void SP_misc_ctf_banner(gentity_t* ent);
 void SP_misc_ctf_small_banner(gentity_t* ent);
 void SP_misc_satellite_dish(gentity_t* self);
 void SP_misc_actor(gentity_t* self);
+void SP_domination_point(gentity_t* ent);
 void SP_misc_gib_arm(gentity_t* self);
 void SP_misc_gib_leg(gentity_t* self);
 void SP_misc_gib_head(gentity_t* self);
@@ -336,8 +337,9 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "info_null", SP_info_null },
 	{ "info_notnull", SP_info_notnull },
 	{ "info_landmark", SP_info_landmark },
-	{ "info_world_text", SP_info_world_text },
-	{ "info_nav_lock", SP_info_nav_lock },
+        { "info_world_text", SP_info_world_text },
+        { "info_nav_lock", SP_info_nav_lock },
+        { "domination_point", SP_domination_point },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_plat2", SP_func_plat2 },
@@ -1824,10 +1826,11 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	cached_imageIndex::clear_all();
 
 	// Reset all persistent game state
-	SaveClientData();
-	gi.FreeTags(TAG_LEVEL);
-	level = LevelLocals{};
-	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+        SaveClientData();
+        gi.FreeTags(TAG_LEVEL);
+        level = LevelLocals{};
+        Domination_ClearState();
+        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
 	globals.serverFlags &= SERVER_FLAG_LOADING;
@@ -1915,10 +1918,12 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		InitHintPaths();
 	}
 
-	G_LocateSpawnSpots();
-	setup_shadow_lights();
+        G_LocateSpawnSpots();
+        setup_shadow_lights();
 
-	level.init = true;
+        Domination_InitLevel();
+
+        level.init = true;
 }
 
 
@@ -1939,16 +1944,18 @@ bool G_ResetWorldEntitiesFromSavedString() {
 	gi.FreeTags(TAG_LEVEL);
 
 	level.spawn.Clear();
-	level.spawnSpots.fill(nullptr);
-	level.shadowLightCount = 0;
-	std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
-	level.campaign = {};
-	level.start_items = nullptr;
-	level.instantItems = false;
-	level.no_grapple = false;
-	level.no_dm_spawnpads = false;
-	level.no_dm_telepads = false;
-	level.timeoutOwner = nullptr;
+        level.spawnSpots.fill(nullptr);
+        level.shadowLightCount = 0;
+        std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
+        level.campaign = {};
+        level.start_items = nullptr;
+        level.instantItems = false;
+        level.no_grapple = false;
+        level.no_dm_spawnpads = false;
+        level.no_dm_telepads = false;
+        level.timeoutOwner = nullptr;
+
+        Domination_ClearState();
 
 	globals.numEntities = game.maxClients + 1;
 
@@ -2016,10 +2023,12 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		InitHintPaths();
 	}
 
-	G_LocateSpawnSpots();
-	setup_shadow_lights();
+        G_LocateSpawnSpots();
+        setup_shadow_lights();
 
-	level.init = true;
+        Domination_InitLevel();
+
+        level.init = true;
 
 	return true;
 }
