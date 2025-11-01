@@ -183,7 +183,7 @@ LerpAngle
 	return v;
 }
 
-#include "../../shared/q_vec3.hpp"
+#include "q_vec3.hpp"
 
 //=============================================
 
