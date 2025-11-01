@@ -25,6 +25,13 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
+namespace {
+	uint64_t NextDuelQueueTicket() {
+		static uint64_t counter = 1;
+		return counter++;
+	}
+}
+
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 
 static THINK(info_player_start_drop) (gentity_t* self) -> void {
@@ -3037,6 +3044,13 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		if (changedTeam || changedQueue)
 			cl->sess.teamJoinTime = level.time;
 		cl->sess.matchQueued = queueNow;
+		if (queueNow) {
+			if (changedQueue || cl->sess.duelQueueTicket == 0)
+				cl->sess.duelQueueTicket = NextDuelQueueTicket();
+		}
+		else {
+			cl->sess.duelQueueTicket = 0;
+		}
 		cl->sess.inactiveStatus = spectatorInactive;
 		cl->sess.inactivityWarning = false;
 		cl->sess.inactivityTime = 0_sec;
@@ -3081,6 +3095,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		cl->sess.team = target;
 		cl->ps.teamID = static_cast<int>(cl->sess.team);
 		cl->sess.matchQueued = false;
+		cl->sess.duelQueueTicket = 0;
 		cl->sess.inactiveStatus = false;
 		cl->sess.inactivityWarning = false;
 		cl->sess.inGame = true;

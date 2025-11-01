@@ -4282,6 +4282,7 @@ struct client_session_t {
 
 	// duel stats
 	bool			matchQueued = false;
+	uint64_t		duelQueueTicket = 0;
 	int				matchWins = 0, matchLosses = 0;
 
 	// real time of team joining
