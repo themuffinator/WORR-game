@@ -941,19 +941,18 @@ static bool DidPlayerWin(gentity_t* ent) {
 			return (ent->client->resp.score > players[0]->client->resp.score || ent == players[0]);
 	}
 
-	if (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)) {
-		int redScore = 0, blueScore = 0;
-		for (auto* e : GetPlayers()) {
-			if (e->client->sess.team == Team::Red) redScore += e->client->resp.score;
-			else if (e->client->sess.team == Team::Blue) blueScore += e->client->resp.score;
-		}
-		if (ent->client->sess.team == Team::Red)
-			return redScore > blueScore;
-		else if (ent->client->sess.team == Team::Blue)
-			return blueScore > redScore;
-	}
+        if (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
+                || Game::Is(GameType::Domination)) {
+                const int redScore = level.teamScores[static_cast<int>(Team::Red)];
+                const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
 
-	// FFA
+                if (ent->client->sess.team == Team::Red)
+                        return redScore > blueScore;
+                else if (ent->client->sess.team == Team::Blue)
+                        return blueScore > redScore;
+        }
+
+        // FFA
 	auto players = GetPlayers();
 	if (!players.empty())
 		std::sort(players.begin(), players.end(),
@@ -1037,12 +1036,14 @@ static void AdjustSkillRatings() {
 	}
 
 	// === TEAM MODE ===
-	if ((Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)) && players.size() >= 2) {
-		std::vector<gentity_t*> red, blue;
-		for (auto* ent : players) {
-			if (ent->client->sess.team == Team::Red)
-				red.push_back(ent);
-			else if (ent->client->sess.team == Team::Blue)
+        if ((Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
+                        || Game::Is(GameType::Domination))
+                && players.size() >= 2) {
+                std::vector<gentity_t*> red, blue;
+                for (auto* ent : players) {
+                        if (ent->client->sess.team == Team::Red)
+                                red.push_back(ent);
+                        else if (ent->client->sess.team == Team::Blue)
 				blue.push_back(ent);
 		}
 		if (red.empty() || blue.empty())
@@ -1058,11 +1059,10 @@ static void AdjustSkillRatings() {
 		float Rr = avg(red), Rb = avg(blue);
 		float Er = EloExpected(Rr, Rb), Eb = 1.0f - Er;
 
-		int Sr = 0, Sb = 0;
-		for (auto* e : red)  Sr += e->client->resp.score;
-		for (auto* e : blue) Sb += e->client->resp.score;
+                const int Sr = level.teamScores[static_cast<int>(Team::Red)];
+                const int Sb = level.teamScores[static_cast<int>(Team::Blue)];
 
-		bool redWin = Sr > Sb;
+                bool redWin = Sr > Sb;
 
 		for (auto* e : red) {
 			float S = redWin ? 1.0f : 0.0f;
