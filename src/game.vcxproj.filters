@@ -231,6 +231,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server\gameplay\g_combat.cpp" />
+    <ClCompile Include="server\gameplay\g_domination.cpp">
+      <Filter>gameplay</Filter>
+    </ClCompile>
     <ClCompile Include="server\gameplay\g_main.cpp" />
     <ClCompile Include="server\gameplay\g_misc.cpp" />
     <ClCompile Include="server\gameplay\g_save.cpp" />
@@ -566,6 +569,9 @@
     </Filter>
     <Filter Include="matches">
       <UniqueIdentifier>{724bba1f-6c6d-43c3-82c0-517a4b423fac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="gameplay">
+      <UniqueIdentifier>{02c5af5f-df57-4e35-bacf-dcaef4349848}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai">
       <UniqueIdentifier>{3a72a31d-f872-4424-b979-647160f64a6a}</UniqueIdentifier>
