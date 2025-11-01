@@ -71,10 +71,10 @@ namespace {
 		return G_Fmt("Point {}", index + 1).data();
 	}
 
-	void AnnounceCapture(gentity_t* ent, Team team, size_t index) {
-		const std::string label = PointLabel(ent, index);
-		gi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label);
-	}
+        void AnnounceCapture(gentity_t* ent, Team team, size_t index) {
+                const std::string label = PointLabel(ent, index);
+                gi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label.c_str());
+        }
 
         TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) -> void {
 		if (!other->client)
