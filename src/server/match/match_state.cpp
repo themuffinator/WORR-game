@@ -249,6 +249,7 @@ constexpr struct GameTypeRules {
 	/* GameType::FreeForAll */ {GameFlags::Frags},
 	/* GameType::Duel */ {GameFlags::Frags, 30, false, false, 0},
 	/* GameType::TeamDeathmatch */ {GameFlags::Teams | GameFlags::Frags, 30, true, true, 100, 20},
+	/* GameType::Domination */ {GameFlags::Teams | GameFlags::Frags, 30, true, true, 100, 20},
 	/* GameType::CaptureTheFlag */ {GameFlags::Teams | GameFlags::CTF, 30},
 	/* GameType::ClanArena */ { },
 	/* GameType::OneFlag */ { },
@@ -2347,6 +2348,12 @@ void ChangeGametype(GameType gt) {
 	case GameType::TeamDeathmatch:
 		if (!teamplay->integer)
 			gi.cvarForceSet("teamplay", "1");
+		break;
+	case GameType::Domination:
+		if (!teamplay->integer)
+			gi.cvarForceSet("teamplay", "1");
+		if (ctf->integer)
+			gi.cvarForceSet("ctf", "0");
 		break;
 	default:
 		if (ctf->integer)
