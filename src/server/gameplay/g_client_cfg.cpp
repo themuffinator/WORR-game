@@ -65,9 +65,6 @@ std::string GetPlayerNameForSocialID(const std::string& socialID) {
         return root["playerName"].asString();
 }
 
-const int DEFAULT_RATING = 1500;
-const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
-
 static bool EnsurePlayerConfigDirectory() {
         std::error_code ec;
         std::filesystem::create_directories(PLAYER_CONFIG_PATH, ec);
