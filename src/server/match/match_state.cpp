@@ -488,20 +488,73 @@ void Gauntlet_RemoveLoser() {
 }
 
 void Gauntlet_MatchEnd_AdjustScores() {
-	if (Game::IsNot(GameType::Gauntlet))
-		return;
-	if (level.pop.num_playing_clients < 2)
-		return;
+        if (Game::IsNot(GameType::Gauntlet))
+                return;
+        if (level.pop.num_playing_clients < 2)
+                return;
 
-	int winnerNum = level.sortedClients[0];
-	if (game.clients[winnerNum].pers.connected) {
-		game.clients[winnerNum].sess.matchWins++;
-	}
+        int winnerNum = level.sortedClients[0];
+        if (game.clients[winnerNum].pers.connected) {
+                game.clients[winnerNum].sess.matchWins++;
+        }
+}
+
+static size_t CollectActiveDuelists(std::array<gclient_t*, 2>& duelists) {
+        size_t found = 0;
+
+        for (int clientIndex : level.sortedClients) {
+                if (clientIndex < 0 || clientIndex >= game.maxClients)
+                        continue;
+
+                gclient_t* cl = &game.clients[clientIndex];
+                if (!cl->pers.connected || !ClientIsPlaying(cl))
+                        continue;
+
+                duelists[found++] = cl;
+                if (found == duelists.size())
+                        break;
+        }
+
+        return found;
+}
+
+void Match_UpdateDuelRecords() {
+        if (!Game::Has(GameFlags::OneVOne))
+                return;
+        if (level.intermission.duelWinLossApplied)
+                return;
+
+        CalculateRanks();
+
+        std::array<gclient_t*, 2> duelists{};
+        if (CollectActiveDuelists(duelists) != duelists.size())
+                return;
+
+        gclient_t* first = duelists[0];
+        gclient_t* second = duelists[1];
+        if (!first || !second)
+                return;
+
+        gclient_t* winner = first;
+        gclient_t* loser = second;
+
+        if (second->resp.score > first->resp.score)
+                std::swap(winner, loser);
+
+        if (!winner || !loser)
+                return;
+
+        if (winner->resp.score == loser->resp.score)
+                return;
+
+        winner->sess.matchWins++;
+        loser->sess.matchLosses++;
+        level.intermission.duelWinLossApplied = true;
 }
 
 static void EnforceDuelRules() {
-	if (Game::IsNot(GameType::Duel))
-		return;
+        if (Game::IsNot(GameType::Duel))
+                return;
 
 	if (level.pop.num_playing_clients > 2) {
 		// Kick or move spectators if too many players
@@ -954,13 +1007,15 @@ void Match_End() {
 
 	//for (auto ec : active_players())
 	//	ec->client->sess.playEndRealTime = now;
-	MatchStats_End();
-	SetMapLastPlayedTime(level.mapName.data());
+        MatchStats_End();
+        SetMapLastPlayedTime(level.mapName.data());
 
-	level.matchState = MatchState::Ended;
-	level.matchStateTimer = 0_sec;
+        Match_UpdateDuelRecords();
 
-	AdjustSkillRatings();
+        level.matchState = MatchState::Ended;
+        level.matchStateTimer = 0_sec;
+
+        AdjustSkillRatings();
 
 	// stay on same level flag
 	if (match_map_sameLevel->integer) {
@@ -1104,10 +1159,11 @@ void Match_Reset() {
 			std::optional<GameTime>{0_sec},
 			std::optional<bool>{false}
 		});
-	level.intermission.queued = 0_sec;
-	level.intermission.postIntermission = false;
-	level.intermission.time = 0_sec;
-	memset(&level.match, 0, sizeof(level.match));
+        level.intermission.queued = 0_sec;
+        level.intermission.postIntermission = false;
+        level.intermission.time = 0_sec;
+        level.intermission.duelWinLossApplied = false;
+        memset(&level.match, 0, sizeof(level.match));
 
 	CalculateRanks();
 
