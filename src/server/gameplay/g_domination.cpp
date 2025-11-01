@@ -2,6 +2,8 @@
 
 #include <string>
 
+extern const spawn_temp_t& ED_GetSpawnTemp();
+
 namespace {
 	constexpr GameTime kDominationScoreInterval = 5_sec;
 
@@ -74,7 +76,7 @@ namespace {
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label);
 	}
 
-	TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) {
+        TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) -> void {
 		if (!other->client)
 			return;
 		if (!ClientIsPlaying(other->client) || other->client->eliminated)
