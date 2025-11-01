@@ -152,10 +152,10 @@ Used by all scoreboard modes.
 ===============
 */
 static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode mode) {
-        uint32_t y = startY;
-        uint8_t lineIndex = 0;
-        bool wroteQueued = false;
-        bool wroteSpecs = false;
+	uint32_t y = startY;
+	uint8_t lineIndex = 0;
+	bool wroteQueued = false;
+	bool wroteSpecs = false;
 
 	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
 		gentity_t* cl_ent = &g_entities[i + 1];
@@ -203,64 +203,64 @@ static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode 
 			layout += entry;
 			if ((lineIndex & 1) == 0)
 				y += 8;
-        }
-}
+		}
+	}
 
-static int AddDuelistSummary(std::string& layout, int startY) {
-        if (!Game::Has(GameFlags::OneVOne))
-                return startY;
+	static int AddDuelistSummary(std::string & layout, int startY) {
+		if (!Game::Has(GameFlags::OneVOne))
+			return startY;
 
-        std::array<int, 2> duelists{};
-        uint8_t found = 0;
+		std::array<int, 2> duelists{};
+		uint8_t found = 0;
 
-        for (int clientIndex : level.sortedClients) {
-                if (clientIndex < 0 || clientIndex >= game.maxClients)
-                        continue;
+		for (int clientIndex : level.sortedClients) {
+			if (clientIndex < 0 || clientIndex >= game.maxClients)
+				continue;
 
-                gclient_t* cl = &game.clients[clientIndex];
-                if (!cl->pers.connected || !ClientIsPlaying(cl))
-                        continue;
+			gclient_t* cl = &game.clients[clientIndex];
+			if (!cl->pers.connected || !ClientIsPlaying(cl))
+				continue;
 
-                duelists[found++] = clientIndex;
+			duelists[found++] = clientIndex;
 
-                if (found == duelists.size())
-                        break;
-        }
+			if (found == duelists.size())
+				break;
+		}
 
-        if (!found)
-                return startY;
+		if (!found)
+			return startY;
 
-        uint32_t y = startY;
-        fmt::format_to(std::back_inserter(layout),
-                "xv 0 yv {} loc_string2 0 \\\"Current Duelists:\\\" "
-                "xv -40 yv {} loc_string2 0 \\\"w  l  name\\\" ",
-                y, y + 8);
-        y += 16;
+		uint32_t y = startY;
+		fmt::format_to(std::back_inserter(layout),
+			"xv 0 yv {} loc_string2 0 \\\"Current Duelists:\\\" "
+			"xv -40 yv {} loc_string2 0 \\\"w  l  name\\\" ",
+			y, y + 8);
+		y += 16;
 
-        uint8_t lineIndex = 0;
-        for (uint8_t i = 0; i < found; ++i) {
-                int x = (lineIndex & 1) ? 200 : -40;
-                gclient_t* cl = &game.clients[duelists[i]];
+		uint8_t lineIndex = 0;
+		for (uint8_t i = 0; i < found; ++i) {
+			int x = (lineIndex & 1) ? 200 : -40;
+			gclient_t* cl = &game.clients[duelists[i]];
 
-                std::string_view entry = G_Fmt("ctf {} {} {} {} {} \\\"\\\" ",
-                        x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
+			std::string_view entry = G_Fmt("ctf {} {} {} {} {} \\\"\\\" ",
+				x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
 
-                if (layout.size() + entry.size() >= MAX_STRING_CHARS)
-                        break;
+			if (layout.size() + entry.size() >= MAX_STRING_CHARS)
+				break;
 
-                layout += entry;
+			layout += entry;
 
-                lineIndex++;
+			lineIndex++;
 
-                if ((lineIndex & 1) == 0)
-                        y += 8;
-        }
+			if ((lineIndex & 1) == 0)
+				y += 8;
+		}
 
-        if (lineIndex & 1)
-                y += 8;
+		if (lineIndex & 1)
+			y += 8;
 
-        return static_cast<int>(y + 8);
-}
+		return static_cast<int>(y + 8);
+	}
 }
 
 /*
@@ -367,54 +367,54 @@ AddTeamScoreOverlay
 ===============
 */
 static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
-        const bool domination = Game::Is(GameType::Domination);
-        const char* scoreLabel = domination ? "PT/points" : "SC";
+	const bool domination = Game::Is(GameType::Domination);
+	const char* scoreLabel = domination ? "PT/points" : "SC";
 
-        if (Game::Is(GameType::CaptureTheFlag)) {
-                fmt::format_to(std::back_inserter(layout),
-                        "if 25 xv -32 yv 8 pic 25 endif "
-                        "xv 0 yv 28 string \"{}/{}\" "
-                        "xv 58 yv 12 num 2 19 "
-                        "xv -40 yv 42 string \"{}\" "
-                        "xv -12 yv 42 picn ping "
-                        "if 26 xv 208 yv 8 pic 26 endif "
-                        "xv 240 yv 28 string \"{}/{}\" "
-                        "xv 296 yv 12 num 2 21 "
-                        "xv 200 yv 42 string \"{}\" "
-                        "xv 228 yv 42 picn ping ",
-                        total[0], teamsize, scoreLabel,
-                        total[1], teamsize, scoreLabel);
-        }
-        else if (Game::Has(GameFlags::Rounds)) {
-                fmt::format_to(std::back_inserter(layout),
-                        "if 25 xv -32 yv 8 pic 25 endif "
-                        "xv 0 yv 28 string \"{}/{}/{}\" "
-                        "xv 58 yv 12 num 2 19 "
-                        "xv -40 yv 42 string \"{}\" "
-                        "xv -12 yv 42 picn ping "
-                        "if 26 xv 208 yv 8 pic 26 endif "
-                        "xv 240 yv 28 string \"{}/{}/{}\" "
-                        "xv 296 yv 12 num 2 21 "
-                        "xv 200 yv 42 string \"{}\" "
-                        "xv 228 yv 42 picn ping ",
-                        totalLiving[0], total[0], teamsize, scoreLabel,
-                        totalLiving[1], total[1], teamsize, scoreLabel);
-        }
-        else {
-                fmt::format_to(std::back_inserter(layout),
-                        "if 25 xv -32 yv 8 pic 25 endif "
-                        "xv -123 yv 28 cstring \"{}/{}\" "
-                        "xv 41 yv 12 num 3 19 "
-                        "xv -40 yv 42 string \"{}\" "
-                        "xv -12 yv 42 picn ping "
-                        "if 26 xv 208 yv 8 pic 26 endif "
-                        "xv 117 yv 28 cstring \"{}/{}\" "
-                        "xv 280 yv 12 num 3 21 "
-                        "xv 200 yv 42 string \"{}\" "
-                        "xv 228 yv 42 picn ping ",
-                        total[0], teamsize, scoreLabel,
-                        total[1], teamsize, scoreLabel);
-        }
+	if (Game::Is(GameType::CaptureTheFlag)) {
+		fmt::format_to(std::back_inserter(layout),
+			"if 25 xv -32 yv 8 pic 25 endif "
+			"xv 0 yv 28 string \"{}/{}\" "
+			"xv 58 yv 12 num 2 19 "
+			"xv -40 yv 42 string \"{}\" "
+			"xv -12 yv 42 picn ping "
+			"if 26 xv 208 yv 8 pic 26 endif "
+			"xv 240 yv 28 string \"{}/{}\" "
+			"xv 296 yv 12 num 2 21 "
+			"xv 200 yv 42 string \"{}\" "
+			"xv 228 yv 42 picn ping ",
+			total[0], teamsize, scoreLabel,
+			total[1], teamsize, scoreLabel);
+	}
+	else if (Game::Has(GameFlags::Rounds)) {
+		fmt::format_to(std::back_inserter(layout),
+			"if 25 xv -32 yv 8 pic 25 endif "
+			"xv 0 yv 28 string \"{}/{}/{}\" "
+			"xv 58 yv 12 num 2 19 "
+			"xv -40 yv 42 string \"{}\" "
+			"xv -12 yv 42 picn ping "
+			"if 26 xv 208 yv 8 pic 26 endif "
+			"xv 240 yv 28 string \"{}/{}/{}\" "
+			"xv 296 yv 12 num 2 21 "
+			"xv 200 yv 42 string \"{}\" "
+			"xv 228 yv 42 picn ping ",
+			totalLiving[0], total[0], teamsize, scoreLabel,
+			totalLiving[1], total[1], teamsize, scoreLabel);
+	}
+	else {
+		fmt::format_to(std::back_inserter(layout),
+			"if 25 xv -32 yv 8 pic 25 endif "
+			"xv -123 yv 28 cstring \"{}/{}\" "
+			"xv 41 yv 12 num 3 19 "
+			"xv -40 yv 42 string \"{}\" "
+			"xv -12 yv 42 picn ping "
+			"if 26 xv 208 yv 8 pic 26 endif "
+			"xv 117 yv 28 cstring \"{}/{}\" "
+			"xv 280 yv 12 num 3 21 "
+			"xv 200 yv 42 string \"{}\" "
+			"xv 228 yv 42 picn ping ",
+			total[0], teamsize, scoreLabel,
+			total[1], teamsize, scoreLabel);
+	}
 }
 
 /*
@@ -578,15 +578,15 @@ DuelScoreboardMessage
 ===============
 */
 static void DuelScoreboardMessage(gentity_t* ent, gentity_t* killer) {
-        std::string layout;
-        AddScoreboardHeaderAndFooter(layout, ent);
-        int spectatorStart = AddDuelistSummary(layout, 42);
-        if (spectatorStart == 42)
-                spectatorStart = 58;
-        AddSpectatorList(layout, spectatorStart, SpectatorListMode::Both);
+	std::string layout;
+	AddScoreboardHeaderAndFooter(layout, ent);
+	int spectatorStart = AddDuelistSummary(layout, 42);
+	if (spectatorStart == 42)
+		spectatorStart = 58;
+	AddSpectatorList(layout, spectatorStart, SpectatorListMode::Both);
 
-        gi.WriteByte(svc_layout);
-        gi.WriteString(layout.c_str());
+	gi.WriteByte(svc_layout);
+	gi.WriteString(layout.c_str());
 }
 
 /*
