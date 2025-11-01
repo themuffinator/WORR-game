@@ -1218,7 +1218,7 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 			++acl->killStreakCount;
 		}
 
-		G_AdjustPlayerScore(acl, 1, Game::Is(GameType::TeamDeathmatch), 1);
+		G_AdjustPlayerScore(acl, 1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), 1);
 
 		++aSess.totalKills;
 		++aSess.modTotalKills[static_cast<int>(mod.id)];
@@ -1265,7 +1265,7 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 		// attacker killed themselves or hit a teammate?
 		if (isSuicide || mod.friendly_fire) {
 			if (!mod.no_point_loss) {
-				G_AdjustPlayerScore(attacker->client, -1, Game::Is(GameType::TeamDeathmatch), -1);
+				G_AdjustPlayerScore(attacker->client, -1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), -1);
 			}
 			attacker->client->killStreakCount = 0;
 		}
@@ -1283,7 +1283,7 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 	else {
 		// penalty to the victim
 		if (!mod.no_point_loss) {
-			G_AdjustPlayerScore(victim->client, -1, Game::Is(GameType::TeamDeathmatch), -1);
+			G_AdjustPlayerScore(victim->client, -1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), -1);
 		}
 	}
 }
@@ -2114,7 +2114,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 
 					client->pers.inventory[IT_WEAPON_CHAINFIST] = 1;
 					client->pers.inventory[IT_WEAPON_MACHINEGUN] = 1;
-					client->pers.inventory[IT_AMMO_BULLETS] = (Game::Is(GameType::TeamDeathmatch)) ? 50 : 100;
+					client->pers.inventory[IT_AMMO_BULLETS] = (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination)) ? 50 : 100;
 				}
 				else if (RS(RS_Q1)) {
 					client->pers.ammoMax.fill(200);
