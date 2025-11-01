@@ -644,57 +644,64 @@ constexpr auto end(E) -> std::enable_if_t < std::is_enum_v<E>&& requires { E::_C
 
 // ==================================================================
 struct SpawnFlags {
-	uint32_t		value;
+        uint32_t                value{};
 
-	explicit constexpr SpawnFlags(uint32_t v) :
-		value(v) {
-	}
+        constexpr SpawnFlags() = default;
+        explicit constexpr SpawnFlags(uint32_t v) noexcept :
+                value(v) {}
 
-	explicit operator uint32_t() const {
-		return value;
-	}
+        constexpr SpawnFlags(const SpawnFlags&) = default;
+        constexpr SpawnFlags(SpawnFlags&&) = default;
+        constexpr SpawnFlags& operator=(const SpawnFlags&) = default;
+        constexpr SpawnFlags& operator=(SpawnFlags&&) = default;
+        ~SpawnFlags() = default;
 
-	// has any flags at all (!!a)
-	constexpr bool any() const { return !!value; }
-	// has any of the given flags (!!(a & b))
-	constexpr bool has(const SpawnFlags& flags) const { return !!(value & flags.value); }
-	// has all of the given flags ((a & b) == b)
-	constexpr bool has_all(const SpawnFlags& flags) const { return (value & flags.value) == flags.value; }
-	constexpr bool operator!() const { return !value; }
+        [[nodiscard]] explicit constexpr operator uint32_t() const noexcept {
+                return value;
+        }
 
-	constexpr bool operator==(const SpawnFlags& flags) const {
-		return value == flags.value;
-	}
+        // has any flags at all (!!a)
+        [[nodiscard]] constexpr bool any() const noexcept { return value != 0; }
+        // has any of the given flags (!!(a & b))
+        [[nodiscard]] constexpr bool has(const SpawnFlags& flags) const noexcept { return (value & flags.value) != 0; }
+        // has all of the given flags ((a & b) == b)
+        [[nodiscard]] constexpr bool has_all(const SpawnFlags& flags) const noexcept { return (value & flags.value) == flags.value; }
+        constexpr bool operator!() const noexcept { return value == 0; }
 
-	constexpr bool operator!=(const SpawnFlags& flags) const {
-		return value != flags.value;
-	}
+        constexpr bool operator==(const SpawnFlags& flags) const noexcept {
+                return value == flags.value;
+        }
 
-	constexpr SpawnFlags operator~() const {
-		return SpawnFlags(~value);
-	}
-	constexpr SpawnFlags operator|(const SpawnFlags& v2) const {
-		return SpawnFlags(value | v2.value);
-	}
-	constexpr SpawnFlags operator&(const SpawnFlags& v2) const {
-		return SpawnFlags(value & v2.value);
-	}
-	constexpr SpawnFlags operator^(const SpawnFlags& v2) const {
-		return SpawnFlags(value ^ v2.value);
-	}
-	constexpr SpawnFlags& operator|=(const SpawnFlags& v2) {
-		value |= v2.value;
-		return *this;
-	}
-	constexpr SpawnFlags& operator&=(const SpawnFlags& v2) {
-		value &= v2.value;
-		return *this;
-	}
-	constexpr SpawnFlags& operator^=(const SpawnFlags& v2) {
-		value ^= v2.value;
-		return *this;
-	}
+        constexpr bool operator!=(const SpawnFlags& flags) const noexcept {
+                return value != flags.value;
+        }
+
+        [[nodiscard]] constexpr SpawnFlags operator~() const noexcept {
+                return SpawnFlags(~value);
+        }
+        [[nodiscard]] constexpr SpawnFlags operator|(const SpawnFlags& v2) const noexcept {
+                return SpawnFlags(value | v2.value);
+        }
+        [[nodiscard]] constexpr SpawnFlags operator&(const SpawnFlags& v2) const noexcept {
+                return SpawnFlags(value & v2.value);
+        }
+        [[nodiscard]] constexpr SpawnFlags operator^(const SpawnFlags& v2) const noexcept {
+                return SpawnFlags(value ^ v2.value);
+        }
+        constexpr SpawnFlags& operator|=(const SpawnFlags& v2) noexcept {
+                value |= v2.value;
+                return *this;
+        }
+        constexpr SpawnFlags& operator&=(const SpawnFlags& v2) noexcept {
+                value &= v2.value;
+                return *this;
+        }
+        constexpr SpawnFlags& operator^=(const SpawnFlags& v2) noexcept {
+                value ^= v2.value;
+                return *this;
+        }
 };
+
 
 // ent->spawnFlags
 // these are set with checkboxes on each entity in the map editor.
