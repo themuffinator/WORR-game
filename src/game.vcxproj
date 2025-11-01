@@ -206,6 +206,7 @@
     <ClCompile Include="server\gameplay\g_ai.cpp" />
     <ClCompile Include="server\gameplay\g_ai_new.cpp" />
     <ClCompile Include="server\gameplay\g_combat_heatmap.cpp" />
+    <ClCompile Include="server\gameplay\g_domination.cpp" />
     <ClCompile Include="server\gameplay\g_horde.cpp" />
     <ClCompile Include="server\gameplay\g_spawn_points.cpp" />
     <ClCompile Include="server\gameplay\g_spectator.cpp" />

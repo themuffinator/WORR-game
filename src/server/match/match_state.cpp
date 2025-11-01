@@ -1770,10 +1770,11 @@ void CheckDMEndFrame() {
 		return;
 
 	// see if it is time to do a match restart
-	CheckDMWarmupState();     // Manages warmup -> countdown -> match start
-	CheckDMCountdown();       // Handles audible/visual countdown
-	CheckDMRoundState();      // Handles per-round progression
-	CheckDMMatchEndWarning(); // Optional: match-ending warnings
+        CheckDMWarmupState();     // Manages warmup -> countdown -> match start
+        CheckDMCountdown();       // Handles audible/visual countdown
+        CheckDMRoundState();      // Handles per-round progression
+        Domination_RunFrame();    // Updates domination scoring during live play
+        CheckDMMatchEndWarning(); // Optional: match-ending warnings
 
 	// see if it is time to end a deathmatch
 	CheckDMExitRules();       // Handles intermission and map end

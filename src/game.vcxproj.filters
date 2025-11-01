@@ -387,6 +387,7 @@
       <Filter>menu</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_combat_heatmap.cpp" />
+    <ClCompile Include="server\gameplay\g_domination.cpp" />
     <ClCompile Include="server\monsters\m_dog.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
