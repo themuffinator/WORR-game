@@ -470,12 +470,13 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 			cache.push_back(item);
 			};
 
-		for (Weapon weaponIndex : cl.sess.weaponPrefs) {
-			if (weaponIndex == Weapon::None)
-				continue;
+                for (Weapon weaponIndex : cl.sess.weaponPrefs) {
+                        const auto weaponEnumIndex = static_cast<size_t>(weaponIndex);
+                        if (weaponIndex == Weapon::None || weaponEnumIndex >= static_cast<size_t>(Weapon::Total))
+                                continue;
 
-			add_item(weaponIndexToItemID(weaponIndex));
-		}
+                        add_item(weaponIndexToItemID(weaponIndex));
+                }
 
 		for (item_id_t def : weaponPriorityList)
 			add_item(def);
