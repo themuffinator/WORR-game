@@ -23,10 +23,159 @@
 #include "match_state_utils.hpp"
 #include "match_state_helper.hpp"
 
+#include <string>
+
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 
 static void SetMatchState(LevelMatchTransition transition) {
 	ApplyMatchState(level, transition);
+}
+
+namespace {
+[[nodiscard]] bool MarathonEnabledForMatch() {
+	return deathmatch->integer && marathon && marathon->integer;
+}
+
+bool MarathonShouldCarryScores() {
+	return game.marathon.active && game.marathon.legIndex > 0;
+}
+
+void MarathonResetState() {
+	game.marathon = {};
+}
+
+void MarathonEnsureStateForMatch() {
+	if (!MarathonEnabledForMatch()) {
+		MarathonResetState();
+		return;
+	}
+
+	if (!game.marathon.active) {
+		MarathonResetState();
+		game.marathon.active = true;
+	}
+}
+
+void MarathonRecordMapStart() {
+        if (!game.marathon.active)
+                return;
+
+        game.marathon.transitionPending = false;
+        game.marathon.mapStartTime = level.time;
+        game.marathon.mapStartTeamScores = level.teamScores;
+
+        if (!level.matchID.empty())
+                game.marathon.matchID = level.matchID;
+        game.marathon.mapStartScoreValid.fill(false);
+
+        for (size_t i = 0; i < game.maxClients; ++i) {
+                if (!game.clients[i].pers.connected)
+                        continue;
+
+                game.marathon.mapStartPlayerScores[i] = game.clients[i].resp.score;
+                game.marathon.mapStartScoreValid[i] = true;
+        }
+
+        if (Teams() && Game::IsNot(GameType::RedRover))
+                level.teamOldScores = level.teamScores;
+}
+
+void MarathonAccumulateElapsed() {
+        if (!game.marathon.active)
+                return;
+
+        GameTime elapsed = level.time - game.marathon.mapStartTime;
+        if (elapsed < 0_ms)
+                elapsed = 0_ms;
+
+        game.marathon.totalElapsedBeforeCurrentMap += elapsed;
+}
+
+bool MarathonCheckTimeLimit(std::string& message) {
+        if (!game.marathon.active || !g_marathon_timelimit || g_marathon_timelimit->value <= 0.0f)
+                return false;
+
+        const GameTime limit = GameTime::from_min(g_marathon_timelimit->value);
+        if (!limit)
+                return false;
+
+        GameTime elapsed = level.time - game.marathon.mapStartTime;
+        if (elapsed < limit)
+                return false;
+
+        message = G_Fmt("Marathon: Time limit ({:.2g} min) reached.", g_marathon_timelimit->value);
+        return true;
+}
+
+bool MarathonCheckScoreLimit(std::string& message) {
+        if (!game.marathon.active || !g_marathon_scorelimit)
+                return false;
+
+        const int limit = g_marathon_scorelimit->integer;
+        if (limit <= 0)
+                return false;
+
+        if (Teams() && Game::IsNot(GameType::RedRover)) {
+                for (Team team : { Team::Red, Team::Blue }) {
+                        const size_t index = static_cast<size_t>(team);
+                        const int start = game.marathon.mapStartTeamScores[index];
+                        const int current = level.teamScores[index];
+
+                        if (current - start >= limit) {
+                                message = G_Fmt("Marathon: {} gained {} points this map.", Teams_TeamName(team), limit);
+                                return true;
+                        }
+                }
+        }
+        else {
+                for (auto ec : active_clients()) {
+                        auto* cl = ec->client;
+                        if (!ClientIsPlaying(cl))
+                                continue;
+
+                        const size_t index = static_cast<size_t>(cl - game.clients);
+                        if (index >= game.maxClients)
+                                continue;
+
+                        if (!game.marathon.mapStartScoreValid[index]) {
+                                game.marathon.mapStartPlayerScores[index] = cl->resp.score;
+                                game.marathon.mapStartScoreValid[index] = true;
+                        }
+
+                        if (cl->resp.score - game.marathon.mapStartPlayerScores[index] >= limit) {
+                                message = G_Fmt("Marathon: {} hit {} points this map.", cl->sess.netName, limit);
+                                return true;
+                        }
+                }
+        }
+
+        return false;
+}
+
+void MarathonTriggerAdvance(const std::string& message) {
+        if (!game.marathon.active || game.marathon.transitionPending)
+                return;
+
+        MarathonAccumulateElapsed();
+        game.marathon.cumulativeTeamScores = level.teamScores;
+        game.marathon.matchID = level.matchID;
+        game.marathon.transitionPending = true;
+        game.marathon.legIndex++;
+        QueueIntermission(message.c_str(), false, false);
+}
+
+} // namespace
+
+void Marathon_RegisterClientBaseline(gclient_t* cl) {
+        if (!cl || !game.marathon.active)
+                return;
+
+        const ptrdiff_t index = cl - game.clients;
+        if (index < 0 || static_cast<size_t>(index) >= game.maxClients)
+                return;
+
+        game.marathon.mapStartPlayerScores[static_cast<size_t>(index)] = cl->resp.score;
+        game.marathon.mapStartScoreValid[static_cast<size_t>(index)] = true;
 }
 
 // Utility scope guard used by CheckDMExitRules to track whether any
@@ -678,11 +827,16 @@ void Match_Start() {
 	if (!deathmatch->integer)
 		return;
 
+	MarathonEnsureStateForMatch();
+	const bool carryScores = MarathonShouldCarryScores();
+
 	time_t now = GetCurrentRealTimeMillis();
 
-	level.matchStartRealTime = now;
+	if (!carryScores)
+		level.matchStartRealTime = now;
+
 	level.matchEndRealTime = 0;
-	level.levelStartTime = level.time;
+	level.levelStartTime = carryScores ? level.time - game.marathon.totalElapsedBeforeCurrentMap : level.time;
 	level.overtime = 0_sec;
 
 	const char* s = TimeString(timeLimit->value ? timeLimit->value * 1000 : 0, false, true);
@@ -693,28 +847,41 @@ void Match_Start() {
 	level.warmupState = WarmupState::Default;
 	level.warmupNoticeTime = 0_sec;
 
-	level.teamScores[static_cast<int>(Team::Red)] = level.teamScores[static_cast<int>(Team::Blue)] = 0;
+	if (carryScores) {
+		level.teamScores[static_cast<int>(Team::Red)] = game.marathon.cumulativeTeamScores[static_cast<int>(Team::Red)];
+		level.teamScores[static_cast<int>(Team::Blue)] = game.marathon.cumulativeTeamScores[static_cast<int>(Team::Blue)];
+	}
+	else {
+		level.teamScores[static_cast<int>(Team::Red)] = level.teamScores[static_cast<int>(Team::Blue)] = 0;
+		game.marathon.cumulativeTeamScores = level.teamScores;
+		level.match = {};
+	}
 
-	level.match = {};
+	if (carryScores && !game.marathon.matchID.empty())
+		level.matchID = game.marathon.matchID;
 
 	Monsters_KillAll();
 	ResetMatchWorldState(true);
-	ResetMatchPlayers(true, true);
+	ResetMatchPlayers(true, !carryScores);
 	UnReadyAll();
 
-	for (auto ec : active_players())
-		ec->client->sess.playStartRealTime = now;
+	if (!carryScores) {
+		for (auto ec : active_players())
+			ec->client->sess.playStartRealTime = now;
+	}
 
-	MatchStats_Init();
+	if (!carryScores)
+		MatchStats_Init();
 
 	if (Game::Is(GameType::CaptureStrike))
 		level.strike_red_attacks = brandom();
+
+	MarathonRecordMapStart();
 
 	if (Round_StartNew())
 		return;
 
 	gi.LocBroadcast_Print(PRINT_CENTER, ".FIGHT!");
-	//gi.positionedSound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundIndex("misc/tele_up.wav"), 1, ATTN_NONE, 0);
 	AnnouncerSound(world, "fight");
 }
 
@@ -1001,6 +1168,8 @@ An end of match condition has been reached
 */
 extern void MatchStats_End();
 void Match_End() {
+	MarathonResetState();
+
 	gentity_t* ent;
 
 	time_t now = GetCurrentRealTimeMillis();
@@ -1132,6 +1301,7 @@ Match_Reset
 ============
 */
 void Match_Reset() {
+	MarathonResetState();
 	if (!warmup_enabled->integer) {
 		level.levelStartTime = level.time;
 		// Transition: warmup disabled -> immediate in-progress gameplay.
@@ -2086,6 +2256,16 @@ void CheckDMExitRules() {
 				QueueIntermission(G_Fmt("{} WINS! (hit the {} limit)", ec->client->sess.netName, GT_ScoreLimitString()).data(), false, false);
 				return;
 			}
+		}
+	}
+
+	if (game.marathon.active) {
+		std::string marathonMessage;
+		if (MarathonCheckTimeLimit(marathonMessage) || MarathonCheckScoreLimit(marathonMessage)) {
+			if (marathonMessage.empty())
+				marathonMessage = "Marathon: Advancing to the next map.";
+			MarathonTriggerAdvance(marathonMessage);
+			return;
 		}
 	}
 }

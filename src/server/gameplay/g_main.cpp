@@ -91,6 +91,9 @@ cvar_t* roundLimit;
 cvar_t* roundTimeLimit;
 cvar_t* mercyLimit;
 cvar_t* noPlayersTime;
+cvar_t* marathon;
+cvar_t* g_marathon_timelimit;
+cvar_t* g_marathon_scorelimit;
 
 cvar_t* g_ruleset;
 
@@ -763,6 +766,9 @@ static void InitGame() {
 	captureLimit = gi.cvar("capturelimit", "8", CVAR_SERVERINFO);
 	mercyLimit = gi.cvar("mercylimit", "0", CVAR_NOFLAGS);
 	noPlayersTime = gi.cvar("noplayerstime", "10", CVAR_NOFLAGS);
+	marathon = gi.cvar("marathon", "0", CVAR_SERVERINFO);
+	g_marathon_timelimit = gi.cvar("g_marathon_timelimit", "0", CVAR_NOFLAGS);
+	g_marathon_scorelimit = gi.cvar("g_marathon_scorelimit", "0", CVAR_NOFLAGS);
 
 	g_ruleset = gi.cvar("g_ruleset", std::to_string(RS_Q2).c_str(), CVAR_SERVERINFO);
 

@@ -2209,10 +2209,19 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 }
 
 static void InitClientResp(gclient_t* cl) {
+	const bool preserveScore = game.marathon.active && game.marathon.legIndex > 0;
+	const int32_t savedScore = preserveScore ? cl->resp.score : 0;
+	const int64_t savedPlayTime = preserveScore ? cl->resp.totalMatchPlayRealTime : 0;
+
 	cl->resp = client_respawn_t{};
 
 	cl->resp.enterTime = level.time;
 	cl->resp.coopRespawn = cl->pers;
+
+	if (preserveScore) {
+		cl->resp.score = savedScore;
+		cl->resp.totalMatchPlayRealTime = savedPlayTime;
+	}
 }
 
 /*
@@ -3164,6 +3173,9 @@ void ClientBegin(gentity_t* ent) {
 
 	if (deathmatch->integer) {
 		ClientBeginDeathmatch(ent);
+
+		if (game.marathon.active && level.matchState >= MatchState::In_Progress)
+			Marathon_RegisterClientBaseline(ent->client);
 
 		// count current clients and rank for scoreboard
 		CalculateRanks();

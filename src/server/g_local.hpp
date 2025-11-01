@@ -1955,6 +1955,19 @@ struct GameLocals {
 
 	MapSystem mapSystem = {};
 
+	struct MarathonState {
+		bool active = false;
+		uint32_t legIndex = 0;
+		bool transitionPending = false;
+		GameTime totalElapsedBeforeCurrentMap = 0_ms;
+		GameTime mapStartTime = 0_ms;
+		std::array<int, MAX_CLIENTS> mapStartPlayerScores{};
+		std::array<bool, MAX_CLIENTS> mapStartScoreValid{};
+		std::array<int, static_cast<int>(Team::Total)> mapStartTeamScores{};
+		std::array<int, static_cast<int>(Team::Total)> cumulativeTeamScores{};
+		std::string matchID{};
+	} marathon{};
+
 	time_t serverStartTime = 0;
 
 	std::mt19937 mapRNG;
@@ -3029,6 +3042,9 @@ extern cvar_t* roundLimit;
 extern cvar_t* roundTimeLimit;
 extern cvar_t* mercyLimit;
 extern cvar_t* noPlayersTime;
+extern cvar_t* marathon;
+extern cvar_t* g_marathon_timelimit;
+extern cvar_t* g_marathon_scorelimit;
 
 extern cvar_t* g_ruleset;
 
@@ -3961,6 +3977,7 @@ int PrintMapListFiltered(gentity_t* ent, bool cycleOnly, const std::string& filt
 //
 // match_state.cpp
 //
+void Marathon_RegisterClientBaseline(gclient_t* cl);
 void CheckDMExitRules();
 int GT_ScoreLimit();
 const char* GT_ScoreLimitString();
