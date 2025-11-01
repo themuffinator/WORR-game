@@ -32,150 +32,150 @@ static void SetMatchState(LevelMatchTransition transition) {
 }
 
 namespace {
-[[nodiscard]] bool MarathonEnabledForMatch() {
-	return deathmatch->integer && marathon && marathon->integer;
-}
-
-bool MarathonShouldCarryScores() {
-	return game.marathon.active && game.marathon.legIndex > 0;
-}
-
-void MarathonResetState() {
-	game.marathon = {};
-}
-
-void MarathonEnsureStateForMatch() {
-	if (!MarathonEnabledForMatch()) {
-		MarathonResetState();
-		return;
+	[[nodiscard]] bool MarathonEnabledForMatch() {
+		return deathmatch->integer && marathon && marathon->integer;
 	}
 
-	if (!game.marathon.active) {
-		MarathonResetState();
-		game.marathon.active = true;
+	bool MarathonShouldCarryScores() {
+		return game.marathon.active && game.marathon.legIndex > 0;
 	}
-}
 
-void MarathonRecordMapStart() {
-        if (!game.marathon.active)
-                return;
+	void MarathonResetState() {
+		game.marathon = {};
+	}
 
-        game.marathon.transitionPending = false;
-        game.marathon.mapStartTime = level.time;
-        game.marathon.mapStartTeamScores = level.teamScores;
+	void MarathonEnsureStateForMatch() {
+		if (!MarathonEnabledForMatch()) {
+			MarathonResetState();
+			return;
+		}
 
-        if (!level.matchID.empty())
-                game.marathon.matchID = level.matchID;
-        game.marathon.mapStartScoreValid.fill(false);
+		if (!game.marathon.active) {
+			MarathonResetState();
+			game.marathon.active = true;
+		}
+	}
 
-        for (size_t i = 0; i < game.maxClients; ++i) {
-                if (!game.clients[i].pers.connected)
-                        continue;
+	void MarathonRecordMapStart() {
+		if (!game.marathon.active)
+			return;
 
-                game.marathon.mapStartPlayerScores[i] = game.clients[i].resp.score;
-                game.marathon.mapStartScoreValid[i] = true;
-        }
+		game.marathon.transitionPending = false;
+		game.marathon.mapStartTime = level.time;
+		game.marathon.mapStartTeamScores = level.teamScores;
 
-        if (Teams() && Game::IsNot(GameType::RedRover))
-                level.teamOldScores = level.teamScores;
-}
+		if (!level.matchID.empty())
+			game.marathon.matchID = level.matchID;
+		game.marathon.mapStartScoreValid.fill(false);
 
-void MarathonAccumulateElapsed() {
-        if (!game.marathon.active)
-                return;
+		for (size_t i = 0; i < game.maxClients; ++i) {
+			if (!game.clients[i].pers.connected)
+				continue;
 
-        GameTime elapsed = level.time - game.marathon.mapStartTime;
-        if (elapsed < 0_ms)
-                elapsed = 0_ms;
+			game.marathon.mapStartPlayerScores[i] = game.clients[i].resp.score;
+			game.marathon.mapStartScoreValid[i] = true;
+		}
 
-        game.marathon.totalElapsedBeforeCurrentMap += elapsed;
-}
+		if (Teams() && Game::IsNot(GameType::RedRover))
+			level.teamOldScores = level.teamScores;
+	}
 
-bool MarathonCheckTimeLimit(std::string& message) {
-        if (!game.marathon.active || !g_marathon_timelimit || g_marathon_timelimit->value <= 0.0f)
-                return false;
+	void MarathonAccumulateElapsed() {
+		if (!game.marathon.active)
+			return;
 
-        const GameTime limit = GameTime::from_min(g_marathon_timelimit->value);
-        if (!limit)
-                return false;
+		GameTime elapsed = level.time - game.marathon.mapStartTime;
+		if (elapsed < 0_ms)
+			elapsed = 0_ms;
 
-        GameTime elapsed = level.time - game.marathon.mapStartTime;
-        if (elapsed < limit)
-                return false;
+		game.marathon.totalElapsedBeforeCurrentMap += elapsed;
+	}
 
-        message = G_Fmt("Marathon: Time limit ({:.2g} min) reached.", g_marathon_timelimit->value);
-        return true;
-}
+	bool MarathonCheckTimeLimit(std::string& message) {
+		if (!game.marathon.active || !g_marathon_timelimit || g_marathon_timelimit->value <= 0.0f)
+			return false;
 
-bool MarathonCheckScoreLimit(std::string& message) {
-        if (!game.marathon.active || !g_marathon_scorelimit)
-                return false;
+		const GameTime limit = GameTime::from_min(g_marathon_timelimit->value);
+		if (!limit)
+			return false;
 
-        const int limit = g_marathon_scorelimit->integer;
-        if (limit <= 0)
-                return false;
+		GameTime elapsed = level.time - game.marathon.mapStartTime;
+		if (elapsed < limit)
+			return false;
 
-        if (Teams() && Game::IsNot(GameType::RedRover)) {
-                for (Team team : { Team::Red, Team::Blue }) {
-                        const size_t index = static_cast<size_t>(team);
-                        const int start = game.marathon.mapStartTeamScores[index];
-                        const int current = level.teamScores[index];
+		message = G_Fmt("Marathon: Time limit ({:.2g} min) reached.", g_marathon_timelimit->value);
+		return true;
+	}
 
-                        if (current - start >= limit) {
-                                message = G_Fmt("Marathon: {} gained {} points this map.", Teams_TeamName(team), limit);
-                                return true;
-                        }
-                }
-        }
-        else {
-                for (auto ec : active_clients()) {
-                        auto* cl = ec->client;
-                        if (!ClientIsPlaying(cl))
-                                continue;
+	bool MarathonCheckScoreLimit(std::string& message) {
+		if (!game.marathon.active || !g_marathon_scorelimit)
+			return false;
 
-                        const size_t index = static_cast<size_t>(cl - game.clients);
-                        if (index >= game.maxClients)
-                                continue;
+		const int limit = g_marathon_scorelimit->integer;
+		if (limit <= 0)
+			return false;
 
-                        if (!game.marathon.mapStartScoreValid[index]) {
-                                game.marathon.mapStartPlayerScores[index] = cl->resp.score;
-                                game.marathon.mapStartScoreValid[index] = true;
-                        }
+		if (Teams() && Game::IsNot(GameType::RedRover)) {
+			for (Team team : { Team::Red, Team::Blue }) {
+				const size_t index = static_cast<size_t>(team);
+				const int start = game.marathon.mapStartTeamScores[index];
+				const int current = level.teamScores[index];
 
-                        if (cl->resp.score - game.marathon.mapStartPlayerScores[index] >= limit) {
-                                message = G_Fmt("Marathon: {} hit {} points this map.", cl->sess.netName, limit);
-                                return true;
-                        }
-                }
-        }
+				if (current - start >= limit) {
+					message = G_Fmt("Marathon: {} gained {} points this map.", Teams_TeamName(team), limit);
+					return true;
+				}
+			}
+		}
+		else {
+			for (auto ec : active_clients()) {
+				auto* cl = ec->client;
+				if (!ClientIsPlaying(cl))
+					continue;
 
-        return false;
-}
+				const size_t index = static_cast<size_t>(cl - game.clients);
+				if (index >= game.maxClients)
+					continue;
 
-void MarathonTriggerAdvance(const std::string& message) {
-        if (!game.marathon.active || game.marathon.transitionPending)
-                return;
+				if (!game.marathon.mapStartScoreValid[index]) {
+					game.marathon.mapStartPlayerScores[index] = cl->resp.score;
+					game.marathon.mapStartScoreValid[index] = true;
+				}
 
-        MarathonAccumulateElapsed();
-        game.marathon.cumulativeTeamScores = level.teamScores;
-        game.marathon.matchID = level.matchID;
-        game.marathon.transitionPending = true;
-        game.marathon.legIndex++;
-        QueueIntermission(message.c_str(), false, false);
-}
+				if (cl->resp.score - game.marathon.mapStartPlayerScores[index] >= limit) {
+					message = G_Fmt("Marathon: {} hit {} points this map.", cl->sess.netName, limit);
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	void MarathonTriggerAdvance(const std::string& message) {
+		if (!game.marathon.active || game.marathon.transitionPending)
+			return;
+
+		MarathonAccumulateElapsed();
+		game.marathon.cumulativeTeamScores = level.teamScores;
+		game.marathon.matchID = level.matchID;
+		game.marathon.transitionPending = true;
+		game.marathon.legIndex++;
+		QueueIntermission(message.c_str(), false, false);
+	}
 
 } // namespace
 
 void Marathon_RegisterClientBaseline(gclient_t* cl) {
-        if (!cl || !game.marathon.active)
-                return;
+	if (!cl || !game.marathon.active)
+		return;
 
-        const ptrdiff_t index = cl - game.clients;
-        if (index < 0 || static_cast<size_t>(index) >= game.maxClients)
-                return;
+	const ptrdiff_t index = cl - game.clients;
+	if (index < 0 || static_cast<size_t>(index) >= game.maxClients)
+		return;
 
-        game.marathon.mapStartPlayerScores[static_cast<size_t>(index)] = cl->resp.score;
-        game.marathon.mapStartScoreValid[static_cast<size_t>(index)] = true;
+	game.marathon.mapStartPlayerScores[static_cast<size_t>(index)] = cl->resp.score;
+	game.marathon.mapStartScoreValid[static_cast<size_t>(index)] = true;
 }
 
 // Utility scope guard used by CheckDMExitRules to track whether any
@@ -589,43 +589,43 @@ static gclient_t* GetNextQueuedPlayer() {
 }
 
 static bool Versus_AddPlayer() {
-        if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients >= 2)
-                return false;
-        if (level.matchState > MatchState::Warmup_Default || level.intermission.time || level.intermission.queued)
-                return false;
+	if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients >= 2)
+		return false;
+	if (level.matchState > MatchState::Warmup_Default || level.intermission.time || level.intermission.queued)
+		return false;
 
-        gclient_t* next = GetNextQueuedPlayer();
-        if (!next)
-                return false;
+	gclient_t* next = GetNextQueuedPlayer();
+	if (!next)
+		return false;
 
-        SetTeam(&g_entities[next - game.clients + 1], Team::Free, false, true, false);
+	SetTeam(&g_entities[next - game.clients + 1], Team::Free, false, true, false);
 
-        return true;
+	return true;
 }
 
 void Duel_RemoveLoser() {
-        if (Game::IsNot(GameType::Duel) || level.pop.num_playing_clients != 2)
-                return;
+	if (Game::IsNot(GameType::Duel) || level.pop.num_playing_clients != 2)
+		return;
 
-        gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
-        if (!loser || !loser->client || !loser->client->pers.connected)
-                return;
-        if (!ClientIsPlaying(loser->client))
-                return;
+	gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
+	if (!loser || !loser->client || !loser->client->pers.connected)
+		return;
+	if (!ClientIsPlaying(loser->client))
+		return;
 
-        if (g_verbose->integer)
-                gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
+	if (g_verbose->integer)
+		gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
 
-        SetTeam(loser, Team::None, false, true, false);
+	SetTeam(loser, Team::None, false, true, false);
 
-        Versus_AddPlayer();
+	Versus_AddPlayer();
 }
 
 void Gauntlet_RemoveLoser() {
-        if (Game::IsNot(GameType::Gauntlet) || level.pop.num_playing_clients != 2)
-                return;
+	if (Game::IsNot(GameType::Gauntlet) || level.pop.num_playing_clients != 2)
+		return;
 
-        gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
+	gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
 	if (!loser || !loser->client || !loser->client->pers.connected)
 		return;
 	if (loser->client->sess.team != Team::Free)
@@ -638,73 +638,73 @@ void Gauntlet_RemoveLoser() {
 }
 
 void Gauntlet_MatchEnd_AdjustScores() {
-        if (Game::IsNot(GameType::Gauntlet))
-                return;
-        if (level.pop.num_playing_clients < 2)
-                return;
+	if (Game::IsNot(GameType::Gauntlet))
+		return;
+	if (level.pop.num_playing_clients < 2)
+		return;
 
-        int winnerNum = level.sortedClients[0];
-        if (game.clients[winnerNum].pers.connected) {
-                game.clients[winnerNum].sess.matchWins++;
-        }
+	int winnerNum = level.sortedClients[0];
+	if (game.clients[winnerNum].pers.connected) {
+		game.clients[winnerNum].sess.matchWins++;
+	}
 }
 
 static size_t CollectActiveDuelists(std::array<gclient_t*, 2>& duelists) {
-        size_t found = 0;
+	size_t found = 0;
 
-        for (int clientIndex : level.sortedClients) {
-                if (clientIndex < 0 || clientIndex >= game.maxClients)
-                        continue;
+	for (int clientIndex : level.sortedClients) {
+		if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients))
+			continue;
 
-                gclient_t* cl = &game.clients[clientIndex];
-                if (!cl->pers.connected || !ClientIsPlaying(cl))
-                        continue;
+		gclient_t* cl = &game.clients[clientIndex];
+		if (!cl->pers.connected || !ClientIsPlaying(cl))
+			continue;
 
-                duelists[found++] = cl;
-                if (found == duelists.size())
-                        break;
-        }
+		duelists[found++] = cl;
+		if (found == duelists.size())
+			break;
+	}
 
-        return found;
+	return found;
 }
 
 void Match_UpdateDuelRecords() {
-        if (!Game::Has(GameFlags::OneVOne))
-                return;
-        if (level.intermission.duelWinLossApplied)
-                return;
+	if (!Game::Has(GameFlags::OneVOne))
+		return;
+	if (level.intermission.duelWinLossApplied)
+		return;
 
-        CalculateRanks();
+	CalculateRanks();
 
-        std::array<gclient_t*, 2> duelists{};
-        if (CollectActiveDuelists(duelists) != duelists.size())
-                return;
+	std::array<gclient_t*, 2> duelists{};
+	if (CollectActiveDuelists(duelists) != duelists.size())
+		return;
 
-        gclient_t* first = duelists[0];
-        gclient_t* second = duelists[1];
-        if (!first || !second)
-                return;
+	gclient_t* first = duelists[0];
+	gclient_t* second = duelists[1];
+	if (!first || !second)
+		return;
 
-        gclient_t* winner = first;
-        gclient_t* loser = second;
+	gclient_t* winner = first;
+	gclient_t* loser = second;
 
-        if (second->resp.score > first->resp.score)
-                std::swap(winner, loser);
+	if (second->resp.score > first->resp.score)
+		std::swap(winner, loser);
 
-        if (!winner || !loser)
-                return;
+	if (!winner || !loser)
+		return;
 
-        if (winner->resp.score == loser->resp.score)
-                return;
+	if (winner->resp.score == loser->resp.score)
+		return;
 
-        winner->sess.matchWins++;
-        loser->sess.matchLosses++;
-        level.intermission.duelWinLossApplied = true;
+	winner->sess.matchWins++;
+	loser->sess.matchLosses++;
+	level.intermission.duelWinLossApplied = true;
 }
 
 static void EnforceDuelRules() {
-        if (Game::IsNot(GameType::Duel))
-                return;
+	if (Game::IsNot(GameType::Duel))
+		return;
 
 	if (level.pop.num_playing_clients > 2) {
 		// Kick or move spectators if too many players
@@ -941,18 +941,18 @@ static bool DidPlayerWin(gentity_t* ent) {
 			return (ent->client->resp.score > players[0]->client->resp.score || ent == players[0]);
 	}
 
-        if (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
-                || Game::Is(GameType::Domination)) {
-                const int redScore = level.teamScores[static_cast<int>(Team::Red)];
-                const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
+	if (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
+		|| Game::Is(GameType::Domination)) {
+		const int redScore = level.teamScores[static_cast<int>(Team::Red)];
+		const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
 
-                if (ent->client->sess.team == Team::Red)
-                        return redScore > blueScore;
-                else if (ent->client->sess.team == Team::Blue)
-                        return blueScore > redScore;
-        }
+		if (ent->client->sess.team == Team::Red)
+			return redScore > blueScore;
+		else if (ent->client->sess.team == Team::Blue)
+			return blueScore > redScore;
+	}
 
-        // FFA
+	// FFA
 	auto players = GetPlayers();
 	if (!players.empty())
 		std::sort(players.begin(), players.end(),
@@ -1036,14 +1036,14 @@ static void AdjustSkillRatings() {
 	}
 
 	// === TEAM MODE ===
-        if ((Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
-                        || Game::Is(GameType::Domination))
-                && players.size() >= 2) {
-                std::vector<gentity_t*> red, blue;
-                for (auto* ent : players) {
-                        if (ent->client->sess.team == Team::Red)
-                                red.push_back(ent);
-                        else if (ent->client->sess.team == Team::Blue)
+	if ((Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
+		|| Game::Is(GameType::Domination))
+		&& players.size() >= 2) {
+		std::vector<gentity_t*> red, blue;
+		for (auto* ent : players) {
+			if (ent->client->sess.team == Team::Red)
+				red.push_back(ent);
+			else if (ent->client->sess.team == Team::Blue)
 				blue.push_back(ent);
 		}
 		if (red.empty() || blue.empty())
@@ -1059,10 +1059,10 @@ static void AdjustSkillRatings() {
 		float Rr = avg(red), Rb = avg(blue);
 		float Er = EloExpected(Rr, Rb), Eb = 1.0f - Er;
 
-                const int Sr = level.teamScores[static_cast<int>(Team::Red)];
-                const int Sb = level.teamScores[static_cast<int>(Team::Blue)];
+		const int Sr = level.teamScores[static_cast<int>(Team::Red)];
+		const int Sb = level.teamScores[static_cast<int>(Team::Blue)];
 
-                bool redWin = Sr > Sb;
+		bool redWin = Sr > Sb;
 
 		for (auto* e : red) {
 			float S = redWin ? 1.0f : 0.0f;
@@ -1177,15 +1177,15 @@ void Match_End() {
 
 	//for (auto ec : active_players())
 	//	ec->client->sess.playEndRealTime = now;
-        MatchStats_End();
-        SetMapLastPlayedTime(level.mapName.data());
+	MatchStats_End();
+	SetMapLastPlayedTime(level.mapName.data());
 
-        Match_UpdateDuelRecords();
+	Match_UpdateDuelRecords();
 
-        level.matchState = MatchState::Ended;
-        level.matchStateTimer = 0_sec;
+	level.matchState = MatchState::Ended;
+	level.matchStateTimer = 0_sec;
 
-        AdjustSkillRatings();
+	AdjustSkillRatings();
 
 	// stay on same level flag
 	if (match_map_sameLevel->integer) {
@@ -1330,11 +1330,11 @@ void Match_Reset() {
 			std::optional<GameTime>{0_sec},
 			std::optional<bool>{false}
 		});
-        level.intermission.queued = 0_sec;
-        level.intermission.postIntermission = false;
-        level.intermission.time = 0_sec;
-        level.intermission.duelWinLossApplied = false;
-        memset(&level.match, 0, sizeof(level.match));
+	level.intermission.queued = 0_sec;
+	level.intermission.postIntermission = false;
+	level.intermission.time = 0_sec;
+	level.intermission.duelWinLossApplied = false;
+	memset(&level.match, 0, sizeof(level.match));
 
 	CalculateRanks();
 
@@ -1770,11 +1770,11 @@ void CheckDMEndFrame() {
 		return;
 
 	// see if it is time to do a match restart
-        CheckDMWarmupState();     // Manages warmup -> countdown -> match start
-        CheckDMCountdown();       // Handles audible/visual countdown
-        CheckDMRoundState();      // Handles per-round progression
-        Domination_RunFrame();    // Updates domination scoring during live play
-        CheckDMMatchEndWarning(); // Optional: match-ending warnings
+	CheckDMWarmupState();     // Manages warmup -> countdown -> match start
+	CheckDMCountdown();       // Handles audible/visual countdown
+	CheckDMRoundState();      // Handles per-round progression
+	Domination_RunFrame();    // Updates domination scoring during live play
+	CheckDMMatchEndWarning(); // Optional: match-ending warnings
 
 	// see if it is time to end a deathmatch
 	CheckDMExitRules();       // Handles intermission and map end
@@ -1944,23 +1944,23 @@ static bool ScoreIsTied(void) {
 
 
 int GT_ScoreLimit() {
-        if (Game::Is(GameType::Domination))
-                return fragLimit->integer;
-        if (Game::Has(GameFlags::Rounds))
-                return roundLimit->integer;
-        if (Game::Is(GameType::CaptureTheFlag))
-                return captureLimit->integer;
-        return fragLimit->integer;
+	if (Game::Is(GameType::Domination))
+		return fragLimit->integer;
+	if (Game::Has(GameFlags::Rounds))
+		return roundLimit->integer;
+	if (Game::Is(GameType::CaptureTheFlag))
+		return captureLimit->integer;
+	return fragLimit->integer;
 }
 
 const char* GT_ScoreLimitString() {
-        if (Game::Is(GameType::Domination))
-                return "point";
-        if (Game::Is(GameType::CaptureTheFlag))
-                return "capture";
-        if (Game::Has(GameFlags::Rounds))
-                return "round";
-        return "frag";
+	if (Game::Is(GameType::Domination))
+		return "point";
+	if (Game::Is(GameType::CaptureTheFlag))
+		return "capture";
+	if (Game::Has(GameFlags::Rounds))
+		return "round";
+	return "frag";
 }
 
 /*
