@@ -423,25 +423,43 @@ static gclient_t* GetNextQueuedPlayer() {
 }
 
 static bool Versus_AddPlayer() {
-	if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients >= 2)
-		return false;
-	if (level.matchState > MatchState::Warmup_Default || level.intermission.time || level.intermission.queued)
-		return false;
+        if (Game::Has(GameFlags::OneVOne) && level.pop.num_playing_clients >= 2)
+                return false;
+        if (level.matchState > MatchState::Warmup_Default || level.intermission.time || level.intermission.queued)
+                return false;
 
-	gclient_t* next = GetNextQueuedPlayer();
-	if (!next)
-		return false;
+        gclient_t* next = GetNextQueuedPlayer();
+        if (!next)
+                return false;
 
-	SetTeam(&g_entities[next - game.clients + 1], Team::Free, false, true, false);
+        SetTeam(&g_entities[next - game.clients + 1], Team::Free, false, true, false);
 
-	return true;
+        return true;
+}
+
+void Duel_RemoveLoser() {
+        if (Game::IsNot(GameType::Duel) || level.pop.num_playing_clients != 2)
+                return;
+
+        gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
+        if (!loser || !loser->client || !loser->client->pers.connected)
+                return;
+        if (!ClientIsPlaying(loser->client))
+                return;
+
+        if (g_verbose->integer)
+                gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
+
+        SetTeam(loser, Team::None, false, true, false);
+
+        Versus_AddPlayer();
 }
 
 void Gauntlet_RemoveLoser() {
-	if (Game::IsNot(GameType::Gauntlet) || level.pop.num_playing_clients != 2)
-		return;
+        if (Game::IsNot(GameType::Gauntlet) || level.pop.num_playing_clients != 2)
+                return;
 
-	gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
+        gentity_t* loser = &g_entities[level.sortedClients[1] + 1];
 	if (!loser || !loser->client || !loser->client->pers.connected)
 		return;
 	if (loser->client->sess.team != Team::Free)

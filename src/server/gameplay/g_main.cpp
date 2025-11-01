@@ -1461,6 +1461,7 @@ depending on mode and configured changeMap.
 =================
 */
 extern void Gauntlet_RemoveLoser();
+extern void Duel_RemoveLoser();
 void ExitLevel(bool forceImmediate) {
 	// Ensure a valid map transition is set
 	if (level.changeMap.empty()) {
@@ -1486,9 +1487,11 @@ void ExitLevel(bool forceImmediate) {
 	level.intermission = {};
 
 	if (deathmatch->integer) {
-		// In Gauntlet mode, rotate the loser
-		if (Game::Is(GameType::Gauntlet))
-			Gauntlet_RemoveLoser();
+                // In 1v1 modes, rotate out the loser so the queue advances
+                if (Game::Is(GameType::Gauntlet))
+                        Gauntlet_RemoveLoser();
+                else if (Game::Is(GameType::Duel))
+                        Duel_RemoveLoser();
 
 		// In Red Rover, shuffle teams if only one team has players
 		if (Game::Is(GameType::RedRover) &&
