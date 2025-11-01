@@ -454,7 +454,9 @@ static item_id_t weaponIndexToItemID(Weapon weaponIndex) {
 	default:				return IT_NULL;
 	}
 
-	void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
+}
+
+void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		auto& cache = cl.sess.weaponPrefOrder;
 		cache.clear();
 
