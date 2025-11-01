@@ -203,6 +203,7 @@ static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode 
 			layout += entry;
 			if ((lineIndex & 1) == 0)
 				y += 8;
+		}
         }
 }
 
