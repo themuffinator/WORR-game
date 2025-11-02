@@ -1715,20 +1715,21 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 			}
 		}
 
-		PushDeathStats(self, attacker, mod);
+                PushDeathStats(self, attacker, mod);
 
-		LookAtKiller(self, inflictor, attacker);
+                LookAtKiller(self, inflictor, attacker);
 
-		self->client->deathView.active = true;
-		self->client->deathView.startTime = level.time;
-		self->client->deathView.startOffset = self->client->ps.viewOffset;
+                self->client->deathView.active = true;
+                self->client->deathView.startTime = level.time;
+                self->client->deathView.startOffset = self->client->ps.viewOffset;
 
-		self->client->ps.pmove.pmType = PM_DEAD;
-		ClientObituary(self, inflictor, attacker, mod);
+                self->client->ps.pmove.pmType = PM_DEAD;
+                ClientObituary(self, inflictor, attacker, mod);
 
-		CTF_ScoreBonuses(self, inflictor, attacker);
-		TossClientItems(self);
-		Weapon_Grapple_DoReset(self->client);
+                CTF_ScoreBonuses(self, inflictor, attacker);
+                ProBall::HandleCarrierDeath(self);
+                TossClientItems(self);
+                Weapon_Grapple_DoReset(self->client);
 
 		if (deathmatch->integer && !self->client->showScores)
 			Commands::Help(self, CommandArgs{}); // show scores
@@ -3041,13 +3042,14 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 
 	const int64_t now = GetCurrentRealTimeMillis();
 
-	if (target == Team::Spectator) {
-		if (wasPlaying) {
-			CTF_DeadDropFlag(ent);
-			Tech_DeadDrop(ent);
-			Weapon_Grapple_DoReset(cl);
-			cl->sess.playEndRealTime = now;
-		}
+        if (target == Team::Spectator) {
+                if (wasPlaying) {
+                        CTF_DeadDropFlag(ent);
+                        ProBall::DropBall(ent, nullptr, false);
+                        Tech_DeadDrop(ent);
+                        Weapon_Grapple_DoReset(cl);
+                        cl->sess.playEndRealTime = now;
+                }
 		cl->sess.team = Team::Spectator;
 		cl->ps.teamID = static_cast<int>(cl->sess.team);
 		if (changedTeam || changedQueue)
@@ -3774,6 +3776,8 @@ void ClientDisconnect(gentity_t* ent) {
         }
 
         PlayerTrail_Destroy(ent);
+
+        ProBall::HandleCarrierDisconnect(ent);
 
         if (!(ent->svFlags & SVF_NOCLIENT)) {
                 TossClientItems(ent);

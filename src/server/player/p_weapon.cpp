@@ -2710,29 +2710,20 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		Vector3 start{}, dir{};
 
 		// Check for grenade-throwing variant
-		if (Game::Is(GameType::ProBall) && ent->client->pers.inventory[IT_BALL] > 0) {
-			constexpr int pauseFrames[] = { 29, 34, 39, 48, 0 };
-			Throw_Generic(
-				ent,
-				15, 48, 5,
-				"weapons/hgrena1b.wav",
-				11, 12,
-				pauseFrames,
-				true,
-				"weapons/hgrenc1b.wav",
-				Weapon_HandGrenade_Fire,
-				true
-			);
+                if (Game::Is(GameType::ProBall) && ent->client->pers.inventory[IT_BALL] > 0) {
+                        P_ProjectSource(ent, ent->client->vAngle, { 8.f, 0.f, -8.f }, start, dir);
 
-			gi.WriteByte(svc_muzzleflash);
-			gi.WriteEntity(ent);
-			gi.WriteByte(MZ_GRENADE | isSilenced);
-			gi.multicast(ent->s.origin, MULTICAST_PVS, false);
+                        ProBall::ThrowBall(ent, start, dir, 700.f);
 
-			G_PlayerNoise(ent, start, PlayerNoise::Weapon);
-			ent->client->pers.inventory[IT_BALL] = 0;
-			return;
-		}
+                        gi.WriteByte(svc_muzzleflash);
+                        gi.WriteEntity(ent);
+                        gi.WriteByte(MZ_GRENADE | isSilenced);
+                        gi.multicast(ent->s.origin, MULTICAST_PVS, false);
+
+                        G_PlayerNoise(ent, start, PlayerNoise::Weapon);
+                        ent->client->ps.gunFrame = 33;
+                        return;
+                }
 
 		// Fire melee strike
 		P_ProjectSource(ent, ent->client->vAngle, { 0, 0, -4 }, start, dir);

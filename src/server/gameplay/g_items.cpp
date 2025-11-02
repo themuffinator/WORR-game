@@ -2367,9 +2367,12 @@ bool Pickup_General(gentity_t* ent, gentity_t* other) {
 }
 
 bool Pickup_Ball(gentity_t* ent, gentity_t* other) {
-	other->client->pers.inventory[ent->item->id] = 1;
+        other->client->pers.inventory[ent->item->id] = 1;
 
-	return true;
+        if (Game::Is(GameType::ProBall))
+                ProBall::OnBallPickedUp(ent, other);
+
+        return true;
 }
 
 // Replace the old Drop_Weapon with this one.
@@ -3799,8 +3802,11 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		return;
 	}
 
-	ent->waterType = gi.pointContents(ent->s.origin);
-	gi.linkEntity(ent);
+        ent->waterType = gi.pointContents(ent->s.origin);
+        gi.linkEntity(ent);
+
+        if (Game::Is(GameType::ProBall) && ent->item && ent->item->id == IT_BALL)
+                ProBall::RegisterBallSpawn(ent);
 }
 
 /*
@@ -4429,11 +4435,29 @@ void Use_Compass(gentity_t* ent, Item* inv) {
 }
 
 void Use_Ball(gentity_t* ent, Item* item) {
+        if (Game::IsNot(GameType::ProBall))
+                return;
 
+        if (!ent || !ent->client)
+                return;
+
+        if (!ent->client->pers.inventory[item->id])
+                return;
+
+        ProBall::DropBall(ent, ent, false);
 }
 
 void Drop_Ball(gentity_t* ent, Item* item) {
+        if (Game::IsNot(GameType::ProBall))
+                return;
 
+        if (!ent || !ent->client)
+                return;
+
+        if (!ent->client->pers.inventory[item->id])
+                return;
+
+        ProBall::DropBall(ent, ent, false);
 }
 
 //======================================================================

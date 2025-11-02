@@ -741,6 +741,9 @@ constexpr SpawnFlags operator "" _spawnflag_bit(unsigned long long int v) {
 constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_RED = 0x00000001_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_BLUE = 0x00000002_spawnflag;
 
+constexpr SpawnFlags SPAWNFLAG_PROBALL_GOAL_RED = 0x00000001_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_PROBALL_GOAL_BLUE = 0x00000002_spawnflag;
+
 // stores a level time; most newer engines use int64_t for
 // time storage, but seconds are handy for compatibility
 // with Quake and older mods.
@@ -2032,6 +2035,8 @@ struct MatchOverallStats {
 	uint32_t totalSuicides{ 0 };
 	uint32_t totalTeamKills{ 0 };
 	uint32_t totalSpawnKills{ 0 };
+	uint32_t proBallGoals{ 0 };
+	uint32_t proBallAssists{ 0 };
 
 	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modKills{};
 	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modDeaths{};
@@ -2080,6 +2085,9 @@ struct ClientMatchStats {
 
 	uint32_t	totalShots;
 	uint32_t	totalHits;
+
+	uint32_t	proBallGoals;
+	uint32_t	proBallAssists;
 
 	uint32_t	totalKills;
 	uint32_t	totalTeamKills;
@@ -2296,11 +2304,11 @@ struct LevelLocals {
 	std::array<int, static_cast<int>(Team::Total)>	teamScores{};
 	std::array<int, static_cast<int>(Team::Total)>	teamOldScores{};
 
-	struct DominationState {
-		static constexpr size_t MAX_POINTS = 8;
+        struct DominationState {
+                static constexpr size_t MAX_POINTS = 8;
 
-		struct Point {
-			gentity_t* ent = nullptr;
+                struct Point {
+                        gentity_t* ent = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
 		};
@@ -2308,7 +2316,30 @@ struct LevelLocals {
 		std::array<Point, MAX_POINTS> points{};
 		size_t count = 0;
 		GameTime nextScoreTime = 0_ms;
-	} domination{};
+        } domination{};
+
+        struct ProBallState {
+                struct AssistInfo {
+                        gentity_t* player = nullptr;
+                        GameTime expires = 0_ms;
+                        Team team = Team::None;
+                } assist{};
+
+                struct GoalVolume {
+                        gentity_t* ent = nullptr;
+                        Team team = Team::None;
+                };
+
+                gentity_t* spawnEntity = nullptr;
+                gentity_t* ballEntity = nullptr;
+                gentity_t* carrier = nullptr;
+                gentity_t* lastToucher = nullptr;
+                Vector3 spawnOrigin = vec3_origin;
+                Vector3 spawnAngles = vec3_origin;
+                GameTime lastTouchTime = 0_ms;
+                std::array<GoalVolume, 4> goals{};
+                std::array<gentity_t*, 4> outOfBounds{};
+        } proBall{};
 
 	MatchState	matchState = MatchState::None;
 	WarmupState	warmupState = WarmupState::Default;
@@ -3382,6 +3413,22 @@ void G_SetTeamScore(Team team, int32_t value);
 void Domination_ClearState();
 void Domination_InitLevel();
 void Domination_RunFrame();
+
+namespace ProBall {
+        void ClearState();
+        void InitLevel();
+        void RunFrame();
+        void RegisterBallSpawn(gentity_t* ent);
+        void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
+        void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
+        void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed);
+        void HandleCarrierDeath(gentity_t* carrier);
+        void HandleCarrierDisconnect(gentity_t* carrier);
+        bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);
+}
+
+void SP_trigger_proball_goal(gentity_t* ent);
+void SP_trigger_proball_oob(gentity_t* ent);
 const char* PlaceString(int rank);
 bool ItemSpawnsEnabled();
 bool LocCanSee(gentity_t* targetEnt, gentity_t* sourceEnt);

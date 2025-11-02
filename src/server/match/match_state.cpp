@@ -1771,10 +1771,11 @@ void CheckDMEndFrame() {
 
 	// see if it is time to do a match restart
 	CheckDMWarmupState();     // Manages warmup -> countdown -> match start
-	CheckDMCountdown();       // Handles audible/visual countdown
-	CheckDMRoundState();      // Handles per-round progression
-	Domination_RunFrame();    // Updates domination scoring during live play
-	CheckDMMatchEndWarning(); // Optional: match-ending warnings
+        CheckDMCountdown();       // Handles audible/visual countdown
+        CheckDMRoundState();      // Handles per-round progression
+        Domination_RunFrame();    // Updates domination scoring during live play
+        ProBall::RunFrame();      // Updates ProBall scoring and state
+        CheckDMMatchEndWarning(); // Optional: match-ending warnings
 
 	// see if it is time to end a deathmatch
 	CheckDMExitRules();       // Handles intermission and map end
@@ -1944,23 +1945,27 @@ static bool ScoreIsTied(void) {
 
 
 int GT_ScoreLimit() {
-	if (Game::Is(GameType::Domination))
-		return fragLimit->integer;
-	if (Game::Has(GameFlags::Rounds))
-		return roundLimit->integer;
-	if (Game::Is(GameType::CaptureTheFlag))
-		return captureLimit->integer;
-	return fragLimit->integer;
+        if (Game::Is(GameType::Domination))
+                return fragLimit->integer;
+        if (Game::Has(GameFlags::Rounds))
+                return roundLimit->integer;
+        if (Game::Is(GameType::CaptureTheFlag))
+                return captureLimit->integer;
+        if (Game::Is(GameType::ProBall))
+                return captureLimit->integer;
+        return fragLimit->integer;
 }
 
 const char* GT_ScoreLimitString() {
-	if (Game::Is(GameType::Domination))
-		return "point";
-	if (Game::Is(GameType::CaptureTheFlag))
-		return "capture";
-	if (Game::Has(GameFlags::Rounds))
-		return "round";
-	return "frag";
+        if (Game::Is(GameType::Domination))
+                return "point";
+        if (Game::Is(GameType::CaptureTheFlag))
+                return "capture";
+        if (Game::Is(GameType::ProBall))
+                return "goal";
+        if (Game::Has(GameFlags::Rounds))
+                return "round";
+        return "frag";
 }
 
 /*

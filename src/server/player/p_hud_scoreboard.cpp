@@ -367,8 +367,9 @@ AddTeamScoreOverlay
 ===============
 */
 static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
-	const bool domination = Game::Is(GameType::Domination);
-	const char* scoreLabel = domination ? "PT/points" : "SC";
+        const bool domination = Game::Is(GameType::Domination);
+        const bool proBall = Game::Is(GameType::ProBall);
+        const char* scoreLabel = domination ? "PT/points" : (proBall ? "GO" : "SC");
 
 	if (Game::Is(GameType::CaptureTheFlag)) {
 		fmt::format_to(std::back_inserter(layout),

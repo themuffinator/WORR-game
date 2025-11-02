@@ -381,16 +381,18 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "trigger_elevator", SP_trigger_elevator },
 	{ "trigger_gravity", SP_trigger_gravity },
 	{ "trigger_monsterjump", SP_trigger_monsterjump },
-	{ "trigger_flashlight", SP_trigger_flashlight },
-	{ "trigger_fog", SP_trigger_fog },
-	{ "trigger_coop_relay", SP_trigger_coop_relay },
-	{ "trigger_health_relay", SP_trigger_health_relay },
-	{ "trigger_teleport", SP_trigger_teleport },
-	{ "trigger_ctf_teleport", SP_trigger_ctf_teleport },
-	{ "trigger_disguise", SP_trigger_disguise },
-	{ "trigger_safe_fall", SP_trigger_safe_fall },
-	{ "trigger_setskill", SP_target_setskill },
-	{ "trigger_misc_camera", SP_trigger_misc_camera },
+        { "trigger_flashlight", SP_trigger_flashlight },
+        { "trigger_fog", SP_trigger_fog },
+        { "trigger_coop_relay", SP_trigger_coop_relay },
+        { "trigger_health_relay", SP_trigger_health_relay },
+        { "trigger_teleport", SP_trigger_teleport },
+        { "trigger_ctf_teleport", SP_trigger_ctf_teleport },
+        { "trigger_disguise", SP_trigger_disguise },
+        { "trigger_safe_fall", SP_trigger_safe_fall },
+        { "trigger_setskill", SP_target_setskill },
+        { "trigger_misc_camera", SP_trigger_misc_camera },
+        { "trigger_proball_goal", SP_trigger_proball_goal },
+        { "trigger_proball_oob", SP_trigger_proball_oob },
 
 	{ "trigger_secret", SP_target_secret },
 
@@ -1830,6 +1832,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         gi.FreeTags(TAG_LEVEL);
         level = LevelLocals{};
         Domination_ClearState();
+        ProBall::ClearState();
+        ProBall::ClearState();
         level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
@@ -1922,6 +1926,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         setup_shadow_lights();
 
         Domination_InitLevel();
+        ProBall::InitLevel();
+        ProBall::InitLevel();
 
         level.init = true;
 }
