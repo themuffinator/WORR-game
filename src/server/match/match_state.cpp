@@ -261,7 +261,7 @@ constexpr struct GameTypeRules {
 	/* GameType::LastManStanding */ { },
 	/* GameType::LastTeamStanding */ { },
 	/* GameType::Horde */ { },
-	/* GameType::ProBall */ { },
+	/* GameType::ProBall */ {GameFlags::Teams, 0, false, false, 10, 15, false, 0.6f},
 	/* GameType::Gauntlet */ { }
 };
 
@@ -941,8 +941,7 @@ static bool DidPlayerWin(gentity_t* ent) {
 			return (ent->client->resp.score > players[0]->client->resp.score || ent == players[0]);
 	}
 
-	if (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
-		|| Game::Is(GameType::Domination)) {
+	if (Teams() && Game::IsNot(GameType::RedRover)) {
 		const int redScore = level.teamScores[static_cast<int>(Team::Red)];
 		const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
 
@@ -996,6 +995,8 @@ static void AdjustSkillRatings() {
 	if (players.empty())
 		return;
 
+	const bool isTeamMatch = Teams() && Game::IsNot(GameType::RedRover);
+
 	// === DUEL MODE ===
 	if (Game::Is(GameType::Duel) && players.size() == 2) {
 		auto* a = players[0], * b = players[1];
@@ -1036,9 +1037,7 @@ static void AdjustSkillRatings() {
 	}
 
 	// === TEAM MODE ===
-	if ((Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::CaptureTheFlag)
-		|| Game::Is(GameType::Domination))
-		&& players.size() >= 2) {
+	if (isTeamMatch && players.size() >= 2) {
 		std::vector<gentity_t*> red, blue;
 		for (auto* ent : players) {
 			if (ent->client->sess.team == Team::Red)

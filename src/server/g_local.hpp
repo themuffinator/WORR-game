@@ -235,7 +235,7 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 	{GameType::LastManStanding,"lms",      "LMS",      "Last Man Standing",   "lms",		GameFlags::Elimination},
 	{GameType::LastTeamStanding,"lts",     "LTS",      "Last Team Standing",  "lts",		GameFlags::Teams | GameFlags::Elimination},
 	{GameType::Horde,          "horde",    "HORDE",    "Horde Mode",          "horde",		GameFlags::Rounds},
-	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::None},
+	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::Teams},
 	{GameType::Gauntlet,       "gauntlet", "GAUNTLET", "Gauntlet",            "gauntlet",	GameFlags::OneVOne | GameFlags::Rounds | GameFlags::Frags}
 } };
 
