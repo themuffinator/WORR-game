@@ -3808,8 +3808,11 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		return;
 	}
 
-	ent->waterType = gi.pointContents(ent->s.origin);
-	gi.linkEntity(ent);
+        ent->waterType = gi.pointContents(ent->s.origin);
+        gi.linkEntity(ent);
+
+        if (Game::Is(GameType::ProBall) && ent->item && ent->item->id == IT_BALL)
+                ProBall::RegisterBallSpawn(ent);
 }
 
 /*

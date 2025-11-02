@@ -73,9 +73,11 @@ struct PlayerStats {
 	int totalDeaths = 0;
 	int totalSuicides = 0;
 	double totalKDR = 0.0;
-	int totalScore = 0;
-	int totalShots = 0;
-	int totalHits = 0;
+        int totalScore = 0;
+        int proBallGoals = 0;
+        int proBallAssists = 0;
+        int totalShots = 0;
+        int totalHits = 0;
 	double totalAccuracy = 0.0;
 	int totalDmgDealt = 0;
 	int totalDmgReceived = 0;
@@ -147,10 +149,12 @@ struct PlayerStats {
 	json toJson() const {
 		json result;
 		result["socialID"] = socialID;
-		result["playerName"] = playerName;
-		result["totalScore"] = totalScore;
+                result["playerName"] = playerName;
+                result["totalScore"] = totalScore;
+                if (proBallGoals > 0)    result["proBallGoals"] = proBallGoals;
+                if (proBallAssists > 0) result["proBallAssists"] = proBallAssists;
 
-		if (totalKills > 0)        result["totalKills"] = totalKills;
+                if (totalKills > 0)        result["totalKills"] = totalKills;
 		if (totalSpawnKills > 0)   result["totalSpawnKills"] = totalSpawnKills;
 		if (totalTeamKills > 0)    result["totalTeamKills"] = totalTeamKills; // fixed
 		if (totalDeaths > 0)       result["totalDeaths"] = totalDeaths;
@@ -261,11 +265,13 @@ struct MatchStats {
         std::string mapName;           // Name of the map
         bool ranked = false;
 	int totalKills = 0;            // Total kills in the match
-	int totalSpawnKills = 0;        // Total spawn kills in the match
-	int totalTeamKills = 0;        // Total team kills in the match
-	int totalDeaths = 0;            // Total deaths in the match
-	int totalSuicides = 0;            // Total suicides in the match
-	double avKillsPerMinute = 0;
+        int totalSpawnKills = 0;        // Total spawn kills in the match
+        int totalTeamKills = 0;        // Total team kills in the match
+        int totalDeaths = 0;            // Total deaths in the match
+        int totalSuicides = 0;            // Total suicides in the match
+        int proBall_totalGoals = 0;
+        int proBall_totalAssists = 0;
+        double avKillsPerMinute = 0;
 	int ctf_totalFlagsCaptured = 0;    // Flags captured (for CTF)
 	int ctf_totalFlagAssists = 0;    // Flag assists (for CTF)
 	int ctf_totalFlagDefends = 0;    // Flag defends (for CTF)
@@ -321,6 +327,10 @@ struct MatchStats {
                 matchJson["totalTeamKills"] = totalTeamKills;
                 matchJson["totalDeaths"] = totalDeaths;
                 matchJson["totalSuicides"] = totalSuicides;
+                if (proBall_totalGoals > 0)
+                        matchJson["totalGoals"] = proBall_totalGoals;
+                if (proBall_totalAssists > 0)
+                        matchJson["totalGoalAssists"] = proBall_totalAssists;
                 matchJson["avKillsPerMinute"] = avKillsPerMinute;
 		matchJson["totalFlagsCaptured"] = ctf_totalFlagsCaptured;
 		matchJson["totalFlagAssists"] = ctf_totalFlagAssists;
@@ -494,8 +504,9 @@ Html_WriteTopInfo
 =============
 */
 static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matchStats) {
-	html << "<div class=\"top-info\">\n"
-		<< "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
+        const bool proBall = Q_stricmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+        html << "<div class=\"top-info\">\n"
+                << "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << matchStats.serverName << "</p>\n"
 		<< "  <p><strong>Type:</strong> " << matchStats.gameType << "</p>\n"
 		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(level.matchStartRealTime) << " UTC</p>\n"
@@ -516,17 +527,21 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 	}
 	// Duration
 	html << "  <p><strong>Duration:</strong> ";
-	{
-		int secs = matchStats.durationMS / 1000;
-		int h = secs / 3600;
-		int m = (secs % 3600) / 60;
-		int s = secs % 60;
-		if (h > 0)      html << h << "h " << m << "m " << s << "s";
-		else if (m > 0) html << m << "m " << s << "s";
-		else            html << s << "s";
-	}
-	html << "</p>\n";
-	html << "</div>\n";
+        {
+                int secs = matchStats.durationMS / 1000;
+                int h = secs / 3600;
+                int m = (secs % 3600) / 60;
+                int s = secs % 60;
+                if (h > 0)      html << h << "h " << m << "m " << s << "s";
+                else if (m > 0) html << m << "m " << s << "s";
+                else            html << s << "s";
+        }
+        html << "</p>\n";
+        if (proBall) {
+                html << "  <p><strong>Total Goals:</strong> " << matchStats.proBall_totalGoals << "</p>\n"
+                        << "  <p><strong>Total Assists:</strong> " << matchStats.proBall_totalAssists << "</p>\n";
+        }
+        html << "</div>\n";
 }
 
 /*
@@ -570,34 +585,44 @@ Html_WriteOverallScores
 =============
 */
 static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
-	html << "<div class=\"section overall\">\n"
-		<< "  <h2>Overall Scores</h2>\n"
-		<< "  <table>\n"
-		<< "    <tr>"
-		"<th title=\"Player's in-game name (click to jump)\">Player</th>"
-		"<th title=\"Percentage of match time played\">%TIME</th>"
-		"<th title=\"Skill Rating (and change from match)\">SR</th>"
-		"<th title=\"Kill-Death Ratio (Kills / Deaths)\">KDR</th>"
-		"<th title=\"Kills Per Minute (Kills / Minutes Played)\">KPM</th>"
-		"<th title=\"Damage Ratio (Damage Dealt / Damage Received)\">DMR</th>"
-		"<th>Score</th>"
-		<< "</tr>\n";
+        const bool proBall = Q_stricmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+        html << "<div class=\"section overall\">\n"
+                << "  <h2>Overall Scores</h2>\n"
+                << "  <table>\n"
+                << "    <tr>"
+                "<th title=\"Player's in-game name (click to jump)\">Player</th>"
+                "<th title=\"Percentage of match time played\">%TIME</th>"
+                "<th title=\"Skill Rating (and change from match)\">SR</th>"
+                "<th title=\"Kill-Death Ratio (Kills / Deaths)\">KDR</th>"
+                "<th title=\"Kills Per Minute (Kills / Minutes Played)\">KPM</th>"
+                "<th title=\"Damage Ratio (Damage Dealt / Damage Received)\">DMR</th>"
+                "<th>Score</th>";
+        if (proBall) {
+                html << "<th title=\"Goals scored\">GO</th>"
+                        << "<th title=\"Goal assists credited\">AS</th>";
+        }
+        html << "</tr>\n";
 
-	int maxSR = 0, maxScore = 0;
-	double maxKDR = 0.0, maxKPM = 0.0, maxDMR = 0.0;
+        int maxSR = 0, maxScore = 0;
+        double maxKDR = 0.0, maxKPM = 0.0, maxDMR = 0.0;
+        int maxGoals = 0, maxAssists = 0;
 
-	for (auto* p : allPlayers) {
-		maxSR = std::max(maxSR, p->skillRating);
-		maxScore = std::max(maxScore, p->totalScore);
+        for (auto* p : allPlayers) {
+                maxSR = std::max(maxSR, p->skillRating);
+                maxScore = std::max(maxScore, p->totalScore);
 
-		const double kdr = p->totalDeaths ? double(p->totalKills) / p->totalDeaths : double(p->totalKills);
-		const double kpm = (p->playTimeMsec > 0) ? (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0) : 0.0;
-		const double dmr = p->totalDmgReceived ? double(p->totalDmgDealt) / p->totalDmgReceived : double(p->totalDmgDealt);
+                const double kdr = p->totalDeaths ? double(p->totalKills) / p->totalDeaths : double(p->totalKills);
+                const double kpm = (p->playTimeMsec > 0) ? (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0) : 0.0;
+                const double dmr = p->totalDmgReceived ? double(p->totalDmgDealt) / p->totalDmgReceived : double(p->totalDmgDealt);
 
-		maxKDR = std::max(maxKDR, kdr);
-		maxKPM = std::max(maxKPM, kpm);
-		maxDMR = std::max(maxDMR, dmr);
-	}
+                maxKDR = std::max(maxKDR, kdr);
+                maxKPM = std::max(maxKPM, kpm);
+                maxDMR = std::max(maxDMR, dmr);
+                if (proBall) {
+                        maxGoals = std::max(maxGoals, p->proBallGoals);
+                        maxAssists = std::max(maxAssists, p->proBallAssists);
+                }
+        }
 
 	const double durationMin = matchStats.durationMS / 60000.0;
 
@@ -643,13 +668,25 @@ static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats
 			<< "<div class=\"bar\" style=\"width:" << pctDMR << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(2) << dmr << "</span></td>";
 
-		const double pctScore = (maxScore > 0) ? (double(p->totalScore) / maxScore) * 100.0 : 0.0;
-		html << "<td class=\"progress-cell\" title=\"Score relative to top (" << maxScore << ")\">"
-			<< "<div class=\"bar\" style=\"width:" << pctScore << "%\"></div>"
-			<< "<span>" << p->totalScore << "</span></td>";
+                const double pctScore = (maxScore > 0) ? (double(p->totalScore) / maxScore) * 100.0 : 0.0;
+                html << "<td class=\"progress-cell\" title=\"Score relative to top (" << maxScore << ")\">"
+                        << "<div class=\"bar\" style=\"width:" << pctScore << "%\"></div>"
+                        << "<span>" << p->totalScore << "</span></td>";
 
-		html << "</tr>\n";
-	}
+                if (proBall) {
+                        const double pctGoals = (maxGoals > 0) ? (double(p->proBallGoals) / maxGoals) * 100.0 : 0.0;
+                        html << "<td class=\"progress-cell\" title=\"Goals scored\">"
+                                << "<div class=\"bar\" style=\"width:" << pctGoals << "%\"></div>"
+                                << "<span>" << p->proBallGoals << "</span></td>";
+
+                        const double pctAssists = (maxAssists > 0) ? (double(p->proBallAssists) / maxAssists) * 100.0 : 0.0;
+                        html << "<td class=\"progress-cell\" title=\"Goal assists credited\">"
+                                << "<div class=\"bar\" style=\"width:" << pctAssists << "%\"></div>"
+                                << "<span>" << p->proBallAssists << "</span></td>";
+                }
+
+                html << "</tr>\n";
+        }
 
 	html << "  </table>\n</div>\n";
 }
@@ -1541,13 +1578,15 @@ void MatchStats_End() {
                 }
                 matchStats.mapName.assign(CharArrayToStringView(level.mapName));
                 matchStats.ranked = false;
-		matchStats.totalKills = level.match.totalKills;
-		matchStats.totalSpawnKills = level.match.totalSpawnKills;
-		matchStats.totalTeamKills = level.match.totalTeamKills;
-		matchStats.totalDeaths = level.match.totalDeaths;
-		matchStats.totalSuicides = level.match.totalSuicides;
+                matchStats.totalKills = level.match.totalKills;
+                matchStats.totalSpawnKills = level.match.totalSpawnKills;
+                matchStats.totalTeamKills = level.match.totalTeamKills;
+                matchStats.totalDeaths = level.match.totalDeaths;
+                matchStats.totalSuicides = level.match.totalSuicides;
+                matchStats.proBall_totalGoals = level.match.proBallGoals;
+                matchStats.proBall_totalAssists = level.match.proBallAssists;
 
-		matchStats.calculateDuration();
+                matchStats.calculateDuration();
 		matchStats.avKillsPerMinute = matchStats.durationMS > 0
 			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
 			: 0.0;
@@ -1564,10 +1603,12 @@ void MatchStats_End() {
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
 			p.totalDeaths = cl->pers.match.totalDeaths;
-			p.totalSuicides = cl->pers.match.totalSuicides;
-			p.calculateKDR();
-			p.totalScore = cl->resp.score;
-			p.totalShots = cl->pers.match.totalShots;
+                        p.totalSuicides = cl->pers.match.totalSuicides;
+                        p.calculateKDR();
+                        p.totalScore = cl->resp.score;
+                        p.proBallGoals = cl->pers.match.proBallGoals;
+                        p.proBallAssists = cl->pers.match.proBallAssists;
+                        p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
 			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
 			p.totalDmgReceived = cl->pers.match.totalDmgReceived;
