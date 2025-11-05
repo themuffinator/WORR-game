@@ -4226,7 +4226,7 @@ struct client_persistant_t {
 	int32_t			score = 0;		 // for calculating total unit score in coop games
 
 	int32_t			game_help1changed, game_help2changed;
-	int32_t			helpchanged; // flash F1 icon if non 0, play sound
+	int32_t			helpChanged; // flash F1 icon if non 0, play sound
 	// and increment only if 1, 2, or 3
 	GameTime			help_time = 0_ms;
 

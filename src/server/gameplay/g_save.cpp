@@ -786,7 +786,7 @@ FIELD_AUTO(score),
 
 FIELD_AUTO(game_help1changed),
 FIELD_AUTO(game_help2changed),
-FIELD_AUTO(helpchanged),
+FIELD_AUTO(helpChanged),
 FIELD_AUTO(help_time),
 
 // save the wanted fog, but not the current fog

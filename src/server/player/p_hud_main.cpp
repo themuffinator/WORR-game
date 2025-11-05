@@ -1142,8 +1142,8 @@ SetHelpIconStats
 ===============
 */
 static void SetHelpIconStats(gentity_t* ent, bool minHud) {
-	if (ent->client->pers.helpchanged >= 1 &&
-		ent->client->pers.helpchanged <= 2 &&
+	if (ent->client->pers.helpChanged >= 1 &&
+		ent->client->pers.helpChanged <= 2 &&
 		(level.time.milliseconds() % 1000) < 500) {
 		ent->client->ps.stats[STAT_HELPICON] = gi.imageIndex("i_help");
 	}

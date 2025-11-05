@@ -485,7 +485,7 @@ void G_PlayerNotifyGoal(gentity_t* player) {
 	auto NotifyGoal = [&](int& clientModified, const HelpMessage& goal, const char* label) {
 		if (clientModified != goal.modificationCount) {
 			clientModified = goal.modificationCount;
-			client.pers.helpchanged = 1;
+			client.pers.helpChanged = 1;
 			client.pers.help_time = level.time + 5_sec;
 
 			if (!goal.empty()) {

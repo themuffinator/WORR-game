@@ -976,10 +976,10 @@ static void ClientSetSound(gentity_t* ent) {
 		return;
 
 	// help beep (no more than three times)
-	if (ent->client->pers.helpchanged && ent->client->pers.helpchanged <= 3 && ent->client->pers.help_time < level.time) {
-		if (ent->client->pers.helpchanged == 1) // [KEX] haleyjd: once only
+	if (ent->client->pers.helpChanged && ent->client->pers.helpChanged <= 3 && ent->client->pers.help_time < level.time) {
+		if (ent->client->pers.helpChanged == 1) // [KEX] haleyjd: once only
 			gi.sound(ent, CHAN_AUTO, gi.soundIndex("misc/pc_up.wav"), 1, ATTN_STATIC, 0);
-		ent->client->pers.helpchanged++;
+		ent->client->pers.helpChanged++;
 		ent->client->pers.help_time = level.time + 5_sec;
 	}
 

@@ -460,7 +460,7 @@ namespace Commands {
 		}
 
 		ent->client->showHelp = true;
-		ent->client->pers.helpchanged = 0;
+		ent->client->pers.helpChanged = 0;
 		globals.serverFlags |= SERVER_FLAG_SLOW_TIME;
 		DrawHelpComputer(ent);
 	}

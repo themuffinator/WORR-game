@@ -1262,7 +1262,7 @@ void ClientSpawn(gentity_t* ent) {
 			if (!P_UseCoopInstancedItems()) {
 				savedResp.coopRespawn.game_help1changed = cl->pers.game_help1changed;
 				savedResp.coopRespawn.game_help2changed = cl->pers.game_help2changed;
-				savedResp.coopRespawn.helpchanged = cl->pers.helpchanged;
+				savedResp.coopRespawn.helpChanged = cl->pers.helpChanged;
 				cl->pers = savedResp.coopRespawn;
 			}
 			else {
