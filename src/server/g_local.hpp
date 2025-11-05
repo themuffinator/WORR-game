@@ -235,7 +235,7 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 	{GameType::LastManStanding,"lms",      "LMS",      "Last Man Standing",   "lms",		GameFlags::Elimination},
 	{GameType::LastTeamStanding,"lts",     "LTS",      "Last Team Standing",  "lts",		GameFlags::Teams | GameFlags::Elimination},
 	{GameType::Horde,          "horde",    "HORDE",    "Horde Mode",          "horde",		GameFlags::Rounds},
-	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::None},
+	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::Teams},
 	{GameType::Gauntlet,       "gauntlet", "GAUNTLET", "Gauntlet",            "gauntlet",	GameFlags::OneVOne | GameFlags::Rounds | GameFlags::Frags}
 } };
 
@@ -740,6 +740,9 @@ constexpr SpawnFlags operator "" _spawnflag_bit(unsigned long long int v) {
 
 constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_RED = 0x00000001_spawnflag;
 constexpr SpawnFlags SPAWNFLAG_DOMINATION_START_BLUE = 0x00000002_spawnflag;
+
+constexpr SpawnFlags SPAWNFLAG_PROBALL_GOAL_RED = 0x00000001_spawnflag;
+constexpr SpawnFlags SPAWNFLAG_PROBALL_GOAL_BLUE = 0x00000002_spawnflag;
 
 // stores a level time; most newer engines use int64_t for
 // time storage, but seconds are handy for compatibility
@@ -2032,6 +2035,8 @@ struct MatchOverallStats {
 	uint32_t totalSuicides{ 0 };
 	uint32_t totalTeamKills{ 0 };
 	uint32_t totalSpawnKills{ 0 };
+	uint32_t proBallGoals{ 0 };
+	uint32_t proBallAssists{ 0 };
 
 	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modKills{};
 	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modDeaths{};
@@ -2080,6 +2085,9 @@ struct ClientMatchStats {
 
 	uint32_t	totalShots;
 	uint32_t	totalHits;
+
+	uint32_t	proBallGoals;
+	uint32_t	proBallAssists;
 
 	uint32_t	totalKills;
 	uint32_t	totalTeamKills;
@@ -2296,11 +2304,11 @@ struct LevelLocals {
 	std::array<int, static_cast<int>(Team::Total)>	teamScores{};
 	std::array<int, static_cast<int>(Team::Total)>	teamOldScores{};
 
-	struct DominationState {
-		static constexpr size_t MAX_POINTS = 8;
+        struct DominationState {
+                static constexpr size_t MAX_POINTS = 8;
 
-		struct Point {
-			gentity_t* ent = nullptr;
+                struct Point {
+                        gentity_t* ent = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
 		};
@@ -2308,7 +2316,42 @@ struct LevelLocals {
 		std::array<Point, MAX_POINTS> points{};
 		size_t count = 0;
 		GameTime nextScoreTime = 0_ms;
-	} domination{};
+        } domination{};
+
+        struct ProBallState {
+                struct AssistInfo {
+                        gentity_t* player = nullptr;
+                        GameTime expires = 0_ms;
+                        Team team = Team::None;
+                } assist{};
+
+                struct GoalVolume {
+                        gentity_t* ent = nullptr;
+                        Team team = Team::None;
+                };
+
+                gentity_t* spawnEntity = nullptr;
+                gentity_t* ballEntity = nullptr;
+                gentity_t* carrier = nullptr;
+                gentity_t* lastToucher = nullptr;
+                Vector3 spawnOrigin = vec3_origin;
+                Vector3 spawnAngles = vec3_origin;
+                GameTime lastTouchTime = 0_ms;
+                std::array<GoalVolume, 4> goals{};
+                std::array<gentity_t*, 4> outOfBounds{};
+        } proBall{};
+                        Team owner = Team::None;
+			size_t index = 0;
+		};
+
+        struct BallState {
+                gentity_t* entity = nullptr;
+                gentity_t* carrier = nullptr;
+                Vector3 homeOrigin = vec3_origin;
+                Vector3 homeAngles = vec3_origin;
+                GameTime idleBegin = 0_ms;
+                bool homeValid = false;
+        } ball{};
 
 	MatchState	matchState = MatchState::None;
 	WarmupState	warmupState = WarmupState::Default;
@@ -3324,6 +3367,15 @@ void		RespawnItem(gentity_t* ent);
 void		fire_doppelganger(gentity_t* ent, const Vector3& start, const Vector3& aimDir);
 void		Drop_Backpack(gentity_t* ent);
 void		G_CapAllAmmo(gentity_t* ent);
+void		Ball_RegisterSpawn(gentity_t* ent);
+void		Ball_OnPickup(gentity_t* ball, gentity_t* player);
+bool		Ball_Launch(gentity_t* owner, const Vector3& start, const Vector3& dir, float speed);
+bool		Ball_Pass(gentity_t* owner, const Vector3& start, const Vector3& dir);
+bool		Ball_Drop(gentity_t* owner, const Vector3& origin);
+void		Ball_Reset(bool silent);
+GameTime	Ball_GetPassCooldown();
+GameTime	Ball_GetDropCooldown();
+bool		Ball_PlayerHasBall(const gentity_t* ent);
 
 //
 // g_utilities.cpp
@@ -3382,6 +3434,22 @@ void G_SetTeamScore(Team team, int32_t value);
 void Domination_ClearState();
 void Domination_InitLevel();
 void Domination_RunFrame();
+
+namespace ProBall {
+        void ClearState();
+        void InitLevel();
+        void RunFrame();
+        void RegisterBallSpawn(gentity_t* ent);
+        void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
+        void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
+        void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed);
+        void HandleCarrierDeath(gentity_t* carrier);
+        void HandleCarrierDisconnect(gentity_t* carrier);
+        bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);
+}
+
+void SP_trigger_proball_goal(gentity_t* ent);
+void SP_trigger_proball_oob(gentity_t* ent);
 const char* PlaceString(int rank);
 bool ItemSpawnsEnabled();
 bool LocCanSee(gentity_t* targetEnt, gentity_t* sourceEnt);
@@ -3918,8 +3986,9 @@ void Weapon_Generic(gentity_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST
 void Weapon_Repeating(gentity_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST,
 	int FRAME_DEACTIVATE_LAST, const int* pause_frames, void (*fire)(gentity_t* ent));
 void Throw_Generic(gentity_t* ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int FRAME_PRIME_SOUND,
-	const char* prime_sound, int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, const int* pause_frames,
-	int EXPLODE, const char* primed_sound, void (*fire)(gentity_t* ent, bool held), bool extra_idle_frame);
+        const char* prime_sound, int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, const int* pause_frames,
+        int EXPLODE, const char* primed_sound, void (*fire)(gentity_t* ent, bool held), bool extra_idle_frame,
+        item_id_t ammoOverride = IT_TOTAL);
 uint8_t PlayerDamageModifier(gentity_t* ent);
 bool InfiniteAmmoOn(Item* item);
 void Weapon_PowerupSound(gentity_t* ent);
@@ -4661,6 +4730,11 @@ struct gclient_t {
 		GameTime		holdDeadline = 0_ms;
 	} freeze;
 	/*freeze*/
+
+	struct {
+		GameTime			nextPassTime = 0_ms;
+		GameTime			nextDropTime = 0_ms;
+	} ball;
 
 	bool			readyToExit = false;
 

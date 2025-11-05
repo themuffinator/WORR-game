@@ -2367,9 +2367,13 @@ bool Pickup_General(gentity_t* ent, gentity_t* other) {
 }
 
 bool Pickup_Ball(gentity_t* ent, gentity_t* other) {
-	other->client->pers.inventory[ent->item->id] = 1;
+        if (!other || !other->client)
+                return false;
 
-	return true;
+        other->client->pers.inventory[ent->item->id] = 1;
+        Ball_OnPickup(ent, other);
+
+        return true;
 }
 
 // Replace the old Drop_Weapon with this one.
@@ -3790,8 +3794,13 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		ent->use = Use_Item;
 	}
 
-	// Powerups in deathmatch spawn with a delay
-	if (deathmatch->integer && (ent->item->flags & IF_POWERUP)) {
+        if (ent->item && ent->item->id == IT_BALL) {
+                Ball_RegisterSpawn(ent);
+                return;
+        }
+
+        // Powerups in deathmatch spawn with a delay
+        if (deathmatch->integer && (ent->item->flags & IF_POWERUP)) {
 		ent->svFlags |= SVF_NOCLIENT;
 		ent->solid = SOLID_NOT;
 		ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
@@ -3799,8 +3808,11 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		return;
 	}
 
-	ent->waterType = gi.pointContents(ent->s.origin);
-	gi.linkEntity(ent);
+        ent->waterType = gi.pointContents(ent->s.origin);
+        gi.linkEntity(ent);
+
+        if (Game::Is(GameType::ProBall) && ent->item && ent->item->id == IT_BALL)
+                ProBall::RegisterBallSpawn(ent);
 }
 
 /*
@@ -4428,12 +4440,49 @@ void Use_Compass(gentity_t* ent, Item* inv) {
 	}
 }
 
-void Use_Ball(gentity_t* ent, Item* item) {
+void Use_Ball(gentity_t* ent, Item* /*item*/) {
+        if (!ent || !ent->client)
+                return;
+        if (!Game::Is(GameType::ProBall))
+                return;
+        if (!Ball_PlayerHasBall(ent))
+                return;
 
+        if (ent->client->ball.nextPassTime > level.time)
+                return;
+
+        Vector3 angles = {
+                std::max(-62.5f, ent->client->vAngle[PITCH]),
+                ent->client->vAngle[YAW],
+                ent->client->vAngle[ROLL]
+        };
+
+        Vector3 start{}, dir{};
+        P_ProjectSource(ent, angles, { 2.f, 0.f, -14.f }, start, dir);
+
+        if (Ball_Pass(ent, start, dir)) {
+                ent->client->ball.nextPassTime = level.time + Ball_GetPassCooldown();
+                ent->client->ball.nextDropTime = std::max(ent->client->ball.nextDropTime, level.time + 200_ms);
+        }
 }
 
-void Drop_Ball(gentity_t* ent, Item* item) {
+void Drop_Ball(gentity_t* ent, Item* /*item*/) {
+        if (!ent || !ent->client)
+                return;
+        if (!Game::Is(GameType::ProBall))
+                return;
+        if (!Ball_PlayerHasBall(ent))
+                return;
 
+        if (ent->client->ball.nextDropTime > level.time)
+                return;
+
+        Vector3 dropOrigin = ent->s.origin + Vector3{ 0.f, 0.f, static_cast<float>(ent->viewHeight) * 0.25f };
+
+        if (Ball_Drop(ent, dropOrigin)) {
+                ent->client->ball.nextDropTime = level.time + Ball_GetDropCooldown();
+                ent->client->ball.nextPassTime = std::max(ent->client->ball.nextPassTime, level.time + 200_ms);
+        }
 }
 
 //======================================================================

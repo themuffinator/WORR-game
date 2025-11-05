@@ -1317,25 +1317,27 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 	Throw_Generic
 	===================
 	*/
-	void Throw_Generic(
-		gentity_t * ent,
-		int FRAME_FIRE_LAST,
-		int FRAME_IDLE_LAST,
-		int FRAME_PRIME_SOUND,
-		const char* prime_sound,
-		int FRAME_THROW_HOLD,
-		int FRAME_THROW_FIRE,
-		const int* pauseFrames,
-		int EXPLODE,
-		const char* primed_sound,
-		void (*fire)(gentity_t * ent, bool held),
-		bool extra_idle_frame
-	) {
+        void Throw_Generic(
+                gentity_t * ent,
+                int FRAME_FIRE_LAST,
+                int FRAME_IDLE_LAST,
+                int FRAME_PRIME_SOUND,
+                const char* prime_sound,
+                int FRAME_THROW_HOLD,
+                int FRAME_THROW_FIRE,
+                const int* pauseFrames,
+                int EXPLODE,
+                const char* primed_sound,
+                void (*fire)(gentity_t * ent, bool held),
+                bool extra_idle_frame,
+                item_id_t ammoOverride
+        ) {
 		if (!ent || !ent->client)
 			return;
 
-		auto* cl = ent->client;
-		const int FRAME_IDLE_FIRST = FRAME_FIRE_LAST + 1;
+                auto* cl = ent->client;
+                const item_id_t ammoItem = (ammoOverride != IT_TOTAL) ? ammoOverride : cl->pers.weapon->ammo;
+                const int FRAME_IDLE_FIRST = FRAME_FIRE_LAST + 1;
 
 		// On death: toss held grenade
 		if (ent->health <= 0) {
@@ -1377,15 +1379,17 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 			if (request_firing && cl->weapon.fireFinished <= level.time) {
 				cl->latchedButtons &= ~BUTTON_ATTACK;
 
-				if (cl->pers.inventory[cl->pers.weapon->ammo]) {
-					cl->ps.gunFrame = 1;
-					cl->weaponState = WeaponState::Firing;
-					cl->grenadeTime = 0_ms;
-					cl->weapon.thinkTime = level.time + Weapon_AnimationTime(ent);
-				}
-				else {
-					NoAmmoWeaponChange(ent, true);
-				}
+                                const bool hasAmmo = (ammoItem == IT_NULL) || cl->pers.inventory[ammoItem];
+
+                                if (hasAmmo) {
+                                        cl->ps.gunFrame = 1;
+                                        cl->weaponState = WeaponState::Firing;
+                                        cl->grenadeTime = 0_ms;
+                                        cl->weapon.thinkTime = level.time + Weapon_AnimationTime(ent);
+                                }
+                                else {
+                                        NoAmmoWeaponChange(ent, true);
+                                }
 				return;
 			}
 
@@ -1499,10 +1503,10 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 					cl->ps.gunFrame = FRAME_IDLE_LAST + 1;
 
 				// Out of grenades: auto-switch
-				if (!cl->pers.inventory[cl->pers.weapon->ammo]) {
-					NoAmmoWeaponChange(ent, false);
-					Change_Weapon(ent);
-				}
+                                if (ammoItem != IT_NULL && !cl->pers.inventory[ammoItem]) {
+                                        NoAmmoWeaponChange(ent, false);
+                                        Change_Weapon(ent);
+                                }
 			}
 		}
 	}
@@ -2689,12 +2693,48 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 	======================================================================
 	*/
 
-	static void Weapon_ChainFist_Fire(gentity_t * ent) {
-		constexpr int32_t CHAINFIST_REACH = 24;
+        static void Weapon_Ball_Fire(gentity_t* ent, bool held) {
+                if (!ent || !ent->client)
+                        return;
 
-		// Stop attacking when fire is released on certain frames
-		const int frame = ent->client->ps.gunFrame;
-		if (!(ent->client->buttons & BUTTON_ATTACK)) {
+                if (!Game::Is(GameType::ProBall))
+                        return;
+
+                if (held) {
+                        Vector3 dropOrigin = ent->s.origin + Vector3{ 0.f, 0.f, static_cast<float>(ent->viewHeight) * 0.4f };
+                        Ball_Drop(ent, dropOrigin);
+                        ent->client->grenadeTime = 0_ms;
+                        return;
+                }
+
+                Vector3 angles = {
+                        std::max(-62.5f, ent->client->vAngle[PITCH]),
+                        ent->client->vAngle[YAW],
+                        ent->client->vAngle[ROLL]
+                };
+
+                Vector3 start{}, dir{};
+                P_ProjectSource(ent, angles, { 2.f, 0.f, -14.f }, start, dir);
+
+                GameTime timer = ent->client->grenadeTime - level.time;
+                ent->client->grenadeTime = 0_ms;
+
+                const float holdSeconds = GRENADE_TIMER.seconds();
+                const float heldSeconds = std::clamp((GRENADE_TIMER - timer).seconds(), 0.f, holdSeconds);
+                const float speedStep = (GRENADE_MAXSPEED - GRENADE_MINSPEED) / holdSeconds;
+                const float speed = ent->health <= 0
+                        ? GRENADE_MINSPEED
+                        : std::min(GRENADE_MINSPEED + heldSeconds * speedStep, GRENADE_MAXSPEED);
+
+                Ball_Launch(ent, start, dir, speed);
+        }
+
+        static void Weapon_ChainFist_Fire(gentity_t * ent) {
+                constexpr int32_t CHAINFIST_REACH = 24;
+
+                // Stop attacking when fire is released on certain frames
+                const int frame = ent->client->ps.gunFrame;
+                if (!(ent->client->buttons & BUTTON_ATTACK)) {
 			if (frame == 13 || frame == 23 || frame >= 32) {
 				ent->client->ps.gunFrame = 33;
 				return;
@@ -2709,33 +2749,26 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 
 		Vector3 start{}, dir{};
 
-		// Check for grenade-throwing variant
-		if (Game::Is(GameType::ProBall) && ent->client->pers.inventory[IT_BALL] > 0) {
-			constexpr int pauseFrames[] = { 29, 34, 39, 48, 0 };
-			Throw_Generic(
-				ent,
-				15, 48, 5,
-				"weapons/hgrena1b.wav",
-				11, 12,
-				pauseFrames,
-				true,
-				"weapons/hgrenc1b.wav",
-				Weapon_HandGrenade_Fire,
-				true
-			);
+                // Pro Ball: throwing the ball while chainfist is equipped
+                if (Game::Is(GameType::ProBall) && Ball_PlayerHasBall(ent)) {
+                        constexpr int pauseFrames[] = { 29, 34, 39, 48, 0 };
+                        Throw_Generic(
+                                ent,
+                                15, 48, 5,
+                                "weapons/hgrena1b.wav",
+                                11, 12,
+                                pauseFrames,
+                                false,
+                                nullptr,
+                                Weapon_Ball_Fire,
+                                true,
+                                IT_BALL
+                        );
+                        return;
+                }
 
-			gi.WriteByte(svc_muzzleflash);
-			gi.WriteEntity(ent);
-			gi.WriteByte(MZ_GRENADE | isSilenced);
-			gi.multicast(ent->s.origin, MULTICAST_PVS, false);
-
-			G_PlayerNoise(ent, start, PlayerNoise::Weapon);
-			ent->client->pers.inventory[IT_BALL] = 0;
-			return;
-		}
-
-		// Fire melee strike
-		P_ProjectSource(ent, ent->client->vAngle, { 0, 0, -4 }, start, dir);
+                // Fire melee strike
+                P_ProjectSource(ent, ent->client->vAngle, { 0, 0, -4 }, start, dir);
 
 		if (fire_player_melee(ent, start, dir, CHAINFIST_REACH, damage, 100, ModID::Chainfist)) {
 			if (ent->client->emptyClickSound < level.time) {
