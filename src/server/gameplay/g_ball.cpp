@@ -26,8 +26,6 @@ constexpr float BALL_OUT_OF_WORLD_DELTA = 2048.f;
         return Game::Is(GameType::ProBall);
 }
 
-void Ball_Reset(bool silent);
-
 [[nodiscard]] Item* Ball_Item() {
         return GetItemByIndex(IT_BALL);
 }
