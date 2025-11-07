@@ -24,6 +24,7 @@
 #include "match_state_utils.hpp"
 #include "match_state_helper.hpp"
 
+#include <array>
 #include <string>
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
@@ -1781,18 +1782,18 @@ void CheckDMEndFrame() {
 	CheckDMExitRules();       // Handles intermission and map end
 
 	if (g_verbose->integer) {
-		static constexpr const char* MatchStateNames[] = {
-			"None",
-			"Initial_Delay",
-			"Warmup_Default",
-			"Warmup_ReadyUp",
-			"Countdown",
-			"In_Progress",
-			"Ended"
-		};
+                static constexpr std::array<const char*, 7> MatchStateNames{ {
+                        "None",
+                        "Initial_Delay",
+                        "Warmup_Default",
+                        "Warmup_ReadyUp",
+                        "Countdown",
+                        "In_Progress",
+                        "Ended"
+                } };
 
-		const char* stateName = (static_cast<size_t>(level.matchState) < std::size(MatchStateNames))
-			? MatchStateNames[static_cast<size_t>(level.matchState)]
+                const char* stateName = (static_cast<size_t>(level.matchState) < MatchStateNames.size())
+                        ? MatchStateNames[static_cast<size_t>(level.matchState)]
 			: "UNKNOWN";
 
 		gi.Com_PrintFmt("MatchState: {}, NumPlayers: {}\n", stateName, level.pop.num_playing_clients);

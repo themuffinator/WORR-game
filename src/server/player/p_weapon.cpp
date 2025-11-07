@@ -6,6 +6,8 @@
 #include "../monsters/m_player.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 
+#include <array>
+
 bool			isQuad = false;
 bool			isHaste = false;
 player_muzzle_t isSilenced = MZ_NONE;
@@ -405,29 +407,29 @@ void Change_Weapon(gentity_t* ent) {
 		Weapon_RunThink(ent);
 }
 
-constexpr item_id_t weaponPriorityList[] = {
-	IT_WEAPON_DISRUPTOR,
-	IT_WEAPON_BFG,
-	IT_WEAPON_RAILGUN,
-	IT_WEAPON_THUNDERBOLT,
-	IT_WEAPON_PLASMABEAM,
-	IT_WEAPON_IONRIPPER,
-	IT_WEAPON_HYPERBLASTER,
-	IT_WEAPON_ETF_RIFLE,
-	IT_WEAPON_CHAINGUN,
-	IT_WEAPON_MACHINEGUN,
-	IT_WEAPON_SSHOTGUN,
-	IT_WEAPON_SHOTGUN,
-	IT_WEAPON_PHALANX,
-	IT_WEAPON_RLAUNCHER,
-	IT_WEAPON_GLAUNCHER,
-	IT_WEAPON_PROXLAUNCHER,
-	IT_AMMO_GRENADES,
-	IT_AMMO_TRAP,
-	IT_AMMO_TESLA,
-	IT_WEAPON_BLASTER,
-	IT_WEAPON_CHAINFIST
-};
+constexpr std::array<item_id_t, 21> weaponPriorityList{ {
+        IT_WEAPON_DISRUPTOR,
+        IT_WEAPON_BFG,
+        IT_WEAPON_RAILGUN,
+        IT_WEAPON_THUNDERBOLT,
+        IT_WEAPON_PLASMABEAM,
+        IT_WEAPON_IONRIPPER,
+        IT_WEAPON_HYPERBLASTER,
+        IT_WEAPON_ETF_RIFLE,
+        IT_WEAPON_CHAINGUN,
+        IT_WEAPON_MACHINEGUN,
+        IT_WEAPON_SSHOTGUN,
+        IT_WEAPON_SHOTGUN,
+        IT_WEAPON_PHALANX,
+        IT_WEAPON_RLAUNCHER,
+        IT_WEAPON_GLAUNCHER,
+        IT_WEAPON_PROXLAUNCHER,
+        IT_AMMO_GRENADES,
+        IT_AMMO_TRAP,
+        IT_AMMO_TESLA,
+        IT_WEAPON_BLASTER,
+        IT_WEAPON_CHAINFIST
+} };
 
 static item_id_t weaponIndexToItemID(Weapon weaponIndex) {
 	switch (weaponIndex) {

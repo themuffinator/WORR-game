@@ -26,6 +26,7 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
+#include <array>
 #include <string_view>
 
 namespace {
@@ -1314,13 +1315,14 @@ static void GibPlayer(gentity_t* self, int damage) {
 		0);
 
 	// 2) meatier gibs at deeper overkills (deathmatch only)
-	static constexpr struct { int threshold; int count; } gibStages[] = {
+	struct GibStage { int threshold; int count; };
+	static constexpr std::array<GibStage, 3> gibStages{ {
 		{ -300, 16 },
 		{ -200, 12 },
 		{  -100, 10 }
-	};
+	} };
 	if (deathmatch->integer) {
-		for (auto& stage : gibStages) {
+		for (const auto& stage : gibStages) {
 			if (self->health < stage.threshold) {
 				ThrowGibs(self,
 					damage,
@@ -4540,7 +4542,7 @@ Returns true and fills `spot` if successful.
 ===============
 */
 static inline bool G_FindRespawnSpot(gentity_t* player, Vector3& spot) {
-	constexpr float yawOffsets[] = { 0, 90, 45, -45, -90 };
+	constexpr std::array<float, 5> yawOffsets{ { 0, 90, 45, -45, -90 } };
 	constexpr float backDistance = 128.0f;
 	constexpr float upDistance = 128.0f;
 	constexpr float viewHeight = static_cast<float>(DEFAULT_VIEWHEIGHT);
