@@ -3,19 +3,28 @@
 ## What is WORR?
 WORR is a server-side mod for [QUAKE II Remastered](https://github.com/id-Software/quake2-rerelease-dll) that focuses on modernizing multiplayer play with streamlined rulesets, tuned weapon handling, and administrative tooling.
 
-## New Gametype: Domination
-Domination is a team mode where squads fight over map-defined control points. Standing uncontested on a point converts it to your team; once captured, each owned control point pays out score on every Domination scoring tick and flipping a point grants an immediate capture bonus to reward aggressive play. Matches end when a team hits the point target or the timelimit expires, and standard overtime/mercy rules still apply.
+## Project Features
 
-* **Short name:** set `g_gametype dom` (or use the Call Vote menu entry) to switch into Domination.
-* **Score limit:** Domination uses the global `fraglimit` as its point goal. If the cvar is left at `0` the mode runs without a hard cap; the built-in ruleset recommends 100 points with a 20 minute timelimit.
+* **Streamlined hosting experience:** Default presets cover respawns, timers, and ready-up thresholds so servers boot with competitive settings, while console-accessible controls adjust warmups, overtime, damage, and join flow without rebuilding the DLL.【F:docs/wiki/server-host-manual.md†L14-L77】
+* **Tournament, marathon, and modifier coverage:** Run everything from duel ladders and clan arenas to PvE Horde nights using the expanded gametype roster and runtime toggles for score limits, modifiers, and rule swaps.【F:docs/wiki/server-host-manual.md†L17-L77】
+* **Player progression and balancing:** JSON-backed profiles persist HUD preferences, stats, and ratings, and match logic maintains Elo-style skill tracking to keep competition fair while welcoming new players.【F:docs/wiki/client-manual.md†L4-L61】【F:src/server/match/match_state.cpp†L927-L1150】
+* **Advanced match flow tooling:** Warmup gates, forced respawns, timeout windows, and automated restarts orchestrate modern match states for leagues, ladders, and casual rotations alike.【F:docs/wiki/server-host-manual.md†L70-L77】【F:src/server/match/match_state.cpp†L239-L360】
+* **Reworked map system:** JSON map pools, curated cycles, MyMap queues, and post-match selector votes respect player counts, recent history, and optional item rules while keeping rotations fresh.【F:docs/wiki/server-host-manual.md†L40-L61】【F:docs/mapsystem.html†L17-L101】
+* **Extensible admin and voting controls:** Bitmask-driven vote flags, per-player limits, and live commands expose exactly the tweaks each community expects without service restarts.【F:docs/wiki/server-host-manual.md†L63-L68】
 
-### Server cvars
-| Cvar | Default | Notes |
-| --- | --- | --- |
-| `g_gametype` | `0` (`ffa`) | Current gametype. Use the short name `dom` when issuing votes or configuring rotations. |
-| `fraglimit` | `0` | Domination treats this as the point goal; leave at `0` for untimed score or set to your preferred target (100 recommended). |
-| `timelimit` | `0` | Minutes before the match times out. The Domination ruleset suggests `20`. |
-| `match_do_overtime` | `120` | Adds sudden-death time when the score is tied at the end of regulation. |
-| `g_teamplay_force_balance` | `0` | Optional enforcement for team size balance; useful in Domination’s two-team setup. |
+## Map Compatibility & PvE Additions
 
-Refer to [docs/domination.md](docs/domination.md) for a deeper dive into control point behavior, scoring cadence, and admin tips.
+* **Expanded monster roster:** WORR ports iconic Quake 1 foes—including bosses like Chthon and classic enemies such as the attack dog—so custom maps can lean on familiar encounters without extra scripting.【F:src/server/monsters/m_chthon.cpp†L1-L102】【F:src/server/monsters/m_dog.cpp†L1-L119】
+* **Legacy entity support:** Target, trigger, and ambient entities translate Quake 1 conventions into Quake II Remastered, unlocking long-requested compatibility updates for classic map packs.【F:src/server/gameplay/g_target.cpp†L285-L325】
+* **Horde-ready infrastructure:** The PvE Horde ruleset and HUD integrations surface remaining monsters and rounds to keep wave-based marathons readable for hosts and players alike.【F:docs/wiki/server-host-manual.md†L34-L36】【F:docs/wiki/client-manual.md†L42-L60】
+
+## Learn More
+
+Explore the [WORR Wiki](docs/wiki/) for build instructions, server hosting tips, and client configuration guides.
+
+## Credits
+
+- Nightdive Studios for the Quake II Remastered foundation and continued engine support.
+- id Software for Quake II and Quake III Arena codebases that underpin WORR’s gameplay DNA.
+- Community contributors and playtesters for surfacing bugs, balance notes, and feature requests.
+- Special thanks to fellow modders who shared Horde spawning patterns, entity research, and tooling feedback throughout development.
