@@ -1569,7 +1569,7 @@ void MatchStats_End() {
                 matchStats.serverHostName.clear();
                 if (host && host->client) {
                         char hostNameValue[MAX_INFO_VALUE] = { 0 };
-                        gi.Info_ValueForKey(host->client->pers.userInfo, "name", hostNameValue, sizeof(hostNameValue));
+                        gi.Info_ValueForKey(host->client->pers.userInfo.c_str(), "name", hostNameValue, sizeof(hostNameValue));
                         if (hostNameValue[0] != '\0') {
                                 matchStats.serverHostName = hostNameValue;
                         }

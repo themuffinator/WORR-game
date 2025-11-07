@@ -2406,9 +2406,6 @@ struct LevelLocals {
                 std::array<GoalVolume, 4> goals{};
                 std::array<gentity_t*, 4> outOfBounds{};
         } proBall{};
-                        Team owner = Team::None;
-			size_t index = 0;
-		};
 
         struct BallState {
                 gentity_t* entity = nullptr;
