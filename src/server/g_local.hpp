@@ -15,6 +15,7 @@ class Menu;
 #include <unordered_set>
 #include <utility>
 #include <vector>
+#include <algorithm>
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
@@ -395,7 +396,10 @@ template<typename T>
 constexpr bool is_char_ptr_v = std::is_convertible_v<T, const char*>;
 
 template<typename T>
-constexpr bool is_valid_loc_embed_v = !std::is_null_pointer_v<T> && (std::is_floating_point_v<std::remove_reference_t<T>> || std::is_integral_v<std::remove_reference_t<T>> || is_char_ptr_v<T>);
+constexpr bool is_string_like_v = std::is_convertible_v<T, std::string_view>;
+
+template<typename T>
+constexpr bool is_valid_loc_embed_v = std::is_floating_point_v<std::remove_reference_t<T>> || std::is_integral_v<std::remove_reference_t<T>> || is_char_ptr_v<T> || is_string_like_v<T>;
 
 struct local_game_import_t : game_import_t {
 	inline local_game_import_t() = default;
@@ -425,21 +429,30 @@ public:
 private:
 	// localized print functions
 	template<typename T>
-	inline void loc_embed(T input, char* buffer, const char*& output) {
-		if constexpr (std::is_floating_point_v<T> || std::is_integral_v<T>) {
-			auto result = std::to_chars(buffer, buffer + MAX_INFO_STRING - 1, input);
-			*result.ptr = '\0';
-			output = buffer;
-		}
-		else if constexpr (is_char_ptr_v<T>) {
-			if (!input)
-				Com_Error("null const char ptr passed to loc");
+        inline void loc_embed(T input, char* buffer, const char*& output) {
+                using Decayed = std::remove_reference_t<T>;
 
-			output = input;
-		}
-		else
-			Com_Error("invalid loc argument");
-	}
+                if constexpr (std::is_floating_point_v<Decayed> || std::is_integral_v<Decayed>) {
+                        auto result = std::to_chars(buffer, buffer + MAX_INFO_STRING - 1, input);
+                        *result.ptr = '\0';
+                        output = buffer;
+                }
+                else if constexpr (is_char_ptr_v<T>) {
+                        if (!input)
+                                Com_Error("null const char ptr passed to loc");
+
+                        output = input;
+                }
+                else if constexpr (is_string_like_v<Decayed>) {
+                        std::string_view view = std::string_view(input);
+                        const size_t copy_len = std::min(view.size(), size_t(MAX_INFO_STRING - 1));
+                        std::copy_n(view.data(), copy_len, buffer);
+                        buffer[copy_len] = '\0';
+                        output = buffer;
+                }
+                else
+                        Com_Error("invalid loc argument");
+        }
 
 	static std::array<char[MAX_INFO_STRING], MAX_LOCALIZATION_ARGS> buffers;
 	static std::array<const char*, MAX_LOCALIZATION_ARGS> buffer_ptrs;

@@ -1132,7 +1132,7 @@ namespace Commands {
 		const char* pointTargetName = nullptr;
 
 		if (aimingAt)
-			pointTargetName = aimingAt->client->sess.netName;
+			pointTargetName = aimingAt->client->sess.netName.c_str();
 		else if (pointingItemName)
 			pointTargetName = pointingItemName;
 

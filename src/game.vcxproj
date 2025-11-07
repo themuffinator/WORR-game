@@ -213,7 +213,6 @@
     <ClCompile Include="server\gameplay\g_spectator.cpp" />
     <ClCompile Include="server\gameplay\g_client_cfg.cpp" />
     <ClCompile Include="server\gameplay\g_combat.cpp" />
-    <ClCompile Include="server\gameplay\g_domination.cpp" />
     <ClCompile Include="server\gameplay\g_teamplay.cpp" />
     <ClCompile Include="server\gameplay\g_func.cpp" />
     <ClCompile Include="server\gameplay\g_item_list.cpp" />
