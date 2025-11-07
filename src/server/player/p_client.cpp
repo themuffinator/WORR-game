@@ -25,6 +25,8 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
+#include <string_view>
+
 namespace {
 	uint64_t NextDuelQueueTicket() {
 		static uint64_t counter = 1;
@@ -53,7 +55,7 @@ static inline void deathmatch_spawn_flags(gentity_t* self) {
 }
 
 static void BroadcastReadyStatus(gentity_t* ent) {
-	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
+        gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName.c_str(), ent->client->pers.readyStatus ? "" : "NOT ");
 }
 
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
@@ -277,7 +279,7 @@ void P_SaveGhostSlot(gentity_t* ent) {
 		return; // No available slot
 
 	// Store name and social ID
-	Q_strlcpy(slot->netName, cl->sess.netName, sizeof(slot->netName));
+        slot->netName = cl->sess.netName;
 	Q_strlcpy(slot->socialID, socialID, sizeof(slot->socialID));
 
 	// Store inventory and stats
@@ -673,7 +675,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 
 	// send generic/victim
 	if (!base.empty()) {
-		gi.LocBroadcast_Print(PRINT_MEDIUM, base.c_str(), victim->client->sess.netName);
+            gi.LocBroadcast_Print(PRINT_MEDIUM, base.c_str(), victim->client->sess.netName.c_str());
 
 		{
 			std::string small;
@@ -829,7 +831,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 		break;
 	}
 
-	gi.LocBroadcast_Print(PRINT_MEDIUM, base.c_str(), victim->client->sess.netName, attacker->client->sess.netName);
+    gi.LocBroadcast_Print(PRINT_MEDIUM, base.c_str(), victim->client->sess.netName.c_str(), attacker->client->sess.netName.c_str());
 	if (!base.empty()) {
 		std::string small = fmt::vformat(base, fmt::make_format_args(victim->client->sess.netName, attacker->client->sess.netName));
 		G_LogEvent(small);
@@ -854,7 +856,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 			}
 			else {
 				if (Game::Has(GameFlags::Rounds | GameFlags::Elimination) && level.roundState == RoundState::In_Progress) {
-					gi.LocClient_Print(victim, PRINT_CENTER, ".You were fragged by {}\nYou will respawn next round.", attacker->client->sess.netName);
+                                    gi.LocClient_Print(victim, PRINT_CENTER, ".You were fragged by {}\nYou will respawn next round.", attacker->client->sess.netName.c_str());
 				}
 				else if (Game::Is(GameType::FreezeTag) && level.roundState == RoundState::In_Progress) {
 					bool last_standing = true;
@@ -866,28 +868,28 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 						last_standing ? "" : "\nYou will respawn once thawed.");
 				}
 				else {
-					gi.LocClient_Print(victim, PRINT_CENTER, ".You were {} by {}", Game::Is(GameType::FreezeTag) ? "frozen" : "fragged", attacker->client->sess.netName);
+                                    gi.LocClient_Print(victim, PRINT_CENTER, ".You were {} by {}", Game::Is(GameType::FreezeTag) ? "frozen" : "fragged", attacker->client->sess.netName.c_str());
 				}
 			}
 		}
 		if (!(attacker->svFlags & SVF_BOT)) {
 			if (Teams() && OnSameTeam(victim, attacker)) {
-				gi.LocClient_Print(attacker, PRINT_CENTER, ".You fragged {}, your team mate :(", victim->client->sess.netName);
+                            gi.LocClient_Print(attacker, PRINT_CENTER, ".You fragged {}, your team mate :(", victim->client->sess.netName.c_str());
 			}
 			else {
 				if (level.matchState == MatchState::Warmup_ReadyUp) {
 					BroadcastReadyReminderMessage();
 				}
 				else if (attacker->client->killStreakCount && !(attacker->client->killStreakCount % 10)) {
-					gi.LocBroadcast_Print(PRINT_CENTER, ".{} is on a rampage\nwith {} frags!", attacker->client->sess.netName, attacker->client->killStreakCount);
+                                    gi.LocBroadcast_Print(PRINT_CENTER, ".{} is on a rampage\nwith {} frags!", attacker->client->sess.netName.c_str(), attacker->client->killStreakCount);
 					PushAward(attacker, PlayerMedal::Rampage);
 				}
 				else if (killStreakCount >= 10) {
-					gi.LocBroadcast_Print(PRINT_CENTER, ".{} put an end to {}'s\nrampage!", attacker->client->sess.netName, victim->client->sess.netName);
+                                    gi.LocBroadcast_Print(PRINT_CENTER, ".{} put an end to {}'s\nrampage!", attacker->client->sess.netName.c_str(), victim->client->sess.netName.c_str());
 				}
 				else if (Teams() || level.matchState != MatchState::In_Progress) {
 					if (attacker->client->sess.pc.show_fragmessages)
-						gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}", Game::Is(GameType::FreezeTag) ? "froze" : "fragged", victim->client->sess.netName);
+                                            gi.LocClient_Print(attacker, PRINT_CENTER, ".You {} {}", Game::Is(GameType::FreezeTag) ? "froze" : "fragged", victim->client->sess.netName.c_str());
 				}
 				else {
 					if (attacker->client->sess.pc.show_fragmessages)
@@ -905,7 +907,7 @@ static void ClientObituary(gentity_t* victim, gentity_t* inflictor, gentity_t* a
 	if (base.size())
 		return;
 
-	gi.LocBroadcast_Print(PRINT_MEDIUM, "$g_mod_generic_died", victim->client->sess.netName);
+    gi.LocBroadcast_Print(PRINT_MEDIUM, "$g_mod_generic_died", victim->client->sess.netName.c_str());
 }
 
 /*
@@ -973,12 +975,12 @@ static void TossClientItems(gentity_t* self) {
 	CTF_DeadDropFlag(self);
 
 	// drop powerup
-	quad = (self->client->powerupTime.quadDamage > (level.time + 1_sec));
-	haste = (self->client->powerupTime.haste > (level.time + 1_sec));
-	doubled = (self->client->powerupTime.doubleDamage > (level.time + 1_sec));
-	protection = (self->client->powerupTime.battleSuit > (level.time + 1_sec));
-	invis = (self->client->powerupTime.invisibility > (level.time + 1_sec));
-	regen = (self->client->powerupTime.regeneration > (level.time + 1_sec));
+    quad = (self->client->PowerupTimer(PowerupTimer::QuadDamage) > (level.time + 1_sec));
+    haste = (self->client->PowerupTimer(PowerupTimer::Haste) > (level.time + 1_sec));
+    doubled = (self->client->PowerupTimer(PowerupTimer::DoubleDamage) > (level.time + 1_sec));
+    protection = (self->client->PowerupTimer(PowerupTimer::BattleSuit) > (level.time + 1_sec));
+    invis = (self->client->PowerupTimer(PowerupTimer::Invisibility) > (level.time + 1_sec));
+    regen = (self->client->PowerupTimer(PowerupTimer::Regeneration) > (level.time + 1_sec));
 
 	if (!match_powerupDrops->integer) {
 		quad = doubled = haste = protection = invis = regen = false;
@@ -992,7 +994,8 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.quadDamage;
+                auto& quadTime = self->client->PowerupTimer(PowerupTimer::QuadDamage);
+                drop->nextThink = quadTime;
 		drop->think = g_quadhog->integer ? QuadHog_DoReset : FreeEntity;
 
 		if (g_quadhog->integer) {
@@ -1001,7 +1004,7 @@ static void TossClientItems(gentity_t* self) {
 		}
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.quadDamage.seconds<int>() - level.time.seconds<int>();
+                drop->count = quadTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1015,11 +1018,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.haste;
+                auto& hasteTime = self->client->PowerupTimer(PowerupTimer::Haste);
+                drop->nextThink = hasteTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.haste.seconds<int>() - level.time.seconds<int>();
+                drop->count = hasteTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1033,11 +1037,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.battleSuit;
+                auto& battleSuitTime = self->client->PowerupTimer(PowerupTimer::BattleSuit);
+                drop->nextThink = battleSuitTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.battleSuit.seconds<int>() - level.time.seconds<int>();
+                drop->count = battleSuitTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1051,11 +1056,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.regeneration;
+                auto& regenTime = self->client->PowerupTimer(PowerupTimer::Regeneration);
+                drop->nextThink = regenTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.regeneration.seconds<int>() - level.time.seconds<int>();
+                drop->count = regenTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1069,11 +1075,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.invisibility;
+                auto& invisTime = self->client->PowerupTimer(PowerupTimer::Invisibility);
+                drop->nextThink = invisTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.invisibility.seconds<int>() - level.time.seconds<int>();
+                drop->count = invisTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1087,11 +1094,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.doubleDamage;
+                auto& doubleTime = self->client->PowerupTimer(PowerupTimer::DoubleDamage);
+                drop->nextThink = doubleTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.doubleDamage.seconds<int>() - level.time.seconds<int>();
+                drop->count = doubleTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1560,8 +1568,8 @@ static void FreezeTag_StopThawHold(gentity_t* frozen, bool notify) {
 	gentity_t* thawer = fcl->resp.thawer;
 
 	if (notify && thawer && thawer->client) {
-		gi.LocClient_Print(thawer, PRINT_CENTER, ".You stopped thawing {}.", fcl->sess.netName);
-		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} stopped thawing you.", thawer->client->sess.netName);
+           gi.LocClient_Print(thawer, PRINT_CENTER, ".You stopped thawing {}.", fcl->sess.netName.c_str());
+           gi.LocClient_Print(frozen, PRINT_CENTER, ".{} stopped thawing you.", thawer->client->sess.netName.c_str());
 	}
 
 	fcl->resp.thawer = nullptr;
@@ -1578,8 +1586,8 @@ static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
 	fcl->freeze.holdDeadline = level.time + FREEZETAG_THAW_HOLD_DURATION;
 
 	gi.sound(frozen, CHAN_AUTO, gi.soundIndex("world/steam.wav"), 1, ATTN_NORM, 0);
-	gi.LocClient_Print(thawer, PRINT_CENTER, ".Helping {} thaw...", fcl->sess.netName);
-	gi.LocClient_Print(frozen, PRINT_CENTER, ".{} is thawing you...", thawer->client->sess.netName);
+   gi.LocClient_Print(thawer, PRINT_CENTER, ".Helping {} thaw...", fcl->sess.netName.c_str());
+   gi.LocClient_Print(frozen, PRINT_CENTER, ".{} is thawing you...", thawer->client->sess.netName.c_str());
 }
 
 static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
@@ -1596,11 +1604,11 @@ static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awar
 	if (thawer && thawer->client && awardScore) {
 		++thawer->client->resp.thawed;
 		G_AdjustPlayerScore(thawer->client, 1, false, 0);
-		gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName);
+           gi.LocClient_Print(thawer, PRINT_CENTER, ".You thawed {}!", frozen->client->sess.netName.c_str());
 	}
 
 	if (thawer && thawer->client) {
-		gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName);
+           gi.LocClient_Print(frozen, PRINT_CENTER, ".{} thawed you out!", thawer->client->sess.netName.c_str());
 	}
 	else if (autoThaw) {
 		gi.LocClient_Print(frozen, PRINT_CENTER, ".You thawed out!");
@@ -1746,14 +1754,14 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 	}
 
 	// remove powerups
-	self->client->powerupTime.quadDamage = 0_ms;
-	self->client->powerupTime.haste = 0_ms;
-	self->client->powerupTime.doubleDamage = 0_ms;
-	self->client->powerupTime.battleSuit = 0_ms;
-	self->client->powerupTime.invisibility = 0_ms;
-	self->client->powerupTime.regeneration = 0_ms;
-	self->client->powerupTime.rebreather = 0_ms;
-	self->client->powerupTime.enviroSuit = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::QuadDamage) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Haste) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::DoubleDamage) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::BattleSuit) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Invisibility) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Regeneration) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Rebreather) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::EnviroSuit) = 0_ms;
 	self->flags &= ~FL_POWER_ARMOR;
 
 	self->client->lastDeathLocation = self->s.origin;
@@ -1981,13 +1989,12 @@ but is called after each death and level change in deathmatch
 ==============
 */
 void InitClientPersistant(gentity_t* ent, gclient_t* client) {
-	// backup & restore userInfo
-	char userInfo[MAX_INFO_STRING];
-	Q_strlcpy(userInfo, client->pers.userInfo, sizeof(userInfo));
+        // backup & restore userInfo
+        std::string userInfo = client->pers.userInfo;
 
-	client->pers = client_persistant_t{};
+        client->pers = client_persistant_t{};
 
-	ClientUserinfoChanged(ent, userInfo);
+        ClientUserinfoChanged(ent, userInfo);
 
 	client->pers.health = 100;
 	client->pers.maxHealth = 100;
@@ -2839,7 +2846,7 @@ static void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bo
 		return;
 	std::string s, t;
 	char name[MAX_INFO_VALUE] = {};
-	gi.Info_ValueForKey(ent->client->pers.userInfo, "name", name, sizeof(name));
+        gi.Info_ValueForKey(ent->client->pers.userInfo.c_str(), "name", name, sizeof(name));
 	const std::string_view playerName = name;
 	const uint16_t skill = ent->client->sess.skillRating;
 	const auto team = ent->client->sess.team;
@@ -3222,7 +3229,7 @@ void ClientBegin(gentity_t* ent) {
 	else {
 		// send effect if in a multiplayer game
 		if (game.maxClients > 1 && !(ent->svFlags & SVF_NOCLIENT))
-			gi.LocBroadcast_Print(PRINT_HIGH, "$g_entered_game", cl->sess.netName);
+                gi.LocBroadcast_Print(PRINT_HIGH, "$g_entered_game", cl->sess.netName.c_str());
 	}
 
 	level.campaign.coopScalePlayers++;
@@ -3277,80 +3284,84 @@ ClientUserInfoChanged
 called whenever the player updates a userInfo variable.
 ============
 */
-void ClientUserinfoChanged(gentity_t* ent, const char* userInfo) {
-	char val[MAX_INFO_VALUE] = { 0 };
-	char netName[MAX_INFO_VALUE] = { 0 };
+void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
+        std::string userInfo(userInfoView);
+        const char* userInfoCStr = userInfo.c_str();
 
-	// set name
-	if (!gi.Info_ValueForKey(userInfo, "name", netName, sizeof(netName)))
-		Q_strlcpy(netName, "badinfo", sizeof(netName));
-	Q_strlcpy(ent->client->sess.netName, netName, sizeof(ent->client->sess.netName));
+        std::array<char, MAX_INFO_VALUE> value{};
+        std::array<char, MAX_INFO_VALUE> nameBuffer{};
 
-	// set skin
-	if (!gi.Info_ValueForKey(userInfo, "skin", val, sizeof(val)))
-		Q_strlcpy(val, "male/grunt", sizeof(val));
+        // set name
+        if (!gi.Info_ValueForKey(userInfoCStr, "name", nameBuffer.data(), nameBuffer.size()))
+                Q_strlcpy(nameBuffer.data(), "badinfo", nameBuffer.size());
+        ent->client->sess.netName.assign(nameBuffer.data());
 
-	const char* sanitizedSkin = ClientSkinOverride(val);
-	if (Q_strncasecmp(ent->client->sess.skinName, sanitizedSkin, sizeof(ent->client->sess.skinName)))
-		Q_strlcpy(ent->client->sess.skinName, sanitizedSkin, sizeof(ent->client->sess.skinName));
+        // set skin
+        if (!gi.Info_ValueForKey(userInfoCStr, "skin", value.data(), value.size()))
+                Q_strlcpy(value.data(), "male/grunt", value.size());
 
-	std::string iconPath = G_Fmt("/players/{}_i", ent->client->sess.skinName).data();
-	ent->client->sess.skinIconIndex = gi.imageIndex(iconPath.c_str());
+        const char* sanitizedSkin = ClientSkinOverride(value.data());
+        std::string_view sanitizedSkinView{ sanitizedSkin };
+        if (ent->client->sess.skinName != sanitizedSkinView)
+                ent->client->sess.skinName.assign(sanitizedSkinView);
 
-	int playernum = ent - g_entities - 1;
+        std::string iconPath = G_Fmt("/players/{}_i", ent->client->sess.skinName).data();
+        ent->client->sess.skinIconIndex = gi.imageIndex(iconPath.c_str());
 
-	// combine name and skin into a configstring
-	const std::string sessionSkin = ent->client->sess.skinName;
-	if (Teams())
-		AssignPlayerSkin(ent, sessionSkin);
-	else {
-		gi.configString(CS_PLAYERSKINS + playernum, G_Fmt("{}\\{}", ent->client->sess.netName, sessionSkin).data());
-	}
+        int playernum = ent - g_entities - 1;
 
-	//  set player name field (used in id_state view)
-	gi.configString(CONFIG_CHASE_PLAYER_NAME + playernum, ent->client->sess.netName);
+        // combine name and skin into a configstring
+        const std::string& sessionSkin = ent->client->sess.skinName;
+        if (Teams())
+                AssignPlayerSkin(ent, sessionSkin);
+        else {
+                gi.configString(CS_PLAYERSKINS + playernum, G_Fmt("{}\\{}", ent->client->sess.netName, sessionSkin).data());
+        }
 
-	// [Kex] netName is used for a couple of other things, so we update this after those.
-	if (!(ent->svFlags & SVF_BOT))
-		Q_strlcpy(ent->client->pers.netName, G_EncodedPlayerName(ent).c_str(), sizeof(ent->client->pers.netName));
+        //  set player name field (used in id_state view)
+        gi.configString(CONFIG_CHASE_PLAYER_NAME + playernum, ent->client->sess.netName.c_str());
 
-	// fov
-	gi.Info_ValueForKey(userInfo, "fov", val, sizeof(val));
-	ent->client->ps.fov = std::clamp((float)strtoul(val, nullptr, 10), 1.f, 160.f);
+        // [Kex] netName is used for a couple of other things, so we update this after those.
+        if (!(ent->svFlags & SVF_BOT))
+                ent->client->pers.netName = G_EncodedPlayerName(ent);
 
-	// handedness
-	if (gi.Info_ValueForKey(userInfo, "hand", val, sizeof(val))) {
-		ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(val), static_cast<int>(Handedness::Right), static_cast<int>(Handedness::Center)));
-	}
-	else {
-		ent->client->pers.hand = Handedness::Right;
-	}
+        // fov
+        gi.Info_ValueForKey(userInfoCStr, "fov", value.data(), value.size());
+        ent->client->ps.fov = std::clamp(static_cast<float>(strtoul(value.data(), nullptr, 10)), 1.f, 160.f);
 
-	// [Paril-KEX] auto-switch
-	if (gi.Info_ValueForKey(userInfo, "autoswitch", val, sizeof(val))) {
-		ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(val), static_cast<int>(WeaponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
-	}
-	else {
-		ent->client->pers.autoswitch = WeaponAutoSwitch::Smart;
-	}
+        // handedness
+        if (gi.Info_ValueForKey(userInfoCStr, "hand", value.data(), value.size())) {
+                ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(value.data()), static_cast<int>(Handedness::Right), static_cast<int>(Handedness::Center)));
+        }
+        else {
+                ent->client->pers.hand = Handedness::Right;
+        }
 
-	if (gi.Info_ValueForKey(userInfo, "autoshield", val, sizeof(val))) {
-		ent->client->pers.autoshield = atoi(val);
-	}
-	else {
-		ent->client->pers.autoshield = -1;
-	}
+        // [Paril-KEX] auto-switch
+        if (gi.Info_ValueForKey(userInfoCStr, "autoswitch", value.data(), value.size())) {
+                ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(value.data()), static_cast<int>(WeaponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
+        }
+        else {
+                ent->client->pers.autoswitch = WeaponAutoSwitch::Smart;
+        }
 
-	// [Paril-KEX] wants bob
-	if (gi.Info_ValueForKey(userInfo, "bobskip", val, sizeof(val))) {
-		ent->client->pers.bob_skip = val[0] == '1';
-	}
-	else {
-		ent->client->pers.bob_skip = false;
-	}
+        if (gi.Info_ValueForKey(userInfoCStr, "autoshield", value.data(), value.size())) {
+                ent->client->pers.autoshield = atoi(value.data());
+        }
+        else {
+                ent->client->pers.autoshield = -1;
+        }
 
-	// save off the userInfo in case we want to check something later
-	Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
+        // [Paril-KEX] wants bob
+        if (gi.Info_ValueForKey(userInfoCStr, "bobskip", value.data(), value.size())) {
+                ent->client->pers.bob_skip = value[0] == '1';
+        }
+        else {
+                ent->client->pers.bob_skip = false;
+        }
+
+        // save off the userInfo in case we want to check something later
+        ent->client->pers.userInfo = std::move(userInfo);
 }
 
 static inline bool IsSlotIgnored(gentity_t* slot, gentity_t** ignore, size_t num_ignore) {
@@ -3408,10 +3419,10 @@ static inline gentity_t* ClientChooseSlot_Coop(const char* userInfo, const char*
 			continue;
 
 		char check_name[MAX_INFO_VALUE] = { 0 };
-		gi.Info_ValueForKey(game.clients[i].pers.userInfo, "name", check_name, sizeof(check_name));
+                gi.Info_ValueForKey(game.clients[i].pers.userInfo.c_str(), "name", check_name, sizeof(check_name));
 
-		bool username_match = game.clients[i].pers.userInfo[0] &&
-			!strcmp(check_name, name);
+                bool username_match = !game.clients[i].pers.userInfo.empty() &&
+                        !strcmp(check_name, name);
 
 		bool social_match = socialID && game.clients[i].sess.socialID && game.clients[i].sess.socialID[0] &&
 			!strcmp(game.clients[i].sess.socialID, socialID);
@@ -3467,7 +3478,7 @@ static inline gentity_t* ClientChooseSlot_Coop(const char* userInfo, const char*
 	// in the case where we can't find a match, we're probably a new
 	// player, so pick a slot that hasn't been occupied yet
 	for (size_t i = 0; i < game.maxClients; i++)
-		if (!IsSlotIgnored(globals.gentities + i + 1, ignore, num_ignore) && !game.clients[i].pers.userInfo[0]) {
+        if (!IsSlotIgnored(globals.gentities + i + 1, ignore, num_ignore) && game.clients[i].pers.userInfo.empty()) {
 			gi.Com_PrintFmt("coop slot {} issuing new for {}+{}\n", i + 1, name, socialID);
 			return globals.gentities + i + 1;
 		}
@@ -3672,10 +3683,10 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
-	std::array<char, MAX_INFO_VALUE> value = {};
-	// [Paril-KEX] fetch name because now netName is kinda unsuitable
-	gi.Info_ValueForKey(userInfo, "name", value.data(), value.size());
-	Q_strlcpy(ent->client->sess.netName, value.data(), sizeof(ent->client->sess.netName));
+        std::array<char, MAX_INFO_VALUE> value = {};
+        // [Paril-KEX] fetch name because now netName is kinda unsuitable
+        gi.Info_ValueForKey(userInfo, "name", value.data(), value.size());
+        ent->client->sess.netName.assign(value.data());
 
 	ent->client->sess.skillRating = 0;
 	ent->client->sess.skillRatingChange = 0;
@@ -3725,12 +3736,13 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 
 	// set skin
 	std::array<char, MAX_INFO_VALUE> val = {};
-	if (!gi.Info_ValueForKey(userInfo, "skin", val.data(), sizeof(val)))
-		Q_strlcpy(val.data(), "male/grunt", val.size());
-	if (Q_strncasecmp(ent->client->sess.skinName, val.data(), sizeof(ent->client->sess.skinName))) {
-		Q_strlcpy(ent->client->sess.skinName, ClientSkinOverride(val.data()), sizeof(ent->client->sess.skinName));
-		ent->client->sess.skinIconIndex = gi.imageIndex(G_Fmt("/players/{}_i", ent->client->sess.skinName).data());
-	}
+        if (!gi.Info_ValueForKey(userInfo, "skin", val.data(), sizeof(val)))
+                Q_strlcpy(val.data(), "male/grunt", val.size());
+        const char* sanitizedSkin = ClientSkinOverride(val.data());
+        if (Q_strcasecmp(ent->client->sess.skinName.c_str(), sanitizedSkin)) {
+                ent->client->sess.skinName = sanitizedSkin;
+                ent->client->sess.skinIconIndex = gi.imageIndex(G_Fmt("/players/{}_i", ent->client->sess.skinName).data());
+        }
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
@@ -3790,8 +3802,8 @@ void ClientDisconnect(gentity_t* ent) {
 	}
 
         if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot)
-                if (cl->sess.netName && cl->sess.netName[0])
-                        gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
+                if (!cl->sess.netName.empty())
+                        gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName.c_str());
 
         // free any followers
         FreeClientFollowers(ent);
@@ -4040,7 +4052,7 @@ static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
 	if (ent->health <= 0 || ent->client->eliminated)
 		return;
 
-	if (cl->powerupTime.regeneration <= level.time)
+	if (cl->PowerupTimer(PowerupTimer::Regeneration) <= level.time)
 		return;
 
 	if (g_vampiric_damage->integer || !game.map.spawnHealth)
@@ -4050,7 +4062,7 @@ static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
 		return;
 
 	bool	noise = false;
-	float	volume = cl->powerupTime.silencerShots ? 0.2f : 1.0;
+	float	volume = cl->PowerupCount(PowerupCount::SilencerShots) ? 0.2f : 1.0;
 	int		max = cl->pers.maxHealth;
 	int		bonus = 0;
 
@@ -4218,9 +4230,9 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	if (!ClientInactivityTimer(ent))
 		return;
 
-	if (g_quadhog->integer)
-		if (cl->powerupTime.quadDamage > 0_sec && level.time >= cl->powerupTime.quadDamage)
-			QuadHog_SetupSpawn(0_ms);
+        if (g_quadhog->integer)
+                if (cl->PowerupTimer(PowerupTimer::QuadDamage) > 0_sec && level.time >= cl->PowerupTimer(PowerupTimer::QuadDamage))
+                        QuadHog_SetupSpawn(0_ms);
 
 	if (cl->sess.teamJoinTime) {
 		GameTime delay = 5_sec;
@@ -4318,11 +4330,11 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 			cl->ps.pmove.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
 
 		// haste support
-		cl->ps.pmove.haste = cl->powerupTime.haste > level.time;
+                cl->ps.pmove.haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 
 		// trigger_gravity support
 		cl->ps.pmove.gravity = (short)(level.gravity * ent->gravity);
-		if (cl->powerupTime.antiGravBelt > level.time)
+                if (cl->PowerupTimer(PowerupTimer::AntiGravBelt) > level.time)
 			cl->ps.pmove.gravity *= 0.25f;
 		pm.s = cl->ps.pmove;
 

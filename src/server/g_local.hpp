@@ -10,6 +10,8 @@ class Menu;
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset
 #include <random>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -1505,11 +1507,75 @@ enum item_id_t : uint8_t {
 	IT_BALL,
 	IT_POWERUP_SPAWN_PROTECTION,
 
-	IT_FLASHLIGHT,
-	IT_COMPASS,
+        IT_FLASHLIGHT,
+        IT_COMPASS,
 
-	IT_TOTAL
+        IT_TOTAL
 };
+
+enum class PowerupTimer : uint8_t {
+        QuadDamage,
+        DoubleDamage,
+        BattleSuit,
+        Rebreather,
+        Invisibility,
+        Haste,
+        Regeneration,
+        EnviroSuit,
+        EmpathyShield,
+        AntiGravBelt,
+        SpawnProtection,
+        IrGoggles,
+
+        Count
+};
+
+constexpr size_t PowerupTimerCount = static_cast<size_t>(PowerupTimer::Count);
+
+enum class PowerupCount : uint8_t {
+        SilencerShots,
+
+        Count
+};
+
+constexpr size_t PowerupCountCount = static_cast<size_t>(PowerupCount::Count);
+
+constexpr size_t ToIndex(PowerupTimer timer) {
+        return static_cast<size_t>(timer);
+}
+
+constexpr size_t ToIndex(PowerupCount counter) {
+        return static_cast<size_t>(counter);
+}
+
+constexpr std::optional<PowerupTimer> PowerupTimerForItem(item_id_t item) {
+        switch (item) {
+        case IT_POWERUP_QUAD: return PowerupTimer::QuadDamage;
+        case IT_POWERUP_DOUBLE: return PowerupTimer::DoubleDamage;
+        case IT_POWERUP_BATTLESUIT: return PowerupTimer::BattleSuit;
+        case IT_POWERUP_REBREATHER: return PowerupTimer::Rebreather;
+        case IT_POWERUP_INVISIBILITY: return PowerupTimer::Invisibility;
+        case IT_POWERUP_HASTE: return PowerupTimer::Haste;
+        case IT_POWERUP_REGEN: return PowerupTimer::Regeneration;
+        case IT_POWERUP_ENVIROSUIT: return PowerupTimer::EnviroSuit;
+        case IT_POWERUP_EMPATHY_SHIELD: return PowerupTimer::EmpathyShield;
+        case IT_POWERUP_ANTIGRAV_BELT: return PowerupTimer::AntiGravBelt;
+        case IT_POWERUP_SPAWN_PROTECTION: return PowerupTimer::SpawnProtection;
+        case IT_IR_GOGGLES: return PowerupTimer::IrGoggles;
+        default: break;
+        }
+
+        return std::nullopt;
+}
+
+constexpr std::optional<PowerupCount> PowerupCountForItem(item_id_t item) {
+        switch (item) {
+        case IT_POWERUP_SILENCER: return PowerupCount::SilencerShots;
+        default: break;
+        }
+
+        return std::nullopt;
+}
 
 enum class HighValueItems : uint8_t {
 	None,
@@ -2111,7 +2177,7 @@ struct ClientMatchStats {
 };
 
 struct Ghosts {
-	char				netName[MAX_NETNAME];			// ent->client->pers.netName
+	std::string	netName;			// ent->client->pers.netName
 	char				socialID[MAX_INFO_VALUE]{};		// ent->client->sess.socialID
 	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
 	std::array<int16_t, static_cast<int>(AmmoID::_Total)> ammoMax = {};			// ent->client->pers.ammoMax
@@ -3892,7 +3958,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client);
 void InitBodyQue();
 void CopyToBodyQue(gentity_t* ent);
 void ClientBeginServerFrame(gentity_t* ent);
-void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
+void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfo);
 void P_AssignClientSkinNum(gentity_t* ent);
 void P_ForceFogTransition(gentity_t* ent, bool instant);
 void P_SendLevelPOI(gentity_t* ent);
@@ -4267,8 +4333,8 @@ static constexpr int MAX_AWARD_QUEUE = 8;
 
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
-	char			userInfo[MAX_INFO_STRING];
-	char			netName[MAX_NETNAME];
+	std::string	userInfo;
+	std::string	netName;
 	Handedness	hand = Handedness::Right;
 	WeaponAutoSwitch	autoswitch = WeaponAutoSwitch::Never;
 	int32_t			autoshield = 0; // see AUTO_SHIELD_*
@@ -4319,7 +4385,7 @@ struct client_persistant_t {
 	int32_t			dmg_team = 0;		// for team damage checks and warnings
 
 	int				skinIconIndex = 0;
-	char			skin[MAX_INFO_VALUE];
+	std::string	skin;
 
 	int32_t			vote_count = 0;			// to prevent people from constantly calling votes
 
@@ -4378,12 +4444,12 @@ struct client_config_t {
 struct client_session_t {
 	client_config_t	pc;
 
-	char			netName[MAX_NETNAME];
+	std::string	netName;
 	char			socialID[MAX_INFO_VALUE];
 	uint16_t		skillRating = 0;
 	uint16_t		skillRatingChange = 0;
 
-	char			skinName[MAX_INFO_VALUE];
+	std::string	skinName;
 	int				skinIconIndex = 0;
 
 	Team			team = Team::None;
@@ -4575,22 +4641,20 @@ struct gclient_t {
 		GameTime			time = 0_sec;
 	} anim;
 
-	// powerup timers
-	struct {
-		GameTime		quadDamage = 0_sec;
-		GameTime		doubleDamage = 0_sec;
-		GameTime		battleSuit = 0_sec;
-		GameTime		rebreather = 0_sec;
-		GameTime		invisibility = 0_sec;
-		GameTime		haste = 0_sec;
-		GameTime		regeneration = 0_sec;
-		GameTime		enviroSuit = 0_sec;
-		GameTime		empathyShield = 0_sec;
-		GameTime		antiGravBelt = 0_sec;
-		GameTime		spawnProtection = 0_ms;
-		GameTime		irGoggles = 0_sec;
-		uint32_t	silencerShots = 0;
-	} powerupTime;
+        // powerup timers
+        std::array<GameTime, PowerupTimerCount> powerupTimers{};
+	std::array<uint32_t, PowerupCountCount> powerupCounts{};
+
+	GameTime& PowerupTimer(PowerupTimer timer) { return powerupTimers[ToIndex(timer)]; }
+	const GameTime& PowerupTimer(PowerupTimer timer) const { return powerupTimers[ToIndex(timer)]; }
+
+	uint32_t& PowerupCount(PowerupCount counter) { return powerupCounts[ToIndex(counter)]; }
+	const uint32_t& PowerupCount(PowerupCount counter) const { return powerupCounts[ToIndex(counter)]; }
+
+	void ResetPowerups() {
+		powerupTimers.fill(0_ms);
+		powerupCounts.fill(0);
+	}
 
 	GameTime			pu_regen_time_blip = 0_ms;
 	GameTime			pu_time_spawn_protection_blip = 0_ms;

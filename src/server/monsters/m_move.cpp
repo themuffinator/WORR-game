@@ -1134,7 +1134,7 @@ static bool M_MoveToPath(gentity_t *self, float dist) {
 		return false;
 	else if (!self->enemy)
 		return false;
-	else if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time)
+  else if (self->enemy->client && self->enemy->client->PowerupTimer(PowerupTimer::Invisibility) > level.time && self->enemy->client->invisibility_fade_time <= level.time)
 		return false;
 	else if (self->monsterInfo.attackState >= MonsterAttackState::Missile)
 		return true;

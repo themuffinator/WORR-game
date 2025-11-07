@@ -1046,11 +1046,11 @@ static void QuadHod_ClearAll() {
 		if (!ent->inUse)
 			continue;
 
-		if (ent->client) {
-			ent->client->powerupTime.quadDamage = 0_ms;
-			ent->client->pers.inventory[IT_POWERUP_QUAD] = 0;
-			continue;
-		}
+                if (ent->client) {
+                        ent->client->PowerupTimer(PowerupTimer::QuadDamage) = 0_ms;
+                        ent->client->pers.inventory[IT_POWERUP_QUAD] = 0;
+                        continue;
+                }
 
 		if (!ent->className)
 			continue;
@@ -1162,7 +1162,7 @@ TechSfxVolume
 ===============
 */
 static inline float TechSfxVolume(const gentity_t* ent) {
-	return (ent && ent->client && ent->client->powerupTime.silencerShots) ? 0.2f : 1.0f;
+        return (ent && ent->client && ent->client->PowerupCount(PowerupCount::SilencerShots)) ? 0.2f : 1.0f;
 }
 
 /*
@@ -1515,7 +1515,7 @@ bool Tech_ApplyPowerAmpSound(gentity_t* ent) {
 
 	if (ent->client->pers.inventory[IT_TECH_POWER_AMP]) {
 		if (TechTickReady(ent)) {
-			const bool quad = (ent->client->powerupTime.quadDamage > level.time);
+                        const bool quad = (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time);
 			static const int snd_amp = []() { return gi.soundIndex("ctf/tech2.wav"); }();
 			static const int snd_ampx = []() { return gi.soundIndex("ctf/tech2x.wav"); }();
 			gi.sound(ent, CHAN_AUX, quad ? snd_ampx : snd_amp, TechSfxVolume(ent), ATTN_NORM, 0);
@@ -2262,7 +2262,8 @@ bool Pickup_Sphere(gentity_t* ent, gentity_t* other) {
 void Use_IR(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
 
-	ent->client->powerupTime.irGoggles = max(level.time, ent->client->powerupTime.irGoggles) + 60_sec;
+        ent->client->PowerupTimer(PowerupTimer::IrGoggles) =
+                max(level.time, ent->client->PowerupTimer(PowerupTimer::IrGoggles)) + 60_sec;
 
 	gi.sound(ent, CHAN_ITEM, gi.soundIndex("misc/ir_start.wav"), 1, ATTN_NORM, 0);
 }
@@ -2395,19 +2396,11 @@ static void P_ClearPowerup(gentity_t* ent, Item* item) {
 		return;
 	}
 
-	// Reset the timer for the specific powerup being dropped.
-	switch (item->id) {
-	case IT_POWERUP_QUAD: ent->client->powerupTime.quadDamage = 0_ms; break;
-	case IT_POWERUP_HASTE: ent->client->powerupTime.haste = 0_ms; break;
-	case IT_POWERUP_BATTLESUIT: ent->client->powerupTime.battleSuit = 0_ms; break;
-	case IT_POWERUP_INVISIBILITY: ent->client->powerupTime.invisibility = 0_ms; break;
-	case IT_POWERUP_SILENCER: ent->client->powerupTime.silencerShots = 0; break;
-	case IT_POWERUP_REBREATHER: ent->client->powerupTime.rebreather = 0_ms; break;
-	case IT_POWERUP_ENVIROSUIT: ent->client->powerupTime.enviroSuit = 0_ms; break;
-	case IT_POWERUP_DOUBLE: ent->client->powerupTime.doubleDamage = 0_ms; break;
-	case IT_POWERUP_SPAWN_PROTECTION: ent->client->powerupTime.spawnProtection = 0_ms; break;
-	default: break;
-	}
+        if (const auto timer = PowerupTimerForItem(item->id)) {
+                ent->client->PowerupTimer(*timer) = 0_ms;
+        } else if (const auto count = PowerupCountForItem(item->id)) {
+                ent->client->PowerupCount(*count) = 0;
+        }
 }
 
 // Replace the old Drop_General with this one.
@@ -2689,9 +2682,9 @@ static void Use_Powerup_BroadcastMsg(gentity_t* ent, Item* item, const char* sou
 	if (!deathmatch->integer)
 		return;
 
-	if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
-		gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName);
-	}
+        if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
+                gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName.c_str());
+        }
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex(sound_name), 1, ATTN_NONE, 0);
 	AnnouncerSound(world, announcer_name);
@@ -2710,7 +2703,8 @@ void Use_Quad(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.quadDamage = max(level.time, ent->client->powerupTime.quadDamage) + timeout;
+        auto& quadTime = ent->client->PowerupTimer(PowerupTimer::QuadDamage);
+        quadTime = max(level.time, quadTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/damage.wav", "quad_damage");
 }
@@ -2729,7 +2723,8 @@ void Use_Haste(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.haste = max(level.time, ent->client->powerupTime.haste) + timeout;
+        auto& hasteTime = ent->client->PowerupTimer(PowerupTimer::Haste);
+        hasteTime = max(level.time, hasteTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/quadfire1.wav", "haste");
 }
@@ -2749,7 +2744,8 @@ void Use_Double(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.doubleDamage = max(level.time, ent->client->powerupTime.doubleDamage) + timeout;
+        auto& doubleTime = ent->client->PowerupTimer(PowerupTimer::DoubleDamage);
+        doubleTime = max(level.time, doubleTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "misc/ddamage1.wav", "damage");
 }
@@ -2758,21 +2754,24 @@ void Use_Double(gentity_t* ent, Item* item) {
 
 void Use_Breather(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-	ent->client->powerupTime.rebreather = max(level.time, ent->client->powerupTime.rebreather) + 45_sec;
+        auto& rebreatherTime = ent->client->PowerupTimer(PowerupTimer::Rebreather);
+        rebreatherTime = max(level.time, rebreatherTime) + 45_sec;
 }
 
 //======================================================================
 
 void Use_EnviroSuit(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-	ent->client->powerupTime.enviroSuit = max(level.time, ent->client->powerupTime.enviroSuit) + 30_sec;
+        auto& enviroTime = ent->client->PowerupTimer(PowerupTimer::EnviroSuit);
+        enviroTime = max(level.time, enviroTime) + 30_sec;
 }
 
 //======================================================================
 
 void Use_EmpathyShield(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-	ent->client->powerupTime.empathyShield = max(level.time, ent->client->powerupTime.empathyShield) + 30_sec;
+        auto& empathyTime = ent->client->PowerupTimer(PowerupTimer::EmpathyShield);
+        empathyTime = max(level.time, empathyTime) + 30_sec;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/empathy_use.wav", "empathy_shield");
 }
@@ -2781,7 +2780,8 @@ void Use_EmpathyShield(gentity_t* ent, Item* item) {
 
 void Use_AntiGravBelt(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-	ent->client->powerupTime.antiGravBelt = max(level.time, ent->client->powerupTime.antiGravBelt) + 45_sec;
+        auto& antiGravTime = ent->client->PowerupTimer(PowerupTimer::AntiGravBelt);
+        antiGravTime = max(level.time, antiGravTime) + 45_sec;
 }
 
 //======================================================================
@@ -2799,7 +2799,8 @@ void Use_BattleSuit(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.battleSuit = max(level.time, ent->client->powerupTime.battleSuit) + timeout;
+        auto& battleSuitTime = ent->client->PowerupTimer(PowerupTimer::BattleSuit);
+        battleSuitTime = max(level.time, battleSuitTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "battlesuit");
 }
@@ -2811,7 +2812,8 @@ void Use_Spawn_Protection(gentity_t* ent, Item* item) {
 
 	ent->client->pers.inventory[item->id]--;
 
-	ent->client->powerupTime.spawnProtection = max(level.time, ent->client->powerupTime.spawnProtection) + timeout;
+        auto& spawnProtectionTime = ent->client->PowerupTimer(PowerupTimer::SpawnProtection);
+        spawnProtectionTime = max(level.time, spawnProtectionTime) + timeout;
 }
 
 //======================================================================
@@ -2829,7 +2831,8 @@ void Use_Regeneration(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.regeneration = max(level.time, ent->client->powerupTime.regeneration) + timeout;
+        auto& regenTime = ent->client->PowerupTimer(PowerupTimer::Regeneration);
+        regenTime = max(level.time, regenTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "regeneration");
 }
@@ -2847,7 +2850,8 @@ void Use_Invisibility(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-	ent->client->powerupTime.invisibility = max(level.time, ent->client->powerupTime.invisibility) + timeout;
+        auto& invisTime = ent->client->PowerupTimer(PowerupTimer::Invisibility);
+        invisTime = max(level.time, invisTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "invisibility");
 }
@@ -2856,7 +2860,7 @@ void Use_Invisibility(gentity_t* ent, Item* item) {
 
 void Use_Silencer(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-	ent->client->powerupTime.silencerShots += 30;
+        ent->client->PowerupCount(PowerupCount::SilencerShots) += 30;
 }
 
 //======================================================================

@@ -2546,7 +2546,7 @@ static USE(target_remove_powerups_use) (gentity_t* ent, gentity_t* other, gentit
 	if (!activator->client)
 		return;
 
-	activator->client->powerupTime = {};
+        activator->client->ResetPowerups();
 
 	activator->client->pers.ammoMax.fill(50);
 
