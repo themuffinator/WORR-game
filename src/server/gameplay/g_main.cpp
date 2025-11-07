@@ -1512,15 +1512,14 @@ void ExitLevel(bool forceImmediate) {
 			auto& cl = *ec->client;
 
 			// Preserve userinfo across the wipe
-			char userInfo[MAX_INFO_STRING];
-			Q_strlcpy(userInfo, cl.pers.userInfo, sizeof(userInfo));
+                        const std::string userInfo = cl.pers.userInfo;
 
 			cl.pers = {};
 			cl.resp.coopRespawn = {};
 			ec->health = 0;
 
-			Q_strlcpy(cl.pers.userInfo, userInfo, sizeof(cl.pers.userInfo));
-			Q_strlcpy(cl.resp.coopRespawn.userInfo, userInfo, sizeof(cl.resp.coopRespawn.userInfo));
+                        cl.pers.userInfo = userInfo;
+                        cl.resp.coopRespawn.userInfo = userInfo;
 		}
 	}
 

@@ -29,7 +29,7 @@ auto& st = ent->client->pers.match;
 		menu.entries[i++].text = "Player Stats for Match";
 
 		char value[MAX_INFO_VALUE] = {};
-		gi.Info_ValueForKey(g_entities[1].client->pers.userInfo, "name", value, sizeof(value));
+                gi.Info_ValueForKey(g_entities[1].client->pers.userInfo.c_str(), "name", value, sizeof(value));
 		if (value[0]) menu.entries[i++].text = value;
 
 		menu.entries[i++].text = "--------------------------";

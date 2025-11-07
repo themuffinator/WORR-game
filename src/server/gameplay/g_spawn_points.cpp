@@ -22,6 +22,7 @@
 
 #include "../g_local.hpp"
 #include <algorithm>
+#include <cstring>
 
 // -----------------------------------------------------------------------------
 // Modern spawn registration
@@ -1208,8 +1209,9 @@ void ClientSpawn(gentity_t* ent) {
 	if (!valid_spawn) {
 		// only do this once per spawn
 		if (!cl->awaitingRespawn) {
-			char userInfo[MAX_INFO_STRING];
-			memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+                        char userInfo[MAX_INFO_STRING];
+                        std::strncpy(userInfo, cl->pers.userInfo.c_str(), sizeof(userInfo));
+                        userInfo[sizeof(userInfo) - 1] = '\0';
 			ClientUserinfoChanged(ent, userInfo);
 
 			cl->respawn_timeout = level.time + 3_sec;
@@ -1252,8 +1254,9 @@ void ClientSpawn(gentity_t* ent) {
 	}
 	else {
 		// [Kex] Maintain user info in singleplayer to keep the player skin. 
-		char userInfo[MAX_INFO_STRING];
-		memcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+                char userInfo[MAX_INFO_STRING];
+                std::strncpy(userInfo, cl->pers.userInfo.c_str(), sizeof(userInfo));
+                userInfo[sizeof(userInfo) - 1] = '\0';
 
 		if (coop->integer) {
 			savedResp = cl->resp;
@@ -1349,7 +1352,7 @@ void ClientSpawn(gentity_t* ent) {
 	memset(&ent->client->ps, 0, sizeof(cl->ps));
 
 	char val[MAX_INFO_VALUE];
-	gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));
+        gi.Info_ValueForKey(ent->client->pers.userInfo.c_str(), "fov", val, sizeof(val));
 	ent->client->ps.fov = std::clamp((float)strtoul(val, nullptr, 10), 1.f, 160.f);
 
 	ent->client->ps.pmove.viewHeight = ent->viewHeight;
