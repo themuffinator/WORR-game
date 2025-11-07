@@ -371,7 +371,7 @@ bool visible(gentity_t* self, gentity_t* other, bool through_glass) {
 		if (!other->solid)
 			return false;
 
-		if (other->client->powerupTime.invisibility > level.time) {
+            if (other->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
 			// can't see us at all after this time
 			if (other->client->invisibility_fade_time <= level.time)
 				return false;
@@ -743,7 +743,8 @@ bool FindTarget(gentity_t* self) {
 			}
 		}
 
-		if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time) {
+            if (self->enemy->client && self->enemy->client->PowerupTimer(PowerupTimer::Invisibility) > level.time &&
+                    self->enemy->client->invisibility_fade_time <= level.time) {
 			self->enemy = nullptr;
 			return false;
 		}
@@ -833,7 +834,7 @@ bool M_CheckAttack_Base(gentity_t* self, float stand_ground_chance, float melee_
 
 	if (self->enemy->health > 0) {
 		if (self->enemy->client) {
-			if (self->enemy->client->powerupTime.invisibility > level.time) {
+                    if (self->enemy->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
 				// can't see us at all after this time
 				if (self->enemy->client->invisibility_fade_time <= level.time)
 					return false;
@@ -1132,7 +1133,8 @@ bool ai_checkattack(gentity_t* self, float dist) {
 		}
 
 		// [Paril-KEX] if our enemy was invisible, lose sight now
-		if (self->enemy->client && self->enemy->client->powerupTime.invisibility > level.time && self->enemy->client->invisibility_fade_time <= level.time &&
+           if (self->enemy->client && self->enemy->client->PowerupTimer(PowerupTimer::Invisibility) > level.time &&
+                    self->enemy->client->invisibility_fade_time <= level.time &&
 			(self->monsterInfo.aiFlags & AI_PURSUE_NEXT)) {
 			hesDeadJim = true;
 		}

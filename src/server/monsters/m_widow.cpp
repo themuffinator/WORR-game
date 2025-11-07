@@ -939,34 +939,34 @@ static void WidowPowerArmor(gentity_t *self) {
 
 static void WidowRespondPowerup(gentity_t *self, gentity_t *other) {
 	if (other->s.effects & EF_QUAD) {
-		if (skill->integer == 1)
-			WidowDouble(self, other->client->powerupTime.quadDamage);
-		else if (skill->integer == 2)
-			WidowGoinQuad(self, other->client->powerupTime.quadDamage);
-		else if (skill->integer >= 3) {
-			WidowGoinQuad(self, other->client->powerupTime.quadDamage);
-			WidowPowerArmor(self);
-		}
-	} else if (other->s.effects & EF_EMPATHY) {
-		if (skill->integer == 2)
-			WidowDouble(self, other->client->powerupTime.doubleDamage);
-		else if (skill->integer >= 3) {
-			WidowDouble(self, other->client->powerupTime.doubleDamage);
-			WidowPowerArmor(self);
-		}
-	} else
+                if (skill->integer == 1)
+                        WidowDouble(self, other->client->PowerupTimer(PowerupTimer::QuadDamage));
+                else if (skill->integer == 2)
+                        WidowGoinQuad(self, other->client->PowerupTimer(PowerupTimer::QuadDamage));
+                else if (skill->integer >= 3) {
+                        WidowGoinQuad(self, other->client->PowerupTimer(PowerupTimer::QuadDamage));
+                        WidowPowerArmor(self);
+                }
+        } else if (other->s.effects & EF_EMPATHY) {
+                if (skill->integer == 2)
+                        WidowDouble(self, other->client->PowerupTimer(PowerupTimer::DoubleDamage));
+                else if (skill->integer >= 3) {
+                        WidowDouble(self, other->client->PowerupTimer(PowerupTimer::DoubleDamage));
+                        WidowPowerArmor(self);
+                }
+        } else
 		widow_damage_multiplier = 1;
 
 	if (other->s.effects & EF_PENT) {
-		if (skill->integer == 1)
-			WidowPowerArmor(self);
-		else if (skill->integer == 2)
-			WidowPent(self, other->client->powerupTime.battleSuit);
-		else if (skill->integer >= 3) {
-			WidowPent(self, other->client->powerupTime.battleSuit);
-			WidowPowerArmor(self);
-		}
-	}
+                if (skill->integer == 1)
+                        WidowPowerArmor(self);
+                else if (skill->integer == 2)
+                        WidowPent(self, other->client->PowerupTimer(PowerupTimer::BattleSuit));
+                else if (skill->integer >= 3) {
+                        WidowPent(self, other->client->PowerupTimer(PowerupTimer::BattleSuit));
+                        WidowPowerArmor(self);
+                }
+        }
 }
 
 void WidowPowerups(gentity_t *self) {

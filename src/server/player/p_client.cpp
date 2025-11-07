@@ -973,12 +973,12 @@ static void TossClientItems(gentity_t* self) {
 	CTF_DeadDropFlag(self);
 
 	// drop powerup
-	quad = (self->client->powerupTime.quadDamage > (level.time + 1_sec));
-	haste = (self->client->powerupTime.haste > (level.time + 1_sec));
-	doubled = (self->client->powerupTime.doubleDamage > (level.time + 1_sec));
-	protection = (self->client->powerupTime.battleSuit > (level.time + 1_sec));
-	invis = (self->client->powerupTime.invisibility > (level.time + 1_sec));
-	regen = (self->client->powerupTime.regeneration > (level.time + 1_sec));
+    quad = (self->client->PowerupTimer(PowerupTimer::QuadDamage) > (level.time + 1_sec));
+    haste = (self->client->PowerupTimer(PowerupTimer::Haste) > (level.time + 1_sec));
+    doubled = (self->client->PowerupTimer(PowerupTimer::DoubleDamage) > (level.time + 1_sec));
+    protection = (self->client->PowerupTimer(PowerupTimer::BattleSuit) > (level.time + 1_sec));
+    invis = (self->client->PowerupTimer(PowerupTimer::Invisibility) > (level.time + 1_sec));
+    regen = (self->client->PowerupTimer(PowerupTimer::Regeneration) > (level.time + 1_sec));
 
 	if (!match_powerupDrops->integer) {
 		quad = doubled = haste = protection = invis = regen = false;
@@ -992,7 +992,8 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.quadDamage;
+                auto& quadTime = self->client->PowerupTimer(PowerupTimer::QuadDamage);
+                drop->nextThink = quadTime;
 		drop->think = g_quadhog->integer ? QuadHog_DoReset : FreeEntity;
 
 		if (g_quadhog->integer) {
@@ -1001,7 +1002,7 @@ static void TossClientItems(gentity_t* self) {
 		}
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.quadDamage.seconds<int>() - level.time.seconds<int>();
+                drop->count = quadTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1015,11 +1016,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.haste;
+                auto& hasteTime = self->client->PowerupTimer(PowerupTimer::Haste);
+                drop->nextThink = hasteTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.haste.seconds<int>() - level.time.seconds<int>();
+                drop->count = hasteTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1033,11 +1035,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.battleSuit;
+                auto& battleSuitTime = self->client->PowerupTimer(PowerupTimer::BattleSuit);
+                drop->nextThink = battleSuitTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.battleSuit.seconds<int>() - level.time.seconds<int>();
+                drop->count = battleSuitTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1051,11 +1054,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.regeneration;
+                auto& regenTime = self->client->PowerupTimer(PowerupTimer::Regeneration);
+                drop->nextThink = regenTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.regeneration.seconds<int>() - level.time.seconds<int>();
+                drop->count = regenTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1069,11 +1073,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.invisibility;
+                auto& invisTime = self->client->PowerupTimer(PowerupTimer::Invisibility);
+                drop->nextThink = invisTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.invisibility.seconds<int>() - level.time.seconds<int>();
+                drop->count = invisTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1087,11 +1092,12 @@ static void TossClientItems(gentity_t* self) {
 		drop->svFlags &= ~SVF_INSTANCED;
 
 		drop->touch = Touch_Item;
-		drop->nextThink = self->client->powerupTime.doubleDamage;
+                auto& doubleTime = self->client->PowerupTimer(PowerupTimer::DoubleDamage);
+                drop->nextThink = doubleTime;
 		drop->think = FreeEntity;
 
 		// decide how many seconds it has left
-		drop->count = self->client->powerupTime.doubleDamage.seconds<int>() - level.time.seconds<int>();
+                drop->count = doubleTime.seconds<int>() - level.time.seconds<int>();
 		if (drop->count < 1) {
 			drop->count = 1;
 		}
@@ -1746,14 +1752,14 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 	}
 
 	// remove powerups
-	self->client->powerupTime.quadDamage = 0_ms;
-	self->client->powerupTime.haste = 0_ms;
-	self->client->powerupTime.doubleDamage = 0_ms;
-	self->client->powerupTime.battleSuit = 0_ms;
-	self->client->powerupTime.invisibility = 0_ms;
-	self->client->powerupTime.regeneration = 0_ms;
-	self->client->powerupTime.rebreather = 0_ms;
-	self->client->powerupTime.enviroSuit = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::QuadDamage) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Haste) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::DoubleDamage) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::BattleSuit) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Invisibility) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Regeneration) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::Rebreather) = 0_ms;
+        self->client->PowerupTimer(PowerupTimer::EnviroSuit) = 0_ms;
 	self->flags &= ~FL_POWER_ARMOR;
 
 	self->client->lastDeathLocation = self->s.origin;
@@ -4040,7 +4046,7 @@ static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
 	if (ent->health <= 0 || ent->client->eliminated)
 		return;
 
-	if (cl->powerupTime.regeneration <= level.time)
+	if (cl->PowerupTimer(PowerupTimer::Regeneration) <= level.time)
 		return;
 
 	if (g_vampiric_damage->integer || !game.map.spawnHealth)
@@ -4050,7 +4056,7 @@ static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
 		return;
 
 	bool	noise = false;
-	float	volume = cl->powerupTime.silencerShots ? 0.2f : 1.0;
+	float	volume = cl->PowerupCount(PowerupCount::SilencerShots) ? 0.2f : 1.0;
 	int		max = cl->pers.maxHealth;
 	int		bonus = 0;
 
@@ -4218,9 +4224,9 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	if (!ClientInactivityTimer(ent))
 		return;
 
-	if (g_quadhog->integer)
-		if (cl->powerupTime.quadDamage > 0_sec && level.time >= cl->powerupTime.quadDamage)
-			QuadHog_SetupSpawn(0_ms);
+        if (g_quadhog->integer)
+                if (cl->PowerupTimer(PowerupTimer::QuadDamage) > 0_sec && level.time >= cl->PowerupTimer(PowerupTimer::QuadDamage))
+                        QuadHog_SetupSpawn(0_ms);
 
 	if (cl->sess.teamJoinTime) {
 		GameTime delay = 5_sec;
@@ -4318,11 +4324,11 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 			cl->ps.pmove.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
 
 		// haste support
-		cl->ps.pmove.haste = cl->powerupTime.haste > level.time;
+                cl->ps.pmove.haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 
 		// trigger_gravity support
 		cl->ps.pmove.gravity = (short)(level.gravity * ent->gravity);
-		if (cl->powerupTime.antiGravBelt > level.time)
+                if (cl->PowerupTimer(PowerupTimer::AntiGravBelt) > level.time)
 			cl->ps.pmove.gravity *= 0.25f;
 		pm.s = cl->ps.pmove;
 

@@ -1994,19 +1994,19 @@ static inline void G_RunFrame_(bool main_loop) {
 				ent->s.renderFX &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 				ent->s.effects &= ~EF_COLOR_SHELL;
 
-				if (ent->owner->client->powerupTime.quadDamage > level.time) {
-					ent->s.renderFX |= RF_SHELL_BLUE;
-					ent->s.effects |= EF_COLOR_SHELL;
-				}
-				if (ent->owner->client->powerupTime.doubleDamage > level.time) {
-					ent->s.renderFX |= RF_SHELL_BLUE;
-					ent->s.effects |= EF_COLOR_SHELL;
-				}
-				if (ent->owner->client->powerupTime.invisibility > level.time) {
-					if (ent->owner->client->invisibility_fade_time <= level.time)
-						ent->s.alpha = 0.05f;
-					else {
-						float x = (ent->owner->client->invisibility_fade_time - level.time).seconds() / INVISIBILITY_TIME.seconds();
+                                if (ent->owner->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
+                                        ent->s.renderFX |= RF_SHELL_BLUE;
+                                        ent->s.effects |= EF_COLOR_SHELL;
+                                }
+                                if (ent->owner->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
+                                        ent->s.renderFX |= RF_SHELL_BLUE;
+                                        ent->s.effects |= EF_COLOR_SHELL;
+                                }
+                                if (ent->owner->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
+                                        if (ent->owner->client->invisibility_fade_time <= level.time)
+                                                ent->s.alpha = 0.05f;
+                                        else {
+                                                float x = (ent->owner->client->invisibility_fade_time - level.time).seconds() / INVISIBILITY_TIME.seconds();
 						ent->s.alpha = std::clamp(x, 0.0125f, 0.2f);
 					}
 				}

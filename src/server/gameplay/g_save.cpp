@@ -856,17 +856,8 @@ FIELD_AUTO(anim.priority),
 FIELD_AUTO(anim.duck),
 FIELD_AUTO(anim.run),
 
-//FIELD_AUTO(powerupTime),
-
-FIELD_AUTO(powerupTime.quadDamage),
-FIELD_AUTO(powerupTime.battleSuit),
-FIELD_AUTO(powerupTime.rebreather),
-FIELD_AUTO(powerupTime.enviroSuit),
-FIELD_AUTO(powerupTime.haste),
-FIELD_AUTO(powerupTime.invisibility),
-FIELD_AUTO(powerupTime.regeneration),
-FIELD_AUTO(powerupTime.spawnProtection),
-FIELD_AUTO(powerupTime.silencerShots),
+FIELD_AUTO(powerupTimers),
+FIELD_AUTO(powerupCounts),
 
 FIELD_AUTO(grenadeBlewUp),
 FIELD_AUTO(grenadeTime),
@@ -881,8 +872,6 @@ FIELD_AUTO(respawnMaxTime),
 
 // chasecam not required to persist
 
-FIELD_AUTO(powerupTime.doubleDamage),
-FIELD_AUTO(powerupTime.irGoggles),
 FIELD_AUTO(nukeTime),
 FIELD_AUTO(trackerPainTime),
 
