@@ -32,21 +32,21 @@ static void Player_UpdateState(gentity_t *player) {
 		player->sv.entFlags |= SVFL_IS_CROUCHING;
 	}
 
-	if (player->client->powerupTime.quadDamage > level.time) {
-		player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-	} else if (player->client->powerupTime.haste > level.time) {
-		player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-	} else if (player->client->powerupTime.doubleDamage > level.time) {
-		player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-	}
+        if (player->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
+                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
+        } else if (player->client->PowerupTimer(PowerupTimer::Haste) > level.time) {
+                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
+        } else if (player->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
+                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
+        }
 
-	if (player->client->powerupTime.battleSuit > level.time) {
-		player->sv.entFlags |= SVFL_HAS_PROTECTION;
-	}
+        if (player->client->PowerupTimer(PowerupTimer::BattleSuit) > level.time) {
+                player->sv.entFlags |= SVFL_HAS_PROTECTION;
+        }
 
-	if (player->client->powerupTime.invisibility > level.time) {
-		player->sv.entFlags |= SVFL_HAS_INVISIBILITY;
-	}
+        if (player->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
+                player->sv.entFlags |= SVFL_HAS_INVISIBILITY;
+        }
 
 	if ((player->client->ps.pmove.pmFlags & PMF_TIME_KNOCKBACK) != 0) {
 		player->sv.entFlags |= SVFL_HAS_TELEPORTED;

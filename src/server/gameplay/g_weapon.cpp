@@ -26,9 +26,9 @@ static void PlayClientPowerupFireSound(gentity_t* self) {
 		return;
 
 	gclient_t* cl = self->owner->client;
-	const bool quad = cl->powerupTime.quadDamage > level.time;
-	const bool ddamage = cl->powerupTime.doubleDamage > level.time;
-	const bool haste = cl->powerupTime.haste > level.time;
+        const bool quad = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
+        const bool ddamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
+        const bool haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 	const bool canHaste = cl->tech.soundTime < level.time;
 
 	const char* sound = nullptr;

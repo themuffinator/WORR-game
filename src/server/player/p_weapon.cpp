@@ -34,12 +34,12 @@ uint8_t PlayerDamageModifier(gentity_t* ent) {
 
 	//WOR: make these stack but additive rather than multiplicative
 
-	if (ent->client->powerupTime.quadDamage > level.time) {
+    if (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
 		damageMultiplier += 4;
 		isQuad = true;
 	}
 
-	if (ent->client->powerupTime.doubleDamage > level.time) {
+    if (ent->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
 		damageMultiplier += 2;
 		isQuad = true;
 	}
@@ -156,18 +156,20 @@ These allow AI to move toward noise origins to locate players.
 ===============
 */
 void G_PlayerNoise(gentity_t* who, const Vector3& where, PlayerNoise type) {
-	if (type == PlayerNoise::Weapon) {
-		if (who->client->powerupTime.silencerShots) {
-			who->client->invisibility_fade_time = level.time + (INVISIBILITY_TIME / 5);
-			who->client->powerupTime.silencerShots--;
-			return;
-		}
+        if (type == PlayerNoise::Weapon) {
+                auto& silencerShots = who->client->PowerupCount(PowerupCount::SilencerShots);
+                if (silencerShots) {
+                        who->client->invisibility_fade_time = level.time + (INVISIBILITY_TIME / 5);
+                        silencerShots--;
+                        return;
+                }
 
-		who->client->invisibility_fade_time = level.time + INVISIBILITY_TIME;
+                who->client->invisibility_fade_time = level.time + INVISIBILITY_TIME;
 
-		if (who->client->powerupTime.spawnProtection > level.time)
-			who->client->powerupTime.spawnProtection = 0_sec;
-	}
+                auto& spawnProtection = who->client->PowerupTimer(PowerupTimer::SpawnProtection);
+                if (spawnProtection > level.time)
+                        spawnProtection = 0_sec;
+        }
 
 	if (deathmatch->integer || (who->flags & FL_NOTARGET))
 		return;
@@ -326,8 +328,8 @@ static void Weapon_RunThink(gentity_t* ent) {
 
 	PlayerDamageModifier(ent);
 
-	isHaste = ent->client->powerupTime.haste > level.time;
-	isSilenced = ent->client->powerupTime.silencerShots ? MZ_SILENCED : MZ_NONE;
+        isHaste = ent->client->PowerupTimer(PowerupTimer::Haste) > level.time;
+        isSilenced = ent->client->PowerupCount(PowerupCount::SilencerShots) ? MZ_SILENCED : MZ_NONE;
 
 	ent->client->pers.weapon->weaponThink(ent);
 }
@@ -828,9 +830,9 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		if (Tech_ApplyPowerAmpSound(ent))
 			return;
 
-		const bool quad = cl->powerupTime.quadDamage > level.time;
-		const bool ddamage = cl->powerupTime.doubleDamage > level.time;
-		const bool haste = cl->powerupTime.haste > level.time;
+                const bool quad = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
+                const bool ddamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
+                const bool haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 		const bool canHaste = cl->tech.soundTime < level.time;
 
 		const char* sound = nullptr;
@@ -1108,8 +1110,9 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 			cl->buttons |= BUTTON_ATTACK;
 			cl->weapon.fireBuffered = false;
 
-			if (cl->powerupTime.spawnProtection > level.time)
-				cl->powerupTime.spawnProtection = 0_ms;
+                        auto& spawnProtection = cl->PowerupTimer(PowerupTimer::SpawnProtection);
+                        if (spawnProtection > level.time)
+                                spawnProtection = 0_ms;
 		}
 
 		// Execute weapon firing behavior
@@ -1680,7 +1683,8 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		if (!self || !self->owner->client || !self->owner->client->grapple.entity)
 			return;
 
-		gi.sound(self->owner, CHAN_WEAPON, gi.soundIndex("weapons/grapple/grreset.wav"), self->owner->client->powerupTime.silencerShots ? 0.2f : 1.0f, ATTN_NORM, 0);
+                const float volume = self->owner->client->PowerupCount(PowerupCount::SilencerShots) ? 0.2f : 1.0f;
+                gi.sound(self->owner, CHAN_WEAPON, gi.soundIndex("weapons/grapple/grreset.wav"), volume, ATTN_NORM, 0);
 
 		gclient_t* cl;
 		cl = self->owner->client;
@@ -1726,7 +1730,7 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 
 		self->solid = SOLID_NOT;
 
-		if (self->owner->client->powerupTime.silencerShots)
+                if (self->owner->client->PowerupCount(PowerupCount::SilencerShots))
 			volume = 0.2f;
 
 		gi.sound(self, CHAN_WEAPON, gi.soundIndex("weapons/grapple/grhit.wav"), volume, ATTN_NORM, 0);
@@ -1874,7 +1878,7 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		Vector3 start, dir;
 		P_ProjectSource(ent, ent->client->vAngle, Vector3{ 24, 8, -8 + 2 } + g_offset, start, dir);
 
-		if (ent->client->powerupTime.silencerShots)
+                if (ent->client->PowerupCount(PowerupCount::SilencerShots))
 			volume = 0.2f;
 
 		if (Weapon_Grapple_FireHook(ent, start, dir, damage, g_grapple_fly_speed->value, effect))
@@ -1952,8 +1956,10 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		Vector3 start, dir;
 		P_ProjectSource(ent, ent->client->vAngle, Vector3{ 24, 0, 0 } + g_offset, start, dir);
 
-		if (Weapon_Grapple_FireHook(ent, start, dir, damage, g_grapple_fly_speed->value, effect))
-			gi.sound(ent, CHAN_WEAPON, gi.soundIndex("weapons/grapple/grfire.wav"), ent->client->powerupTime.silencerShots ? 0.2f : 1.0f, ATTN_NORM, 0);
+                if (Weapon_Grapple_FireHook(ent, start, dir, damage, g_grapple_fly_speed->value, effect)) {
+                        const float volume = ent->client->PowerupCount(PowerupCount::SilencerShots) ? 0.2f : 1.0f;
+                        gi.sound(ent, CHAN_WEAPON, gi.soundIndex("weapons/grapple/grfire.wav"), volume, ATTN_NORM, 0);
+                }
 
 		G_PlayerNoise(ent, start, PlayerNoise::Weapon);
 	}
