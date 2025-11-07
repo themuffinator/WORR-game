@@ -4638,11 +4638,11 @@ struct gclient_t {
         std::array<GameTime, PowerupTimerCount> powerupTimers{};
 	std::array<uint32_t, PowerupCountCount> powerupCounts{};
 
-	GameTime& PowerupTimer(PowerupTimer timer) { return powerupTimers[ToIndex(timer)]; }
-	const GameTime& PowerupTimer(PowerupTimer timer) const { return powerupTimers[ToIndex(timer)]; }
+        GameTime& PowerupTimer(::PowerupTimer timer) { return powerupTimers[ToIndex(timer)]; }
+        const GameTime& PowerupTimer(::PowerupTimer timer) const { return powerupTimers[ToIndex(timer)]; }
 
-	uint32_t& PowerupCount(PowerupCount counter) { return powerupCounts[ToIndex(counter)]; }
-	const uint32_t& PowerupCount(PowerupCount counter) const { return powerupCounts[ToIndex(counter)]; }
+        uint32_t& PowerupCount(::PowerupCount counter) { return powerupCounts[ToIndex(counter)]; }
+        const uint32_t& PowerupCount(::PowerupCount counter) const { return powerupCounts[ToIndex(counter)]; }
 
 	void ResetPowerups() {
 		powerupTimers.fill(0_ms);
