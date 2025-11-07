@@ -10,6 +10,8 @@ class Menu;
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset
 #include <random>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -2111,7 +2113,7 @@ struct ClientMatchStats {
 };
 
 struct Ghosts {
-	char				netName[MAX_NETNAME];			// ent->client->pers.netName
+	std::string	netName;			// ent->client->pers.netName
 	char				socialID[MAX_INFO_VALUE]{};		// ent->client->sess.socialID
 	std::array<int32_t, IT_TOTAL>	  inventory{};		// ent->client->inventory
 	std::array<int16_t, static_cast<int>(AmmoID::_Total)> ammoMax = {};			// ent->client->pers.ammoMax
@@ -3892,7 +3894,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client);
 void InitBodyQue();
 void CopyToBodyQue(gentity_t* ent);
 void ClientBeginServerFrame(gentity_t* ent);
-void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
+void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfo);
 void P_AssignClientSkinNum(gentity_t* ent);
 void P_ForceFogTransition(gentity_t* ent, bool instant);
 void P_SendLevelPOI(gentity_t* ent);
@@ -4267,8 +4269,8 @@ static constexpr int MAX_AWARD_QUEUE = 8;
 
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
-	char			userInfo[MAX_INFO_STRING];
-	char			netName[MAX_NETNAME];
+	std::string	userInfo;
+	std::string	netName;
 	Handedness	hand = Handedness::Right;
 	WeaponAutoSwitch	autoswitch = WeaponAutoSwitch::Never;
 	int32_t			autoshield = 0; // see AUTO_SHIELD_*
@@ -4319,7 +4321,7 @@ struct client_persistant_t {
 	int32_t			dmg_team = 0;		// for team damage checks and warnings
 
 	int				skinIconIndex = 0;
-	char			skin[MAX_INFO_VALUE];
+	std::string	skin;
 
 	int32_t			vote_count = 0;			// to prevent people from constantly calling votes
 
@@ -4378,12 +4380,12 @@ struct client_config_t {
 struct client_session_t {
 	client_config_t	pc;
 
-	char			netName[MAX_NETNAME];
+	std::string	netName;
 	char			socialID[MAX_INFO_VALUE];
 	uint16_t		skillRating = 0;
 	uint16_t		skillRatingChange = 0;
 
-	char			skinName[MAX_INFO_VALUE];
+	std::string	skinName;
 	int				skinIconIndex = 0;
 
 	Team			team = Team::None;

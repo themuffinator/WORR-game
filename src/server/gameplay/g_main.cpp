@@ -1455,19 +1455,20 @@ static void TakeIntermissionScreenshot() {
 
 	// Duel screenshots: show player vs player
 	if (Game::Is(GameType::Duel)) {
-		const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
-		const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
-		const char* n1 = (e1 && e1->client) ? e1->client->sess.netName : "player1";
-		const char* n2 = (e2 && e2->client) ? e2->client->sess.netName : "player2";
+                const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
+                const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
+                const char* n1 = (e1 && e1->client && !e1->client->sess.netName.empty()) ? e1->client->sess.netName.c_str() : "player1";
+                const char* n2 = (e2 && e2->client && !e2->client->sess.netName.empty()) ? e2->client->sess.netName.c_str() : "player2";
 
 		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapName.data(), timestamp);
 	}
 	// Other gametypes: gametype + POV name + map
 	else {
 		const gentity_t* ent = &g_entities[1];
-		const char* name = (ent->client->follow.target)
-			? ent->client->follow.target->client->sess.netName
-			: ent->client->sess.netName;
+                const std::string& nameRef = (ent->client->follow.target)
+                        ? ent->client->follow.target->client->sess.netName
+                        : ent->client->sess.netName;
+                const char* name = nameRef.empty() ? "player" : nameRef.c_str();
 
 		filename = G_Fmt("screenshot {}-{}-{}-{}\n",
 			GametypeIndexToString(static_cast<GameType>(g_gametype->integer)),

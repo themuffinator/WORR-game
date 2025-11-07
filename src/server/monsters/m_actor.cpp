@@ -327,7 +327,7 @@ PAIN(actor_pain)(gentity_t* self, gentity_t* other, float kick, int damage, cons
 		self->ideal_yaw = vectoyaw(other->s.origin - self->s.origin);
 		if (rand() < 0.5f) M_SetAnimation(self, &actor_move_flipoff);
 		else M_SetAnimation(self, &actor_move_taunt);
-		gi.LocClient_Print(other, PRINT_CHAT, "{}: {} {}!\n", self->message, actor_pain_messages[rand() % 4], other->client->pers.netName);
+                gi.LocClient_Print(other, PRINT_CHAT, "{}: {} {}!\n", self->message, actor_pain_messages[rand() % 4], other->client->pers.netName.c_str());
 		return;
 	}
 

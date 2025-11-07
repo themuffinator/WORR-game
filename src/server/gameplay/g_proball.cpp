@@ -64,7 +64,7 @@ void AnnounceGoal(const gentity_t* scorer, Team team, const gentity_t* goalEnt) 
 
         if (scorer && scorer->client) {
                 gi.LocBroadcast_Print(PRINT_HIGH, "{} scores for the {} at {}!\n",
-                        scorer->client->sess.netName, teamName, goalLabel);
+                        scorer->client->sess.netName.c_str(), teamName, goalLabel);
         }
         else {
                 gi.LocBroadcast_Print(PRINT_HIGH, "{} scores!\n", teamName);
@@ -91,7 +91,7 @@ void AwardAssist(LevelLocals::ProBallState& state, gentity_t* scorer, Team scori
         assistPlayer->client->pers.match.proBallAssists++;
         level.match.proBallAssists++;
 
-        gi.LocBroadcast_Print(PRINT_HIGH, "Assist: {}\n", assistPlayer->client->sess.netName);
+        gi.LocBroadcast_Print(PRINT_HIGH, "Assist: {}\n", assistPlayer->client->sess.netName.c_str());
 }
 
 void AwardGoal(gentity_t* scorer, Team team, gentity_t* goalEnt) {
@@ -350,7 +350,7 @@ void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced) {
         ActivateLooseBall(state, origin, velocity);
 
         gi.LocBroadcast_Print(PRINT_HIGH, "{} drops the ball!\n",
-                carrier->client->sess.netName);
+                carrier->client->sess.netName.c_str());
 }
 
 void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed) {
@@ -373,7 +373,7 @@ void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, fl
         ActivateLooseBall(state, origin, velocity);
 
         gi.LocBroadcast_Print(PRINT_HIGH, "{} throws the ball!\n",
-                carrier->client->sess.netName);
+                carrier->client->sess.netName.c_str());
 }
 
 void HandleCarrierDeath(gentity_t* carrier) {
