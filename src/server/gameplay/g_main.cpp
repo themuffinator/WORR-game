@@ -24,6 +24,7 @@
 #include "../bots/bot_includes.hpp"
 #include "../../shared/char_array_utils.hpp"
 #include "../commands/commands.hpp"
+#include "g_clients.hpp"
 #include <algorithm>
 #include <fstream>
 #include <new>
@@ -55,24 +56,6 @@ cached_modelIndex		sm_meat_index;
 cached_soundIndex		snd_fry;
 
 gentity_t* g_entities;
-
-namespace {
-    void ConstructClients(gclient_t* clients, size_t count) {
-        if (!clients)
-            return;
-
-        for (size_t i = 0; i < count; ++i)
-            new (&clients[i]) gclient_t();
-    }
-
-    void DestroyClients(gclient_t* clients, size_t count) {
-        if (!clients)
-            return;
-
-        for (size_t i = 0; i < count; ++i)
-            clients[i].~gclient_t();
-    }
-}
 
 cvar_t* hostname;
 
