@@ -505,7 +505,7 @@ Html_WriteTopInfo
 =============
 */
 static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matchStats) {
-        const bool proBall = Q_stricmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+        const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
         html << "<div class=\"top-info\">\n"
                 << "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << matchStats.serverName << "</p>\n"
@@ -586,7 +586,7 @@ Html_WriteOverallScores
 =============
 */
 static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
-        const bool proBall = Q_stricmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+        const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
         html << "<div class=\"section overall\">\n"
                 << "  <h2>Overall Scores</h2>\n"
                 << "  <table>\n"

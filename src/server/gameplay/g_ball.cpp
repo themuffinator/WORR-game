@@ -26,8 +26,7 @@ constexpr float BALL_OUT_OF_WORLD_DELTA = 2048.f;
         return Game::Is(GameType::ProBall);
 }
 
-static THINK(Ball_Think)(gentity_t* ball) -> void;
-static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void;
+void Ball_Reset(bool silent);
 
 [[nodiscard]] Item* Ball_Item() {
         return GetItemByIndex(IT_BALL);
@@ -102,22 +101,6 @@ void Ball_DetachCarrier(gentity_t* owner) {
 
         if (level.ball.carrier == owner)
                 level.ball.carrier = nullptr;
-}
-
-void Ball_StartWorldTravel(gentity_t* ball, gentity_t* owner, Team team) {
-        ball->svFlags &= ~SVF_NOCLIENT;
-        ball->solid = SOLID_TRIGGER;
-        ball->moveType = MoveType::NewToss;
-        ball->clipMask = MASK_SOLID;
-        ball->touch = Ball_Touch;
-        ball->think = Ball_Think;
-        ball->nextThink = level.time + BALL_THINK_INTERVAL;
-        ball->owner = owner;
-        ball->touch_debounce_time = level.time + BALL_OWNER_REGRAB_DELAY;
-        ball->timeStamp = level.time;
-        ball->fteam = team;
-        level.ball.carrier = nullptr;
-        level.ball.idleBegin = 0_ms;
 }
 
 void Ball_ApplyVelocityClamp(gentity_t* ball) {
@@ -234,6 +217,22 @@ static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other, const trace_t& tr, b
         safeTrace.contents &= ~(CONTENTS_LAVA | CONTENTS_SLIME);
 
         Touch_Item(ball, other, safeTrace, otherTouchingSelf);
+}
+
+void Ball_StartWorldTravel(gentity_t* ball, gentity_t* owner, Team team) {
+        ball->svFlags &= ~SVF_NOCLIENT;
+        ball->solid = SOLID_TRIGGER;
+        ball->moveType = MoveType::NewToss;
+        ball->clipMask = MASK_SOLID;
+        ball->touch = Ball_Touch;
+        ball->think = Ball_Think;
+        ball->nextThink = level.time + BALL_THINK_INTERVAL;
+        ball->owner = owner;
+        ball->touch_debounce_time = level.time + BALL_OWNER_REGRAB_DELAY;
+        ball->timeStamp = level.time;
+        ball->fteam = team;
+        level.ball.carrier = nullptr;
+        level.ball.idleBegin = 0_ms;
 }
 
 void Ball_RegisterSpawn(gentity_t* ent) {
