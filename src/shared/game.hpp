@@ -6,6 +6,7 @@
 
 #include <array>
 #include <limits.h>
+#include <string_view>
 
 constexpr int DEFAULT_VIEWHEIGHT = 26;
 
@@ -2045,7 +2046,7 @@ struct game_export_t {
 	gentity_t	*(*ClientChooseSlot) (const char *userInfo, const char *socialID, bool isBot, gentity_t **ignore, size_t num_ignore, bool cinematic);
 	bool		(*ClientConnect)(gentity_t *ent, char *userInfo, const char *socialID, bool isBot);
 	void		(*ClientBegin)(gentity_t *ent);
-	void		(*ClientUserinfoChanged)(gentity_t *ent, const char *userInfo);
+	void		(*ClientUserinfoChanged)(gentity_t *ent, std::string_view userInfo);
 	void		(*ClientDisconnect)(gentity_t *ent);
 	void		(*ClientCommand)(gentity_t *ent);
 	void		(*ClientThink)(gentity_t *ent, usercmd_t *cmd);

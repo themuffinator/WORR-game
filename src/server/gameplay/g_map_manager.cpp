@@ -176,8 +176,8 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 		? candidate->filename.c_str()
 		: candidate->longName.c_str();
 
-	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
-		ent->client->sess.netName, mapName);
+        gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
+                ent->client->sess.netName.c_str(), mapName);
 
 	// Mark menu dirty to update HUD/bar
 	ent->client->menu.doUpdate = true;

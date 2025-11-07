@@ -2689,9 +2689,9 @@ static void Use_Powerup_BroadcastMsg(gentity_t* ent, Item* item, const char* sou
 	if (!deathmatch->integer)
 		return;
 
-	if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
-		gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName);
-	}
+        if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
+                gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName.c_str());
+        }
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex(sound_name), 1, ATTN_NONE, 0);
 	AnnouncerSound(world, announcer_name);

@@ -252,7 +252,7 @@ static int ClientNumberFromString(gentity_t* to, char* s) {
 	for (idnum = 0, cl = game.clients; idnum < game.maxClients; idnum++, cl++) {
 		if (!cl->pers.connected)
 			continue;
-		SanitizeString(cl->sess.netName, n2);
+                SanitizeString(cl->sess.netName.c_str(), n2);
 		if (!strcmp(n2, s2)) {
 			return idnum;
 		}
