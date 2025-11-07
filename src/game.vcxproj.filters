@@ -519,6 +519,9 @@
     <ClCompile Include="server\player\p_weapon.cpp">
       <Filter>clients</Filter>
     </ClCompile>
+    <ClCompile Include="server\gameplay\g_clients.cpp">
+      <Filter>clients</Filter>
+    </ClCompile>
     <ClCompile Include="server\gameplay\g_client_cfg.cpp">
       <Filter>clients</Filter>
     </ClCompile>
@@ -538,6 +541,9 @@
       <Filter>world</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_ball.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_proball.cpp">
       <Filter>world</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_item_list.cpp">
