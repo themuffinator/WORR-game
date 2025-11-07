@@ -24,6 +24,7 @@
 #include <sstream>
 
 #include "../g_local.hpp"
+#include "g_clients.hpp"
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma GCC diagnostic ignored "-Weverything"
@@ -33,24 +34,6 @@
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
-
-namespace {
-    void ConstructClients(gclient_t* clients, size_t count) {
-        if (!clients)
-            return;
-
-        for (size_t i = 0; i < count; ++i)
-            new (&clients[i]) gclient_t();
-    }
-
-    void DestroyClients(gclient_t* clients, size_t count) {
-        if (!clients)
-            return;
-
-        for (size_t i = 0; i < count; ++i)
-            clients[i].~gclient_t();
-    }
-}
 
 // new save format;
 // - simple JSON format
