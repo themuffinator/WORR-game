@@ -12,6 +12,8 @@ INFANTRY
 #include "m_infantry.hpp"
 #include "m_flash.hpp"
 
+#include <array>
+
 void InfantryMachineGun(gentity_t *self);
 
 static cached_soundIndex sound_pain1;
@@ -246,20 +248,20 @@ MONSTERINFO_SETSKIN(infantry_setskin) (gentity_t *self) -> void {
 		self->s.skinNum = 0;
 }
 
-constexpr Vector3 aimangles[] = {
-	{ 0.0f, 5.0f, 0.0f },
-	{ 10.0f, 15.0f, 0.0f },
-	{ 20.0f, 25.0f, 0.0f },
-	{ 25.0f, 35.0f, 0.0f },
-	{ 30.0f, 40.0f, 0.0f },
-	{ 30.0f, 45.0f, 0.0f },
-	{ 25.0f, 50.0f, 0.0f },
-	{ 20.0f, 40.0f, 0.0f },
-	{ 15.0f, 35.0f, 0.0f },
-	{ 40.0f, 35.0f, 0.0f },
-	{ 70.0f, 35.0f, 0.0f },
-	{ 90.0f, 35.0f, 0.0f }
-};
+constexpr std::array<Vector3, 12> aimangles{ {
+        { 0.0f, 5.0f, 0.0f },
+        { 10.0f, 15.0f, 0.0f },
+        { 20.0f, 25.0f, 0.0f },
+        { 25.0f, 35.0f, 0.0f },
+        { 30.0f, 40.0f, 0.0f },
+        { 30.0f, 45.0f, 0.0f },
+        { 25.0f, 50.0f, 0.0f },
+        { 20.0f, 40.0f, 0.0f },
+        { 15.0f, 35.0f, 0.0f },
+        { 40.0f, 35.0f, 0.0f },
+        { 70.0f, 35.0f, 0.0f },
+        { 90.0f, 35.0f, 0.0f }
+} };
 
 void InfantryMachineGun(gentity_t *self) {
 	Vector3					 start;

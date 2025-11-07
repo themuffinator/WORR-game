@@ -24,6 +24,8 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
+#include <array>
+
 static gentity_t* currentPlayer{};
 static gclient_t* currentClient{};
 
@@ -159,12 +161,12 @@ static void P_DamageFeedback(gentity_t* player) {
 	if ((level.time > player->pain_debounce_time) && !(player->flags & FL_GODMODE)) {
 		player->pain_debounce_time = level.time + 700_ms;
 
-		constexpr const char* painSounds[] = {
+		constexpr std::array<const char*, 8> painSounds{ {
 			"*pain25_1.wav", "*pain25_2.wav",
 			"*pain50_1.wav", "*pain50_2.wav",
 			"*pain75_1.wav", "*pain75_2.wav",
 			"*pain100_1.wav", "*pain100_2.wav"
-		};
+		} };
 
 		int index = (player->health < 25) ? 0 :
 			(player->health < 50) ? 2 :
@@ -1294,7 +1296,7 @@ static void Frenzy_ApplyAmmoRegen(gentity_t* ent) {
 		const AmmoID maxIndex;   // same index as ammo unless special
 	};
 
-	static constexpr RegenEntry regenTable[] = {
+	static constexpr std::array<RegenEntry, 10> regenTable{ {
 		{ IT_WEAPON_SHOTGUN | IT_WEAPON_SSHOTGUN, IT_AMMO_SHELLS,     4,	AmmoID::Shells     },
 		{ IT_WEAPON_MACHINEGUN | IT_WEAPON_CHAINGUN, IT_AMMO_BULLETS, 10,	AmmoID::Bullets    },
 		{ 0,                        IT_AMMO_GRENADES,   2,					AmmoID::Grenades  },
@@ -1305,7 +1307,7 @@ static void Frenzy_ApplyAmmoRegen(gentity_t* ent) {
 		{ IT_WEAPON_ETF_RIFLE,      IT_AMMO_FLECHETTES,10,					AmmoID::Flechettes },
 		{ IT_WEAPON_PROXLAUNCHER,   IT_AMMO_PROX,       1,					AmmoID::ProxMines     },
 		{ IT_WEAPON_DISRUPTOR,      IT_AMMO_ROUNDS,     1,					AmmoID::Rounds },
-	};
+	} };
 
 	for (const auto& entry : regenTable) {
 		if (entry.weaponBit == 0 || (client->pers.inventory[entry.weaponBit] != 0)) {

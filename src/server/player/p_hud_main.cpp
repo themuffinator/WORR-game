@@ -21,6 +21,8 @@
 #include "../g_local.hpp"
 #include "../gameplay/g_statusbar.hpp"
 
+#include <array>
+
 /*
 ======================================================================
 
@@ -446,21 +448,21 @@ struct powerup_info_t {
 	std::optional<PowerupCount> count;
 };
 
-static const powerup_info_t powerup_table[] = {
-	{ IT_POWERUP_QUAD, PowerupTimerForItem(IT_POWERUP_QUAD), std::nullopt },
-	{ IT_POWERUP_DOUBLE, PowerupTimerForItem(IT_POWERUP_DOUBLE), std::nullopt },
-	{ IT_POWERUP_BATTLESUIT, PowerupTimerForItem(IT_POWERUP_BATTLESUIT), std::nullopt },
-	{ IT_POWERUP_HASTE, PowerupTimerForItem(IT_POWERUP_HASTE), std::nullopt },
-	{ IT_POWERUP_INVISIBILITY, PowerupTimerForItem(IT_POWERUP_INVISIBILITY), std::nullopt },
-	{ IT_POWERUP_REGEN, PowerupTimerForItem(IT_POWERUP_REGEN), std::nullopt },
-	{ IT_POWERUP_ENVIROSUIT, PowerupTimerForItem(IT_POWERUP_ENVIROSUIT), std::nullopt },
-	{ IT_POWERUP_EMPATHY_SHIELD, PowerupTimerForItem(IT_POWERUP_EMPATHY_SHIELD), std::nullopt },
-	{ IT_POWERUP_ANTIGRAV_BELT, PowerupTimerForItem(IT_POWERUP_ANTIGRAV_BELT), std::nullopt },
-	{ IT_POWERUP_SPAWN_PROTECTION, PowerupTimerForItem(IT_POWERUP_SPAWN_PROTECTION), std::nullopt },
-	{ IT_POWERUP_REBREATHER, PowerupTimerForItem(IT_POWERUP_REBREATHER), std::nullopt },
-	{ IT_IR_GOGGLES, PowerupTimerForItem(IT_IR_GOGGLES), std::nullopt },
-	{ IT_POWERUP_SILENCER, std::nullopt, PowerupCountForItem(IT_POWERUP_SILENCER) }
-};
+static const std::array<powerup_info_t, 13> powerup_table{ {
+        { IT_POWERUP_QUAD, PowerupTimerForItem(IT_POWERUP_QUAD), std::nullopt },
+        { IT_POWERUP_DOUBLE, PowerupTimerForItem(IT_POWERUP_DOUBLE), std::nullopt },
+        { IT_POWERUP_BATTLESUIT, PowerupTimerForItem(IT_POWERUP_BATTLESUIT), std::nullopt },
+        { IT_POWERUP_HASTE, PowerupTimerForItem(IT_POWERUP_HASTE), std::nullopt },
+        { IT_POWERUP_INVISIBILITY, PowerupTimerForItem(IT_POWERUP_INVISIBILITY), std::nullopt },
+        { IT_POWERUP_REGEN, PowerupTimerForItem(IT_POWERUP_REGEN), std::nullopt },
+        { IT_POWERUP_ENVIROSUIT, PowerupTimerForItem(IT_POWERUP_ENVIROSUIT), std::nullopt },
+        { IT_POWERUP_EMPATHY_SHIELD, PowerupTimerForItem(IT_POWERUP_EMPATHY_SHIELD), std::nullopt },
+        { IT_POWERUP_ANTIGRAV_BELT, PowerupTimerForItem(IT_POWERUP_ANTIGRAV_BELT), std::nullopt },
+        { IT_POWERUP_SPAWN_PROTECTION, PowerupTimerForItem(IT_POWERUP_SPAWN_PROTECTION), std::nullopt },
+        { IT_POWERUP_REBREATHER, PowerupTimerForItem(IT_POWERUP_REBREATHER), std::nullopt },
+        { IT_IR_GOGGLES, PowerupTimerForItem(IT_IR_GOGGLES), std::nullopt },
+        { IT_POWERUP_SILENCER, std::nullopt, PowerupCountForItem(IT_POWERUP_SILENCER) }
+} };
 
 /*
 ===============
