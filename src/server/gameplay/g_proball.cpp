@@ -416,7 +416,7 @@ namespace ProBall {
 		return true;
 	}
 
-	void RegisterGoalVolume(gentity_t* ent) {
+	static void RegisterGoalVolume(gentity_t* ent) {
 		if (!ent)
 			return;
 
@@ -437,7 +437,7 @@ namespace ProBall {
 		gi.Com_PrintFmt("ProBall: ignoring goal {} (too many volumes).\n", *ent);
 	}
 
-	void RegisterOutOfBoundsVolume(gentity_t* ent) {
+	static void RegisterOutOfBoundsVolume(gentity_t* ent) {
 		if (!ent)
 			return;
 
@@ -485,7 +485,7 @@ namespace ProBall {
 		}
 	}
 
-	void SpawnGoalTrigger(gentity_t* ent) {
+	static void SpawnGoalTrigger(gentity_t* ent) {
 		if (!ent)
 			return;
 
@@ -502,7 +502,7 @@ namespace ProBall {
 		RegisterGoalVolume(ent);
 	}
 
-	void SpawnOutOfBoundsTrigger(gentity_t* ent) {
+	static void SpawnOutOfBoundsTrigger(gentity_t* ent) {
 		if (!ent)
 			return;
 
