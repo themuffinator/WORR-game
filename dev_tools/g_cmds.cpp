@@ -18,6 +18,7 @@
 //   following other players (`follow`), and managing match state (`timeout`).
 
 #include "server/g_local.hpp"
+#include "server/gameplay/client_config.hpp"
 #include "server/monsters/m_player.hpp"
 #include "shared/weapon_pref_utils.hpp"
 /*freeze*/

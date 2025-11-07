@@ -17,6 +17,7 @@
 //   to generate a unique match ID and reset all statistical counters.
 
 #include "../g_local.hpp"
+#include "../gameplay/client_config.hpp"
 #include "../../shared/char_array_utils.hpp"
 #include <algorithm>
 #include <fstream>

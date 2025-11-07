@@ -6,6 +6,7 @@
 #include "command_system.hpp"
 #include "command_registration.hpp"
 #include "../g_local.hpp"
+#include "../gameplay/client_config.hpp"
 #include "../monsters/m_player.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 #include <string>
