@@ -21,6 +21,7 @@
 //   holds all of a player's game-related state.
 
 #include "../g_local.hpp"
+#include "../gameplay/client_config.hpp"
 #include "../commands/commands.hpp"
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
@@ -33,8 +34,6 @@ namespace {
 		return counter++;
 	}
 }
-
-void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 
 static THINK(info_player_start_drop) (gentity_t* self) -> void {
 	// allow them to drop

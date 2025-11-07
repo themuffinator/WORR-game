@@ -129,6 +129,7 @@
     <ClInclude Include="server\g_local.hpp" />
     <ClInclude Include="server\match\match.hpp" />
     <ClInclude Include="server\match\match_state_utils.hpp" />
+    <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
     <ClInclude Include="server\match\match_state_helper.hpp" />
     <ClInclude Include="server\monsters\m_actor.hpp" />

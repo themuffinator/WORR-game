@@ -2,6 +2,7 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <ClInclude Include="server\g_local.hpp" />
+    <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
     <ClInclude Include="server\bots\bot_debug.hpp">
       <Filter>bots</Filter>

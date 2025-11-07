@@ -1,4 +1,5 @@
 #include "server/g_local.hpp"
+#include "server/gameplay/client_config.hpp"
 
 #include <cassert>
 #include <cstring>
@@ -8,8 +9,6 @@ GameLocals game{};
 LevelLocals level{};
 local_game_import_t gi{};
 std::mt19937 mt_rand{};
-
-void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 
 int main() {
         const std::string playerID = "test_weapon_pref_roundtrip";
