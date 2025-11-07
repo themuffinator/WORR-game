@@ -1,9 +1,30 @@
 #include "../src/server/gameplay/g_clients.hpp"
 
 #include <cassert>
+#include <new>
 #include <type_traits>
 
+local_game_import_t gi{};
+game_export_t globals{};
+GameLocals game{};
+
+namespace {
+void* TestTagMalloc(size_t size, int /*tag*/) {
+        return ::operator new(size);
+}
+
+void TestTagFree(void* ptr) {
+        ::operator delete(ptr);
+}
+}
+
 int main() {
+        gi.TagMalloc = TestTagMalloc;
+        gi.TagFree = TestTagFree;
+        gi.Com_Error = +[](const char*) {};
+        gi.frameTimeSec = 0.05f;
+        globals.numEntities = 1;
+
         constexpr std::size_t kClientCount = 3;
         using Storage = std::aligned_storage_t<sizeof(gclient_t), alignof(gclient_t)>;
         Storage raw[kClientCount];
@@ -32,6 +53,23 @@ int main() {
                 assert(!clients[i].showHelp);
         }
         lifetime.Reset(nullptr, 0);
+
+        AllocateClientArray(4);
+        assert(game.maxClients == 4);
+        assert(globals.numEntities == 5);
+        assert(game.clients != nullptr);
+        assert(game.lagOrigins != nullptr);
+
+        game.clients[0].showScores = true;
+        ReplaceClientArray(2);
+        assert(game.maxClients == 2);
+        assert(globals.numEntities == 3);
+        assert(!game.clients[0].showScores);
+
+        FreeClientArray();
+        assert(game.clients == nullptr);
+        assert(game.lagOrigins == nullptr);
+        assert(globals.numEntities == 1);
 
         return 0;
 }

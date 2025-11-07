@@ -2360,23 +2360,20 @@ void ReadGameJson(const char* jsonString) {
         const uint32_t maxEntities = game.maxEntities;
         const uint32_t max_clients = game.maxClients;
 
-        DestroyClients(game.clients, max_clients);
-        game.clients = nullptr;
-        game.maxClients = 0;
-
+        FreeClientArray();
         gi.FreeTags(TAG_GAME);
 
         Json::Value json = parseJson(jsonString);
 
         game = {};
         g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
-        game.clients = (gclient_t*)gi.TagMalloc(max_clients * sizeof(game.clients[0]), TAG_GAME);
-        ConstructClients(game.clients, max_clients);
         game.maxEntities = maxEntities;
-        game.maxClients = max_clients;
         globals.gentities = g_entities;
+        globals.maxEntities = game.maxEntities;
 
-	// read game
+        AllocateClientArray(static_cast<int>(max_clients));
+
+        // read game
 	json_push_stack("game");
 	read_save_struct_json(json["game"], &game, &GameLocals_savestruct);
 	json_pop_stack();

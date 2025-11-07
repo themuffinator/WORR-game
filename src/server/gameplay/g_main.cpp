@@ -913,21 +913,14 @@ static void InitGame() {
 
 	game = {};
 
-	// initialize all entities for this game
-	game.maxEntities = maxentities->integer;
-	g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
-	globals.gentities = g_entities;
-	globals.maxEntities = game.maxEntities;
+        // initialize all entities for this game
+        game.maxEntities = maxentities->integer;
+        g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
+        globals.gentities = g_entities;
+        globals.maxEntities = game.maxEntities;
 
-	// initialize all clients for this game
-	game.maxClients = maxclients->integer > MAX_CLIENTS_KEX ? MAX_CLIENTS_KEX : maxclients->integer;
-        game.clients = (gclient_t*)gi.TagMalloc(game.maxClients * sizeof(game.clients[0]), TAG_GAME);
-        ConstructClients(game.clients, game.maxClients);
-	globals.numEntities = game.maxClients + 1;
-
-	// how far back we should support lag origins for
-	game.maxLagOrigins = 20 * (0.1f / gi.frameTimeSec);
-	game.lagOrigins = (Vector3*)gi.TagMalloc(game.maxClients * sizeof(Vector3) * game.maxLagOrigins, TAG_GAME);
+        // initialize all clients for this game
+        AllocateClientArray(maxclients->integer);
 
 	level.levelStartTime = level.time;
 	game.serverStartTime = time(nullptr);
@@ -1098,9 +1091,7 @@ void SetIntermissionPoint(void) {
 static void ShutdownGame() {
         gi.Com_Print("==== ShutdownGame ====\n");
 
-        DestroyClients(game.clients, game.maxClients);
-        game.clients = nullptr;
-        game.maxClients = 0;
+        FreeClientArray();
 
         gi.FreeTags(TAG_LEVEL);
         gi.FreeTags(TAG_GAME);

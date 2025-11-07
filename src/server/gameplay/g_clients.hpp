@@ -63,3 +63,10 @@ private:
         std::size_t count_ = 0;
 };
 
+// Allocate or reallocate the global client array and associated lag buffers.
+// The helpers ensure constructor/destructor bookkeeping stays centralized and
+// that dependent globals (e.g., globals.numEntities) are updated consistently.
+void AllocateClientArray(int maxClients);
+void FreeClientArray();
+void ReplaceClientArray(int maxClients);
+
