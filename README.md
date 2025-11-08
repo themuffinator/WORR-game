@@ -45,6 +45,10 @@ It is a successor to my previous project, [Muff Mode](https://github.com/themuff
 - Dynamic **match announcer** for event feedback
 - **QUAKE** and **QUAKE III: ARENA-style rulesets** that auto-apply during compatible maps
 
+## Documentation & Wiki
+- Browse the [WORR Knowledge Base](https://github.com/themuffinator/WORR-kex/wiki) for persona guides, cvar/command references, and feature overviews tailored to hosts, players, designers, and programmers.【F:wiki/Home.md†L1-L58】
+- Markdown sources for the live wiki live in the repository’s `wiki/` folder so documentation changes can travel alongside code updates.【F:wiki/Home.md†L3-L56】
+
 ---
 
 ## Release Channels & Upgrade Path
