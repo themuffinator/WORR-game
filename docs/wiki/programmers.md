@@ -34,4 +34,5 @@ The game module manually manages `gclient_t` storage; always use `AllocateClient
 ## Further reading
 
 - Side-by-side feature deltas versus the stock rerelease: [docs/worr_vs_quake2.md](../worr_vs_quake2.md).【F:docs/worr_vs_quake2.md†L1-L63】
+- Server-facing configuration defaults: [Cvar Reference](cvars.md).【F:docs/wiki/cvars.md†L1-L266】
 - Persona guides for cross-discipline context: server hosts, players, and level designers are indexed alongside this guide in the wiki landing page.【F:docs/wiki/index.md†L5-L28】

@@ -2,6 +2,26 @@
 
 Welcome to the hub for WORR documentation. WORR extends the QUAKE II Rerelease with a modernized ruleset, deeper systemic support, and quality-of-life upgrades for both competitive multiplayer and refreshed campaign play. Use this page to orient yourself and jump straight to the material that matches your role.
 
+## Persona Guides
+
+- **[Server Hosts Guide](server-hosts.md)** — Deployment strategies, server presets, and administrative tooling.
+- **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
+- **[Level Designers Guide](level-designers.md)** — Entity support, map logic extensions, and content authoring workflows.
+- **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
+- **[Cvar Reference](cvars.md)** — Full catalogue of server variables, default values, and scope notes.
+
+## Reference Material
+
+- [WORR cvar matrix](cvars.md) — Cross-link of settings discussed throughout the persona guides.
+
+> **What’s new vs. the stock QUAKE II Rerelease?**
+> 
+> WORR layers modern systems on top of the rerelease foundation: expanded entities, competitive infrastructure, adaptive UI, and more. For a deeper side-by-side comparison, see [docs/worr_vs_quake2.md](../worr_vs_quake2.md).
+
+## Project Scope
+
+WORR is an advanced gameplay expansion and server mod for the **QUAKE II Rerelease**. It builds on the rerelease to deliver a richer, more dynamic single-player and multiplayer experience. Extensive refinements and bug fixes span the campaign and multiplayer modes, with vastly expanded support for entities, monsters, and map logic that pull in elements from other QUAKE titles and popular community mods. Gameplay is tuned for both veterans seeking greater challenge and newcomers who benefit from improved accessibility.
+
 ## Goals at a Glance
 
 - **Elevate the QUAKE II Rerelease** with expanded entities, smarter AI, and refined balance that respect the original feel while raising the skill ceiling.
