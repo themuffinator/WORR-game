@@ -1209,9 +1209,9 @@ void ClientSpawn(gentity_t* ent) {
 	if (!valid_spawn) {
 		// only do this once per spawn
 		if (!cl->awaitingRespawn) {
-                        char userInfo[MAX_INFO_STRING];
-                        Q_strlcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
-                        ClientUserinfoChanged(ent, userInfo);
+			char userInfo[MAX_INFO_STRING];
+			Q_strlcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+			ClientUserinfoChanged(ent, userInfo);
 
 			cl->respawn_timeout = level.time + 3_sec;
 		}
@@ -1253,8 +1253,8 @@ void ClientSpawn(gentity_t* ent) {
 	}
 	else {
 		// [Kex] Maintain user info in singleplayer to keep the player skin. 
-                char userInfo[MAX_INFO_STRING];
-                Q_strlcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
+		char userInfo[MAX_INFO_STRING];
+		Q_strlcpy(userInfo, cl->pers.userInfo, sizeof(userInfo));
 
 		if (coop->integer) {
 			savedResp = cl->resp;
@@ -1350,7 +1350,7 @@ void ClientSpawn(gentity_t* ent) {
 	memset(&ent->client->ps, 0, sizeof(cl->ps));
 
 	char val[MAX_INFO_VALUE];
-        gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));
+	gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));
 	ent->client->ps.fov = std::clamp((float)strtoul(val, nullptr, 10), 1.f, 160.f);
 
 	ent->client->ps.pmove.viewHeight = ent->viewHeight;
@@ -1390,26 +1390,26 @@ void ClientSpawn(gentity_t* ent) {
 			}
 		}
 
-                if (ghostSpotSafe) {
-                        spawnOrigin = ghostOrigin;
-                        spawnAngles = ghostAngles;
-                }
+		if (ghostSpotSafe) {
+			spawnOrigin = ghostOrigin;
+			spawnAngles = ghostAngles;
+		}
 		else {
-                        const char* sessionName = cl->sess.netName;
-                        const char* persistentName = cl->pers.netName;
-                        const char* playerName = cl->sess.netName[0] ? sessionName
-                                : cl->pers.netName[0] ? persistentName
-                                : "player";
+			const char* sessionName = cl->sess.netName;
+			const char* persistentName = cl->pers.netName;
+			const char* playerName = cl->sess.netName[0] ? sessionName
+				: cl->pers.netName[0] ? persistentName
+				: "player";
 
 			const char* blockerDesc = "solid geometry";
 			if (blockingEnt) {
-                                if (blockingEnt->client) {
-                                        const char* occupantPersist = blockingEnt->client->pers.netName;
-                                        const char* occupantSession = blockingEnt->client->sess.netName;
-                                        const char* occupant = (occupantPersist[0]) ? occupantPersist
-                                                : (occupantSession[0]) ? occupantSession
-                                                : nullptr;
-                                        blockerDesc = (occupant && *occupant) ? occupant : "another player";
+				if (blockingEnt->client) {
+					const char* occupantPersist = blockingEnt->client->pers.netName;
+					const char* occupantSession = blockingEnt->client->sess.netName;
+					const char* occupant = (occupantPersist[0]) ? occupantPersist
+						: (occupantSession[0]) ? occupantSession
+						: nullptr;
+					blockerDesc = (occupant && *occupant) ? occupant : "another player";
 				}
 				else if (blockingEnt->className) {
 					blockerDesc = blockingEnt->className;
@@ -1429,14 +1429,14 @@ void ClientSpawn(gentity_t* ent) {
 
 	ent->s.frame = 0;
 
-        PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
+	PutClientOnSpawnPoint(ent, spawnOrigin, spawnAngles);
 
-        if (!is_landmark) {
-                // When spawning at a map-defined point, persist the mapper-provided
-                // orientation for later transitions (e.g., coop level changes) after
-                // we've computed the initial delta from the previous command angles.
-                cl->resp.cmdAngles = spawnAngles;
-        }
+	if (!is_landmark) {
+		// When spawning at a map-defined point, persist the mapper-provided
+		// orientation for later transitions (e.g., coop level changes) after
+		// we've computed the initial delta from the previous command angles.
+		cl->resp.cmdAngles = spawnAngles;
+	}
 
 	// [Paril-KEX] set up world fog & send it instantly
 	ent->client->pers.wanted_fog = {

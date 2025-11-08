@@ -1331,9 +1331,9 @@ gentity_t* ClientEntFromString(const char* in) {
 
 	// check by nick first
 	if (*in != '\0') {
-                for (auto ec : active_clients())
-                        if (!strcmp(in, ec->client->sess.netName))
-                                return ec;
+		for (auto ec : active_clients())
+			if (!strcmp(in, ec->client->sess.netName))
+				return ec;
 	}
 
 	// otherwise check client num
@@ -1917,11 +1917,11 @@ Returns Weapon::None if not found.
 =============
 */
 Weapon GetWeaponIndexByAbbrev(const std::string& abbr) {
-        const std::string query = NormalizeWeaponAbbreviation(abbr);
-        if (auto weapon = ParseNormalizedWeaponAbbreviation(query)) {
-                return *weapon;
-        }
-        return Weapon::None;
+	const std::string query = NormalizeWeaponAbbreviation(abbr);
+	if (auto weapon = ParseNormalizedWeaponAbbreviation(query)) {
+		return *weapon;
+	}
+	return Weapon::None;
 }
 
 /*

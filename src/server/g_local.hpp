@@ -150,12 +150,12 @@ bool isStockMap(const std::string& mapName) {
 #endif
 
 enum class Team : uint8_t {
-        None,
-        Spectator,
-        Free,
-        Red,
-        Blue,
-        Total
+	None,
+	Spectator,
+	Free,
+	Red,
+	Blue,
+	Total
 };
 
 enum class GameType : uint8_t {
@@ -163,9 +163,9 @@ enum class GameType : uint8_t {
 
 	FreeForAll,
 	Duel,
-        TeamDeathmatch,
-        Domination,
-        CaptureTheFlag,
+	TeamDeathmatch,
+	Domination,
+	CaptureTheFlag,
 	ClanArena,
 	OneFlag,
 	Harvester,
@@ -429,30 +429,30 @@ public:
 private:
 	// localized print functions
 	template<typename T>
-        inline void loc_embed(T input, char* buffer, const char*& output) {
-                using Decayed = std::remove_reference_t<T>;
+	inline void loc_embed(T input, char* buffer, const char*& output) {
+		using Decayed = std::remove_reference_t<T>;
 
-                if constexpr (std::is_floating_point_v<Decayed> || std::is_integral_v<Decayed>) {
-                        auto result = std::to_chars(buffer, buffer + MAX_INFO_STRING - 1, input);
-                        *result.ptr = '\0';
-                        output = buffer;
-                }
-                else if constexpr (is_char_ptr_v<T>) {
-                        if (!input)
-                                Com_Error("null const char ptr passed to loc");
+		if constexpr (std::is_floating_point_v<Decayed> || std::is_integral_v<Decayed>) {
+			auto result = std::to_chars(buffer, buffer + MAX_INFO_STRING - 1, input);
+			*result.ptr = '\0';
+			output = buffer;
+		}
+		else if constexpr (is_char_ptr_v<T>) {
+			if (!input)
+				Com_Error("null const char ptr passed to loc");
 
-                        output = input;
-                }
-                else if constexpr (is_string_like_v<Decayed>) {
-                        std::string_view view = std::string_view(input);
-                        const size_t copy_len = std::min(view.size(), size_t(MAX_INFO_STRING - 1));
-                        std::copy_n(view.data(), copy_len, buffer);
-                        buffer[copy_len] = '\0';
-                        output = buffer;
-                }
-                else
-                        Com_Error("invalid loc argument");
-        }
+			output = input;
+		}
+		else if constexpr (is_string_like_v<Decayed>) {
+			std::string_view view = std::string_view(input);
+			const size_t copy_len = std::min(view.size(), size_t(MAX_INFO_STRING - 1));
+			std::copy_n(view.data(), copy_len, buffer);
+			buffer[copy_len] = '\0';
+			output = buffer;
+		}
+		else
+			Com_Error("invalid loc argument");
+	}
 
 	static std::array<char[MAX_INFO_STRING], MAX_LOCALIZATION_ARGS> buffers;
 	static std::array<const char*, MAX_LOCALIZATION_ARGS> buffer_ptrs;
@@ -656,62 +656,63 @@ constexpr auto end(E) -> std::enable_if_t < std::is_enum_v<E>&& requires { E::_C
 
 // ==================================================================
 struct SpawnFlags {
-        uint32_t                value{};
+	uint32_t                value{};
 
-        constexpr SpawnFlags() = default;
-        explicit constexpr SpawnFlags(uint32_t v) noexcept :
-                value(v) {}
+	constexpr SpawnFlags() = default;
+	explicit constexpr SpawnFlags(uint32_t v) noexcept :
+		value(v) {
+	}
 
-        constexpr SpawnFlags(const SpawnFlags&) = default;
-        constexpr SpawnFlags(SpawnFlags&&) = default;
-        constexpr SpawnFlags& operator=(const SpawnFlags&) = default;
-        constexpr SpawnFlags& operator=(SpawnFlags&&) = default;
-        ~SpawnFlags() = default;
+	constexpr SpawnFlags(const SpawnFlags&) = default;
+	constexpr SpawnFlags(SpawnFlags&&) = default;
+	constexpr SpawnFlags& operator=(const SpawnFlags&) = default;
+	constexpr SpawnFlags& operator=(SpawnFlags&&) = default;
+	~SpawnFlags() = default;
 
-        [[nodiscard]] explicit constexpr operator uint32_t() const noexcept {
-                return value;
-        }
+	[[nodiscard]] explicit constexpr operator uint32_t() const noexcept {
+		return value;
+	}
 
-        // has any flags at all (!!a)
-        [[nodiscard]] constexpr bool any() const noexcept { return value != 0; }
-        // has any of the given flags (!!(a & b))
-        [[nodiscard]] constexpr bool has(const SpawnFlags& flags) const noexcept { return (value & flags.value) != 0; }
-        // has all of the given flags ((a & b) == b)
-        [[nodiscard]] constexpr bool has_all(const SpawnFlags& flags) const noexcept { return (value & flags.value) == flags.value; }
-        constexpr bool operator!() const noexcept { return value == 0; }
+	// has any flags at all (!!a)
+	[[nodiscard]] constexpr bool any() const noexcept { return value != 0; }
+	// has any of the given flags (!!(a & b))
+	[[nodiscard]] constexpr bool has(const SpawnFlags& flags) const noexcept { return (value & flags.value) != 0; }
+	// has all of the given flags ((a & b) == b)
+	[[nodiscard]] constexpr bool has_all(const SpawnFlags& flags) const noexcept { return (value & flags.value) == flags.value; }
+	constexpr bool operator!() const noexcept { return value == 0; }
 
-        constexpr bool operator==(const SpawnFlags& flags) const noexcept {
-                return value == flags.value;
-        }
+	constexpr bool operator==(const SpawnFlags& flags) const noexcept {
+		return value == flags.value;
+	}
 
-        constexpr bool operator!=(const SpawnFlags& flags) const noexcept {
-                return value != flags.value;
-        }
+	constexpr bool operator!=(const SpawnFlags& flags) const noexcept {
+		return value != flags.value;
+	}
 
-        [[nodiscard]] constexpr SpawnFlags operator~() const noexcept {
-                return SpawnFlags(~value);
-        }
-        [[nodiscard]] constexpr SpawnFlags operator|(const SpawnFlags& v2) const noexcept {
-                return SpawnFlags(value | v2.value);
-        }
-        [[nodiscard]] constexpr SpawnFlags operator&(const SpawnFlags& v2) const noexcept {
-                return SpawnFlags(value & v2.value);
-        }
-        [[nodiscard]] constexpr SpawnFlags operator^(const SpawnFlags& v2) const noexcept {
-                return SpawnFlags(value ^ v2.value);
-        }
-        constexpr SpawnFlags& operator|=(const SpawnFlags& v2) noexcept {
-                value |= v2.value;
-                return *this;
-        }
-        constexpr SpawnFlags& operator&=(const SpawnFlags& v2) noexcept {
-                value &= v2.value;
-                return *this;
-        }
-        constexpr SpawnFlags& operator^=(const SpawnFlags& v2) noexcept {
-                value ^= v2.value;
-                return *this;
-        }
+	[[nodiscard]] constexpr SpawnFlags operator~() const noexcept {
+		return SpawnFlags(~value);
+	}
+	[[nodiscard]] constexpr SpawnFlags operator|(const SpawnFlags& v2) const noexcept {
+		return SpawnFlags(value | v2.value);
+	}
+	[[nodiscard]] constexpr SpawnFlags operator&(const SpawnFlags& v2) const noexcept {
+		return SpawnFlags(value & v2.value);
+	}
+	[[nodiscard]] constexpr SpawnFlags operator^(const SpawnFlags& v2) const noexcept {
+		return SpawnFlags(value ^ v2.value);
+	}
+	constexpr SpawnFlags& operator|=(const SpawnFlags& v2) noexcept {
+		value |= v2.value;
+		return *this;
+	}
+	constexpr SpawnFlags& operator&=(const SpawnFlags& v2) noexcept {
+		value &= v2.value;
+		return *this;
+	}
+	constexpr SpawnFlags& operator^=(const SpawnFlags& v2) noexcept {
+		value ^= v2.value;
+		return *this;
+	}
 };
 
 
@@ -1520,74 +1521,74 @@ enum item_id_t : uint8_t {
 	IT_BALL,
 	IT_POWERUP_SPAWN_PROTECTION,
 
-        IT_FLASHLIGHT,
-        IT_COMPASS,
+	IT_FLASHLIGHT,
+	IT_COMPASS,
 
-        IT_TOTAL
+	IT_TOTAL
 };
 
 enum class PowerupTimer : uint8_t {
-        QuadDamage,
-        DoubleDamage,
-        BattleSuit,
-        Rebreather,
-        Invisibility,
-        Haste,
-        Regeneration,
-        EnviroSuit,
-        EmpathyShield,
-        AntiGravBelt,
-        SpawnProtection,
-        IrGoggles,
+	QuadDamage,
+	DoubleDamage,
+	BattleSuit,
+	Rebreather,
+	Invisibility,
+	Haste,
+	Regeneration,
+	EnviroSuit,
+	EmpathyShield,
+	AntiGravBelt,
+	SpawnProtection,
+	IrGoggles,
 
-        Count
+	Count
 };
 
 constexpr size_t PowerupTimerCount = static_cast<size_t>(PowerupTimer::Count);
 
 enum class PowerupCount : uint8_t {
-        SilencerShots,
+	SilencerShots,
 
-        Count
+	Count
 };
 
 constexpr size_t PowerupCountCount = static_cast<size_t>(PowerupCount::Count);
 
 constexpr size_t ToIndex(PowerupTimer timer) {
-        return static_cast<size_t>(timer);
+	return static_cast<size_t>(timer);
 }
 
 constexpr size_t ToIndex(PowerupCount counter) {
-        return static_cast<size_t>(counter);
+	return static_cast<size_t>(counter);
 }
 
 constexpr std::optional<PowerupTimer> PowerupTimerForItem(item_id_t item) {
-        switch (item) {
-        case IT_POWERUP_QUAD: return PowerupTimer::QuadDamage;
-        case IT_POWERUP_DOUBLE: return PowerupTimer::DoubleDamage;
-        case IT_POWERUP_BATTLESUIT: return PowerupTimer::BattleSuit;
-        case IT_POWERUP_REBREATHER: return PowerupTimer::Rebreather;
-        case IT_POWERUP_INVISIBILITY: return PowerupTimer::Invisibility;
-        case IT_POWERUP_HASTE: return PowerupTimer::Haste;
-        case IT_POWERUP_REGEN: return PowerupTimer::Regeneration;
-        case IT_POWERUP_ENVIROSUIT: return PowerupTimer::EnviroSuit;
-        case IT_POWERUP_EMPATHY_SHIELD: return PowerupTimer::EmpathyShield;
-        case IT_POWERUP_ANTIGRAV_BELT: return PowerupTimer::AntiGravBelt;
-        case IT_POWERUP_SPAWN_PROTECTION: return PowerupTimer::SpawnProtection;
-        case IT_IR_GOGGLES: return PowerupTimer::IrGoggles;
-        default: break;
-        }
+	switch (item) {
+	case IT_POWERUP_QUAD: return PowerupTimer::QuadDamage;
+	case IT_POWERUP_DOUBLE: return PowerupTimer::DoubleDamage;
+	case IT_POWERUP_BATTLESUIT: return PowerupTimer::BattleSuit;
+	case IT_POWERUP_REBREATHER: return PowerupTimer::Rebreather;
+	case IT_POWERUP_INVISIBILITY: return PowerupTimer::Invisibility;
+	case IT_POWERUP_HASTE: return PowerupTimer::Haste;
+	case IT_POWERUP_REGEN: return PowerupTimer::Regeneration;
+	case IT_POWERUP_ENVIROSUIT: return PowerupTimer::EnviroSuit;
+	case IT_POWERUP_EMPATHY_SHIELD: return PowerupTimer::EmpathyShield;
+	case IT_POWERUP_ANTIGRAV_BELT: return PowerupTimer::AntiGravBelt;
+	case IT_POWERUP_SPAWN_PROTECTION: return PowerupTimer::SpawnProtection;
+	case IT_IR_GOGGLES: return PowerupTimer::IrGoggles;
+	default: break;
+	}
 
-        return std::nullopt;
+	return std::nullopt;
 }
 
 constexpr std::optional<PowerupCount> PowerupCountForItem(item_id_t item) {
-        switch (item) {
-        case IT_POWERUP_SILENCER: return PowerupCount::SilencerShots;
-        default: break;
-        }
+	switch (item) {
+	case IT_POWERUP_SILENCER: return PowerupCount::SilencerShots;
+	default: break;
+	}
 
-        return std::nullopt;
+	return std::nullopt;
 }
 
 enum class HighValueItems : uint8_t {
@@ -1910,27 +1911,27 @@ struct MapEntry {
 };
 
 inline void ApplyCustomResourceFlags(MapEntry& map,
-        bool customFlag,
-        bool hasCustomTextures,
-        bool hasCustomSounds)
+	bool customFlag,
+	bool hasCustomTextures,
+	bool hasCustomSounds)
 {
-        map.hasCustomTextures = hasCustomTextures;
-        map.hasCustomSounds = hasCustomSounds;
-        map.isCustom = customFlag || hasCustomTextures || hasCustomSounds;
+	map.hasCustomTextures = hasCustomTextures;
+	map.hasCustomSounds = hasCustomSounds;
+	map.isCustom = customFlag || hasCustomTextures || hasCustomSounds;
 }
 
 inline bool ShouldAvoidCustomResources(const MapEntry& map,
-        bool avoidCustom,
-        bool avoidCustomTextures,
-        bool avoidCustomSounds)
+	bool avoidCustom,
+	bool avoidCustomTextures,
+	bool avoidCustomSounds)
 {
-        if (avoidCustom && map.isCustom)
-                return true;
-        if (avoidCustomTextures && map.hasCustomTextures)
-                return true;
-        if (avoidCustomSounds && map.hasCustomSounds)
-                return true;
-        return false;
+	if (avoidCustom && map.isCustom)
+		return true;
+	if (avoidCustomTextures && map.hasCustomTextures)
+		return true;
+	if (avoidCustomSounds && map.hasCustomSounds)
+		return true;
+	return false;
 }
 
 enum MyMapOverride : uint16_t {
@@ -2383,11 +2384,11 @@ struct LevelLocals {
 	std::array<int, static_cast<int>(Team::Total)>	teamScores{};
 	std::array<int, static_cast<int>(Team::Total)>	teamOldScores{};
 
-        struct DominationState {
-                static constexpr size_t MAX_POINTS = 8;
+	struct DominationState {
+		static constexpr size_t MAX_POINTS = 8;
 
-                struct Point {
-                        gentity_t* ent = nullptr;
+		struct Point {
+			gentity_t* ent = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
 		};
@@ -2395,39 +2396,39 @@ struct LevelLocals {
 		std::array<Point, MAX_POINTS> points{};
 		size_t count = 0;
 		GameTime nextScoreTime = 0_ms;
-        } domination{};
+	} domination{};
 
-        struct ProBallState {
-                struct AssistInfo {
-                        gentity_t* player = nullptr;
-                        GameTime expires = 0_ms;
-                        Team team = Team::None;
-                } assist{};
+	struct ProBallState {
+		struct AssistInfo {
+			gentity_t* player = nullptr;
+			GameTime expires = 0_ms;
+			Team team = Team::None;
+		} assist{};
 
-                struct GoalVolume {
-                        gentity_t* ent = nullptr;
-                        Team team = Team::None;
-                };
+		struct GoalVolume {
+			gentity_t* ent = nullptr;
+			Team team = Team::None;
+		};
 
-                gentity_t* spawnEntity = nullptr;
-                gentity_t* ballEntity = nullptr;
-                gentity_t* carrier = nullptr;
-                gentity_t* lastToucher = nullptr;
-                Vector3 spawnOrigin = vec3_origin;
-                Vector3 spawnAngles = vec3_origin;
-                GameTime lastTouchTime = 0_ms;
-                std::array<GoalVolume, 4> goals{};
-                std::array<gentity_t*, 4> outOfBounds{};
-        } proBall{};
+		gentity_t* spawnEntity = nullptr;
+		gentity_t* ballEntity = nullptr;
+		gentity_t* carrier = nullptr;
+		gentity_t* lastToucher = nullptr;
+		Vector3 spawnOrigin = vec3_origin;
+		Vector3 spawnAngles = vec3_origin;
+		GameTime lastTouchTime = 0_ms;
+		std::array<GoalVolume, 4> goals{};
+		std::array<gentity_t*, 4> outOfBounds{};
+	} proBall{};
 
-        struct BallState {
-                gentity_t* entity = nullptr;
-                gentity_t* carrier = nullptr;
-                Vector3 homeOrigin = vec3_origin;
-                Vector3 homeAngles = vec3_origin;
-                GameTime idleBegin = 0_ms;
-                bool homeValid = false;
-        } ball{};
+	struct BallState {
+		gentity_t* entity = nullptr;
+		gentity_t* carrier = nullptr;
+		Vector3 homeOrigin = vec3_origin;
+		Vector3 homeAngles = vec3_origin;
+		GameTime idleBegin = 0_ms;
+		bool homeValid = false;
+	} ball{};
 
 	MatchState	matchState = MatchState::None;
 	WarmupState	warmupState = WarmupState::Default;
@@ -3512,16 +3513,16 @@ void Domination_InitLevel();
 void Domination_RunFrame();
 
 namespace ProBall {
-        void ClearState();
-        void InitLevel();
-        void RunFrame();
-        void RegisterBallSpawn(gentity_t* ent);
-        void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
-        void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
-        void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed);
-        void HandleCarrierDeath(gentity_t* carrier);
-        void HandleCarrierDisconnect(gentity_t* carrier);
-        bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);
+	void ClearState();
+	void InitLevel();
+	void RunFrame();
+	void RegisterBallSpawn(gentity_t* ent);
+	void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
+	void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
+	void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed);
+	void HandleCarrierDeath(gentity_t* carrier);
+	void HandleCarrierDisconnect(gentity_t* carrier);
+	bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);
 }
 
 void SP_trigger_proball_goal(gentity_t* ent);
@@ -4062,9 +4063,9 @@ void Weapon_Generic(gentity_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST
 void Weapon_Repeating(gentity_t* ent, int FRAME_ACTIVATE_LAST, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST,
 	int FRAME_DEACTIVATE_LAST, const int* pause_frames, void (*fire)(gentity_t* ent));
 void Throw_Generic(gentity_t* ent, int FRAME_FIRE_LAST, int FRAME_IDLE_LAST, int FRAME_PRIME_SOUND,
-        const char* prime_sound, int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, const int* pause_frames,
-        int EXPLODE, const char* primed_sound, void (*fire)(gentity_t* ent, bool held), bool extra_idle_frame,
-        item_id_t ammoOverride = IT_TOTAL);
+	const char* prime_sound, int FRAME_THROW_HOLD, int FRAME_THROW_FIRE, const int* pause_frames,
+	int EXPLODE, const char* primed_sound, void (*fire)(gentity_t* ent, bool held), bool extra_idle_frame,
+	item_id_t ammoOverride = IT_TOTAL);
 uint8_t PlayerDamageModifier(gentity_t* ent);
 bool InfiniteAmmoOn(Item* item);
 void Weapon_PowerupSound(gentity_t* ent);
@@ -4490,8 +4491,8 @@ struct client_session_t {
 	int				command_flood_count = 0;
 	GameTime			command_flood_time = 0_ms;
 
-        std::vector<Weapon> weaponPrefs;
-        std::vector<item_id_t> weaponPrefOrder;
+	std::vector<Weapon> weaponPrefs;
+	std::vector<item_id_t> weaponPrefOrder;
 
 };
 
@@ -4581,7 +4582,7 @@ struct gclient_t {
 		bool		fireBuffered = false;
 		bool		thunk = false;
 
-                Item* pending = nullptr;
+		Item* pending = nullptr;
 	} weapon;
 
 	// sum up damage over an entire frame, so
@@ -4647,15 +4648,15 @@ struct gclient_t {
 		GameTime			time = 0_sec;
 	} anim;
 
-        // powerup timers
-        std::array<GameTime, PowerupTimerCount> powerupTimers{};
+	// powerup timers
+	std::array<GameTime, PowerupTimerCount> powerupTimers{};
 	std::array<uint32_t, PowerupCountCount> powerupCounts{};
 
-        GameTime& PowerupTimer(::PowerupTimer timer) { return powerupTimers[ToIndex(timer)]; }
-        const GameTime& PowerupTimer(::PowerupTimer timer) const { return powerupTimers[ToIndex(timer)]; }
+	GameTime& PowerupTimer(::PowerupTimer timer) { return powerupTimers[ToIndex(timer)]; }
+	const GameTime& PowerupTimer(::PowerupTimer timer) const { return powerupTimers[ToIndex(timer)]; }
 
-        uint32_t& PowerupCount(::PowerupCount counter) { return powerupCounts[ToIndex(counter)]; }
-        const uint32_t& PowerupCount(::PowerupCount counter) const { return powerupCounts[ToIndex(counter)]; }
+	uint32_t& PowerupCount(::PowerupCount counter) { return powerupCounts[ToIndex(counter)]; }
+	const uint32_t& PowerupCount(::PowerupCount counter) const { return powerupCounts[ToIndex(counter)]; }
 
 	void ResetPowerups() {
 		powerupTimers.fill(0_ms);

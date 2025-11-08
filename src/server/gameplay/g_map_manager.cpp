@@ -176,8 +176,8 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 		? candidate->filename.c_str()
 		: candidate->longName.c_str();
 
-        gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
-                ent->client->sess.netName, mapName);
+	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
+		ent->client->sess.netName, mapName);
 
 	// Mark menu dirty to update HUD/bar
 	ent->client->menu.doUpdate = true;
@@ -413,12 +413,12 @@ void LoadMapPool(gentity_t* ent) {
 		if (entry.isMember("ruleset"))        map.suggestedRuleset = static_cast<ruleset_t>(entry["ruleset"].asInt());
 		if (entry.isMember("scorelimit"))     map.scoreLimit = entry["scorelimit"].asInt();
 		if (entry.isMember("timeLimit"))      map.timeLimit = entry["timeLimit"].asInt();
-                if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
+		if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
 
-                const bool isCustom = entry.get("custom", false).asBool();
-                const bool hasCustomTextures = entry.get("custom_textures", false).asBool();
-                const bool hasCustomSounds = entry.get("custom_sounds", false).asBool();
-                ApplyCustomResourceFlags(map, isCustom, hasCustomTextures, hasCustomSounds);
+		const bool isCustom = entry.get("custom", false).asBool();
+		const bool hasCustomTextures = entry.get("custom_textures", false).asBool();
+		const bool hasCustomSounds = entry.get("custom_sounds", false).asBool();
+		ApplyCustomResourceFlags(map, isCustom, hasCustomTextures, hasCustomSounds);
 
 		map.mapTypeFlags |= MAP_DM;
 		if (entry.get("sp", false).asBool())   map.mapTypeFlags |= MAP_SP;
@@ -528,28 +528,28 @@ std::optional<MapEntry> AutoSelectNextMap() {
 	const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
 
 	auto mapValid = [&](const MapEntry& map) -> bool {
-                const int64_t lastPlayed = map.lastPlayed;
+		const int64_t lastPlayed = map.lastPlayed;
 
-                if (lastPlayed > 0) {
-                        const int64_t delta = secondsSinceStart - lastPlayed;
-                        if (delta < 0 || delta < cooldown) {
-                                const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
-                                const int remaining = std::max(0, cooldown - elapsed);
-                                gi.Com_PrintFmt("Map {} skipped: played {} ago (cooldown: {})\n",
-                                        map.filename.c_str(),
-                                        FormatDuration(elapsed).c_str(),
-                                        FormatDuration(remaining).c_str()
-                                );
-                                return false;
-                        }
-                }
+		if (lastPlayed > 0) {
+			const int64_t delta = secondsSinceStart - lastPlayed;
+			if (delta < 0 || delta < cooldown) {
+				const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
+				const int remaining = std::max(0, cooldown - elapsed);
+				gi.Com_PrintFmt("Map {} skipped: played {} ago (cooldown: {})\n",
+					map.filename.c_str(),
+					FormatDuration(elapsed).c_str(),
+					FormatDuration(remaining).c_str()
+				);
+				return false;
+			}
+		}
 
 		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
 			return false;
 
-                if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
-                        return false;
+		if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+			return false;
 
 		return true;
 		};
@@ -572,8 +572,8 @@ std::optional<MapEntry> AutoSelectNextMap() {
 
 	if (eligible.empty()) {
 		for (const auto& map : pool) {
-                        if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
-                                continue;
+			if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
+				continue;
 			eligible.push_back(&map);
 		}
 	}
@@ -610,10 +610,10 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 	bool isTDM = Teams();
 
 	for (const auto& map : game.mapSystem.mapPool) {
-                if (!map.isCycleable)
-                        continue;
-                if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
-                        continue;
+		if (!map.isCycleable)
+			continue;
+		if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
+			continue;
 		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
 			continue;
@@ -638,10 +638,10 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 	}
 
 	if (pool.size() < 2) {
-        	pool.clear();
-        	for (const auto& map : game.mapSystem.mapPool) {
-                        if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
-                                continue;
+		pool.clear();
+		for (const auto& map : game.mapSystem.mapPool) {
+			if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
+				continue;
 			if (avoidCustomTextures && map.hasCustomTextures)
 				continue;
 			pool.push_back(&map);

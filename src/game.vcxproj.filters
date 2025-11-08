@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
   <ItemGroup>
     <ClInclude Include="server\g_local.hpp" />
@@ -232,9 +232,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server\gameplay\g_combat.cpp" />
-    <ClCompile Include="server\gameplay\g_domination.cpp">
-      <Filter>gameplay</Filter>
-    </ClCompile>
     <ClCompile Include="server\gameplay\g_main.cpp" />
     <ClCompile Include="server\gameplay\g_misc.cpp" />
     <ClCompile Include="server\gameplay\g_save.cpp" />
@@ -543,9 +540,6 @@
     <ClCompile Include="server\gameplay\g_ball.cpp">
       <Filter>world</Filter>
     </ClCompile>
-    <ClCompile Include="server\gameplay\g_proball.cpp">
-      <Filter>world</Filter>
-    </ClCompile>
     <ClCompile Include="server\gameplay\g_item_list.cpp">
       <Filter>world</Filter>
     </ClCompile>
@@ -564,6 +558,12 @@
     <ClCompile Include="server\gameplay\g_spectator.cpp">
       <Filter>matches</Filter>
     </ClCompile>
+    <ClCompile Include="server\gameplay\g_proball.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_domination.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="bots">
@@ -580,9 +580,6 @@
     </Filter>
     <Filter Include="matches">
       <UniqueIdentifier>{724bba1f-6c6d-43c3-82c0-517a4b423fac}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="gameplay">
-      <UniqueIdentifier>{02c5af5f-df57-4e35-bacf-dcaef4349848}</UniqueIdentifier>
     </Filter>
     <Filter Include="ai">
       <UniqueIdentifier>{3a72a31d-f872-4424-b979-647160f64a6a}</UniqueIdentifier>

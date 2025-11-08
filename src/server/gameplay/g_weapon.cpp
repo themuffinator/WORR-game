@@ -26,9 +26,9 @@ static void PlayClientPowerupFireSound(gentity_t* self) {
 		return;
 
 	gclient_t* cl = self->owner->client;
-        const bool quad = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
-        const bool ddamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
-        const bool haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
+	const bool quad = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
+	const bool ddamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
+	const bool haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 	const bool canHaste = cl->tech.soundTime < level.time;
 
 	const char* sound = nullptr;
@@ -2414,25 +2414,25 @@ bool fire_player_melee(gentity_t* self, const Vector3& start, const Vector3& aim
 		// do the damage
 		Vector3 closest_point_to_check = closest_point_to_box(start, hit->s.origin + hit->mins, hit->s.origin + hit->maxs);
 
-                if (hit->svFlags & SVF_MONSTER)
-                        hit->pain_debounce_time -= random_time(5_ms, 75_ms);
+		if (hit->svFlags & SVF_MONSTER)
+			hit->pain_debounce_time -= random_time(5_ms, 75_ms);
 
-                bool prevented = false;
-                if (Game::Is(GameType::ProBall))
-                        prevented = ProBall::HandleCarrierHit(hit, self, mod);
+		bool prevented = false;
+		if (Game::Is(GameType::ProBall))
+			prevented = ProBall::HandleCarrierHit(hit, self, mod);
 
-                if (!prevented) {
-                        if (mod.id == ModID::Chainfist)
-                                Damage(hit, self, self, aim, closest_point_to_check, -aim, damage, kick / 2,
-                                        DamageFlags::DestroyArmor | DamageFlags::NoKnockback, mod);
-                        else
-                                Damage(hit, self, self, aim, closest_point_to_check, -aim, damage, kick / 2, DamageFlags::NoKnockback, mod);
-                }
+		if (!prevented) {
+			if (mod.id == ModID::Chainfist)
+				Damage(hit, self, self, aim, closest_point_to_check, -aim, damage, kick / 2,
+					DamageFlags::DestroyArmor | DamageFlags::NoKnockback, mod);
+			else
+				Damage(hit, self, self, aim, closest_point_to_check, -aim, damage, kick / 2, DamageFlags::NoKnockback, mod);
+		}
 
-                was_hit = true;
-        }
+		was_hit = true;
+	}
 
-        return was_hit;
+	return was_hit;
 }
 
 // *************************

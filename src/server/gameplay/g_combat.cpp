@@ -444,12 +444,12 @@ bool OnSameTeam(gentity_t* ent1, gentity_t* ent2) {
 		return false;
 
 	// QuadHog special: if either has quad, do not consider teammates
-        if (g_quadhog->integer) {
-                if (ent1->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time ||
-                        ent2->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time)
-                        return false;
-                return true;
-        }
+	if (g_quadhog->integer) {
+		if (ent1->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time ||
+			ent2->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time)
+			return false;
+		return true;
+	}
 
 	// Coop: all clients are treated as teammates
 	if (CooperativeModeOn())
@@ -782,7 +782,7 @@ static void CheckDamageProtection(
 	ctx.proBall = Game::Is(GameType::ProBall);
 	ctx.selfDamageDisabled = !g_selfDamage->integer;
 	ctx.isSelfDamage = (attacker != nullptr) && (targ == attacker);
-    ctx.hasBattleSuit = (targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time);
+	ctx.hasBattleSuit = (targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time);
 	ctx.isRadiusDamage = static_cast<int>(dFlags & DamageFlags::Radius);
 	ctx.hasGodMode = (targ->flags & FL_GODMODE);
 	ctx.isMonster = (targ->svFlags & SVF_MONSTER);
@@ -979,38 +979,38 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 		take = Tech_ApplyDisruptorShield(targ, take);
 
 		// spawn protection
-                if (take > 0 && targCl && targCl->PowerupTimer(PowerupTimer::SpawnProtection) > level.time) {
-                        gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
-                        take = 0;
-                        targCl->pu_time_spawn_protection_blip = level.time + 100_ms;
-                }
+		if (take > 0 && targCl && targCl->PowerupTimer(PowerupTimer::SpawnProtection) > level.time) {
+			gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
+			take = 0;
+			targCl->pu_time_spawn_protection_blip = level.time + 100_ms;
+		}
 
-                // battle suit halves remaining damage
-                if (take > 0 && targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time) {
-                        gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
-                        take = static_cast<int>(std::ceil(static_cast<float>(take) / 2.0f));
-                }
+		// battle suit halves remaining damage
+		if (take > 0 && targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time) {
+			gi.sound(targ, CHAN_AUX, gi.soundIndex("items/protect3.wav"), 1, ATTN_NORM, 0);
+			take = static_cast<int>(std::ceil(static_cast<float>(take) / 2.0f));
+		}
 
-                // empathy shield halves remaining damage and inflicts the same damage to attacker
-                if (targCl && targCl->PowerupTimer(PowerupTimer::EmpathyShield) > level.time && take > 0 && attacker &&
-                        targ != attacker) {
-                        gi.sound(targ, CHAN_AUX, gi.soundIndex("items/empathy_hit.wav"), 1, ATTN_NORM, 0);
-                        take = static_cast<int>(std::ceil(static_cast<float>(take) / 2.0f));
+		// empathy shield halves remaining damage and inflicts the same damage to attacker
+		if (targCl && targCl->PowerupTimer(PowerupTimer::EmpathyShield) > level.time && take > 0 && attacker &&
+			targ != attacker) {
+			gi.sound(targ, CHAN_AUX, gi.soundIndex("items/empathy_hit.wav"), 1, ATTN_NORM, 0);
+			take = static_cast<int>(std::ceil(static_cast<float>(take) / 2.0f));
 
-                        Damage(attacker, nullptr, targ, dir, point, normal, take, 0, DamageFlags::NoProtection | DamageFlags::NoKnockback | DamageFlags::NoIndicator, mod);
-                }
-        }
+			Damage(attacker, nullptr, targ, dir, point, normal, take, 0, DamageFlags::NoProtection | DamageFlags::NoKnockback | DamageFlags::NoIndicator, mod);
+		}
+	}
 
 	if (!freezeSuppressed)
 		CTF_CheckHurtCarrier(targ, attacker);
 
 	// DamageFlags::DestroyArmor: do full damage through armor unless explicitly protected
 	if (!freezeSuppressed && static_cast<int>(dFlags & DamageFlags::DestroyArmor)) {
-                if (!(targ->flags & FL_GODMODE) &&
-                        !static_cast<int>(dFlags & DamageFlags::NoProtection) &&
-                        !(targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time)) {
-                        take = damage;
-                }
+		if (!(targ->flags & FL_GODMODE) &&
+			!static_cast<int>(dFlags & DamageFlags::NoProtection) &&
+			!(targCl && targCl->PowerupTimer(PowerupTimer::BattleSuit) > level.time)) {
+			take = damage;
+		}
 	}
 
 	// scoring and stat tracking for the attacker (only if target still alive here)
