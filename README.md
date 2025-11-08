@@ -76,3 +76,7 @@ See [docs/versioning.md](docs/versioning.md) for comprehensive versioning polici
 - Quake II Rerelease [source code](https://github.com/id-Software/quake2-rerelease-dll)
 - The Ionized mod: [source](https://github.com/Konig-Varorson/quake2-rerelease-dll-ionized/) and [ModDb page](https://www.moddb.com/mods/quake-ii-ionized/)
 - Join in the discussion at [DarkMatter on Discord](https://discord.gg/T32mFejwR4)
+
+## Repository layout
+- `tools/` – Development utilities, automation scripts, and packaging helpers.
+- `refs/` – Reference material such as upstream source drops, change patches, and assorted notes used for historical context during development.
