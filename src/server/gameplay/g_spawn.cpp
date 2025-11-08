@@ -2353,7 +2353,7 @@ Only used for the world.
 "ruleset"			overrides gameplay ruleset (q1/q2/q3a)
 */
 void SP_worldspawn(gentity_t* ent) {
-	std::string name = fmt::format("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION);
+	std::string name = fmt::format("{} v{}", worr::version::kGameTitle, worr::version::kGameVersion);
 	std::strncpy(level.gamemod_name.data(), name.c_str(), level.gamemod_name.size() - 1);
 	level.gamemod_name.back() = '\0'; // Ensure null-termination
 

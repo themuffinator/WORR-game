@@ -1882,12 +1882,12 @@ static THINK(info_world_text_think)(gentity_t* self) -> void {
 
 		switch (level.matchState) {
 		case MatchState::Warmup_ReadyUp:
-			textBuf = std::format("Welcome to {}\nKindly ready the fuck up...", GAMEMOD_TITLE);
+			textBuf = std::format("Welcome to {}\nKindly ready the fuck up...", worr::version::kGameTitle);
 			text = textBuf;
 			break;
 
 		case MatchState::Warmup_Default:
-			textBuf = std::format("Welcome to {}", GAMEMOD_TITLE);
+			textBuf = std::format("Welcome to {}", worr::version::kGameTitle);
 			text = textBuf;
 			break;
 

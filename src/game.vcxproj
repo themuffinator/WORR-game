@@ -114,6 +114,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="shared\bg_local.hpp" />
+    <ClInclude Include="shared\version.hpp" />
     <ClInclude Include="server\bots\bot_debug.hpp" />
     <ClInclude Include="server\bots\bot_exports.hpp" />
     <ClInclude Include="server\bots\bot_includes.hpp" />
