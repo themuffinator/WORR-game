@@ -77,6 +77,9 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
+    <PreBuildEvent>
+      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version.hpp"</Command>
+    </PreBuildEvent>
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -105,6 +108,9 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
+    <PreBuildEvent>
+      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version.hpp"</Command>
+    </PreBuildEvent>
     <Link>
       <SubSystem>NotSet</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -114,6 +120,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="shared\bg_local.hpp" />
+    <ClInclude Include="shared\version.hpp" />
     <ClInclude Include="server\bots\bot_debug.hpp" />
     <ClInclude Include="server\bots\bot_exports.hpp" />
     <ClInclude Include="server\bots\bot_includes.hpp" />
