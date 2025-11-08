@@ -47,6 +47,14 @@ It is a successor to my previous project, [Muff Mode](https://github.com/themuff
 
 ---
 
+## Documentation
+- **[WORR Wiki](docs/wiki/index.md)** — Persona-focused guides for server hosts, players, level designers, and programmers, plus links to broader reference material.
+- Additional technical references live throughout the [`docs/`](docs/) directory, including changelog comparisons and versioning policy.
+
+> WORR does not currently ship a standalone web UI. To browse the wiki, open the Markdown files directly in your editor or render them with your preferred static site tooling.
+
+---
+
 ## Release Channels & Upgrade Path
 - **Stable** — Fully vetted releases recommended for production servers; expect only critical hotfixes between major updates.
 - **Release Candidate (RC)** — Final verification builds that preview the upcoming stable release; suitable for staging environments that mirror production.

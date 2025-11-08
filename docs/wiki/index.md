@@ -1,13 +1,19 @@
-# WORR Wiki Overview
+# WORR Wiki Home
 
-Welcome to the WORR knowledge base. This page outlines the mod's overall scope, major multiplayer and system innovations, and key interface upgrades to help you navigate the rest of the documentation.
+Welcome to the hub for WORR documentation. WORR extends the QUAKE II Rerelease with a modernized ruleset, deeper systemic support, and quality-of-life upgrades for both competitive multiplayer and refreshed campaign play. Use this page to orient yourself and jump straight to the material that matches your role.
 
 ## Persona Guides
 
 - **[Server Hosts Guide](server-hosts.md)** — Deployment strategies, server presets, and administrative tooling.
 - **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
+- **[Command Reference](commands.md)** — Console command catalog covering admin tools, player utilities, voting, and cheat/debug workflows.
 - **[Level Designers Guide](level-design.md)** — Entity support, map logic extensions, and content authoring workflows (see the [Entity Catalogue](level-design.md#entity-catalogue) for exhaustive classname coverage).
 - **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
+- **[Cvar Reference](cvars.md)** — Full catalogue of server variables, default values, and scope notes.
+
+## Reference Material
+
+- [WORR cvar matrix](cvars.md) — Cross-link of settings discussed throughout the persona guides.
 
 > **What’s new vs. the stock QUAKE II Rerelease?**
 > 
@@ -17,31 +23,25 @@ Welcome to the WORR knowledge base. This page outlines the mod's overall scope, 
 
 WORR is an advanced gameplay expansion and server mod for the **QUAKE II Rerelease**. It builds on the rerelease to deliver a richer, more dynamic single-player and multiplayer experience. Extensive refinements and bug fixes span the campaign and multiplayer modes, with vastly expanded support for entities, monsters, and map logic that pull in elements from other QUAKE titles and popular community mods. Gameplay is tuned for both veterans seeking greater challenge and newcomers who benefit from improved accessibility.
 
-## Multiplayer & Systems Highlights
+## Goals at a Glance
 
-WORR transforms multiplayer into a flexible, competitive, and feature-rich platform:
+- **Elevate the QUAKE II Rerelease** with expanded entities, smarter AI, and refined balance that respect the original feel while raising the skill ceiling.
+- **Empower organized play** through match presets, tournament orchestration, and recovery tooling that keep sessions fair and resilient.
+- **Streamline collaboration** across players, server hosts, level designers, and programmers by documenting conventions, workflows, and extension points.
 
-- **Seventeen gametypes** including Duel, Domination, Clan Arena, Freeze Tag, and more.
-- **Game modifiers** such as Vampiric Damage, Marathon Mode, and Gravity Lotto to remix match flow.
-- **Hosting and server tools** with match presets, tournament mode for scheduled events, and a powerful map management system featuring pools, voting, and rotation logic.
-- **Competitive infrastructure** covering match state progression and recovery, extended administrative and match management commands, server-side client configuration storage, and an Auto-Ghost system that lets disconnected players rejoin with their score, inventory, and stats restored.
+## Persona Guides
 
-## Interface & Presentation Improvements
+Choose the guide that best aligns with how you interact with WORR:
 
-WORR's presentation layer is crafted to convey more information without sacrificing speed:
+- **[Server Hosts](server-hosts.md)** – Deployment checklists, recommended presets, admin commands, and recovery tooling.
+- **[Players](players.md)** – Gametype primers, modifier breakdowns, HUD tips, and progression notes for newcomers and veterans.
+- **[Level Designers](level-design.md)** – Entity support, map scripting hooks, cross-title compatibility, and packaging workflows.
+- **[Programmers](programmers.md)** – Code architecture tour, extension seams, scripting interfaces, and contribution guidelines.
 
-- A sleek yet informative adaptive HUD tailored to each gametype.
-- Integrated mini-score display and frag messages directly in the UI.
-- Dynamic match announcer feedback.
-- Automatic application of QUAKE and QUAKE III: ARENA-style rulesets when maps support them.
+## More Documentation
 
-## Release Channels
+- A high-level comparison with the base game lives in [docs/worr_vs_quake2.md](../worr_vs_quake2.md).
+- Release cadence, support tiers, and upgrade paths are detailed in [docs/versioning.md](../versioning.md).
+- Explore additional design and ruleset references in the rest of the [`docs/`](../) directory.
 
-WORR ships through several release channels so you can balance stability with early access:
-
-- **Stable** — Fully vetted releases recommended for production servers, with only critical hotfixes between major updates.
-- **Release Candidate (RC)** — Final verification builds that preview the next stable release and suit staging environments.
-- **Beta** — Feature-complete builds under active testing for enthusiasts comfortable with occasional regressions.
-- **Nightly** — Automated snapshots of ongoing development aimed at contributors validating the latest fixes.
-
-See [docs/versioning.md](../versioning.md) for full versioning policies, upgrade guidance, and support timelines.
+Need something you cannot find here? Open an issue or start a thread on the DarkMatter Discord to request new coverage.

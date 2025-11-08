@@ -40,9 +40,11 @@
 > **Tip:** Loadouts, scoring rules, and round flow come from the flags defined in `GameTypeInfo`. The console short name is the value to feed `g_gametype` or the Call Vote menu. Consult mode-specific docs (e.g., Domination above) when a lobby needs deeper strategy, and map authors can reference the [Entity Catalogue](level-design.md#entity-catalogue) to double-check spawn and objective coverage before sharing workshop builds.
 
 ## Voting and Match Etiquette
+- Want the complete syntax for `callvote`, ready commands, or spectator tools? Check the [Command Reference](commands.md) for detailed usage notes to share with teammates before calling for action.
 - **How votes unlock:** Server hosts mask vote commands with `g_vote_flags`. Each bit toggles an item (map, restart, gametype, limits, shuffle/balance, unlagged, arena, etc.). Default servers enable all flags (`8191`), showing every option.
 - **Reading the menu:** If a choice is missing, the host likely cleared that bit—ask before spamming chat, and remember hosts may restrict disruptive calls like `shuffle` during events.
 - **Etiquette:** Call votes with a clear reason (“Restart for overtime bugged scoreboard”) and allow the countdown to finish. Avoid chaining failed votes; wait a few minutes or until the match state changes. Hosts appreciate players rallying support in team chat before triggering global prompts.
+- **Want to know the knobs?** The [Cvar Reference](cvars.md#voting-admin-and-moderation) breaks down which server toggles influence the vote menu, warmup readiness, and timeout privileges.
 
 ## Reconnect Safeguards and Ghost Tips
 - **Pending Ghost Respawns:** WORR caches your last position/angles when the auto-ghost system is active. On rejoin, it first checks if your ghost spot is clear of players or geometry before spawning you there.

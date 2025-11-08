@@ -9,7 +9,7 @@
 **Upgrade rhythm.** Track releases via the `VERSION` file or repository tags, and maintain a staging server on the current RC (or latest stable when no RC exists). Promote staging builds after a smoke test that covers login, warmup, match flow, map voting, and stat export. For critical tournaments, freeze on the latest stable for at least one scrim cycle to validate player configs before inviting the public.
 
 ## Map System Configuration
-WORR’s map framework combines a structured pool with rotation helpers. Keep the source files in `baseq2/` and reload them via admin commands after edits.
+WORR’s map framework combines a structured pool with rotation helpers. Keep the source files in `baseq2/` and reload them via admin commands after edits. Consult the [Cvar Reference](cvars.md) for flag defaults that govern map pools, selector logic, and MyMap queues before changing these files.
 
 ### Map Pool
 Define the canonical list of playable maps in a JSON file referenced by `g_maps_pool_file`:
@@ -88,7 +88,7 @@ Flags let requesters toggle powerups, armor, ammo, health, the BFG, fall damage,
 Start with the preset that matches your primary playlist and extend it when the community requests additional autonomy (for example, enabling `ruleset` during mixed rules nights).
 
 ## Admin Command Quick Reference
-Group admin commands by the workflows they support. All commands require admin status and, unless noted, work for spectators and during intermission.
+Group admin commands by the workflows they support. All commands require admin status and, unless noted, work for spectators and during intermission. See the [Command Reference](commands.md) for exhaustive syntax, permissions, and player-facing utilities.
 
 ### Access Control & Policy
 - `add_admin <client#|name|social_id>` / `remove_admin <…>` – Manage the persistent admin roster stored in `admin.txt`. Refreshes the in-memory list and announces changes.
