@@ -37,7 +37,7 @@
 | ProBall | `ball` | Team sports twist—control the ball to score. | — |
 | Gauntlet | `gauntlet` | Duel-centric rounds emphasizing precision frags. | — |
 
-> **Tip:** Loadouts, scoring rules, and round flow come from the flags defined in `GameTypeInfo`. The console short name is the value to feed `g_gametype` or the Call Vote menu. Consult mode-specific docs (e.g., Domination above) when a lobby needs deeper strategy.
+> **Tip:** Loadouts, scoring rules, and round flow come from the flags defined in `GameTypeInfo`. The console short name is the value to feed `g_gametype` or the Call Vote menu. Consult mode-specific docs (e.g., Domination above) when a lobby needs deeper strategy, and map authors can reference the [Entity Catalogue](level-design.md#entity-catalogue) to double-check spawn and objective coverage before sharing workshop builds.
 
 ## Voting and Match Etiquette
 - **How votes unlock:** Server hosts mask vote commands with `g_vote_flags`. Each bit toggles an item (map, restart, gametype, limits, shuffle/balance, unlagged, arena, etc.). Default servers enable all flags (`8191`), showing every option.

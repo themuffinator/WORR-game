@@ -6,7 +6,7 @@ Welcome to the WORR knowledge base. This page outlines the mod's overall scope, 
 
 - **[Server Hosts Guide](server-hosts.md)** — Deployment strategies, server presets, and administrative tooling.
 - **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
-- **[Level Designers Guide](level-designers.md)** — Entity support, map logic extensions, and content authoring workflows.
+- **[Level Designers Guide](level-design.md)** — Entity support, map logic extensions, and content authoring workflows (see the [Entity Catalogue](level-design.md#entity-catalogue) for exhaustive classname coverage).
 - **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
 
 > **What’s new vs. the stock QUAKE II Rerelease?**
