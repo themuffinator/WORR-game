@@ -37,6 +37,8 @@ Define the canonical list of playable maps in a JSON file referenced by `g_maps_
 ```
 Required keys: `bsp`, at least one game-mode flag (`dm` for deathmatch). Optional fields tailor matchmaking constraints and defaults such as score limit overrides or preferred rulesets.
 
+> **Design hand-off:** When curating rotation updates, point level builders to the [Entity Catalogue](level-design.md#entity-catalogue) so spawnpads, arenas, and objective triggers match the metadata you advertise to players.
+
 ### Map Cycle
 The `g_maps_cycle_file` points to a plain-text rotation list. Separate BSP names by spaces, commas, or newlines and annotate with comments:
 ```text

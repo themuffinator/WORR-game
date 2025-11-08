@@ -37,7 +37,7 @@
 | ProBall | `ball` | Team sports twist—control the ball to score. | — |
 | Gauntlet | `gauntlet` | Duel-centric rounds emphasizing precision frags. | — |
 
-> **Tip:** Loadouts, scoring rules, and round flow come from the flags defined in `GameTypeInfo`. The console short name is the value to feed `g_gametype` or the Call Vote menu. Consult mode-specific docs (e.g., Domination above) when a lobby needs deeper strategy.
+> **Tip:** Loadouts, scoring rules, and round flow come from the flags defined in `GameTypeInfo`. The console short name is the value to feed `g_gametype` or the Call Vote menu. Consult mode-specific docs (e.g., Domination above) when a lobby needs deeper strategy, and map authors can reference the [Entity Catalogue](level-design.md#entity-catalogue) to double-check spawn and objective coverage before sharing workshop builds.
 
 ## Voting and Match Etiquette
 - Want the complete syntax for `callvote`, ready commands, or spectator tools? Check the [Command Reference](commands.md) for detailed usage notes to share with teammates before calling for action.

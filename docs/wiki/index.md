@@ -7,7 +7,7 @@ Welcome to the hub for WORR documentation. WORR extends the QUAKE II Rerelease w
 - **[Server Hosts Guide](server-hosts.md)** — Deployment strategies, server presets, and administrative tooling.
 - **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
 - **[Command Reference](commands.md)** — Console command catalog covering admin tools, player utilities, voting, and cheat/debug workflows.
-- **[Level Designers Guide](level-designers.md)** — Entity support, map logic extensions, and content authoring workflows.
+- **[Level Designers Guide](level-design.md)** — Entity support, map logic extensions, and content authoring workflows (see the [Entity Catalogue](level-design.md#entity-catalogue) for exhaustive classname coverage).
 - **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
 - **[Cvar Reference](cvars.md)** — Full catalogue of server variables, default values, and scope notes.
 
