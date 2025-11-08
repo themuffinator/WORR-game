@@ -767,3 +767,298 @@ void CTF_ClientEffects(gentity_t* player) {
 	else
 		player->s.modelIndex3 = 0;
 }
+
+namespace {
+	constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
+	constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
+	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
+	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
+	constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
+
+	[[nodiscard]] bool Harvester_Active() {
+		return Game::Is(GameType::Harvester);
+	}
+
+	[[nodiscard]] Vector3 Harvester_GeneratorOrigin(const Vector3& fallback) {
+		if (level.harvester.generator && level.harvester.generator->inUse)
+			return level.harvester.generator->s.origin;
+		return fallback;
+	}
+
+	THINK(Harvester_SkullExpire)(gentity_t* ent) -> void {
+		if (!ent)
+			return;
+		FreeEntity(ent);
+	}
+
+	void Harvester_PositionOnFloor(gentity_t* ent) {
+		if (!ent)
+			return;
+
+		Vector3 start = ent->s.origin;
+		start.z += 1.0f;
+		Vector3 end = start;
+		end.z -= 4096.0f;
+
+		const trace_t tr = gi.trace(start, HARVESTER_BASE_MINS, HARVESTER_BASE_MAXS, end, ent, MASK_SOLID);
+		if (!tr.startSolid)
+			ent->s.origin = tr.endPos;
+	}
+
+	TOUCH(Harvester_BaseTouch)(gentity_t* ent, gentity_t* other, const trace_t&, bool) -> void {
+		if (!Harvester_Active())
+			return;
+		if (!ent || !other || !other->client)
+			return;
+
+		const Team baseTeam = ent->fteam;
+		if (baseTeam != Team::Red && baseTeam != Team::Blue)
+			return;
+
+		if (other->client->sess.team != baseTeam)
+			return;
+
+		const int tokens = other->client->ps.generic1;
+		if (tokens <= 0)
+			return;
+
+		other->client->ps.generic1 = 0;
+		G_AdjustPlayerScore(other->client, tokens, true, tokens);
+
+		level.ctf_last_flag_capture = level.time;
+		level.ctf_last_capture_team = baseTeam;
+
+		const std::string msg = G_Fmt("{} delivered {} skull{}.",
+			other->client->sess.netName,
+			tokens,
+			tokens == 1 ? "" : "s");
+		gi.LocBroadcast_Print(PRINT_HIGH, msg.c_str());
+		Team_CaptureFlagSound(ent, baseTeam);
+	}
+
+	gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback) {
+		if (!Harvester_Active())
+			return nullptr;
+
+		Item* item = GetItemByIndex(IT_HARVESTER_SKULL);
+		if (!item)
+			return nullptr;
+
+		gentity_t* skull = Spawn();
+		if (!skull)
+			return nullptr;
+
+		skull->className = item->className;
+		skull->item = item;
+		skull->s.effects = item->worldModelFlags;
+		skull->s.renderFX |= RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
+		if (team == Team::Red)
+			skull->s.renderFX |= RF_SHELL_RED;
+		else if (team == Team::Blue)
+			skull->s.renderFX |= RF_SHELL_BLUE;
+
+		skull->mins = { -12.0f, -12.0f, -12.0f };
+		skull->maxs = { 12.0f, 12.0f, 12.0f };
+		skull->solid = SOLID_TRIGGER;
+		skull->clipMask = MASK_SOLID;
+		skull->moveType = MoveType::Toss;
+		skull->touch = Touch_Item;
+		skull->think = Harvester_SkullExpire;
+		skull->nextThink = level.time + HARVESTER_SKULL_LIFETIME;
+		skull->spawnFlags |= SPAWNFLAG_ITEM_DROPPED_PLAYER;
+		skull->fteam = team;
+
+		Vector3 origin = Harvester_GeneratorOrigin(fallback);
+		origin.x += crandom() * 24.0f;
+		origin.y += crandom() * 24.0f;
+		origin.z += 16.0f + fabsf(crandom() * 12.0f);
+		skull->s.origin = origin;
+
+		skull->velocity = { crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
+			crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
+			HARVESTER_SKULL_VERTICAL_TOSS + frandom() * HARVESTER_SKULL_VERTICAL_TOSS };
+
+		gi.setModel(skull, item->worldModel);
+		gi.linkEntity(skull);
+		return skull;
+	}
+
+	void Harvester_DropSkulls(Team team, int count, const Vector3& fallback) {
+		if (team != Team::Red && team != Team::Blue)
+			return;
+		if (count <= 0)
+			return;
+
+		for (int i = 0; i < count; ++i)
+			Harvester_SpawnSkull(team, fallback);
+	}
+
+	void Harvester_RegisterBase(gentity_t* ent, Team team) {
+		if (!ent)
+			return;
+
+		Harvester_PositionOnFloor(ent);
+		ent->mins = HARVESTER_BASE_MINS;
+		ent->maxs = HARVESTER_BASE_MAXS;
+		ent->solid = SOLID_TRIGGER;
+		ent->clipMask = MASK_PLAYERSOLID;
+		ent->moveType = MoveType::None;
+		ent->touch = Harvester_BaseTouch;
+		ent->fteam = team;
+		gi.linkEntity(ent);
+
+		const size_t idx = static_cast<size_t>(team);
+		if (idx < level.harvester.bases.size())
+			level.harvester.bases[idx] = ent;
+	}
+
+	void Harvester_RegisterGenerator(gentity_t* ent) {
+		if (!ent)
+			return;
+
+		Harvester_PositionOnFloor(ent);
+		ent->solid = SOLID_NOT;
+		ent->clipMask = CONTENTS_NONE;
+		ent->moveType = MoveType::None;
+		gi.linkEntity(ent);
+		level.harvester.generator = ent;
+	}
+}
+
+bool Harvester_PickupSkull(gentity_t* ent, gentity_t* other) {
+	if (!Harvester_Active())
+		return false;
+	if (!ent || !other || !other->client)
+		return false;
+
+	const Team skullTeam = ent->fteam;
+	if (skullTeam != Team::Red && skullTeam != Team::Blue)
+		return false;
+
+	const Team playerTeam = other->client->sess.team;
+	if (playerTeam != Team::Red && playerTeam != Team::Blue)
+		return false;
+
+	if (playerTeam == skullTeam) {
+		G_AdjustPlayerScore(other->client, 1, false, 0);
+		return true;
+	}
+
+	const Team enemy = Teams_OtherTeam(playerTeam);
+	if (enemy != skullTeam)
+		return false;
+
+	constexpr int MAX_SKULLS = 99;
+	if (other->client->ps.generic1 < MAX_SKULLS)
+		other->client->ps.generic1 = std::min(MAX_SKULLS, other->client->ps.generic1 + 1);
+
+	return true;
+}
+
+void Harvester_Reset() {
+	level.harvester.generator = nullptr;
+	level.harvester.bases.fill(nullptr);
+
+	for (size_t i = 0; i < globals.numEntities; ++i) {
+		gentity_t* ent = &g_entities[i];
+		if (!ent->inUse)
+			continue;
+		if (ent->item && ent->item->id == IT_HARVESTER_SKULL)
+			FreeEntity(ent);
+	}
+
+	for (auto ec : active_clients()) {
+		if (!ec->client)
+			continue;
+		ec->client->ps.generic1 = 0;
+	}
+}
+
+void Harvester_HandlePlayerDeath(gentity_t* victim) {
+	if (!Harvester_Active() || !victim || !victim->client)
+		return;
+
+	const Team team = victim->client->sess.team;
+	if (team != Team::Red && team != Team::Blue)
+		return;
+
+	const Team enemy = Teams_OtherTeam(team);
+	const int carried = victim->client->ps.generic1;
+	if (carried > 0 && (enemy == Team::Red || enemy == Team::Blue))
+		Harvester_DropSkulls(enemy, carried, victim->s.origin);
+
+	Harvester_DropSkulls(team, 1, victim->s.origin);
+	victim->client->ps.generic1 = 0;
+}
+
+void Harvester_HandlePlayerDisconnect(gentity_t* ent) {
+	if (!Harvester_Active() || !ent || !ent->client)
+		return;
+
+	const Team team = ent->client->sess.team;
+	if (team != Team::Red && team != Team::Blue)
+		return;
+
+	const Team enemy = Teams_OtherTeam(team);
+	const int carried = ent->client->ps.generic1;
+	if (carried > 0 && (enemy == Team::Red || enemy == Team::Blue))
+		Harvester_DropSkulls(enemy, carried, ent->s.origin);
+
+	ent->client->ps.generic1 = 0;
+	Harvester_DropSkulls(team, 1, ent->s.origin);
+}
+
+void Harvester_HandleTeamChange(gentity_t* ent) {
+	if (!Harvester_Active() || !ent || !ent->client)
+		return;
+
+	const Team team = ent->client->sess.team;
+	if (team != Team::Red && team != Team::Blue)
+		return;
+
+	const Team enemy = Teams_OtherTeam(team);
+	const int carried = ent->client->ps.generic1;
+	if (carried > 0 && (enemy == Team::Red || enemy == Team::Blue))
+		Harvester_DropSkulls(enemy, carried, ent->s.origin);
+
+	ent->client->ps.generic1 = 0;
+}
+
+void Harvester_OnClientSpawn(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
+
+	ent->client->ps.generic1 = 0;
+}
+
+void SP_team_redobelisk(gentity_t* ent) {
+	if (Game::IsNot(GameType::Harvester)) {
+		FreeEntity(ent);
+		return;
+	}
+
+	Harvester_RegisterBase(ent, Team::Red);
+}
+
+void SP_team_blueobelisk(gentity_t* ent) {
+	if (Game::IsNot(GameType::Harvester)) {
+		FreeEntity(ent);
+		return;
+	}
+
+	Harvester_RegisterBase(ent, Team::Blue);
+}
+
+void SP_team_neutralobelisk(gentity_t* ent) {
+	if (Game::Is(GameType::Harvester)) {
+		Harvester_RegisterGenerator(ent);
+		return;
+	}
+
+	if (Game::Is(GameType::OneFlag)) {
+		neutralObelisk = ent;
+		return;
+	}
+
+	FreeEntity(ent);
+}

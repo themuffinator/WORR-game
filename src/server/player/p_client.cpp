@@ -1735,9 +1735,10 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
                 self->client->ps.pmove.pmType = PM_DEAD;
                 ClientObituary(self, inflictor, attacker, mod);
 
-                CTF_ScoreBonuses(self, inflictor, attacker);
-                ProBall::HandleCarrierDeath(self);
-                TossClientItems(self);
+		CTF_ScoreBonuses(self, inflictor, attacker);
+		ProBall::HandleCarrierDeath(self);
+		Harvester_HandlePlayerDeath(self);
+		TossClientItems(self);
                 Weapon_Grapple_DoReset(self->client);
 
 		if (deathmatch->integer && !self->client->showScores)
@@ -2441,9 +2442,10 @@ void ClientRespawn(gentity_t* ent) {
 		}
 
 		ClientCompleteSpawn(ent);
+		Harvester_OnClientSpawn(ent);
 
 		if (FreezeTag_IsActive())
-			FreezeTag_ResetState(ent->client);
+		FreezeTag_ResetState(ent->client);
 		return;
 	}
 
@@ -3048,6 +3050,9 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 
 	if (!changedTeam && !changedQueue && !changedInactive)
 		return false;
+
+	if (changedTeam)
+		Harvester_HandleTeamChange(ent);
 
 	const int64_t now = GetCurrentRealTimeMillis();
 
@@ -3793,9 +3798,10 @@ void ClientDisconnect(gentity_t* ent) {
 
         PlayerTrail_Destroy(ent);
 
-        ProBall::HandleCarrierDisconnect(ent);
+	ProBall::HandleCarrierDisconnect(ent);
+	Harvester_HandlePlayerDisconnect(ent);
 
-        if (!(ent->svFlags & SVF_NOCLIENT)) {
+	if (!(ent->svFlags & SVF_NOCLIENT)) {
                 TossClientItems(ent);
 
                 // send effect

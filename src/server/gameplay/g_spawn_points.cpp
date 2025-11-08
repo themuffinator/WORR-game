@@ -1151,6 +1151,8 @@ void ClientSpawn(gentity_t* ent) {
 	if (!cl)
 		return;
 
+	Harvester_OnClientSpawn(ent);
+
 	int					index = ent - g_entities - 1;
 	Vector3				spawnOrigin, spawnAngles;
 	client_persistant_t	savedPers;
