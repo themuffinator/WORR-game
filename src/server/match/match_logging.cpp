@@ -1464,9 +1464,9 @@ static void SendIndividualMiniStats(const MatchStats& matchStats) {
 		if (!ec || !ec->client)
 			continue;
 
-                const std::string& rawName = ec->client->sess.netName;
+                const char* rawName = ec->client->sess.netName;
 
-                if (rawName.empty()) {
+                if (!rawName[0]) {
                         gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
                         continue;
                 }

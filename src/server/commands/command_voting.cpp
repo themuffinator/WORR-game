@@ -356,7 +356,7 @@ namespace Commands {
 		}
 
                 gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
-                        level.vote.client->sess.netName.c_str(),
+                        level.vote.client->sess.netName,
                         vote_cmd->name.data(),
                         argSuffix.empty() ? "" : argSuffix.c_str());
 

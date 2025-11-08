@@ -616,7 +616,7 @@ void Duel_RemoveLoser() {
 		return;
 
 	if (g_verbose->integer)
-            gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName.c_str());
+            gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
 
 	SetTeam(loser, Team::None, false, true, false);
 
@@ -634,7 +634,7 @@ void Gauntlet_RemoveLoser() {
 		return;
 
 	if (g_verbose->integer)
-            gi.Com_PrintFmt("Gauntlet: Moving the loser, {} to end of queue.\n", loser->client->sess.netName.c_str());
+            gi.Com_PrintFmt("Gauntlet: Moving the loser, {} to end of queue.\n", loser->client->sess.netName);
 
 	SetTeam(loser, Team::None, false, true, false);
 }

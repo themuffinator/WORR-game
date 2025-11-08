@@ -1332,7 +1332,7 @@ gentity_t* ClientEntFromString(const char* in) {
 	// check by nick first
 	if (*in != '\0') {
                 for (auto ec : active_clients())
-                        if (!strcmp(in, ec->client->sess.netName.c_str()))
+                        if (!strcmp(in, ec->client->sess.netName))
                                 return ec;
 	}
 

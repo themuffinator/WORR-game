@@ -1445,18 +1445,21 @@ static void TakeIntermissionScreenshot() {
 	if (Game::Is(GameType::Duel)) {
                 const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
                 const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
-                const char* n1 = (e1 && e1->client && !e1->client->sess.netName.empty()) ? e1->client->sess.netName.c_str() : "player1";
-                const char* n2 = (e2 && e2->client && !e2->client->sess.netName.empty()) ? e2->client->sess.netName.c_str() : "player2";
+                const char* n1 = (e1 && e1->client && e1->client->sess.netName[0]) ? e1->client->sess.netName : "player1";
+                const char* n2 = (e2 && e2->client && e2->client->sess.netName[0]) ? e2->client->sess.netName : "player2";
 
 		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapName.data(), timestamp);
 	}
 	// Other gametypes: gametype + POV name + map
 	else {
-		const gentity_t* ent = &g_entities[1];
-                const std::string& nameRef = (ent->client->follow.target)
-                        ? ent->client->follow.target->client->sess.netName
-                        : ent->client->sess.netName;
-                const char* name = nameRef.empty() ? "player" : nameRef.c_str();
+                const gentity_t* ent = &g_entities[1];
+                const gclient_t* followClient = ent->client->follow.target ? ent->client->follow.target->client : nullptr;
+                const char* name = "player";
+
+                if (followClient && followClient->sess.netName[0])
+                        name = followClient->sess.netName;
+                else if (ent->client->sess.netName[0])
+                        name = ent->client->sess.netName;
 
 		filename = G_Fmt("screenshot {}-{}-{}-{}\n",
 			GametypeIndexToString(static_cast<GameType>(g_gametype->integer)),
