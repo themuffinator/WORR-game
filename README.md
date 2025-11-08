@@ -48,13 +48,23 @@ It is a successor to my previous project, [Muff Mode](github.com/themuffinator/m
 ---
 
 ## Credits
-- id Software for the QUAKE franchise
-- Nightdive for the excellent Quake II Rerelease
+- id Software for the QUAKE franchise. WORR has taken inspiration from all other classic QUAKE titles, particularly QUAKE and QUAKE LIVE.
+- Nightdive for the excellent **QUAKE** and **QUAKE II** Rereleases
 - The community, particularly:
-  - Paril, serraboof and WatIsDeze for technical help, mostly on the Map-Center Discord server
-  - ozy, Jobe and many more for playtesting and providing feedback on Muff Mode which greatly assisted future development.
+  - **Paril**, **serraboof** and **WatIsDeze** for technical help, mostly on the Map-Center Discord server
+  - **ozy**, **Jobe** and many more for playtesting and providing feedback on Muff Mode which greatly assisted future development.
+  - Projects that WORR has directly or indirectly borrowed from:
+    - QUAKE Rerelease (Nightdive, id Software)
+    - QUAKE II Rerelease (Nightdive, id Software)
+    - QUAKE III: Arena (id Software)
+    - Muff Mode
+    - Ionized (Konig)
+    - Oblivion (Team Evolve, particularly John Fitzgibbons)
+    - Horde Mod (Paril)
+    - PSX Mod (Paril)
 
 ## Links
 - Get Quake II Rerelease on [Steam](https://store.steampowered.com/agecheck/app/2320/), [GOG.com](https://www.gog.com/en/game/quake_ii_quad_damage), [Epic Games Store](https://store.epicgames.com/en-US/p/quake-ii) and a variety of console platforms.
 - Quake II Rerelease [source code](https://github.com/id-Software/quake2-rerelease-dll)
+- The Ionized mod: [source](github.com/Konig-Varorson/quake2-rerelease-dll-ionized/) and [ModDb page](https://www.moddb.com/mods/quake-ii-ionized/)
 - Join in the discussion at [DarkMatter on Discord](https://discord.gg/T32mFejwR4)
