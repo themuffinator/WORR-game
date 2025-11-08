@@ -78,7 +78,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version.hpp"</Command>
+      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version_autogen.hpp"</Command>
     </PreBuildEvent>
     <Link>
       <SubSystem>NotSet</SubSystem>
@@ -109,7 +109,7 @@
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <PreBuildEvent>
-      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version.hpp"</Command>
+      <Command>python "$(ProjectDir)..\tools\release\gen_version_header.py" --version-file "$(ProjectDir)..\VERSION" --output "$(ProjectDir)shared\version_autogen.hpp"</Command>
     </PreBuildEvent>
     <Link>
       <SubSystem>NotSet</SubSystem>

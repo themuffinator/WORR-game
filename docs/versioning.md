@@ -36,7 +36,7 @@ The script understands the following flags:
 - `--major`, `--minor`, `--patch` – increment the corresponding part of the semantic version. Selecting a larger component resets the smaller numbers and clears any pre-release or build metadata.
 - `--prerelease <value>` – set or clear (`""`) the pre-release identifier.
 - `--build <value>` – set or clear (`""`) the build metadata identifier.
-- `--no-stage` – skip the automatic `git add VERSION src/shared/version.hpp` step.
+- `--no-stage` – skip the automatic `git add VERSION src/shared/version_autogen.hpp` step.
 
 When run without `--no-stage`, the script stages the modified files. If staging fails (for example because Git is unavailable), it prints the `git add` command contributors should run manually.
 

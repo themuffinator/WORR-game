@@ -58,6 +58,12 @@ jobs:
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
 
+      - name: Generate version header
+        if: matrix.identifier == 'windows'
+        shell: pwsh
+        run: |
+          python tools/release/gen_version_header.py --version-file VERSION --output src/shared/version_autogen.hpp
+
       - name: Build solution
         if: matrix.identifier == 'windows'
         shell: pwsh
@@ -88,7 +94,7 @@ jobs:
       - name: Generate version header
         if: matrix.identifier == 'ubuntu'
         run: |
-          python3 tools/release/gen_version_header.py --version-file VERSION --output src/shared/version.hpp
+          python3 tools/release/gen_version_header.py --version-file VERSION --output src/shared/version_autogen.hpp
 
       - name: Build shared object
         if: matrix.identifier == 'ubuntu'
