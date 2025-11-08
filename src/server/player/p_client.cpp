@@ -23,6 +23,7 @@
 #include "../g_local.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../commands/commands.hpp"
+#include "../gameplay/g_headhunters.hpp"
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
@@ -1740,6 +1741,7 @@ DIE(player_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int
 		CTF_ScoreBonuses(self, inflictor, attacker);
 		ProBall::HandleCarrierDeath(self);
 		Harvester_HandlePlayerDeath(self);
+		HeadHunters::DropHeads(self, attacker);
 		TossClientItems(self);
                 Weapon_Grapple_DoReset(self->client);
 
@@ -2421,6 +2423,9 @@ void ClientRespawn(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
 
+	HeadHunters::DropHeads(ent, nullptr);
+	HeadHunters::ResetPlayerState(ent->client);
+
 	ent->client->deathView = {};
 
 	if (FreezeTag_IsActive() && ent && ent->client && ent->client->eliminated && !level.intermission.time) {
@@ -2703,6 +2708,7 @@ deathmatch mode, so clear everything out before starting them.
 */
 static void ClientBeginDeathmatch(gentity_t* ent) {
 	InitGEntity(ent);
+	HeadHunters::ResetPlayerState(ent->client);
 
 	// make sure we have a known default
 	ent->svFlags |= SVF_PLAYER;
@@ -3802,6 +3808,9 @@ void ClientDisconnect(gentity_t* ent) {
 
 	ProBall::HandleCarrierDisconnect(ent);
 	Harvester_HandlePlayerDisconnect(ent);
+
+	HeadHunters::DropHeads(ent, nullptr);
+	HeadHunters::ResetPlayerState(cl);
 
 	if (!(ent->svFlags & SVF_NOCLIENT)) {
                 TossClientItems(ent);

@@ -25,6 +25,7 @@
 #include "../../shared/char_array_utils.hpp"
 #include "../commands/commands.hpp"
 #include "g_clients.hpp"
+#include "g_headhunters.hpp"
 #include <algorithm>
 #include <fstream>
 #include <new>

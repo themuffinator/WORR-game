@@ -2400,6 +2400,33 @@ struct LevelLocals {
 		GameTime nextScoreTime = 0_ms;
 	} domination{};
 
+	struct HeadHuntersState {
+		static constexpr size_t MAX_RECEPTACLES = 32;
+		static constexpr size_t MAX_SPIKES = 32;
+		static constexpr size_t MAX_LOOSE_HEADS = 64;
+
+		struct Receptacle {
+			gentity_t* ent = nullptr;
+			Team team = Team::None;
+		};
+
+		struct SpikeEntry {
+			gentity_t* ent = nullptr;
+			GameTime nextActivation = 0_ms;
+		};
+
+		std::array<Receptacle, MAX_RECEPTACLES> receptacles{};
+		size_t receptacleCount = 0;
+
+		std::array<SpikeEntry, MAX_SPIKES> spikeQueue{};
+		size_t spikeCount = 0;
+
+		std::array<gentity_t*, MAX_LOOSE_HEADS> looseHeads{};
+		size_t looseHeadCount = 0;
+
+		int headModelIndex = 0;
+	} headHunters{};
+
 	struct ProBallState {
 		struct AssistInfo {
 			gentity_t* player = nullptr;
@@ -4711,6 +4738,15 @@ struct gclient_t {
 	GameTime			trackerPainTime = 0_ms;
 
 	gentity_t* ownedSphere; // this points to the player's sphere
+
+	struct HeadHunterData {
+		static constexpr size_t MAX_ATTACHMENTS = 3;
+
+		uint8_t carried = 0;
+		std::array<gentity_t*, MAX_ATTACHMENTS> attachments{};
+		GameTime pickupCooldown = 0_ms;
+		GameTime dropCooldown = 0_ms;
+	} headhunter{};
 
 	GameTime			emptyClickSound = 0_ms;
 
