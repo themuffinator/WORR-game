@@ -76,23 +76,13 @@ jobs:
       - name: Prepare release notes
         run: |
           $checksum = (Get-Content 'dist/SHA256SUMS' -Raw).Trim()
-          $content = @'
-## Summary
-- _Add key highlights for this release._
-
-## Features
-- _Summarize newly added capabilities._
-
-## Fixes
-- _Note important fixes and improvements._
-
-## Checksums
-```text
-{{CHECKSUMS}}
-```
-'@
+          $templatePath = '.github/release_template.md'
+          if (-not (Test-Path $templatePath)) {
+            throw "Release template not found at $templatePath"
+          }
+          $content = Get-Content $templatePath -Raw
           $content = $content -replace '{{CHECKSUMS}}', $checksum
-          $content = $content.TrimStart()
+          $content = $content.Trim()
           Set-Content -Path 'dist/RELEASE_TEMPLATE.md' -Value $content
 
       - name: Draft GitHub release
