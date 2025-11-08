@@ -255,7 +255,7 @@ constexpr struct GameTypeRules {
 	/* GameType::CaptureTheFlag */ {GameFlags::Teams | GameFlags::CTF, 30},
 	/* GameType::ClanArena */ { },
 	/* GameType::OneFlag */ { },
-	/* GameType::Harvester */ { },
+	/* GameType::Harvester */ {GameFlags::Teams | GameFlags::CTF, 30},
 	/* GameType::Overload */ { },
 	/* GameType::FreezeTag */ { },
 	/* GameType::CaptureStrike */ { },
@@ -307,6 +307,7 @@ static void ResetMatchWorldState(bool reloadWorldEntities) {
 
 	Tech_Reset();
 	CTF_ResetFlags();
+	Harvester_Reset();
 
 	if (!reloadedEntities) {
 		Monsters_KillAll();

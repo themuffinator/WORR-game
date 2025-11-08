@@ -652,6 +652,18 @@ static void CTF_SetStats(gentity_t* ent, bool blink) {
 	}
 }
 
+static void Harvester_SetStats(gentity_t* ent, bool /*blink*/) {
+	if (!ent || !ent->client)
+		return;
+
+	ent->client->ps.stats[STAT_MINISCORE_FIRST_PIC] = ii_teams_red_default;
+	ent->client->ps.stats[STAT_MINISCORE_SECOND_PIC] = ii_teams_blue_default;
+	ent->client->ps.stats[STAT_MINISCORE_FIRST_SCORE] = level.teamScores[static_cast<int>(Team::Red)];
+	ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = level.teamScores[static_cast<int>(Team::Blue)];
+	ent->client->ps.stats[STAT_MINISCORE_FIRST_VAL] = 0;
+	ent->client->ps.stats[STAT_MINISCORE_SECOND_VAL] = 0;
+}
+
 /*
 ===============
 SetMiniScoreStats
@@ -760,7 +772,12 @@ static void SetMiniScoreStats(gentity_t* ent) {
 	ent->client->ps.stats[STAT_MINISCORE_SECOND_SCORE] = -999;
 
 	if (Game::Has(GameFlags::CTF)) {
-		CTF_SetStats(ent, blink);
+		if (Game::Is(GameType::Harvester)) {
+			Harvester_SetStats(ent, blink);
+		}
+		else {
+			CTF_SetStats(ent, blink);
+		}
 	}
 	else if (isTeamGame) {
 		if (level.matchState == MatchState::In_Progress) {
@@ -1409,6 +1426,11 @@ void SetStats(gentity_t* ent) {
 	if (freezeActive && frozen) {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
 		gi.configString(CONFIG_MATCH_STATE2, freezeStatus.c_str());
+	}
+	else if (Game::Is(GameType::Harvester) && ent->client->ps.generic1 > 0) {
+		const std::string harvesterStatus = fmt::format("Skulls: {}", ent->client->ps.generic1);
+		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+		gi.configString(CONFIG_MATCH_STATE2, harvesterStatus.c_str());
 	}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;

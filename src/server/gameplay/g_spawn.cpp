@@ -58,6 +58,9 @@ void SP_info_ctf_teleport_destination(gentity_t* self);
 void SP_info_landmark(gentity_t* self);
 void SP_info_world_text(gentity_t* self);
 void SP_info_nav_lock(gentity_t* self);
+void SP_team_redobelisk(gentity_t* ent);
+void SP_team_blueobelisk(gentity_t* ent);
+void SP_team_neutralobelisk(gentity_t* ent);
 
 void SP_func_plat(gentity_t* ent);
 void SP_func_plat2(gentity_t* ent);
@@ -340,6 +343,9 @@ static const std::initializer_list<spawn_t> spawns = {
         { "info_world_text", SP_info_world_text },
         { "info_nav_lock", SP_info_nav_lock },
         { "domination_point", SP_domination_point },
+        { "team_redobelisk", SP_team_redobelisk },
+        { "team_blueobelisk", SP_team_blueobelisk },
+        { "team_neutralobelisk", SP_team_neutralobelisk },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_plat2", SP_func_plat2 },

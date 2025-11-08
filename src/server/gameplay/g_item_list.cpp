@@ -2938,5 +2938,33 @@ model="models/items/keys/data_cd/tris.md2"
 			/* precaches */ "misc/help_marker.wav",
 			/* sortID */ -2
 		},
+
+	/* Harvester Skull */
+		{
+			/* id */ IT_HARVESTER_SKULL,
+			/* className */ "item_harvester_skull",
+			/* pickup */ Harvester_PickupSkull,
+			/* use */ nullptr,
+			/* drop */ nullptr,
+			/* weaponThink */ nullptr,
+			/* pickupSound */ "items/pkup.wav",
+			/* worldModel */ "models/objects/gibs/skull/tris.md2",
+			/* worldModelFlags */ EF_ROTATE | EF_BOB,
+			/* viewModel */ nullptr,
+			/* icon */ "i_skull",
+			/* useName */  "Skull",
+			/* pickupName */  "Skull",
+			/* pickupNameDefinitive */ "Skull",
+			/* quantity */ 0,
+			/* ammo */ IT_NULL,
+			/* chain */ IT_NULL,
+			/* flags */ IF_NOT_RANDOM | IF_NOT_GIVEABLE,
+			/* viewWeaponModel */ nullptr,
+			/* armorInfo */ nullptr,
+			/* tag */ 0,
+			/* highValue*/ HighValueItems::None,
+			/* precaches */ "",
+			/* sortID */ -2
+		},
 } };
 // clang-format on

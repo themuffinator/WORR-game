@@ -1541,6 +1541,8 @@ enum item_id_t : uint8_t {
 	IT_FLASHLIGHT,
 	IT_COMPASS,
 
+	IT_HARVESTER_SKULL,
+
 	IT_TOTAL
 };
 
@@ -2446,6 +2448,11 @@ struct LevelLocals {
 		GameTime idleBegin = 0_ms;
 		bool homeValid = false;
 	} ball{};
+
+	struct HarvesterState {
+		gentity_t* generator = nullptr;
+		std::array<gentity_t*, static_cast<size_t>(Team::Total)> bases{};
+	} harvester{};
 
 	MatchState	matchState = MatchState::None;
 	WarmupState	warmupState = WarmupState::Default;
@@ -4032,6 +4039,16 @@ bool CTF_ResetTeamFlag(Team team);
 void CTF_ResetFlags();
 void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker);
 void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker);
+
+bool Harvester_PickupSkull(gentity_t* ent, gentity_t* other);
+void Harvester_Reset();
+void Harvester_HandlePlayerDeath(gentity_t* victim);
+void Harvester_HandlePlayerDisconnect(gentity_t* ent);
+void Harvester_HandleTeamChange(gentity_t* ent);
+void Harvester_OnClientSpawn(gentity_t* ent);
+void SP_team_redobelisk(gentity_t* ent);
+void SP_team_blueobelisk(gentity_t* ent);
+void SP_team_neutralobelisk(gentity_t* ent);
 
 //
 // g_player.cpp
