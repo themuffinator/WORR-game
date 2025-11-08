@@ -86,7 +86,7 @@ Flags let requesters toggle powerups, armor, ammo, health, the BFG, fall damage,
 Start with the preset that matches your primary playlist and extend it when the community requests additional autonomy (for example, enabling `ruleset` during mixed rules nights).
 
 ## Admin Command Quick Reference
-Group admin commands by the workflows they support. All commands require admin status and, unless noted, work for spectators and during intermission.
+Group admin commands by the workflows they support. All commands require admin status and, unless noted, work for spectators and during intermission. See the [Command Reference](commands.md) for exhaustive syntax, permissions, and player-facing utilities.
 
 ### Access Control & Policy
 - `add_admin <client#|name|social_id>` / `remove_admin <…>` – Manage the persistent admin roster stored in `admin.txt`. Refreshes the in-memory list and announces changes.
