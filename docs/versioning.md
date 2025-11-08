@@ -23,3 +23,19 @@
 - **Players** – stable builds install automatically; upgrading to RC/Beta/Nightly is opt-in via the launcher and may require manual rollback.
 - **Server admins** – upgrade to the newest stable within two weeks of release to stay in sync with public clients; RCs are recommended for staging servers; nightly builds are unsupported in production.
 - **Contributors** – base feature work on the latest nightly or main branch; verify fixes against the current RC when one exists and note any protocol-impacting changes in the changelog draft.
+
+## Updating the project version
+Use `tools/release/bump_version.py` to update the canonical `VERSION` file and regenerate the C++ header that surfaces version information to the game code.
+
+```
+python3 tools/release/bump_version.py --minor
+```
+
+The script understands the following flags:
+
+- `--major`, `--minor`, `--patch` – increment the corresponding part of the semantic version. Selecting a larger component resets the smaller numbers and clears any pre-release or build metadata.
+- `--prerelease <value>` – set or clear (`""`) the pre-release identifier.
+- `--build <value>` – set or clear (`""`) the build metadata identifier.
+- `--no-stage` – skip the automatic `git add VERSION src/shared/version.hpp` step.
+
+When run without `--no-stage`, the script stages the modified files. If staging fails (for example because Git is unavailable), it prints the `git add` command contributors should run manually.
