@@ -6,6 +6,7 @@ Welcome to the WORR knowledge base. This page outlines the mod's overall scope, 
 
 - **[Server Hosts Guide](server-hosts.md)** — Deployment strategies, server presets, and administrative tooling.
 - **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
+- **[Command Reference](commands.md)** — Console command catalog covering admin tools, player utilities, voting, and cheat/debug workflows.
 - **[Level Designers Guide](level-designers.md)** — Entity support, map logic extensions, and content authoring workflows.
 - **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
 
