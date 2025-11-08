@@ -60,6 +60,10 @@ jobs:
           & "$vcpkgRoot\bootstrap-vcpkg.bat"
           Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
 
+      - name: Generate version header
+        run: |
+          python tools/release/gen_version_header.py --version-file VERSION --output src/shared/version_autogen.hpp
+
       - name: Build Release binaries
         run: |
           msbuild "src\WORR-kex.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64

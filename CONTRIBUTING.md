@@ -36,25 +36,21 @@ Each major version receives active support (bug fixes and security updates) for 
 
 ## Changelog Expectations
 
-Every pull request that changes user-visible behavior must include an entry in the project changelog. Use consistent formatting and group entries under the upcoming release heading. If a changelog file does not yet exist, create one at `docs/CHANGELOG.md` using the [Keep a Changelog](https://keepachangelog.com) structure.
+Every pull request that changes user-visible behavior must include an entry in `CHANGELOG.md`. Use consistent formatting and group entries under the upcoming release heading following the [Keep a Changelog](https://keepachangelog.com) structure.
 
 ## Branch Protection and Required Status Checks
 
-Our GitHub Actions coverage currently relies on the following workflows:
+Our GitHub Actions coverage currently relies on the **CI** workflow (`.github/workflows/ci.yml`). It builds the game on Windows and Linux, regenerates the version header, runs the automated tests, and publishes build artifacts for review.
 
-- **CI - Build and Tests** (`.github/workflows/build-and-test.yml`) – configures the toolchains, builds the game DLL, and runs the automated test suite.
-- **CI - Static Analysis** (`.github/workflows/static-analysis.yml`) – performs formatting enforcement, clang-tidy checks, and header hygiene validation.
-- **CI - Package Validation** (`.github/workflows/package-validation.yml`) – assembles the distributable artifacts and runs smoke tests against the generated archives.
-
-Branch protections require these workflows to finish successfully before merges are allowed:
+Branch protections require the `CI` check to finish successfully before merges are allowed:
 
 | Branch pattern | Required checks |
 | --- | --- |
-| `main` | `CI - Build and Tests`, `CI - Static Analysis`, `CI - Package Validation` |
-| `develop` | `CI - Build and Tests`, `CI - Static Analysis` |
-| `release/*` | `CI - Build and Tests`, `CI - Static Analysis`, `CI - Package Validation` |
+| `main` | `CI` |
+| `develop` | `CI` |
+| `release/*` | `CI` |
 
-Only repository administrators can override branch protections. Overrides should be rare, require two maintainer approvals on the pull request, and must document the rationale in the merge commit body.
+Only repository administrators can override branch protections. Overrides should be rare, require two maintainer approvals on the pull request, and must document the rationale in the merge commit body. The release workflow (`.github/workflows/release.yml`) runs automatically for version tags and does not gate pull request merges.
 
 ### Hotfix workflow
 
@@ -62,8 +58,8 @@ Hotfixes start from the `main` branch using the `hotfix/<issue-or-bug-id>` namin
 
 ## Continuous Integration and Release Automation
 
-- **CI - Build and Tests** and **CI - Static Analysis** both accept manual reruns from the GitHub Actions tab when transient failures occur. Reviewers may request reruns if the failure appears unrelated to the pull request.
-- **CI - Package Validation** produces artifacts under the workflow run. Download these archives when smoke-testing installers or verifying that packaging fixes behave as expected.
+- **CI** covers both Windows and Linux builds, executes the automated tests, and uploads artifacts for inspection. It accepts manual reruns from the GitHub Actions tab when transient failures occur.
+- **Release** (`.github/workflows/release.yml`) packages tagged builds, produces checksums, and drafts the GitHub release notes using the repository template.
 - Release managers coordinate any additional release-time automation (for example, scripts under `tools/release/`). Document bespoke steps in the release pull request so the audit trail reflects each manual action.
 
 ## Pull Request Checklist
