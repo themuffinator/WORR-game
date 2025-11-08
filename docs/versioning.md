@@ -39,3 +39,6 @@ The script understands the following flags:
 - `--no-stage` – skip the automatic `git add VERSION src/shared/version.hpp` step.
 
 When run without `--no-stage`, the script stages the modified files. If staging fails (for example because Git is unavailable), it prints the `git add` command contributors should run manually.
+
+## Release notes template
+The automated release workflow seeds draft GitHub releases from [`.github/release_template.md`](../.github/release_template.md). Keep the compatibility notes, upgrade steps, and deprecation warning sections up to date so maintainers can ship consistent guidance with each tag.
