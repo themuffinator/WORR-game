@@ -298,60 +298,60 @@ void G_InitSave();
 // =================================================
 
 void LoadMotd() {
-        const std::string motdPath = G_Fmt(
-                "baseq2/{}",
-                g_motd_filename->string[0] ? g_motd_filename->string : "motd.txt");
+	const std::string motdPath = G_Fmt(
+		"baseq2/{}",
+		g_motd_filename->string[0] ? g_motd_filename->string : "motd.txt").data();
 
-        FILE* f = fopen(motdPath.c_str(), "rb");
-        if (!f)
-                return;
+	FILE* f = fopen(motdPath.c_str(), "rb");
+	if (!f)
+		return;
 
-        bool valid = true;
-        std::string contents;
+	bool valid = true;
+	std::string contents;
 
-        if (fseek(f, 0, SEEK_END) != 0) {
-                valid = false;
-        }
+	if (fseek(f, 0, SEEK_END) != 0) {
+		valid = false;
+	}
 
-        long endPosition = valid ? ftell(f) : -1;
-        if (endPosition < 0) {
-                valid = false;
-        }
+	long endPosition = valid ? ftell(f) : -1;
+	if (endPosition < 0) {
+		valid = false;
+	}
 
-        if (valid) {
-                if (fseek(f, 0, SEEK_SET) != 0)
-                        valid = false;
-        }
+	if (valid) {
+		if (fseek(f, 0, SEEK_SET) != 0)
+			valid = false;
+	}
 
-        if (valid) {
-                const std::size_t length = static_cast<std::size_t>(endPosition);
-                if (length > 0x40000) {
-                        gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: \"{}\"\n", __FUNCTION__, motdPath.c_str());
-                        valid = false;
-                }
-                else {
-                        contents.resize(length);
-                        if (length > 0) {
-                                const std::size_t readLength = fread(contents.data(), 1, length, f);
-                                if (readLength != length) {
-                                        gi.Com_PrintFmt("{}: MoTD file read error: \"{}\"\n", __FUNCTION__, motdPath.c_str());
-                                        valid = false;
-                                }
-                        }
-                }
-        }
+	if (valid) {
+		const std::size_t length = static_cast<std::size_t>(endPosition);
+		if (length > 0x40000) {
+			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+			valid = false;
+		}
+		else {
+			contents.resize(length);
+			if (length > 0) {
+				const std::size_t readLength = fread(contents.data(), 1, length, f);
+				if (readLength != length) {
+					gi.Com_PrintFmt("{}: MoTD file read error: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+					valid = false;
+				}
+			}
+		}
+	}
 
-        fclose(f);
+	fclose(f);
 
-        if (valid) {
-                game.motd = contents;
-                game.motdModificationCount++;
-                if (g_verbose->integer)
-                        gi.Com_PrintFmt("{}: MotD file verified and loaded: \"{}\"\n", __FUNCTION__, motdPath.c_str());
-        }
-        else {
-                gi.Com_PrintFmt("{}: MotD file load error for \"{}\", discarding.\n", __FUNCTION__, motdPath.c_str());
-        }
+	if (valid) {
+		game.motd = contents;
+		game.motdModificationCount++;
+		if (g_verbose->integer)
+			gi.Com_PrintFmt("{}: MotD file verified and loaded: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+	}
+	else {
+		gi.Com_PrintFmt("{}: MotD file load error for \"{}\", discarding.\n", __FUNCTION__, motdPath.c_str());
+	}
 }
 
 int check_ruleset = -1;
@@ -393,41 +393,41 @@ static void GT_Changes() {
 	GameType gt = GameType::None;
 
 	if (gt_g_gametype != g_gametype->modifiedCount) {
-	        int raw = g_gametype->integer;
-	        if (raw > static_cast<int>(GT_LAST))
-	                raw = static_cast<int>(GT_LAST);
-	        else if (raw < static_cast<int>(GT_FIRST))
-	                raw = static_cast<int>(GT_FIRST);
+		int raw = g_gametype->integer;
+		if (raw > static_cast<int>(GT_LAST))
+			raw = static_cast<int>(GT_LAST);
+		else if (raw < static_cast<int>(GT_FIRST))
+			raw = static_cast<int>(GT_FIRST);
 
-	        gt = static_cast<GameType>(raw);
+		gt = static_cast<GameType>(raw);
 
 		if (gt != gt_check) {
-	                switch (gt) {
-	                case GameType::TeamDeathmatch:
-	                        if (!teamplay->integer)
-	                                gi.cvarForceSet("teamplay", "1");
-	                        break;
-	                case GameType::Domination:
-	                        if (!teamplay->integer)
-	                                gi.cvarForceSet("teamplay", "1");
-	                        if (ctf->integer)
-	                                gi.cvarForceSet("ctf", "0");
-	                        break;
-	                case GameType::CaptureTheFlag:
-	                        if (!ctf->integer)
-	                                gi.cvarForceSet("ctf", "1");
-	                        break;
-	                default:
-	                        if (teamplay->integer)
-	                                gi.cvarForceSet("teamplay", "0");
-	                        if (ctf->integer)
-	                                gi.cvarForceSet("ctf", "0");
-	                        break;
-	                }
-	                gt_teamplay = teamplay->modifiedCount;
-	                gt_ctf = ctf->modifiedCount;
-	                changed = true;
-	        }
+			switch (gt) {
+			case GameType::TeamDeathmatch:
+				if (!teamplay->integer)
+					gi.cvarForceSet("teamplay", "1");
+				break;
+			case GameType::Domination:
+				if (!teamplay->integer)
+					gi.cvarForceSet("teamplay", "1");
+				if (ctf->integer)
+					gi.cvarForceSet("ctf", "0");
+				break;
+			case GameType::CaptureTheFlag:
+				if (!ctf->integer)
+					gi.cvarForceSet("ctf", "1");
+				break;
+			default:
+				if (teamplay->integer)
+					gi.cvarForceSet("teamplay", "0");
+				if (ctf->integer)
+					gi.cvarForceSet("ctf", "0");
+				break;
+			}
+			gt_teamplay = teamplay->modifiedCount;
+			gt_ctf = ctf->modifiedCount;
+			changed = true;
+		}
 	}
 	if (!changed) {
 		if (gt_teamplay != teamplay->modifiedCount) {
@@ -927,14 +927,14 @@ static void InitGame() {
 
 	game = {};
 
-        // initialize all entities for this game
-        game.maxEntities = maxentities->integer;
-        g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
-        globals.gentities = g_entities;
-        globals.maxEntities = game.maxEntities;
+	// initialize all entities for this game
+	game.maxEntities = maxentities->integer;
+	g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
+	globals.gentities = g_entities;
+	globals.maxEntities = game.maxEntities;
 
-        // initialize all clients for this game
-        AllocateClientArray(maxclients->integer);
+	// initialize all clients for this game
+	AllocateClientArray(maxclients->integer);
 
 	level.levelStartTime = level.time;
 	game.serverStartTime = time(nullptr);
@@ -1103,12 +1103,12 @@ void SetIntermissionPoint(void) {
 //===================================================================
 
 static void ShutdownGame() {
-        gi.Com_Print("==== ShutdownGame ====\n");
+	gi.Com_Print("==== ShutdownGame ====\n");
 
-        FreeClientArray();
+	FreeClientArray();
 
-        gi.FreeTags(TAG_LEVEL);
-        gi.FreeTags(TAG_GAME);
+	gi.FreeTags(TAG_LEVEL);
+	gi.FreeTags(TAG_GAME);
 }
 
 static void* G_GetExtension(const char* name) {
@@ -1255,17 +1255,17 @@ void QueueIntermission(const char* msg, bool boo, bool reset) {
 	std::strncpy(level.intermission.victorMessage.data(), msg, level.intermission.victorMessage.size() - 1);
 	level.intermission.victorMessage.back() = '\0'; // Ensure null-termination
 
-        const char* reason = level.intermission.victorMessage[0] ? level.intermission.victorMessage.data() : "Unknown Reason";
-        gi.Com_PrintFmt("MATCH END: {}\n", reason);
+	const char* reason = level.intermission.victorMessage[0] ? level.intermission.victorMessage.data() : "Unknown Reason";
+	gi.Com_PrintFmt("MATCH END: {}\n", reason);
 
-        if (!reset)
-                Match_UpdateDuelRecords();
+	if (!reset)
+		Match_UpdateDuelRecords();
 
-        const char* sound = boo ? "insane/insane4.wav" : "world/xian1.wav";
-        gi.positionedSound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundIndex(sound), 1, ATTN_NONE, 0);
+	const char* sound = boo ? "insane/insane4.wav" : "world/xian1.wav";
+	gi.positionedSound(world->s.origin, world, CHAN_AUTO | CHAN_RELIABLE, gi.soundIndex(sound), 1, ATTN_NONE, 0);
 
-        if (reset) {
-                Match_Reset();
+	if (reset) {
+		Match_Reset();
 		return;
 	}
 
@@ -1347,7 +1347,7 @@ void BeginIntermission(gentity_t* targ) {
 
 	level.intermission.serverFrame = gi.ServerFrame();
 
-        level.changeMap.assign(CharArrayToStringView(targ->map));
+	level.changeMap.assign(CharArrayToStringView(targ->map));
 	level.intermission.clear = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_CLEAR_INVENTORY);
 	level.intermission.endOfUnit = false;
 	level.intermission.fade = targ->spawnFlags.has(SPAWNFLAG_CHANGELEVEL_FADE_OUT);
@@ -1443,23 +1443,23 @@ static void TakeIntermissionScreenshot() {
 
 	// Duel screenshots: show player vs player
 	if (Game::Is(GameType::Duel)) {
-                const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
-                const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
-                const char* n1 = (e1 && e1->client && e1->client->sess.netName[0]) ? e1->client->sess.netName : "player1";
-                const char* n2 = (e2 && e2->client && e2->client->sess.netName[0]) ? e2->client->sess.netName : "player2";
+		const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
+		const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
+		const char* n1 = (e1 && e1->client && e1->client->sess.netName[0]) ? e1->client->sess.netName : "player1";
+		const char* n2 = (e2 && e2->client && e2->client->sess.netName[0]) ? e2->client->sess.netName : "player2";
 
 		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapName.data(), timestamp);
 	}
 	// Other gametypes: gametype + POV name + map
 	else {
-                const gentity_t* ent = &g_entities[1];
-                const gclient_t* followClient = ent->client->follow.target ? ent->client->follow.target->client : nullptr;
-                const char* name = "player";
+		const gentity_t* ent = &g_entities[1];
+		const gclient_t* followClient = ent->client->follow.target ? ent->client->follow.target->client : nullptr;
+		const char* name = "player";
 
-                if (followClient && followClient->sess.netName[0])
-                        name = followClient->sess.netName;
-                else if (ent->client->sess.netName[0])
-                        name = ent->client->sess.netName;
+		if (followClient && followClient->sess.netName[0])
+			name = followClient->sess.netName;
+		else if (ent->client->sess.netName[0])
+			name = ent->client->sess.netName;
 
 		filename = G_Fmt("screenshot {}-{}-{}-{}\n",
 			GametypeIndexToString(static_cast<GameType>(g_gametype->integer)),
@@ -1506,11 +1506,11 @@ void ExitLevel(bool forceImmediate) {
 	level.intermission = {};
 
 	if (deathmatch->integer) {
-                // In 1v1 modes, rotate out the loser so the queue advances
-                if (Game::Is(GameType::Gauntlet))
-                        Gauntlet_RemoveLoser();
-                else if (Game::Is(GameType::Duel))
-                        Duel_RemoveLoser();
+		// In 1v1 modes, rotate out the loser so the queue advances
+		if (Game::Is(GameType::Gauntlet))
+			Gauntlet_RemoveLoser();
+		else if (Game::Is(GameType::Duel))
+			Duel_RemoveLoser();
 
 		// In Red Rover, shuffle teams if only one team has players
 		if (Game::Is(GameType::RedRover) &&
@@ -1529,15 +1529,15 @@ void ExitLevel(bool forceImmediate) {
 			auto& cl = *ec->client;
 
 			// Preserve userinfo across the wipe
-                        char userInfo[MAX_INFO_STRING];
-                        Q_strlcpy(userInfo, cl.pers.userInfo, sizeof(userInfo));
+			char userInfo[MAX_INFO_STRING];
+			Q_strlcpy(userInfo, cl.pers.userInfo, sizeof(userInfo));
 
-                        cl.pers = {};
-                        cl.resp.coopRespawn = {};
-                        ec->health = 0;
+			cl.pers = {};
+			cl.resp.coopRespawn = {};
+			ec->health = 0;
 
-                        Q_strlcpy(cl.pers.userInfo, userInfo, sizeof(cl.pers.userInfo));
-                        Q_strlcpy(cl.resp.coopRespawn.userInfo, userInfo, sizeof(cl.resp.coopRespawn.userInfo));
+			Q_strlcpy(cl.pers.userInfo, userInfo, sizeof(cl.pers.userInfo));
+			Q_strlcpy(cl.resp.coopRespawn.userInfo, userInfo, sizeof(cl.resp.coopRespawn.userInfo));
 		}
 	}
 
@@ -1986,19 +1986,19 @@ static inline void G_RunFrame_(bool main_loop) {
 				ent->s.renderFX &= ~(RF_SHELL_RED | RF_SHELL_GREEN | RF_SHELL_BLUE);
 				ent->s.effects &= ~EF_COLOR_SHELL;
 
-                                if (ent->owner->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
-                                        ent->s.renderFX |= RF_SHELL_BLUE;
-                                        ent->s.effects |= EF_COLOR_SHELL;
-                                }
-                                if (ent->owner->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
-                                        ent->s.renderFX |= RF_SHELL_BLUE;
-                                        ent->s.effects |= EF_COLOR_SHELL;
-                                }
-                                if (ent->owner->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
-                                        if (ent->owner->client->invisibility_fade_time <= level.time)
-                                                ent->s.alpha = 0.05f;
-                                        else {
-                                                float x = (ent->owner->client->invisibility_fade_time - level.time).seconds() / INVISIBILITY_TIME.seconds();
+				if (ent->owner->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
+					ent->s.renderFX |= RF_SHELL_BLUE;
+					ent->s.effects |= EF_COLOR_SHELL;
+				}
+				if (ent->owner->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
+					ent->s.renderFX |= RF_SHELL_BLUE;
+					ent->s.effects |= EF_COLOR_SHELL;
+				}
+				if (ent->owner->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
+					if (ent->owner->client->invisibility_fade_time <= level.time)
+						ent->s.alpha = 0.05f;
+					else {
+						float x = (ent->owner->client->invisibility_fade_time - level.time).seconds() / INVISIBILITY_TIME.seconds();
 						ent->s.alpha = std::clamp(x, 0.0125f, 0.2f);
 					}
 				}
