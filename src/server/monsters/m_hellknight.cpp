@@ -284,9 +284,9 @@ static DIE(hk_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker, 
 		gi.sound(self, CHAN_VOICE, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 		self->s.skinNum &= ~1;
 		ThrowGibs(self, damage, {
-			{ "progs/h_hellkn.mdl", GIB_HEAD },
-			{ 2, "progs/gib1.mdl" },
-			{ 2, "progs/gib3.mdl" }
+			{ 2, "models/objects/gibs/bone/tris.md2" },
+			{ 3, "models/objects/gibs/sm_meat/tris.md2" },
+			{ 1, "models/objects/gibs/gear/tris.md2" },
 			});
 		self->deadFlag = true;
 		return;

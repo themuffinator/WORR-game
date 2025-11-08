@@ -1,0 +1,134 @@
+{
+"classname" "worldspawn"
+}
+{
+"model" "*1"
+"classname" "func_wall"
+"spawnflags" "7"
+"targetname" "wall1"
+}
+{
+"origin" "360 72 152"
+"noise" "obworld/oamb14.wav"
+"targetname" "wall1"
+"spawnflags" "2"
+"classname" "target_speaker"
+}
+{
+"origin" "304 416 760"
+"delay" "6"
+"targetname" "start"
+"target" "vipers"
+"classname" "trigger_relay"
+}
+{
+"classname" "misc_camera_target"
+"targetname" "camtarg1"
+"origin" "728 504 376"
+}
+{
+"classname" "trigger_relay"
+"targetname" "start"
+"target" "wall1"
+"origin" "328 64 200"
+"delay" "3"
+}
+{
+"wait" "10"
+"classname" "misc_camera"
+"spawnflags" "1"
+"targetname" "start"
+"target" "camtarg1"
+"origin" "312 136 152"
+}
+{
+"classname" "path_corner"
+"origin" "704 1216 704"
+"targetname" "t4"
+"target" "t5"
+}
+{
+"targetname" "vipers"
+"classname" "misc_viper"
+"origin" "768 1120 752"
+"target" "t1"
+"speed" "500"
+"angle" "270"
+}
+{
+"model" "*2"
+"classname" "trigger_once"
+"target" "start"
+}
+{
+"classname" "info_player_start"
+"origin" "-256 448 56"
+}
+{
+"targetname" "vipers"
+"origin" "704 1216 752"
+"classname" "misc_viper"
+"target" "t4"
+"speed" "500"
+"angle" "270"
+}
+{
+"targetname" "vipers"
+"classname" "misc_viper"
+"origin" "832 1216 752"
+"target" "t7"
+"speed" "500"
+"angle" "270"
+}
+{
+"origin" "768 1120 704"
+"classname" "path_corner"
+"targetname" "t1"
+"target" "t2"
+}
+{
+"classname" "path_corner"
+"origin" "832 1216 704"
+"targetname" "t7"
+"target" "t8"
+}
+{
+"origin" "640 672 704"
+"classname" "path_corner"
+"targetname" "t5"
+"target" "t6"
+}
+{
+"classname" "path_corner"
+"origin" "704 576 704"
+"targetname" "t2"
+"target" "t3"
+}
+{
+"origin" "768 672 704"
+"classname" "path_corner"
+"targetname" "t8"
+"target" "t9"
+}
+{
+"classname" "path_corner"
+"origin" "640 -32 704"
+"targetname" "t6"
+}
+{
+"origin" "704 -128 704"
+"classname" "path_corner"
+"targetname" "t3"
+}
+{
+"classname" "path_corner"
+"origin" "768 -32 704"
+"targetname" "t9"
+}
+{
+"model" "*3"
+"classname" "trigger_once"
+"targetname" "start"
+"message" "OBLIVION"
+"delay" "1"
+}

@@ -1,0 +1,125 @@
+{
+"classname" "worldspawn"
+"message" "Wet and Wild"
+"no_dm_spawnpads" "1"
+}
+{
+"classname" "info_player_start"
+"origin" "192 0 264"
+"angle" "180"
+}
+// entity 2
+{
+"classname" "item_quad"
+"origin" "0 0 32"
+}
+// entity 3
+{
+"classname" "item_adrenaline"
+"origin" "64 64 32"
+}
+// entity 4
+{
+"classname" "weapon_railgun"
+"origin" "-64 -64 32"
+}
+// entity 5
+{
+"classname" "item_armor_combat"
+"origin" "80 -80 32"
+}
+// entity 6
+{
+"classname" "ammo_grenades"
+"origin" "64 96 256"
+}
+// entity 7
+{
+"classname" "ammo_grenades"
+"origin" "64 -96 256"
+}
+// entity 8
+{
+"classname" "ammo_grenades"
+"origin" "192 96 256"
+}
+// entity 9
+{
+"classname" "ammo_grenades"
+"origin" "192 -96 256"
+}
+// entity 10
+{
+"classname" "info_player_deathmatch"
+"origin" "352 96 264"
+"angle" "180"
+}
+// entity 11
+{
+"classname" "info_player_deathmatch"
+"origin" "352 -96 264"
+"angle" "180"
+}
+// entity 12
+{
+"classname" "info_player_deathmatch"
+"origin" "-208 96 264"
+"angle" "-5.00896e-06"
+}
+// entity 13
+{
+"classname" "info_player_deathmatch"
+"origin" "-208 -96 264"
+"angle" "-5.00896e-06"
+}
+// entity 14
+{
+"classname" "ammo_grenades"
+"origin" "128 -96 256"
+}
+// entity 15
+{
+"classname" "ammo_grenades"
+"origin" "128 96 256"
+}
+// entity 16
+{
+"classname" "weapon_grenadelauncher"
+"origin" "320 0 256"
+}
+// entity 17
+{
+"classname" "weapon_proxlauncher"
+"origin" "-48 112 624"
+}
+// entity 18
+{
+"classname" "item_health_large"
+"origin" "-96 112 624"
+}
+// entity 19
+{
+"classname" "ammo_prox"
+"origin" "-64 -112 624"
+}
+// entity 20
+{
+"classname" "ammo_slugs"
+"origin" "-64 0 32"
+}
+// entity 21
+{
+"classname" "item_breather"
+"origin" "-32 -32 256"
+}
+// entity 22
+{
+"classname" "item_armor_jacket"
+"origin" "-80 -32 256"
+}
+// entity 23
+{
+"classname" "info_player_intermission"
+"origin" "352 -96 648"
+"angles" "30 151 0"
+}

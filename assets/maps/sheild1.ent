@@ -1,0 +1,19 @@
+{
+"classname" "worldspawn"
+}
+{
+"classname" "target_changelevel"
+"targetname" "backtohub"
+"map" "hubb$froms2"
+"origin" "-88 280 136"
+}
+{
+"model" "*1"
+"message" ": You travel back to the Strogg hub :"
+"classname" "trigger_once"
+"target" "backtohub"
+}
+{
+"classname" "info_player_start"
+"origin" "-32 224 88"
+}

@@ -1,0 +1,101 @@
+{
+"classname" "worldspawn"
+"message" "Nightmare on Damp Street"
+"no_dm_spawnpads" "1"
+"start_items" "item_invisibility 1000;weapon_chainfist;item_silencer 1000;item_regen 1000"
+}
+{
+"classname" "info_player_start"
+"origin" "0 32 24"
+"angle" "270"
+}
+// entity 2
+{
+"classname" "light"
+"origin" "72 -520 40"
+"_color" "0 1 0"
+"light" "150"
+}
+// entity 3
+{
+"classname" "light"
+"origin" "72 -120 40"
+"_color" "0 0 1"
+"light" "150"
+}
+// entity 4
+{
+"classname" "info_player_deathmatch"
+"origin" "80 208 24"
+"angle" "270"
+}
+// entity 5
+{
+"classname" "info_player_deathmatch"
+"origin" "0 160 24"
+"angle" "270"
+}
+// entity 6
+{
+"classname" "info_player_deathmatch"
+"origin" "-80 224 24"
+"angle" "270"
+}
+// entity 7
+{
+"classname" "info_player_deathmatch"
+"origin" "-96 -592 24"
+"angle" "90"
+}
+// entity 8
+{
+"classname" "info_player_deathmatch"
+"origin" "0 -528 24"
+"angle" "90"
+}
+// entity 9
+{
+"classname" "info_player_deathmatch"
+"origin" "80 -592 24"
+"angle" "90"
+}
+// entity 10
+{
+"classname" "info_player_deathmatch"
+"origin" "96 -384 24"
+"angle" "150"
+}
+// entity 11
+{
+"classname" "info_player_deathmatch"
+"origin" "-96 -384 24"
+"angle" "30"
+}
+// entity 12
+{
+"classname" "info_player_deathmatch"
+"origin" "96 -16 24"
+"angle" "-131.781"
+}
+// entity 13
+{
+"classname" "info_player_deathmatch"
+"origin" "-80 -80 24"
+"angle" "-53.8316"
+}
+// entity 14
+{
+"classname" "info_player_deathmatch"
+"origin" "0 -288 24"
+"angle" "96.1684"
+}
+// entity 15
+{
+"classname" "item_ir_goggles"
+"origin" "0 -592 32"
+}
+// entity 16
+{
+"classname" "item_ir_goggles"
+"origin" "0 240 32"
+}

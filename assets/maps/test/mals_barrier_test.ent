@@ -1,0 +1,224 @@
+{
+"classname" "worldspawn"
+"message" "The Will to Live"
+"no_dm_spawnpads" "1"
+}
+{
+"classname" "misc_teleporter"
+"origin" "360 84 200"
+"target" "t1"
+}
+// entity 2
+{
+"classname" "misc_teleporter_dest"
+"origin" "352 -128 40"
+"targetname" "t1"
+"angle" "180"
+}
+// entity 3
+{
+"classname" "light"
+"origin" "208 -48 128"
+}
+// entity 4
+{
+"classname" "light"
+"origin" "8 -48 128"
+}
+// entity 5
+{
+"classname" "light"
+"origin" "344 -48 216"
+}
+// entity 6
+{
+"classname" "light"
+"origin" "336 -56 80"
+}
+// entity 7
+{
+"classname" "light"
+"origin" "104 -56 224"
+}
+// entity 8
+{
+"classname" "light"
+"origin" "-128 -56 168"
+}
+// entity 9
+{
+"classname" "light"
+"origin" "56 168 224"
+}
+// entity 10
+{
+"classname" "light"
+"origin" "272 216 80"
+}
+// entity 11
+{
+"classname" "light"
+"origin" "-160 168 168"
+}
+// entity 12
+{
+"classname" "info_player_deathmatch"
+"origin" "-296 112 40"
+}
+// entity 13
+{
+"classname" "info_player_deathmatch"
+"origin" "-408 -128 40"
+}
+// entity 14
+{
+"classname" "light"
+"origin" "-352 168 168"
+}
+// entity 15
+{
+"classname" "light"
+"origin" "-304 -40 168"
+}
+// entity 16
+{
+"classname" "light"
+"origin" "328 224 216"
+}
+// entity 17
+{
+"classname" "light"
+"origin" "32 232 80"
+}
+// entity 18
+{
+"classname" "info_player_deathmatch"
+"origin" "16 240 40"
+"angle" "-180"
+}
+// entity 19
+{
+"classname" "info_player_deathmatch"
+"origin" "352 192 40"
+"angle" "-180"
+}
+// entity 20
+{
+"classname" "info_player_deathmatch"
+"origin" "224 -96 40"
+"angle" "90"
+}
+// entity 21
+{
+"classname" "ammo_grenades"
+"origin" "-304 48 160"
+}
+// entity 22
+{
+"classname" "weapon_grenadelauncher"
+"origin" "16 144 160"
+}
+// entity 23
+{
+"classname" "weapon_chaingun"
+"origin" "-368 240 32"
+}
+// entity 24
+{
+"classname" "ammo_bullets"
+"origin" "-368 240 32"
+}
+// entity 25
+{
+"classname" "ammo_bullets"
+"origin" "-240 0 96"
+}
+// entity 26
+{
+"classname" "ammo_bullets"
+"origin" "144 96 96"
+}
+// entity 27
+{
+"classname" "ammo_nuke"
+"origin" "368 240 192"
+}
+// entity 28
+{
+"classname" "item_health_large"
+"origin" "368 192 192"
+}
+// entity 29
+{
+"classname" "item_health"
+"origin" "-176 -144 32"
+}
+// entity 30
+{
+"classname" "item_health"
+"origin" "-224 -144 32"
+}
+// entity 31
+{
+"classname" "weapon_chainfist"
+"origin" "368 -144 192"
+}
+// entity 32
+{
+"classname" "ammo_grenades"
+"origin" "80 48 32"
+}
+// entity 33
+{
+"classname" "ammo_grenades"
+"origin" "-304 -16 32"
+}
+// entity 34
+{
+"classname" "item_armor_combat"
+"origin" "96 -144 32"
+}
+// entity 35
+{
+"classname" "item_health_small"
+"origin" "112 -72 96"
+}
+// entity 36
+{
+"classname" "item_health_small"
+"origin" "112 -120 128"
+}
+// entity 37
+{
+"classname" "item_health_small"
+"origin" "112 -160 128"
+}
+// entity 38
+{
+"classname" "item_health_small"
+"origin" "160 -152 160"
+}
+// entity 39
+{
+"classname" "item_health_small"
+"origin" "208 -152 192"
+}
+{
+"classname" "info_player_intermission"
+"origin" "352 -144 352"
+"angles" "30 151 0"
+}
+{
+"classname" "item_doppleganger"
+"origin" "352 0 32"
+}
+// entity 42
+{
+"classname" "ammo_bullets"
+"origin" "352 48 32"
+}
+// entity 43
+{
+"classname" "ammo_grenades"
+"origin" "176 160 32"
+}

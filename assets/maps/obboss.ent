@@ -1,0 +1,19 @@
+{
+"classname" "worldspawn"
+"message" "Oblivion Boss"
+}
+{
+"classname" "target_changelevel"
+"targetname" "mes1"
+"map" "victory.pcx"
+"origin" "-24 80 -296"
+}
+{
+"model" "*1"
+"classname" "trigger_once"
+"target" "mes1"
+}
+{
+"classname" "info_player_start"
+"origin" "-32 32 -360"
+}

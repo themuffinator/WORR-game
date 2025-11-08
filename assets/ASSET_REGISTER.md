@@ -270,9 +270,6 @@ This register lists game assets referenced by the WORR codebase that do not appe
 
 ## Model assets
 
-- **models/ammo/**
-  - `models/ammo/g_nuke/tris.md2`
-
 - **models/items/**
   - `models/items/antigrav/tris.md2`
   - `models/items/empathy/tris.md2`
@@ -336,18 +333,6 @@ This register lists game assets referenced by the WORR codebase that do not appe
   - `models/proj/pod/tris.md2`
   - `models/proj/v_spike/tris.md2`
   - `models/proj/zomgib/tris.md2`
-
-- **models/vault/**
-  - `models/vault/items/ammo/bullets/large/tris.md2`
-  - `models/vault/items/ammo/bullets/small/tris.md2`
-  - `models/vault/items/ammo/cells/large/tris.md2`
-  - `models/vault/items/ammo/cells/small/tris.md2`
-  - `models/vault/items/ammo/nuke/tris.md2`
-  - `models/vault/items/ammo/rockets/small/tris.md2`
-  - `models/vault/items/ammo/shells/large/tris.md2`
-  - `models/vault/items/ammo/shells/small/tris.md2`
-  - `models/vault/items/ammo/slugs/large/tris.md2`
-  - `models/vault/items/ammo/slugs/small/tris.md2`
 
 - **models/weapons/**
   - `models/weapons/g_flareg/tris.md2`

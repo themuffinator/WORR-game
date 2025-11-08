@@ -1,0 +1,303 @@
+{
+"classname" "worldspawn"
+"message" "Nailed It!"
+"no_dm_spawnpads" "1"
+}
+{
+"classname" "misc_teleporter"
+"origin" "352 -128 296"
+"target" "t1"
+}
+// entity 2
+{
+"classname" "misc_teleporter_dest"
+"origin" "-384 32 40"
+"targetname" "t1"
+}
+// entity 3
+{
+"classname" "light"
+"origin" "208 -48 128"
+}
+// entity 4
+{
+"classname" "light"
+"origin" "8 -48 128"
+}
+// entity 5
+{
+"classname" "light"
+"origin" "336 -56 80"
+}
+// entity 6
+{
+"classname" "light"
+"origin" "96 -8 224"
+}
+// entity 7
+{
+"classname" "light"
+"origin" "-128 -56 168"
+}
+// entity 8
+{
+"classname" "light"
+"origin" "56 168 224"
+}
+// entity 9
+{
+"classname" "light"
+"origin" "272 216 80"
+}
+// entity 10
+{
+"classname" "light"
+"origin" "-160 168 168"
+}
+// entity 11
+{
+"classname" "info_player_deathmatch"
+"origin" "-64 -128 40"
+"angle" "90"
+}
+// entity 12
+{
+"classname" "info_player_deathmatch"
+"origin" "-408 -128 40"
+}
+// entity 13
+{
+"classname" "light"
+"origin" "-352 168 168"
+}
+// entity 14
+{
+"classname" "light"
+"origin" "-304 -40 168"
+}
+// entity 15
+{
+"classname" "light"
+"origin" "-160 248 80"
+}
+// entity 16
+{
+"classname" "light"
+"origin" "368 16 312"
+}
+// entity 17
+{
+"classname" "light"
+"origin" "-260 204 312"
+}
+// entity 18
+{
+"classname" "light"
+"origin" "-88 -52 312"
+"light" "500"
+}
+// entity 19
+{
+"classname" "info_player_deathmatch"
+"origin" "368 224 40"
+"angle" "-90"
+}
+// entity 20
+{
+"classname" "info_player_deathmatch"
+"origin" "352 0 40"
+"angle" "180"
+}
+// entity 21
+{
+"classname" "info_player_deathmatch"
+"origin" "-352 224 40"
+"angle" "-90"
+}
+// entity 22
+{
+"classname" "weapon_etf_rifle"
+"origin" "-320 224 256"
+"angle" "-90"
+}
+// entity 23
+{
+"classname" "ammo_flechettes"
+"origin" "-368 224 256"
+}
+// entity 24
+{
+"classname" "ammo_flechettes"
+"origin" "-192 64 32"
+"angle" "-14.3169"
+}
+// entity 25
+{
+"classname" "ammo_flechettes"
+"origin" "-48 128 32"
+"angle" "37.0172"
+}
+// entity 26
+{
+"classname" "ammo_flechettes"
+"origin" "176 72 32"
+"angle" "-38.1357"
+}
+// entity 27
+{
+"classname" "ammo_flechettes"
+"origin" "-56 8 32"
+"angle" "87.124"
+}
+// entity 28
+{
+"classname" "ammo_flechettes"
+"origin" "96 -104 32"
+"angle" "30.1235"
+}
+// entity 29
+{
+"classname" "ammo_flechettes"
+"origin" "272 -56 32"
+"angle" "-142.978"
+}
+// entity 30
+{
+"classname" "weapon_etf_rifle"
+"origin" "352 32 288"
+"angle" "-90"
+}
+// entity 31
+{
+"classname" "ammo_flechettes"
+"origin" "352 80 256"
+}
+// entity 32
+{
+"classname" "item_double"
+"origin" "360 -64 288"
+}
+// entity 33
+{
+"classname" "ammo_flechettes"
+"origin" "-272 224 256"
+}
+// entity 34
+{
+"classname" "item_health_mega"
+"origin" "-192 224 256"
+}
+// entity 35
+{
+"classname" "item_armor_shard"
+"origin" "48 40 32"
+"angle" "87.124"
+}
+// entity 36
+{
+"classname" "item_armor_shard"
+"origin" "184 168 32"
+"angle" "87.124"
+}
+// entity 37
+{
+"classname" "item_armor_shard"
+"origin" "272 24 32"
+"angle" "87.124"
+}
+// entity 38
+{
+"classname" "item_armor_shard"
+"origin" "-248 -112 32"
+"angle" "87.124"
+}
+// entity 39
+{
+"classname" "item_armor_shard"
+"origin" "-304 120 32"
+"angle" "87.124"
+}
+// entity 40
+{
+"classname" "item_health_small"
+"origin" "-232 -32 32"
+"angle" "87.124"
+}
+// entity 41
+{
+"classname" "item_health_small"
+"origin" "24 -136 32"
+"angle" "87.124"
+}
+// entity 42
+{
+"classname" "item_health_small"
+"origin" "96 120 32"
+"angle" "87.124"
+}
+// entity 43
+{
+"classname" "item_health_small"
+"origin" "160 -8 32"
+"angle" "87.124"
+}
+// entity 44
+{
+"classname" "item_health_small"
+"origin" "256 104 32"
+"angle" "87.124"
+}
+// entity 45
+{
+"classname" "item_health_small"
+"origin" "232 -128 32"
+"angle" "87.124"
+}
+// entity 46
+{
+"classname" "item_health_small"
+"origin" "-168 -104 32"
+"angle" "87.124"
+}
+// entity 47
+{
+"classname" "item_health_small"
+"origin" "-296 40 32"
+"angle" "87.124"
+}
+// entity 48
+{
+"classname" "item_health_small"
+"origin" "-400 112 32"
+"angle" "87.124"
+}
+// entity 49
+{
+"classname" "item_health_small"
+"origin" "-312 -144 32"
+"angle" "87.124"
+}
+// entity 50
+{
+"classname" "item_health_small"
+"origin" "272 168 32"
+"angle" "87.124"
+}
+// entity 51
+{
+"classname" "item_armor_shard"
+"origin" "32 -64 32"
+"angle" "87.124"
+}
+// entity 52
+{
+"classname" "item_adrenaline"
+"origin" "352 -128 32"
+"angle" "87.124"
+}
+// entity 53
+{
+"classname" "info_player_intermission"
+"origin" "352 -128 352"
+"angles" "30 151 0"
+}

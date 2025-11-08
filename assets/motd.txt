@@ -1,0 +1,4 @@
+// avoid more than 26 chars per line
+// the line below illustrates the width limit:
+// ----------------------
+This is a WORR Server!
