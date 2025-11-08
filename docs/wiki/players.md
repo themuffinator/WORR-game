@@ -43,6 +43,7 @@
 - **How votes unlock:** Server hosts mask vote commands with `g_vote_flags`. Each bit toggles an item (map, restart, gametype, limits, shuffle/balance, unlagged, arena, etc.). Default servers enable all flags (`8191`), showing every option.
 - **Reading the menu:** If a choice is missing, the host likely cleared that bit—ask before spamming chat, and remember hosts may restrict disruptive calls like `shuffle` during events.
 - **Etiquette:** Call votes with a clear reason (“Restart for overtime bugged scoreboard”) and allow the countdown to finish. Avoid chaining failed votes; wait a few minutes or until the match state changes. Hosts appreciate players rallying support in team chat before triggering global prompts.
+- **Want to know the knobs?** The [Cvar Reference](cvars.md#voting-admin-and-moderation) breaks down which server toggles influence the vote menu, warmup readiness, and timeout privileges.
 
 ## Reconnect Safeguards and Ghost Tips
 - **Pending Ghost Respawns:** WORR caches your last position/angles when the auto-ghost system is active. On rejoin, it first checks if your ghost spot is clear of players or geometry before spawning you there.

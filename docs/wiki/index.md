@@ -8,6 +8,11 @@ Welcome to the WORR knowledge base. This page outlines the mod's overall scope, 
 - **[Players Guide](players.md)** — Gameplay fundamentals, gametype tips, and quality-of-life features.
 - **[Level Designers Guide](level-designers.md)** — Entity support, map logic extensions, and content authoring workflows.
 - **[Programmers Guide](programmers.md)** — Code architecture, scripting hooks, and extension points.
+- **[Cvar Reference](cvars.md)** — Full catalogue of server variables, default values, and scope notes.
+
+## Reference Material
+
+- [WORR cvar matrix](cvars.md) — Cross-link of settings discussed throughout the persona guides.
 
 > **What’s new vs. the stock QUAKE II Rerelease?**
 > 
