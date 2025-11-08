@@ -3968,7 +3968,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client);
 void InitBodyQue();
 void CopyToBodyQue(gentity_t* ent);
 void ClientBeginServerFrame(gentity_t* ent);
-void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfo);
+void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
 void P_AssignClientSkinNum(gentity_t* ent);
 void P_ForceFogTransition(gentity_t* ent, bool instant);
 void P_SendLevelPOI(gentity_t* ent);
@@ -4339,7 +4339,7 @@ static constexpr int MAX_AWARD_QUEUE = 8;
 
 // client data that stays across multiple level loads in SP, cleared on level loads in MP
 struct client_persistant_t {
-	std::string	userInfo;
+	char			userInfo[MAX_INFO_STRING]{};
 	char			netName[MAX_NETNAME]{};
 	Handedness	hand = Handedness::Right;
 	WeaponAutoSwitch	autoswitch = WeaponAutoSwitch::Never;

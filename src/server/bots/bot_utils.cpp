@@ -158,7 +158,7 @@ static void Player_UpdateState(gentity_t *player) {
 		armorInfo[2].itemID = IT_ARMOR_JACKET;
 		armorInfo[2].max_count = armor_stats[game.ruleset][Armor::Jacket].max_count;
 
-                gi.Info_ValueForKey(player->client->pers.userInfo.c_str(), "name", player->sv.netName, sizeof(player->sv.netName));
+                gi.Info_ValueForKey(player->client->pers.userInfo, "name", player->sv.netName, sizeof(player->sv.netName));
 
 		gi.Bot_RegisterEntity(player);
 	}
