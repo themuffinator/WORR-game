@@ -138,6 +138,7 @@
     <ClInclude Include="server\match\match_state_utils.hpp" />
     <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
+    <ClInclude Include="server\gameplay\g_headhunters.hpp" />
     <ClInclude Include="server\match\match_state_helper.hpp" />
     <ClInclude Include="server\monsters\m_actor.hpp" />
     <ClInclude Include="server\monsters\m_arachnid.hpp" />
@@ -216,6 +217,7 @@
     <ClCompile Include="server\gameplay\g_combat_heatmap.cpp" />
     <ClCompile Include="server\gameplay\g_domination.cpp" />
     <ClCompile Include="server\gameplay\g_horde.cpp" />
+    <ClCompile Include="server\gameplay\g_headhunters.cpp" />
     <ClCompile Include="server\gameplay\g_spawn_points.cpp" />
     <ClCompile Include="server\gameplay\g_spectator.cpp" />
     <ClCompile Include="server\gameplay\g_client_cfg.cpp" />
