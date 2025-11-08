@@ -119,6 +119,25 @@ constexpr std::array<const char*, static_cast<size_t>(ruleset_t::RS_NUM_RULESETS
 	"VADRIGAR",
 };
 
+enum class PlayStyle : uint8_t {
+	Casual,
+	Standard,
+	Competition,
+	Total
+};
+
+constexpr std::array<std::string_view, static_cast<size_t>(PlayStyle::Total)> playstyle_short_name = {
+	"casual",
+	"standard",
+	"competition"
+};
+
+constexpr std::array<std::string_view, static_cast<size_t>(PlayStyle::Total)> playstyle_long_name = {
+	"Casual",
+	"Standard",
+	"Competition"
+};
+
 const std::vector<std::string> stock_maps = {
 	//constexpr const char *stock_maps[] = {
 		"badlands", "base1", "base2", "base3", "base64", "biggun", "boss1", "boss2", "bunk1", "city1", "city2", "city3", "city64", "command", "cool1",
@@ -924,7 +943,7 @@ inline GameTime FALL_TIME() {
 	return 300_ms + DAMAGE_TIME_SLACK();
 }
 
-constexpr GameTime CORPSE_SINK_TIME = 5_sec;
+GameTime CorpseSinkTime();
 
 // every save_data_list_t has a tag
 // which is used for integrity checks.
@@ -3191,6 +3210,9 @@ extern cvar_t* g_marathon_timelimit;
 extern cvar_t* g_marathon_scorelimit;
 
 extern cvar_t* g_ruleset;
+extern cvar_t* g_playstyle;
+extern cvar_t* g_spawnProtectionTime;
+extern cvar_t* g_corpseSinkDelay;
 
 extern cvar_t* password;
 extern cvar_t* spectatorPassword;
