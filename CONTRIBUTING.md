@@ -38,12 +38,33 @@ Each major version receives active support (bug fixes and security updates) for 
 
 Every pull request that changes user-visible behavior must include an entry in the project changelog. Use consistent formatting and group entries under the upcoming release heading. If a changelog file does not yet exist, create one at `docs/CHANGELOG.md` using the [Keep a Changelog](https://keepachangelog.com) structure.
 
+## Branch Protection and Required Status Checks
+
+Our GitHub Actions coverage currently relies on the following workflows:
+
+- **CI - Build and Tests** (`.github/workflows/build-and-test.yml`) – configures the toolchains, builds the game DLL, and runs the automated test suite.
+- **CI - Static Analysis** (`.github/workflows/static-analysis.yml`) – performs formatting enforcement, clang-tidy checks, and header hygiene validation.
+- **CI - Package Validation** (`.github/workflows/package-validation.yml`) – assembles the distributable artifacts and runs smoke tests against the generated archives.
+
+Branch protections require these workflows to finish successfully before merges are allowed:
+
+| Branch pattern | Required checks |
+| --- | --- |
+| `main` | `CI - Build and Tests`, `CI - Static Analysis`, `CI - Package Validation` |
+| `develop` | `CI - Build and Tests`, `CI - Static Analysis` |
+| `release/*` | `CI - Build and Tests`, `CI - Static Analysis`, `CI - Package Validation` |
+
+Only repository administrators can override branch protections. Overrides should be rare, require two maintainer approvals on the pull request, and must document the rationale in the merge commit body.
+
+### Hotfix workflow
+
+Hotfixes start from the `main` branch using the `hotfix/<issue-or-bug-id>` naming rule. Open a pull request targeting `main` and allow the same set of required checks to complete before merging. After the hotfix lands on `main`, immediately merge `main` back into `develop` and any active `release/*` branch so those lines keep parity with production. If conflicts arise, resolve them on a short-lived branch and rerun the required workflows before completing the merges.
+
 ## Continuous Integration and Release Automation
 
-- CI workflows: Once continuous integration workflows are configured (for example in `.github/workflows/ci.yml`), link to them here to help contributors locate status badges and rerun instructions.
-- Release workflows: When automated release pipelines are added (for example `.github/workflows/release.yml` or scripts under `tools/`), document their locations and invocation steps in this section.
-
-Until those automations exist, please follow the manual steps described in individual release pull requests.
+- **CI - Build and Tests** and **CI - Static Analysis** both accept manual reruns from the GitHub Actions tab when transient failures occur. Reviewers may request reruns if the failure appears unrelated to the pull request.
+- **CI - Package Validation** produces artifacts under the workflow run. Download these archives when smoke-testing installers or verifying that packaging fixes behave as expected.
+- Release managers coordinate any additional release-time automation (for example, scripts under `tools/release/`). Document bespoke steps in the release pull request so the audit trail reflects each manual action.
 
 ## Pull Request Checklist
 
