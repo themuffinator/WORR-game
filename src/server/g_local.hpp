@@ -6,6 +6,7 @@
 
 class Menu;
 #include "../shared/bg_local.hpp"
+#include "../shared/version.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <bitset>		// for bitset
@@ -19,9 +20,6 @@ class Menu;
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
-
-constexpr const char* GAMEMOD_TITLE = "WORR";
-constexpr const char* GAMEMOD_VERSION = "0.60.10 BETA dev";
 
 //==================================================================
 

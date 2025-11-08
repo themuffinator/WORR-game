@@ -4213,7 +4213,7 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 			else
 				OpenJoinMenu(ent);
 			//if (!cl->initialMenu.shown)
-			//	gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", GAMEMOD_TITLE, GAMEMOD_VERSION);
+			//	gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", worr::version::kGameTitle, worr::version::kGameVersion);
 			cl->initialMenu.delay = 0_sec;
 			cl->initialMenu.shown = true;
 		}

@@ -1378,7 +1378,8 @@ Html_WriteFooter
 =============
 */
 static inline void Html_WriteFooter(std::ofstream& html, const std::string& htmlPath) {
-	html << "<div class=\"footer\">Compiled by " << GAMEMOD_TITLE << " " << GAMEMOD_VERSION << "</div>\n";
+        html << "<div class=\"footer\">Compiled by " << worr::version::kGameTitle << " "
+             << worr::version::kGameVersion << "</div>\n";
 	html << "</body></html>\n";
 	html.close();
 }

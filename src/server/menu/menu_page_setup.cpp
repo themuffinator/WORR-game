@@ -205,7 +205,7 @@ void OpenSetupWelcomeMenu(gentity_t* ent) {
 
 	MenuBuilder b;
 	b.add("Welcome to", MenuAlign::Center).spacer();
-	b.add(G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data(), MenuAlign::Center).spacer();
+	b.add(G_Fmt("{} v{}", worr::version::kGameTitle, worr::version::kGameVersion).data(), MenuAlign::Center).spacer();
 	b.add("Set Up Match", MenuAlign::Left, [=](gentity_t* e, Menu& m) {
 		OpenSetupGametypeMenu(e, state);
 		});

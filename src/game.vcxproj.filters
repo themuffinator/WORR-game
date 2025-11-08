@@ -229,6 +229,9 @@
     <ClInclude Include="shared\bg_local.hpp">
       <Filter>shared</Filter>
     </ClInclude>
+    <ClInclude Include="shared\version.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server\gameplay\g_combat.cpp" />

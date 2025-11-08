@@ -75,7 +75,7 @@ void OpenJoinMenu(gentity_t* ent) {
 	if (maxPlayers < 1) maxPlayers = 1;
 
 	MenuBuilder builder;
-	builder.add(G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data(), MenuAlign::Center).spacer();
+	builder.add(G_Fmt("{} v{}", worr::version::kGameTitle, worr::version::kGameVersion).data(), MenuAlign::Center).spacer();
 	builder.add("---", MenuAlign::Center).spacer().spacer();
 
 	AddJoinOptions(builder, ent, maxPlayers);

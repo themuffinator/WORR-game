@@ -1259,7 +1259,7 @@ static void SetMatchTimerStats(gentity_t* ent) {
 	switch (level.matchState) {
 	case MatchState::Initial_Delay:
 		if (level.warmupNoticeTime + 4_sec > level.time)
-			s1 = G_Fmt("{} v{}", GAMEMOD_TITLE, GAMEMOD_VERSION).data();
+			s1 = G_Fmt("{} v{}", worr::version::kGameTitle, worr::version::kGameVersion).data();
 		else if (level.warmupNoticeTime + 8_sec > level.time)
 			s1 = G_Fmt("Ruleset: {}", rs_long_name[(int)game.ruleset]).data();
 		break;
