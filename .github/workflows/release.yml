@@ -21,6 +21,30 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Verify changelog entry for release
+        run: |
+          $tag = "${{ github.ref_name }}"
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw 'Unable to determine release tag.'
+          }
+
+          if ($tag.StartsWith('v')) {
+            $version = $tag.Substring(1)
+          } else {
+            $version = $tag
+          }
+
+          $changelogPath = 'CHANGELOG.md'
+          if (-not (Test-Path $changelogPath)) {
+            throw "CHANGELOG file '$changelogPath' not found."
+          }
+
+          $lines = Get-Content -Path $changelogPath
+          $escapedVersion = [System.Text.RegularExpressions.Regex]::Escape($version)
+          $pattern = "^## \[$escapedVersion\]"
+          if (-not ($lines | Where-Object { $_ -match $pattern })) {
+            throw "CHANGELOG.md does not contain a section for version '$version'."
+          }
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
