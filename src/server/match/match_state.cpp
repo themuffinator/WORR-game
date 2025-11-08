@@ -17,6 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "../g_local.hpp"
+#include "../gameplay/g_headhunters.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../commands/command_registration.hpp"
 #include "../match/match.hpp"
@@ -263,6 +264,7 @@ constexpr struct GameTypeRules {
 	/* GameType::LastManStanding */ { },
 	/* GameType::LastTeamStanding */ { },
 	/* GameType::Horde */ { },
+	/* GameType::HeadHunters */ {GameFlags::None, 8, true, true, 25, 15},
 	/* GameType::ProBall */ {GameFlags::Teams, 0, false, false, 10, 15, false, 0.6f},
 	/* GameType::Gauntlet */ { }
 };
@@ -1773,11 +1775,12 @@ void CheckDMEndFrame() {
 
 	// see if it is time to do a match restart
 	CheckDMWarmupState();     // Manages warmup -> countdown -> match start
-        CheckDMCountdown();       // Handles audible/visual countdown
-        CheckDMRoundState();      // Handles per-round progression
-        Domination_RunFrame();    // Updates domination scoring during live play
-        ProBall::RunFrame();      // Updates ProBall scoring and state
-        CheckDMMatchEndWarning(); // Optional: match-ending warnings
+	CheckDMCountdown();       // Handles audible/visual countdown
+	CheckDMRoundState();      // Handles per-round progression
+	Domination_RunFrame();    // Updates domination scoring during live play
+	HeadHunters::RunFrame();  // Handles loose-head logic and scoring
+	ProBall::RunFrame();      // Updates ProBall scoring and state
+	CheckDMMatchEndWarning(); // Optional: match-ending warnings
 
 	// see if it is time to end a deathmatch
 	CheckDMExitRules();       // Handles intermission and map end
@@ -1947,27 +1950,31 @@ static bool ScoreIsTied(void) {
 
 
 int GT_ScoreLimit() {
-        if (Game::Is(GameType::Domination))
-                return fragLimit->integer;
-        if (Game::Has(GameFlags::Rounds))
-                return roundLimit->integer;
-        if (Game::Is(GameType::CaptureTheFlag))
-                return captureLimit->integer;
-        if (Game::Is(GameType::ProBall))
-                return captureLimit->integer;
-        return fragLimit->integer;
+	if (Game::Is(GameType::Domination))
+		return fragLimit->integer;
+	if (Game::Has(GameFlags::Rounds))
+		return roundLimit->integer;
+	if (Game::Is(GameType::CaptureTheFlag))
+		return captureLimit->integer;
+	if (Game::Is(GameType::ProBall))
+		return captureLimit->integer;
+	if (Game::Is(GameType::HeadHunters))
+		return fragLimit->integer;
+	return fragLimit->integer;
 }
 
 const char* GT_ScoreLimitString() {
-        if (Game::Is(GameType::Domination))
-                return "point";
-        if (Game::Is(GameType::CaptureTheFlag))
-                return "capture";
-        if (Game::Is(GameType::ProBall))
-                return "goal";
-        if (Game::Has(GameFlags::Rounds))
-                return "round";
-        return "frag";
+	if (Game::Is(GameType::Domination))
+		return "point";
+	if (Game::Is(GameType::CaptureTheFlag))
+		return "capture";
+	if (Game::Is(GameType::ProBall))
+		return "goal";
+	if (Game::Is(GameType::HeadHunters))
+		return "head";
+	if (Game::Has(GameFlags::Rounds))
+		return "round";
+	return "frag";
 }
 
 /*
