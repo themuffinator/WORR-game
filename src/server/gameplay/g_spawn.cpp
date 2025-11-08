@@ -344,6 +344,7 @@ static const std::initializer_list<spawn_t> spawns = {
         { "info_world_text", SP_info_world_text },
         { "info_nav_lock", SP_info_nav_lock },
         { "domination_point", SP_domination_point },
+        { "headhunters_receptacle", HeadHunters::SP_headhunters_receptacle },
         { "team_redobelisk", SP_team_redobelisk },
         { "team_blueobelisk", SP_team_blueobelisk },
         { "team_neutralobelisk", SP_team_neutralobelisk },

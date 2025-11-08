@@ -2402,28 +2402,29 @@ struct LevelLocals {
 
 	struct HeadHuntersState {
 		static constexpr size_t MAX_RECEPTACLES = 32;
-		static constexpr size_t MAX_SPIKES = 32;
+		static constexpr size_t MAX_SPIKES = 80;
 		static constexpr size_t MAX_LOOSE_HEADS = 64;
-
+		
 		struct Receptacle {
-			gentity_t* ent = nullptr;
-			Team team = Team::None;
+		gentity_t* ent = nullptr;
+		Team team = Team::None;
 		};
-
+		
 		struct SpikeEntry {
-			gentity_t* ent = nullptr;
-			GameTime nextActivation = 0_ms;
+		gentity_t* ent = nullptr;
+		gentity_t* base = nullptr;
+		GameTime nextActivation = 0_ms;
 		};
-
+		
 		std::array<Receptacle, MAX_RECEPTACLES> receptacles{};
 		size_t receptacleCount = 0;
-
+		
 		std::array<SpikeEntry, MAX_SPIKES> spikeQueue{};
 		size_t spikeCount = 0;
-
+		
 		std::array<gentity_t*, MAX_LOOSE_HEADS> looseHeads{};
 		size_t looseHeadCount = 0;
-
+		
 		int headModelIndex = 0;
 	} headHunters{};
 
