@@ -1226,7 +1226,9 @@ static void PushDeathStats(gentity_t* victim, gentity_t* attacker, const MeansOf
 			++acl->killStreakCount;
 		}
 
-		G_AdjustPlayerScore(acl, 1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), 1);
+		if (Game::Has(GameFlags::Frags)) {
+			G_AdjustPlayerScore(acl, 1, Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination), 1);
+		}
 
 		++aSess.totalKills;
 		++aSess.modTotalKills[static_cast<int>(mod.id)];

@@ -20,6 +20,7 @@
 //   music, and global game rules.
 
 #include "../g_local.hpp"
+#include "g_headhunters.hpp"
 #include "../monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
@@ -1838,6 +1839,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         gi.FreeTags(TAG_LEVEL);
         level = LevelLocals{};
         Domination_ClearState();
+        HeadHunters::ClearState();
         ProBall::ClearState();
         ProBall::ClearState();
         level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
@@ -1932,6 +1934,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         setup_shadow_lights();
 
         Domination_InitLevel();
+        HeadHunters::InitLevel();
         ProBall::InitLevel();
         ProBall::InitLevel();
 
@@ -1968,6 +1971,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
         level.timeoutOwner = nullptr;
 
         Domination_ClearState();
+        HeadHunters::ClearState();
 
 	globals.numEntities = game.maxClients + 1;
 
@@ -2039,6 +2043,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
         setup_shadow_lights();
 
         Domination_InitLevel();
+        HeadHunters::InitLevel();
 
         level.init = true;
 
