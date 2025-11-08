@@ -17,20 +17,117 @@ concurrency:
 
 jobs:
   build:
-    name: Build
-    runs-on: windows-latest
-    defaults:
-      run:
-        shell: pwsh
+    name: Build (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows-x64
+            identifier: windows
+            os: windows-latest
+            configuration: Release
+            platform: x64
+            artifact: game-windows-x64
+          - name: ubuntu-x64
+            identifier: ubuntu
+            os: ubuntu-latest
+            artifact: game-ubuntu-x64
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Set up Python
+        if: matrix.identifier == 'windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Set up MSBuild
+        if: matrix.identifier == 'windows'
         uses: microsoft/setup-msbuild@v2
 
-      - name: Build solution
+      - name: Install vcpkg
+        if: matrix.identifier == 'windows'
+        shell: pwsh
         run: |
-          msbuild "src\WORR-kex.sln" /m /p:Configuration=Debug /p:Platform=x64
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & "$vcpkgRoot\bootstrap-vcpkg.bat"
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+
+      - name: Build solution
+        if: matrix.identifier == 'windows'
+        shell: pwsh
+        run: |
+          msbuild "src\WORR-kex.sln" /m /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }}
+
+      - name: Stage Windows artifacts
+        if: matrix.identifier == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path artifacts | Out-Null
+          Copy-Item 'game_x64.dll' -Destination artifacts -ErrorAction Stop
+          if (Test-Path 'game_x64.pdb') { Copy-Item 'game_x64.pdb' -Destination artifacts }
+          if (Test-Path 'game_x64.map') { Copy-Item 'game_x64.map' -Destination artifacts }
+
+      - name: Install Linux dependencies
+        if: matrix.identifier == 'ubuntu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang gcc g++ libstdc++-12-dev
+
+      - name: Generate version header
+        if: matrix.identifier == 'ubuntu'
+        run: |
+          python3 tools/release/gen_version_header.py --version-file VERSION --output src/shared/version.hpp
+
+      - name: Build shared object
+        if: matrix.identifier == 'ubuntu'
+        run: |
+          python3 - <<'PY'
+import subprocess
+import xml.etree.ElementTree as ET
+from pathlib import Path
+
+repo_root = Path('.')
+project = repo_root / 'src' / 'game.vcxproj'
+ns = {'msb': 'http://schemas.microsoft.com/developer/msbuild/2003'}
+tree = ET.parse(project)
+sources = []
+for node in tree.findall('.//msb:ClCompile', ns):
+    include = node.attrib['Include'].replace('\\', '/')
+    sources.append(str((repo_root / 'src' / include).resolve()))
+extra_sources = [
+    repo_root / 'src' / 'fmt.cc',
+    repo_root / 'src' / 'format.cc',
+    repo_root / 'src' / 'os.cc',
+]
+cmd = [
+    'clang++',
+    '-std=c++20',
+    '-fPIC',
+    '-shared',
+    '-I', 'src',
+    '-I', 'src/fmt',
+    '-I', 'src/json',
+]
+cmd.extend(str(path.resolve()) for path in extra_sources)
+cmd.extend(sources)
+cmd.extend(['-o', 'game.so'])
+subprocess.check_call(cmd)
+PY
+
+      - name: Stage Linux artifacts
+        if: matrix.identifier == 'ubuntu'
+        run: |
+          install -d artifacts
+          cp game.so artifacts/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artifacts
