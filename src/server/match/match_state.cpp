@@ -2300,6 +2300,7 @@ void GT_Init() {
 	teamplay = gi.cvar("teamplay", "0", CVAR_SERVERINFO);
 	ctf = gi.cvar("ctf", "0", CVAR_SERVERINFO);
 	g_gametype = gi.cvar("g_gametype", G_Fmt("{}", (int)GameType::FreeForAll).data(), CVAR_SERVERINFO);
+	g_playstyle = gi.cvar("g_playstyle", G_Fmt("{}", static_cast<int>(PlayStyle::Standard)).data(), CVAR_SERVERINFO);
 	coop = gi.cvar("coop", "0", CVAR_LATCH);
 
 	// game modifications

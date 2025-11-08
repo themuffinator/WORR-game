@@ -2377,9 +2377,10 @@ void CopyToBodyQue(gentity_t* ent) {
 	else
 		body->mins = body->maxs = {};
 
-	if (CORPSE_SINK_TIME > 0_ms && Game::IsNot(GameType::FreezeTag)) {
-		body->timeStamp = level.time + CORPSE_SINK_TIME + 1.5_sec;
-		body->nextThink = level.time + CORPSE_SINK_TIME;
+	const GameTime sinkTime = CorpseSinkTime();
+	if (sinkTime > 0_ms && Game::IsNot(GameType::FreezeTag)) {
+		body->timeStamp = level.time + sinkTime + 1.5_sec;
+		body->nextThink = level.time + sinkTime;
 		body->think = BodySink;
 	}
 
@@ -2412,6 +2413,14 @@ void G_PostRespawn(gentity_t* self) {
 static void ClientCompleteSpawn(gentity_t* ent) {
 	ClientSpawn(ent);
 	G_PostRespawn(ent);
+
+	if (deathmatch->integer) {
+		const GameTime spawnProtection = GameTime::from_sec(g_spawnProtectionTime ? g_spawnProtectionTime->value : 0.0f);
+		if (spawnProtection > 0_ms && ent->client) {
+			auto& timer = ent->client->PowerupTimer(PowerupTimer::SpawnProtection);
+			timer = max(level.time, timer) + spawnProtection;
+		}
+	}
 }
 
 void ClientRespawn(gentity_t* ent) {

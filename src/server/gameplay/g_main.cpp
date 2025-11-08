@@ -26,6 +26,7 @@
 #include "../commands/commands.hpp"
 #include "g_clients.hpp"
 #include <algorithm>
+#include <array>
 #include <fstream>
 #include <new>
 #include <sstream>
@@ -79,6 +80,9 @@ cvar_t* g_marathon_timelimit;
 cvar_t* g_marathon_scorelimit;
 
 cvar_t* g_ruleset;
+cvar_t* g_playstyle;
+cvar_t* g_spawnProtectionTime;
+cvar_t* g_corpseSinkDelay;
 
 cvar_t* password;
 cvar_t* spectatorPassword;
@@ -376,18 +380,151 @@ static void CheckRuleset() {
 	gi.LocBroadcast_Print(PRINT_HIGH, "Ruleset: {}\n", rs_long_name[(int)game.ruleset]);
 }
 
+enum class ScoreLimitType : uint8_t {
+	Frags,
+	Captures,
+	Rounds
+};
+
+struct StylePreset {
+	int			timeLimit;
+	int			fragLimit;
+	int			captureLimit;
+	int			roundLimit;
+	int			mercyLimit;
+	int			weaponRespawn;
+	bool		weaponsStay;
+	bool		powerupsEnabled;
+	bool		bfgEnabled;
+	bool		techsEnabled;
+	float		friendlyFireScale;
+	int			spawnProtectionSeconds;
+	int			corpseSinkDelaySeconds;
+	bool		rankingEnabled;
+};
+
+static constexpr std::array<StylePreset, static_cast<size_t>(PlayStyle::Total)> MATCH_STYLE_PRESETS = { {
+	{ 15, 30, 3, 3, 0, 15, true,  true,  false, true,  0.0f, 3, 6, false },
+	{ 15, 40, 5, 5, 0, 25, false, true,  true,  true,  0.5f, 2, 5, true },
+	{ 10, 50, 7, 5, 0, 20, false, false, false, false, 1.0f, 1, 4, true }
+} };
+
+static int g_playstyleModifiedCount = -1;
+static GameType g_lastPresetGameType = GameType::Total;
+static PlayStyle g_lastPresetStyle = PlayStyle::Total;
+
+static PlayStyle CurrentPlayStyle() {
+	if (!g_playstyle)
+		return PlayStyle::Standard;
+
+	int raw = g_playstyle->integer;
+	if (raw < 0 || raw >= static_cast<int>(PlayStyle::Total))
+		raw = static_cast<int>(PlayStyle::Standard);
+	return static_cast<PlayStyle>(raw);
+}
+
+static ScoreLimitType ScoreLimitFor(GameType type) {
+	if (type == GameType::CaptureTheFlag || type == GameType::ProBall)
+		return ScoreLimitType::Captures;
+
+	const auto flags = GAME_MODES[static_cast<size_t>(type)].flags;
+	if (HasFlag(flags, GameFlags::Rounds))
+		return ScoreLimitType::Rounds;
+	return ScoreLimitType::Frags;
+}
+
+static void ApplyStylePreset(GameType type, PlayStyle style) {
+	const auto& preset = MATCH_STYLE_PRESETS[static_cast<size_t>(style)];
+
+	const auto setIntCvar = [](const char* name, int value) {
+		gi.cvarForceSet(name, G_Fmt("{}", value).data());
+	};
+
+	setIntCvar("timelimit", preset.timeLimit);
+	setIntCvar("mercylimit", preset.mercyLimit);
+
+	switch (ScoreLimitFor(type)) {
+	case ScoreLimitType::Frags:
+		setIntCvar("fraglimit", preset.fragLimit);
+		setIntCvar("capturelimit", 0);
+		setIntCvar("roundlimit", 0);
+		break;
+	case ScoreLimitType::Captures:
+		setIntCvar("fraglimit", 0);
+		setIntCvar("capturelimit", preset.captureLimit);
+		setIntCvar("roundlimit", 0);
+		break;
+	case ScoreLimitType::Rounds:
+		setIntCvar("fraglimit", 0);
+		setIntCvar("capturelimit", 0);
+		setIntCvar("roundlimit", preset.roundLimit);
+		break;
+	}
+
+	if (preset.weaponsStay) {
+		gi.cvarForceSet("match_weapons_stay", "1");
+		gi.cvarForceSet("g_weapon_respawn_time", "0");
+	}
+	else {
+		gi.cvarForceSet("match_weapons_stay", "0");
+		gi.cvarForceSet("g_weapon_respawn_time", G_Fmt("{}", preset.weaponRespawn).data());
+	}
+
+	gi.cvarForceSet("g_no_powerups", preset.powerupsEnabled ? "0" : "1");
+	gi.cvarForceSet("g_mapspawn_no_bfg", preset.bfgEnabled ? "0" : "1");
+	gi.cvarForceSet("g_allow_techs", preset.techsEnabled ? "1" : "0");
+	gi.cvarForceSet("g_friendly_fire_scale", G_Fmt("{:.2f}", preset.friendlyFireScale).data());
+	gi.cvarForceSet("g_spawn_protection_time", G_Fmt("{}", preset.spawnProtectionSeconds).data());
+	gi.cvarForceSet("g_corpse_sink_delay", G_Fmt("{}", preset.corpseSinkDelaySeconds).data());
+	gi.cvarForceSet("g_matchstats", preset.rankingEnabled ? "1" : "0");
+
+	if (preset.spawnProtectionSeconds <= 0) {
+		for (auto ent : active_clients()) {
+			if (!ent->client)
+				continue;
+			ent->client->PowerupTimer(PowerupTimer::SpawnProtection) = 0_ms;
+		}
+	}
+
+	g_playstyleModifiedCount = g_playstyle ? g_playstyle->modifiedCount : g_playstyleModifiedCount;
+	g_lastPresetGameType = type;
+	g_lastPresetStyle = style;
+}
+
+static void UpdateMatchPresets(bool gametypeChanged) {
+	if (!deathmatch->integer)
+		return;
+
+	if (!Game::IsCurrentTypeValid())
+		return;
+
+	const PlayStyle currentStyle = CurrentPlayStyle();
+	const GameType currentType = Game::GetCurrentType();
+	const bool styleChanged = g_playstyle && g_playstyle->modifiedCount != g_playstyleModifiedCount;
+	if (!gametypeChanged && !styleChanged && currentStyle == g_lastPresetStyle && currentType == g_lastPresetGameType)
+		return;
+
+	ApplyStylePreset(currentType, currentStyle);
+}
+
+GameTime CorpseSinkTime() {
+	const float seconds = g_corpseSinkDelay ? g_corpseSinkDelay->value : 5.0f;
+	return GameTime::from_sec(seconds);
+}
+
+
 int gt_teamplay = 0;
 int gt_ctf = 0;
 int gt_g_gametype = 0;
 bool gt_teams_on = false;
 GameType gt_check = GameType::None;
-static void GT_Changes() {
+static bool GT_Changes() {
 	if (!deathmatch->integer)
-		return;
+		return false;
 
 	// do these checks only once level has initialised
 	if (!level.init)
-		return;
+		return false;
 
 	bool changed = false, team_reset = false;
 	GameType gt = GameType::None;
@@ -471,7 +608,7 @@ static void GT_Changes() {
 	}
 
 	if (!changed || gt == GameType::None)
-		return;
+		return false;
 
 	//gi.Com_PrintFmt("GAMETYPE = {}\n", (int)gt);
 
@@ -514,16 +651,17 @@ static void GT_Changes() {
 		gt_g_gametype = g_gametype->modifiedCount;
 		gt_check = gt;
 	}
-	else return;
-
-	//TODO: save ent string so we can simply reload it and Match_Reset
-	//gi.AddCommandString("map_restart");
+	else {
+		return false;
+	}
 
 	gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapName).data());
 
 	GT_PrecacheAssets();
 	GT_SetLongName();
 	gi.LocBroadcast_Print(PRINT_CENTER, "{}", level.gametype_name.data());
+
+	return true;
 }
 
 /*
@@ -905,6 +1043,8 @@ static void InitGame() {
 	g_warmup_ready_percentage = gi.cvar("g_warmup_ready_percentage", "0.51f", CVAR_NOFLAGS);
 	g_weaponProjection = gi.cvar("g_weapon_projection", "0", CVAR_NOFLAGS);
 	g_weapon_respawn_time = gi.cvar("g_weapon_respawn_time", "30", CVAR_NOFLAGS);
+	g_spawnProtectionTime = gi.cvar("g_spawn_protection_time", "2", CVAR_NOFLAGS);
+	g_corpseSinkDelay = gi.cvar("g_corpse_sink_delay", "5", CVAR_NOFLAGS);
 
 	g_maps_pool_file = gi.cvar("g_maps_pool_file", "mapdb.json", CVAR_NOFLAGS);
 	g_maps_cycle_file = gi.cvar("g_maps_cycle_file", "mapcycle.txt", CVAR_NOFLAGS);
@@ -971,6 +1111,7 @@ static void InitGame() {
 
 	// initialise the heatmap system
 	HM_Init();
+	UpdateMatchPresets(true);
 
 	if (g_dm_exec_level_cfg->integer)
 		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
@@ -1870,7 +2011,8 @@ static inline void G_RunFrame_(bool main_loop) {
 	}
 
 	// --- Global Updates ---
-	GT_Changes();              // track gametype changes
+	const bool gametypeChanged = GT_Changes();	// track gametype changes
+	UpdateMatchPresets(gametypeChanged);
 	CheckVote();               // cancel vote if expired
 	CheckCvars();              // check for updated cvars
 	CheckPowerupsDisabled();   // disable unwanted powerups

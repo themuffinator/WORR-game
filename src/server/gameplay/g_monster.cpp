@@ -883,9 +883,10 @@ static THINK(monster_body_sink) (gentity_t* ent) -> void {
 }
 
 THINK(monster_dead_think) (gentity_t* self) -> void {
+	const GameTime sinkTime = CorpseSinkTime();
 
 	if (self->timeStamp >= self->nextThink) {
-		self->nextThink = level.time + CORPSE_SINK_TIME;
+		self->nextThink = level.time + sinkTime;
 		self->think = monster_body_sink;
 		return;
 	}
@@ -919,7 +920,7 @@ THINK(monster_dead_think) (gentity_t* self) -> void {
 void monster_dead(gentity_t* self) {
 	self->think = monster_dead_think;
 	self->nextThink = level.time + 10_hz;
-	self->timeStamp = level.time + CORPSE_SINK_TIME + 1.5_sec;
+	self->timeStamp = level.time + CorpseSinkTime() + 1.5_sec;
 	self->moveType = MoveType::Toss;
 	self->svFlags |= SVF_DEADMONSTER;
 	self->monsterInfo.damage.blood = 0;
