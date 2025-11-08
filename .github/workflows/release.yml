@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and Draft Release
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Set up MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Install vcpkg
+        run: |
+          $vcpkgRoot = Join-Path $env:RUNNER_TEMP 'vcpkg'
+          git clone --depth 1 https://github.com/microsoft/vcpkg $vcpkgRoot
+          & "$vcpkgRoot\bootstrap-vcpkg.bat"
+          Add-Content -Path $env:GITHUB_ENV -Value "VCPKG_ROOT=$vcpkgRoot"
+
+      - name: Build Release binaries
+        run: |
+          msbuild "src\WORR-kex.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64
+
+      - name: Package artifacts
+        run: |
+          $dist = Join-Path $PWD 'dist'
+          if (Test-Path $dist) { Remove-Item $dist -Recurse -Force }
+          New-Item -ItemType Directory -Path $dist | Out-Null
+
+          $package = Join-Path $dist 'package'
+          New-Item -ItemType Directory -Path $package | Out-Null
+
+          Copy-Item 'game_x64.dll' -Destination $package -ErrorAction Stop
+          if (Test-Path 'game_x64.pdb') { Copy-Item 'game_x64.pdb' -Destination $package }
+          if (Test-Path 'game_x64.map') { Copy-Item 'game_x64.map' -Destination $package }
+
+          $zipPath = Join-Path $dist ("WORR-kex-${{ github.ref_name }}.zip")
+          Compress-Archive -Path (Join-Path $package '*') -DestinationPath $zipPath
+
+          $checksumPath = Join-Path $dist 'SHA256SUMS'
+          $files = @()
+          $files += Get-Item $zipPath
+          $files += Get-ChildItem $package -File
+          $files | ForEach-Object {
+            $hash = Get-FileHash $_.FullName -Algorithm SHA256
+            "$($hash.Hash)  $($_.Name)"
+          } | Set-Content $checksumPath
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: WORR-kex-${{ github.ref_name }}
+          path: |
+            dist/WORR-kex-${{ github.ref_name }}.zip
+            dist/SHA256SUMS
+
+      - name: Prepare release notes
+        run: |
+          $checksum = (Get-Content 'dist/SHA256SUMS' -Raw).Trim()
+          $content = @'
+## Summary
+- _Add key highlights for this release._
+
+## Features
+- _Summarize newly added capabilities._
+
+## Fixes
+- _Note important fixes and improvements._
+
+## Checksums
+```text
+{{CHECKSUMS}}
+```
+'@
+          $content = $content -replace '{{CHECKSUMS}}', $checksum
+          $content = $content.TrimStart()
+          Set-Content -Path 'dist/RELEASE_TEMPLATE.md' -Value $content
+
+      - name: Draft GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          name: WORR-kex ${{ github.ref_name }}
+          body_path: dist/RELEASE_TEMPLATE.md
+          files: |
+            dist/WORR-kex-${{ github.ref_name }}.zip
+            dist/SHA256SUMS
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
