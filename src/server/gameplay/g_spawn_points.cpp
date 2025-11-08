@@ -1397,19 +1397,19 @@ void ClientSpawn(gentity_t* ent) {
                         spawnAngles = ghostAngles;
                 }
 		else {
-                        const std::string& sessionName = cl->sess.netName;
-                        const std::string& persistentName = cl->pers.netName;
-                        const char* playerName = !sessionName.empty() ? sessionName.c_str()
-                                : !persistentName.empty() ? persistentName.c_str()
+                        const char* sessionName = cl->sess.netName;
+                        const char* persistentName = cl->pers.netName;
+                        const char* playerName = cl->sess.netName[0] ? sessionName
+                                : cl->pers.netName[0] ? persistentName
                                 : "player";
 
 			const char* blockerDesc = "solid geometry";
 			if (blockingEnt) {
                                 if (blockingEnt->client) {
-                                        const std::string& occupantPersist = blockingEnt->client->pers.netName;
-                                        const std::string& occupantSession = blockingEnt->client->sess.netName;
-                                        const char* occupant = !occupantPersist.empty() ? occupantPersist.c_str()
-                                                : !occupantSession.empty() ? occupantSession.c_str()
+                                        const char* occupantPersist = blockingEnt->client->pers.netName;
+                                        const char* occupantSession = blockingEnt->client->sess.netName;
+                                        const char* occupant = (occupantPersist[0]) ? occupantPersist
+                                                : (occupantSession[0]) ? occupantSession
                                                 : nullptr;
                                         blockerDesc = (occupant && *occupant) ? occupant : "another player";
 				}

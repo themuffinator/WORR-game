@@ -308,7 +308,7 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker
 		attacker->client->resp.ctf_lastfraggedcarrier = level.time;
 		G_AdjustPlayerScore(attacker->client, CTF_FRAG_CARRIER_BONUS, false, 0);
 		gi.LocBroadcast_Print(PRINT_MEDIUM, "{} fragged {}'s flag carrier!",
-			attacker->client->sess.netName.c_str(),
+			attacker->client->sess.netName,
 			Teams_TeamName(targ->client->sess.team));
 
 		// the target had the flag, clear the hurt carrier
@@ -497,11 +497,11 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 			if (other->client->pers.inventory[enemy_flag_item]) {
 				if (other->client->pers.teamState.flag_pickup_time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
-						Teams_TeamName(team), other->client->sess.netName.c_str(), TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
+						Teams_TeamName(team), other->client->sess.netName, TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
 				}
 				else {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! (captured by {})\n",
-						Teams_TeamName(team), other->client->sess.netName.c_str());
+						Teams_TeamName(team), other->client->sess.netName);
 				}
 				other->client->pers.inventory[enemy_flag_item] = 0;
 
@@ -524,12 +524,12 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 							G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
 						// award extra points for capture assists
 						if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
-							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName.c_str());
+							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
 							G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
 							PushAward(ec, PlayerMedal::Assist);
 						}
 						if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
-							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName.c_str());
+							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
 							G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
 							PushAward(ec, PlayerMedal::Assist);
 						}
@@ -549,7 +549,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 		}
 		// hey, its not home.  return it by teleporting it back
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_returned_flag",
-			other->client->sess.netName.c_str(), Teams_TeamName(team));
+			other->client->sess.netName, Teams_TeamName(team));
 		G_AdjustPlayerScore(other->client, CTF_RECOVERY_BONUS, false, 0);
 		other->client->resp.ctf_lastreturnedflag = level.time;
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
@@ -572,7 +572,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 		other->client->pers.teamState.flag_pickup_time = level.time;
 	}
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
-		other->client->sess.netName.c_str(), Teams_TeamName(team));
+		other->client->sess.netName, Teams_TeamName(team));
 	G_AdjustPlayerScore(other->client, CTF_FLAG_BONUS, false, 0);
 	if (!level.strike_flag_touch) {
 		G_AdjustTeamScore(other->client->sess.team, 1);
@@ -653,13 +653,13 @@ void CTF_DeadDropFlag(gentity_t* self) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_RED));
 		self->client->pers.inventory[IT_FLAG_RED] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
-			self->client->sess.netName.c_str(), Teams_TeamName(Team::Red));
+			self->client->sess.netName, Teams_TeamName(Team::Red));
 	}
 	else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_BLUE));
 		self->client->pers.inventory[IT_FLAG_BLUE] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
-			self->client->sess.netName.c_str(), Teams_TeamName(Team::Blue));
+			self->client->sess.netName, Teams_TeamName(Team::Blue));
 	}
 
 	self->client->pers.teamState.flag_pickup_time = 0_ms;

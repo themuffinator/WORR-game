@@ -84,7 +84,7 @@ namespace Commands {
 			}
 			if (admin_password->string && *admin_password->string && args.getString(1) == admin_password->string) {
 				ent->client->sess.admin = true;
-                                gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName.c_str());
+                                gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName);
 			}
 		}
 		else {
@@ -146,8 +146,8 @@ namespace Commands {
                         std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
                                 const gclient_t* A = &game.clients[a.clientIndex];
                                 const gclient_t* B = &game.clients[b.clientIndex];
-                                const char* an = A->sess.netName.c_str();
-                                const char* bn = B->sess.netName.c_str();
+                                const char* an = A->sess.netName;
+                                const char* bn = B->sess.netName;
                                 auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
                                 for (size_t i = 0; ; ++i) {
                                         char ca = lower(an[i]);
@@ -221,7 +221,7 @@ namespace Commands {
 			const int ss = dt.seconds<int>() % 60;
 
 			std::string num = std::to_string(displayNum);
-                    std::string name = trunc_to(cl->sess.netName.c_str(), W_NAME);
+                    std::string name = trunc_to(cl->sess.netName, W_NAME);
 			std::string sid = trunc_to(cl->sess.socialID, W_ID);
 			std::string s_sr = std::to_string(sr);
 			char time_buf[8];
@@ -367,7 +367,7 @@ namespace Commands {
 					gi.WriteByte(POI_FLAG_NONE);
 					gi.unicast(ec, false);
 					gi.localSound(ec, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
-                                    gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName.c_str());
+                                    gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName);
 				}
 			}
 		}
@@ -930,7 +930,7 @@ namespace Commands {
 			gi.Client_Print(ent, PRINT_HIGH, "The timeout can only be ended by the timeout caller or an admin.\n");
 			return;
 		}
-            gi.LocBroadcast_Print(PRINT_HIGH, "{} is resuming the match.\n", ent->client->sess.netName.c_str());
+            gi.LocBroadcast_Print(PRINT_HIGH, "{} is resuming the match.\n", ent->client->sess.netName);
 		level.timeoutActive = 3_sec;
 	}
 
@@ -953,7 +953,7 @@ namespace Commands {
 		}
 		level.timeoutOwner = ent;
 		level.timeoutActive = GameTime::from_sec(match_timeoutLength->integer);
-            gi.LocBroadcast_Print(PRINT_CENTER, "{} called a timeout!\n{} has been granted.", ent->client->sess.netName.c_str(), TimeString(match_timeoutLength->integer * 1000, false, false));
+            gi.LocBroadcast_Print(PRINT_CENTER, "{} called a timeout!\n{} has been granted.", ent->client->sess.netName, TimeString(match_timeoutLength->integer * 1000, false, false));
 		ent->client->pers.timeout_used = true;
 		G_LogEvent("MATCH TIMEOUT STARTED");
 	}
@@ -1132,7 +1132,7 @@ namespace Commands {
 		const char* pointTargetName = nullptr;
 
 		if (aimingAt)
-			pointTargetName = aimingAt->client->sess.netName.c_str();
+			pointTargetName = aimingAt->client->sess.netName;
 		else if (pointingItemName)
 			pointTargetName = pointingItemName;
 
@@ -1160,9 +1160,9 @@ namespace Commands {
 
 					gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
 					if (pointTargetName)
-                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
+                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
 					else
-                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName.c_str());
+                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
 				}
 			}
 		}
@@ -1180,15 +1180,15 @@ namespace Commands {
 					continue;
 
 				if (pointTargetName && otherNotifyMsg)
-                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
+                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 				else if (otherNotifyNoneMsg)
-                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
+                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 			}
 
 			if (pointTargetName && otherNotifyMsg)
-                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName.c_str(), pointTargetName);
+                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 			else if (otherNotifyNoneMsg)
-                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName.c_str());
+                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 		}
 
 		ent->client->anim.time = 0_ms;

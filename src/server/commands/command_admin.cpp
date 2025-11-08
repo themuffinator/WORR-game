@@ -420,7 +420,7 @@ namespace Commands {
 		}
 
                 if (targ->client->sess.team == team) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "{} is already on the {} team.\n", targ->client->sess.netName.c_str(), Teams_TeamName(team));
+                        gi.LocClient_Print(ent, PRINT_HIGH, "{} is already on the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
                         return;
                 }
 
@@ -429,7 +429,7 @@ namespace Commands {
 			return;
 		}
 
-                gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Moved {} to the {} team.\n", targ->client->sess.netName.c_str(), Teams_TeamName(team));
+                gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Moved {} to the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
 		::SetTeam(targ, team, false, true, false);
 	}
 
