@@ -4,11 +4,14 @@
   <meta charset="UTF-8">
   <title>WORR Server Map System Manual</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 2em; max-width: 900px; margin: auto; background-color: #f9f9f9; }
+    body { font-family: Arial, sans-serif; line-height: 1.6; padding: 2em; max-width: 960px; margin: auto; background-color: #f9f9f9; }
     h1, h2, h3 { color: #222; }
     code, pre { background-color: #eee; padding: 0.2em 0.4em; border-radius: 4px; }
     pre { padding: 1em; overflow-x: auto; }
-    section { margin-bottom: 2em; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 1.5em; }
+    th, td { border: 1px solid #ccc; padding: 0.5em; text-align: left; }
+    th { background-color: #e6e6e6; }
+    section { margin-bottom: 2.5em; }
   </style>
 </head>
 <body>
@@ -16,13 +19,83 @@
 
   <section>
     <h2>Overview</h2>
-    <p>The WORR map system uses a JSON-based map pool and plain-text map cycle list to determine which maps are valid, preferred, and eligible for rotation or voting. This system supports advanced features like MyMap queueing, map voting at match end, and overrideable settings.</p>
+    <p>The WORR map system uses a JSON-based map pool and plain-text map cycle list to determine which maps are valid, preferred, and eligible for rotation or voting. Metadata tags drive the MyMap queue, map voting at match end, and gametype-aware filtering.</p>
   </section>
 
   <section>
     <h2>Map Pool File</h2>
-    <p>The map pool is defined as a JSON file located at <code>baseq2/&lt;filename&gt;</code> and controlled by the <code>g_maps_pool_file</code> cvar.</p>
-    <p>The structure:</p>
+    <p>The map pool is defined as a JSON file located at <code>baseq2/&lt;filename&gt;</code> and controlled by the <code>g_maps_pool_file</code> cvar. Each entry describes a BSP and which game systems may load it.</p>
+
+    <h3>Schema</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Rotation Impact</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>bsp</code><sup>*</sup></td>
+          <td>string</td>
+          <td>BSP filename without extension.</td>
+          <td>Primary key for lookups, required for pool and cycle validation.</td>
+        </tr>
+        <tr>
+          <td><code>title</code></td>
+          <td>string</td>
+          <td>Human-readable name shown in votes and status output.</td>
+          <td>Improves readability but does not gate selection.</td>
+        </tr>
+        <tr>
+          <td><code>dm</code><sup>*</sup></td>
+          <td>bool</td>
+          <td>Marks the map as multiplayer-compatible. Must be <code>true</code> for rotation.</td>
+          <td>Required. If false, the entry is ignored by cycle and selector logic.</td>
+        </tr>
+        <tr>
+          <td><code>tdm</code>, <code>ctf</code>, <code>duel</code>, etc.</td>
+          <td>bool</td>
+          <td>Gametype toggles. Align these with the metadata in <code>GAME_MODES</code> when spawning required entities.</td>
+          <td>Selector filters prefer entries matching the active gametype.</td>
+        </tr>
+        <tr>
+          <td><code>min</code>, <code>max</code></td>
+          <td>integer</td>
+          <td>Minimum and maximum recommended players.</td>
+          <td><strong>Gates rotation and voting.</strong> Maps outside the current population band are skipped.</td>
+        </tr>
+        <tr>
+          <td><code>gametype</code></td>
+          <td>integer</td>
+          <td>Default gametype index loaded when the map boots.</td>
+          <td><strong>Gates auto-rotation.</strong> Used when a cycle entry omits overrides.</td>
+        </tr>
+        <tr>
+          <td><code>ruleset</code></td>
+          <td>integer</td>
+          <td>Applies Quake/Quake III style rulesets.</td>
+          <td><strong>Gates rotation.</strong> Selector avoids mismatched rulesets for the current playlist.</td>
+        </tr>
+        <tr>
+          <td><code>scorelimit</code>, <code>timelimit</code></td>
+          <td>integer</td>
+          <td>Per-map overrides for match objectives.</td>
+          <td>Applied on load; does not affect selection.</td>
+        </tr>
+        <tr>
+          <td><code>popular</code>, <code>custom</code></td>
+          <td>bool</td>
+          <td>Helper flags for UI and fallback behavior.</td>
+          <td>Selector can prefer or avoid entries based on client capabilities.</td>
+        </tr>
+      </tbody>
+    </table>
+    <p><sup>*</sup>Required fields.</p>
+
+    <h3>Example Entry</h3>
     <pre>{
   "maps": [
     {
@@ -30,7 +103,6 @@
       "title": "The Edge",
       "dm": true,
       "tdm": true,
-      "ctf": false,
       "duel": true,
       "min": 2,
       "max": 8,
@@ -38,12 +110,45 @@
       "ruleset": 0,
       "scorelimit": 30,
       "timelimit": 15,
-      "popular": true,
-      "custom": false
+      "popular": true
+    },
+    {
+      "bsp": "worr_dom01",
+      "title": "Orbital Relay",
+      "dm": true,
+      "dom": true,
+      "min": 4,
+      "max": 12,
+      "gametype": 3,
+      "ruleset": 2,
+      "control_points": 3
     }
   ]
 }</pre>
-    <p>Required: <code>bsp</code>, <code>dm</code>. Optional: all others.</p>
+    <p>The second entry advertises Domination support. Ensure three capture points and team-balanced spawns exist before marking <code>dom</code> true; WORR will trust the metadata when evaluating rotation choices.</p>
+  </section>
+
+  <section>
+    <h2>Rotation Filters & Selector Signals</h2>
+    <p>When choosing the next map, WORR considers:</p>
+    <ul>
+      <li><strong>Gametype &amp; ruleset compatibility:</strong> Entries whose <code>gametype</code> and <code>ruleset</code> match the current playlist or the requested vote.</li>
+      <li><strong>Population sizing:</strong> Maps whose <code>min</code>/<code>max</code> bracket fits the live player count. Out-of-range entries are suppressed until the population changes.</li>
+      <li><strong>Recent history:</strong> Selector avoids BSPs played in the last 30 minutes unless no alternatives qualify.</li>
+      <li><strong>Custom map handling:</strong> Server operators may avoid <code>custom: true</code> entries when legacy clients are connected.</li>
+    </ul>
+    <p>Designers should stage spawn pads, objective entities, and ready-up areas so that maps flagged for multiple gametypes satisfy the expectations defined in <code>GAME_MODES</code>.</p>
+  </section>
+
+  <section>
+    <h2>Mode-Specific Guidance</h2>
+    <p>Align layout tweaks with the gametype tips in the level design overview:</p>
+    <ul>
+      <li><strong>Domination:</strong> Place three or more control points on high-visibility landmarks with roughly even travel time between them. Multi-level access paths keep stalemates short.</li>
+      <li><strong>Arena &amp; Elimination Modes:</strong> Provide sufficient start pads and spectator-safe perches for Clan Arena, CaptureStrike, and Gauntlet variants. Consider mirrored spawn banks to reduce round-start desyncs.</li>
+      <li><strong>Large Team Modes:</strong> Ensure CTF, One Flag, and Harvester entries include flag stands, scoring pads, and defended approach lanes so selectors can trust the advertised support.</li>
+    </ul>
+    <p>Refer to <em>docs/wiki/level-design.md</em> for deeper guidance that maps the <code>GAME_MODES</code> metadata to concrete entity requirements.</p>
   </section>
 
   <section>
@@ -52,14 +157,14 @@
     <pre>// This is a comment
 /* block comment */
 q2dm1 q2dm2, q2dm3</pre>
-    <p>Only maps found in the current map pool and marked <code>dm: true</code> are accepted into the cycle.</p>
+    <p>Only maps found in the current map pool and marked <code>dm: true</code> are accepted into the cycle. When a cycle entry omits overrides, WORR falls back to the <code>gametype</code> and <code>ruleset</code> stored in the pool.</p>
   </section>
 
   <section>
     <h2>MyMap System</h2>
     <p>When <code>g_maps_mymap</code> is enabled, players can queue a map using:</p>
     <pre>mymap q2dm1 +pu -ht</pre>
-    <p>Only one map per player, max 8 total. Disallows maps played in the last 30 minutes. Override flags:</p>
+    <p>Only one map per player, max 8 total. WORR disallows maps played in the last 30 minutes. Override flags:</p>
     <ul>
       <li><code>+pu</code>: powerups</li>
       <li><code>+pa</code>: power armor</li>
@@ -70,36 +175,45 @@ q2dm1 q2dm2, q2dm3</pre>
       <li><code>+fd</code>: fall damage</li>
       <li><code>+sd</code>: self damage</li>
     </ul>
+    <p>Metadata gates eligibility: MyMap will reject BSPs whose <code>min</code>/<code>max</code> bracket fails or whose gametype flags do not match the current playlist.</p>
   </section>
 
   <section>
     <h2>Map Selector Vote</h2>
-    <p>Enabled via <code>g_maps_selector</code>. At match end, players vote between up to 3 maps based on suitability. If tied or no votes cast, a fallback or random selection is made. Selector filters based on:</p>
+    <p>Enable via <code>g_maps_selector</code>. At match end, players vote between up to three maps chosen from the pool. If tied or no votes are cast, WORR uses a fallback or random selection.</p>
+    <p>Selector filters based on:</p>
     <ul>
-      <li>Cycleable flag</li>
+      <li>Cycle eligibility</li>
       <li>Min/max player range</li>
       <li>Recent play history</li>
-      <li>Custom map avoidance (if console clients exist)</li>
+      <li>Custom map avoidance (when legacy clients are present)</li>
     </ul>
   </section>
 
   <section>
-    <h2>Commands</h2>
+    <h2>Commands & Validation Workflow</h2>
     <ul>
-      <li><code>mappool</code>: List all DM maps in the pool</li>
-      <li><code>mapcycle</code>: List all cycleable maps</li>
-      <li><code>mymap &lt;map&gt; [+flag] [-flag]</code>: Queue a map</li>
-      <li><code>loadmappool</code>: Reload map pool</li>
-      <li><code>loadmapcycle</code>: Reload map cycle</li>
-      <li><code>callvote map &lt;map&gt; [+flag]</code>: Vote to change map</li>
-      <li><code>callvote nextmap</code>: Vote to go to next map</li>
+      <li><code>mappool</code>: List all DM maps in the pool.</li>
+      <li><code>mapcycle</code>: List all cycleable maps.</li>
+      <li><code>mymap &lt;map&gt; [+flag] [-flag]</code>: Queue a map and verify override behavior.</li>
+      <li><code>loadmappool</code>: Reload the map pool after editing the JSON.</li>
+      <li><code>loadmapcycle</code>: Reload the map cycle list.</li>
+      <li><code>callvote map &lt;map&gt; [+flag]</code>: Vote to change map.</li>
+      <li><code>callvote nextmap</code>: Vote to go to the next map.</li>
     </ul>
+    <p>Recommended workflow:</p>
+    <ol>
+      <li>Lint JSON with <code>jq</code> or an IDE validator before uploading.</li>
+      <li>Use <code>loadmappool</code> and <code>loadmapcycle</code> on a staging server to confirm the files parse.</li>
+      <li>Run <code>mappool</code> / <code>mapcycle</code> to ensure every intended entry appears.</li>
+      <li>Queue candidate maps through MyMap to confirm population gating and override handling.</li>
+      <li>Playtest each gametype you advertise, verifying spawn targets, control points, and scoring entities operate as expected.</li>
+    </ol>
   </section>
 
   <section>
     <h2>Fallback Behavior</h2>
     <p>If no valid map pool exists, the system will revert to using <code>g_map_list</code> as a legacy list.</p>
   </section>
-
 </body>
 </html>
