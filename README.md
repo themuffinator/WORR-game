@@ -4,7 +4,7 @@
 **WORR** is an advanced gameplay expansion and server mod for **QUAKE II Rerelease**, designed to bring a richer, more dynamic single-player and multiplayer experience.
 It dramatically extends entity and gameplay support, integrates modern competitive systems, and refines the core feel of QUAKE II while preserving its fast-paced essence.
 
-It is a successor to my previous project, [Muff Mode](github.com/themuffinator/muffmode).
+It is a successor to my previous project, [Muff Mode](https://github.com/themuffinator/muffmode).
 
 ---
 
@@ -66,5 +66,5 @@ It is a successor to my previous project, [Muff Mode](github.com/themuffinator/m
 ## Links
 - Get Quake II Rerelease on [Steam](https://store.steampowered.com/agecheck/app/2320/), [GOG.com](https://www.gog.com/en/game/quake_ii_quad_damage), [Epic Games Store](https://store.epicgames.com/en-US/p/quake-ii) and a variety of console platforms.
 - Quake II Rerelease [source code](https://github.com/id-Software/quake2-rerelease-dll)
-- The Ionized mod: [source](github.com/Konig-Varorson/quake2-rerelease-dll-ionized/) and [ModDb page](https://www.moddb.com/mods/quake-ii-ionized/)
+- The Ionized mod: [source](https://github.com/Konig-Varorson/quake2-rerelease-dll-ionized/) and [ModDb page](https://www.moddb.com/mods/quake-ii-ionized/)
 - Join in the discussion at [DarkMatter on Discord](https://discord.gg/T32mFejwR4)
