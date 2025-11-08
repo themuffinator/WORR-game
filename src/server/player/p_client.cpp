@@ -1991,7 +1991,8 @@ but is called after each death and level change in deathmatch
 */
 void InitClientPersistant(gentity_t* ent, gclient_t* client) {
         // backup & restore userInfo
-        std::string userInfo = client->pers.userInfo;
+        char userInfo[MAX_INFO_STRING];
+        Q_strlcpy(userInfo, client->pers.userInfo, sizeof(userInfo));
 
         client->pers = client_persistant_t{};
 
@@ -2847,7 +2848,7 @@ static void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bo
 		return;
 	std::string s, t;
 	char name[MAX_INFO_VALUE] = {};
-        gi.Info_ValueForKey(ent->client->pers.userInfo.c_str(), "name", name, sizeof(name));
+        gi.Info_ValueForKey(ent->client->pers.userInfo, "name", name, sizeof(name));
 	const std::string_view playerName = name;
 	const uint16_t skill = ent->client->sess.skillRating;
 	const auto team = ent->client->sess.team;
@@ -3285,20 +3286,20 @@ ClientUserInfoChanged
 called whenever the player updates a userInfo variable.
 ============
 */
-void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
-        std::string userInfo(userInfoView);
-        const char* userInfoCStr = userInfo.c_str();
+void ClientUserinfoChanged(gentity_t* ent, const char* userInfo) {
+        if (!userInfo)
+                userInfo = "";
 
         std::array<char, MAX_INFO_VALUE> value{};
         std::array<char, MAX_INFO_VALUE> nameBuffer{};
 
         // set name
-        if (!gi.Info_ValueForKey(userInfoCStr, "name", nameBuffer.data(), nameBuffer.size()))
+        if (!gi.Info_ValueForKey(userInfo, "name", nameBuffer.data(), nameBuffer.size()))
                 Q_strlcpy(nameBuffer.data(), "badinfo", nameBuffer.size());
         Q_strlcpy(ent->client->sess.netName, nameBuffer.data(), sizeof(ent->client->sess.netName));
 
         // set skin
-        if (!gi.Info_ValueForKey(userInfoCStr, "skin", value.data(), value.size()))
+        if (!gi.Info_ValueForKey(userInfo, "skin", value.data(), value.size()))
                 Q_strlcpy(value.data(), "male/grunt", value.size());
 
         const char* sanitizedSkin = ClientSkinOverride(value.data());
@@ -3329,11 +3330,11 @@ void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
         }
 
         // fov
-        gi.Info_ValueForKey(userInfoCStr, "fov", value.data(), value.size());
+        gi.Info_ValueForKey(userInfo, "fov", value.data(), value.size());
         ent->client->ps.fov = std::clamp(static_cast<float>(strtoul(value.data(), nullptr, 10)), 1.f, 160.f);
 
         // handedness
-        if (gi.Info_ValueForKey(userInfoCStr, "hand", value.data(), value.size())) {
+        if (gi.Info_ValueForKey(userInfo, "hand", value.data(), value.size())) {
                 ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(value.data()), static_cast<int>(Handedness::Right), static_cast<int>(Handedness::Center)));
         }
         else {
@@ -3341,14 +3342,14 @@ void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
         }
 
         // [Paril-KEX] auto-switch
-        if (gi.Info_ValueForKey(userInfoCStr, "autoswitch", value.data(), value.size())) {
+        if (gi.Info_ValueForKey(userInfo, "autoswitch", value.data(), value.size())) {
                 ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(value.data()), static_cast<int>(WeaponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
         }
         else {
                 ent->client->pers.autoswitch = WeaponAutoSwitch::Smart;
         }
 
-        if (gi.Info_ValueForKey(userInfoCStr, "autoshield", value.data(), value.size())) {
+        if (gi.Info_ValueForKey(userInfo, "autoshield", value.data(), value.size())) {
                 ent->client->pers.autoshield = atoi(value.data());
         }
         else {
@@ -3356,7 +3357,7 @@ void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
         }
 
         // [Paril-KEX] wants bob
-        if (gi.Info_ValueForKey(userInfoCStr, "bobskip", value.data(), value.size())) {
+        if (gi.Info_ValueForKey(userInfo, "bobskip", value.data(), value.size())) {
                 ent->client->pers.bob_skip = value[0] == '1';
         }
         else {
@@ -3364,7 +3365,7 @@ void ClientUserinfoChanged(gentity_t* ent, std::string_view userInfoView) {
         }
 
         // save off the userInfo in case we want to check something later
-        ent->client->pers.userInfo = std::move(userInfo);
+        Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
 }
 
 static inline bool IsSlotIgnored(gentity_t* slot, gentity_t** ignore, size_t num_ignore) {
@@ -3422,9 +3423,9 @@ static inline gentity_t* ClientChooseSlot_Coop(const char* userInfo, const char*
 			continue;
 
 		char check_name[MAX_INFO_VALUE] = { 0 };
-                gi.Info_ValueForKey(game.clients[i].pers.userInfo.c_str(), "name", check_name, sizeof(check_name));
+                gi.Info_ValueForKey(game.clients[i].pers.userInfo, "name", check_name, sizeof(check_name));
 
-                bool username_match = !game.clients[i].pers.userInfo.empty() &&
+                bool username_match = game.clients[i].pers.userInfo[0] &&
                         !strcmp(check_name, name);
 
 		bool social_match = socialID && game.clients[i].sess.socialID && game.clients[i].sess.socialID[0] &&
@@ -3480,8 +3481,8 @@ static inline gentity_t* ClientChooseSlot_Coop(const char* userInfo, const char*
 
 	// in the case where we can't find a match, we're probably a new
 	// player, so pick a slot that hasn't been occupied yet
-	for (size_t i = 0; i < game.maxClients; i++)
-        if (!IsSlotIgnored(globals.gentities + i + 1, ignore, num_ignore) && game.clients[i].pers.userInfo.empty()) {
+        for (size_t i = 0; i < game.maxClients; i++)
+                if (!IsSlotIgnored(globals.gentities + i + 1, ignore, num_ignore) && !game.clients[i].pers.userInfo[0]) {
 			gi.Com_PrintFmt("coop slot {} issuing new for {}+{}\n", i + 1, name, socialID);
 			return globals.gentities + i + 1;
 		}

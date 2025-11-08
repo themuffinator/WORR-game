@@ -25,7 +25,7 @@ void OpenHostInfoMenu(gentity_t* ent) {
 
 	if (g_entities[1].client) {
 		char value[MAX_INFO_VALUE] = { 0 };
-                gi.Info_ValueForKey(g_entities[1].client->pers.userInfo.c_str(), "name", value, sizeof(value));
+                gi.Info_ValueForKey(g_entities[1].client->pers.userInfo, "name", value, sizeof(value));
 		if (value[0]) {
 			builder.add("Host:", MenuAlign::Left);
 			builder.add(value, MenuAlign::Left);
