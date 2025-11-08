@@ -64,6 +64,12 @@ jobs:
         run: |
           msbuild "src\WORR-kex.sln" /m /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }}
 
+      - name: Run C++ tests
+        if: matrix.identifier == 'windows'
+        shell: pwsh
+        run: |
+          python tools/ci/run_tests.py
+
       - name: Stage Windows artifacts
         if: matrix.identifier == 'windows'
         shell: pwsh
@@ -119,6 +125,11 @@ cmd.extend(sources)
 cmd.extend(['-o', 'game.so'])
 subprocess.check_call(cmd)
 PY
+
+      - name: Run C++ tests
+        if: matrix.identifier == 'ubuntu'
+        run: |
+          python3 tools/ci/run_tests.py
 
       - name: Stage Linux artifacts
         if: matrix.identifier == 'ubuntu'
