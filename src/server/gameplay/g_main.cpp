@@ -298,46 +298,60 @@ void G_InitSave();
 // =================================================
 
 void LoadMotd() {
-	// load up ent override
-	const char* name = G_Fmt("baseq2/{}", g_motd_filename->string[0] ? g_motd_filename->string : "motd.txt").data();
-	FILE* f = fopen(name, "rb");
-	bool valid = true;
-	if (f != NULL) {
-		char* buffer = nullptr;
-		size_t length;
-		size_t read_length;
+        const std::string motdPath = G_Fmt(
+                "baseq2/{}",
+                g_motd_filename->string[0] ? g_motd_filename->string : "motd.txt");
 
-		fseek(f, 0, SEEK_END);
-		length = ftell(f);
-		fseek(f, 0, SEEK_SET);
+        FILE* f = fopen(motdPath.c_str(), "rb");
+        if (!f)
+                return;
 
-		if (length > 0x40000) {
-			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: \"{}\"\n", __FUNCTION__, name);
-			valid = false;
-		}
-		if (valid) {
-			buffer = (char*)gi.TagMalloc(length + 1, '\0');
-			if (length) {
-				read_length = fread(buffer, 1, length, f);
+        bool valid = true;
+        std::string contents;
 
-				if (length != read_length) {
-					gi.Com_PrintFmt("{}: MoTD file read error: \"{}\"\n", __FUNCTION__, name);
-					valid = false;
-				}
-			}
-		}
-		fclose(f);
+        if (fseek(f, 0, SEEK_END) != 0) {
+                valid = false;
+        }
 
-		if (valid) {
-			game.motd = (const char*)buffer;
-			game.motdModificationCount++;
-			if (g_verbose->integer)
-				gi.Com_PrintFmt("{}: MotD file verified and loaded: \"{}\"\n", __FUNCTION__, name);
-		}
-		else {
-			gi.Com_PrintFmt("{}: MotD file load error for \"{}\", discarding.\n", __FUNCTION__, name);
-		}
-	}
+        long endPosition = valid ? ftell(f) : -1;
+        if (endPosition < 0) {
+                valid = false;
+        }
+
+        if (valid) {
+                if (fseek(f, 0, SEEK_SET) != 0)
+                        valid = false;
+        }
+
+        if (valid) {
+                const std::size_t length = static_cast<std::size_t>(endPosition);
+                if (length > 0x40000) {
+                        gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+                        valid = false;
+                }
+                else {
+                        contents.resize(length);
+                        if (length > 0) {
+                                const std::size_t readLength = fread(contents.data(), 1, length, f);
+                                if (readLength != length) {
+                                        gi.Com_PrintFmt("{}: MoTD file read error: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+                                        valid = false;
+                                }
+                        }
+                }
+        }
+
+        fclose(f);
+
+        if (valid) {
+                game.motd = contents;
+                game.motdModificationCount++;
+                if (g_verbose->integer)
+                        gi.Com_PrintFmt("{}: MotD file verified and loaded: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+        }
+        else {
+                gi.Com_PrintFmt("{}: MotD file load error for \"{}\", discarding.\n", __FUNCTION__, motdPath.c_str());
+        }
 }
 
 int check_ruleset = -1;
