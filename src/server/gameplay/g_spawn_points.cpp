@@ -21,6 +21,7 @@
 //   older parts of the codebase that have not yet been migrated.
 
 #include "../g_local.hpp"
+#include "g_headhunters.hpp"
 #include <algorithm>
 #include <cstring>
 
@@ -1151,6 +1152,7 @@ void ClientSpawn(gentity_t* ent) {
 	if (!cl)
 		return;
 
+	HeadHunters::ResetPlayerState(cl);
 	Harvester_OnClientSpawn(ent);
 
 	int					index = ent - g_entities - 1;
