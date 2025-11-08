@@ -47,6 +47,14 @@ It is a successor to my previous project, [Muff Mode](https://github.com/themuff
 
 ---
 
+## Release Channels & Upgrade Path
+- **Stable** — Fully vetted releases recommended for production servers; expect only critical hotfixes between major updates.
+- **Release Candidate (RC)** — Final verification builds that preview the upcoming stable release; suitable for staging environments that mirror production.
+- **Beta** — Feature-complete builds undergoing active testing; best for enthusiasts who want early access and can tolerate occasional regressions.
+- **Nightly** — Automated snapshots of the latest development work; ideal for contributors validating fixes, but not advised for live servers.
+
+See [docs/versioning.md](docs/versioning.md) for comprehensive versioning policies, upgrade guidance, and support timelines.
+
 ## Credits
 - id Software for the QUAKE franchise. WORR has taken inspiration from all other classic QUAKE titles, particularly QUAKE and QUAKE LIVE.
 - Nightdive for the excellent **QUAKE** and **QUAKE II** Rereleases
