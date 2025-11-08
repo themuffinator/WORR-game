@@ -4,6 +4,7 @@
     <ClInclude Include="server\g_local.hpp" />
     <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
+    <ClInclude Include="server\gameplay\g_headhunters.hpp" />
     <ClInclude Include="server\bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
@@ -548,6 +549,9 @@
     </ClCompile>
     <ClCompile Include="server\gameplay\g_func.cpp">
       <Filter>world</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_headhunters.cpp">
+      <Filter>matches</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_horde.cpp">
       <Filter>matches</Filter>

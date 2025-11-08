@@ -21,8 +21,8 @@ It is a successor to my previous project, [Muff Mode](https://github.com/themuff
 **WORR** transforms QUAKE II’s multiplayer into a flexible, competitive, and feature-rich platform.
 
 #### Gametypes
-- **17 distinct gametypes**, including:
-  - *Duel, Domination, Clan Arena, Freeze Tag* and more
+- **18 distinct gametypes**, including:
+  - *Duel, Domination, Head Hunters, Clan Arena, Freeze Tag* and more
 
 #### Game Modifiers
 - Unique match modifiers such as:

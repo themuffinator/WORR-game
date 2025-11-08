@@ -14,6 +14,7 @@ Welcome to the hub for WORR documentation. WORR extends the QUAKE II Rerelease w
 ## Reference Material
 
 - [WORR cvar matrix](cvars.md) — Cross-link of settings discussed throughout the persona guides.
+- [Head Hunters guide](../headhunters.md) — Objectives, scoring flow, and map setup tips for the skull-collecting mode.
 
 > **What’s new vs. the stock QUAKE II Rerelease?**
 > 

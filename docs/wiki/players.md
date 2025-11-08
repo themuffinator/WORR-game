@@ -27,6 +27,7 @@
 | Clan Arena | `ca` | Round-based team elimination with arena loadouts. | — |
 | One Flag | `oneflag` | Shared neutral flag—coordinate escorts both ways. | — |
 | Harvester | `har` | Collect enemy skulls and score at your base. | — |
+| Head Hunters | `hh` | Collect dropped heads and cash them in at receptacles for scoring bursts. | [Head Hunters guide](../headhunters.md) |
 | Overload | `overload` | Destroy the enemy obelisk to score; defend your own. | — |
 | Freeze Tag | `ft` | Freeze foes instead of fragging; thaw teammates to win rounds. | — |
 | CaptureStrike | `strike` | Hybrid round play with capture objectives and elimination stakes. | — |
