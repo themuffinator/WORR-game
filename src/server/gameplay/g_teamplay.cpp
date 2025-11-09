@@ -248,6 +248,8 @@ static void Team_SetFlagStatus(Team team, FlagStatus status) {
 		flagStatusStr += ctfFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus));
 	}
 	else {
+		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus));
+		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus));
 		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.neutralFlagStatus));
 	}
 
@@ -420,12 +422,32 @@ bool CTF_ResetTeamFlag(Team team) {
 	if (!Game::Has(GameFlags::CTF))
 		return false;
 
-	gentity_t* ent;
-	const char* c = team == Team::Red ? ITEM_CTF_FLAG_RED : ITEM_CTF_FLAG_BLUE;
-	bool found = false;
+	const char* className = nullptr;
+	item_id_t flagItem = IT_NULL;
 
-	ent = nullptr;
-	while ((ent = G_FindByString<&gentity_t::className>(ent, c)) != nullptr) {
+	switch (team) {
+	case Team::Red:
+		className = ITEM_CTF_FLAG_RED;
+		flagItem = IT_FLAG_RED;
+		break;
+
+	case Team::Blue:
+		className = ITEM_CTF_FLAG_BLUE;
+		flagItem = IT_FLAG_BLUE;
+		break;
+
+	case Team::Free:
+		className = ITEM_CTF_FLAG_NEUTRAL;
+		flagItem = IT_FLAG_NEUTRAL;
+		break;
+
+	default:
+		return false;
+	}
+
+	bool found = false;
+	gentity_t* ent = nullptr;
+	while ((ent = G_FindByString<&gentity_t::className>(ent, className)) != nullptr) {
 		if (ent->spawnFlags.has(SPAWNFLAG_ITEM_DROPPED)) {
 			FreeEntity(ent);
 			found = true;
@@ -438,6 +460,26 @@ bool CTF_ResetTeamFlag(Team team) {
 			found = true;
 		}
 	}
+
+	if (!found && team == Team::Free && neutralObelisk && neutralObelisk->inUse) {
+		Item* item = GetItemByIndex(flagItem);
+		if (!item)
+			return false;
+
+		gentity_t* flag = Spawn();
+		if (!flag)
+			return false;
+
+		flag->className = item->className;
+		flag->item = item;
+		flag->s.origin = neutralObelisk->s.origin;
+		flag->s.angles = neutralObelisk->s.angles;
+		CTF_FlagSetup(flag);
+		found = true;
+	}
+
+	if (found)
+		Team_SetFlagStatus(team, FlagStatus::AtBase);
 
 	return found;
 }
@@ -453,6 +495,7 @@ void CTF_ResetFlags() {
 
 	CTF_ResetTeamFlag(Team::Red);
 	CTF_ResetTeamFlag(Team::Blue);
+	CTF_ResetTeamFlag(Team::Free);
 }
 
 /*
@@ -625,12 +668,15 @@ static THINK(CTF_DropFlagThink) (gentity_t* ent) -> void {
 	if (ent->item->id == IT_FLAG_RED) {
 		CTF_ResetTeamFlag(Team::Red);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
-			Teams_TeamName(Team::Red));
+				Teams_TeamName(Team::Red));
 	}
 	else if (ent->item->id == IT_FLAG_BLUE) {
 		CTF_ResetTeamFlag(Team::Blue);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
-			Teams_TeamName(Team::Blue));
+				Teams_TeamName(Team::Blue));
+	}
+	else if (ent->item->id == IT_FLAG_NEUTRAL) {
+		Team_ReturnFlag(Team::Free);
 	}
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
