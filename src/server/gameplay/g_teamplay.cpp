@@ -422,41 +422,20 @@ bool CTF_ResetTeamFlag(Team team) {
 	if (!Game::Has(GameFlags::CTF))
 		return false;
 
-	gentity_t* ent;
-	const char* c = nullptr;
-	switch (team) {
-	case Team::Red:
-		c = ITEM_CTF_FLAG_RED;
-		break;
-	case Team::Blue:
-		c = ITEM_CTF_FLAG_BLUE;
-		break;
-	case Team::Free:
-		c = ITEM_CTF_FLAG_NEUTRAL;
-		break;
-	default:
-		return false;
-	}
-	bool found = false;
 	const char* className = nullptr;
-	item_id_t flagItem = IT_NULL;
+	FlagStatus status = FlagStatus::AtBase;
 
 	switch (team) {
 	case Team::Red:
 		className = ITEM_CTF_FLAG_RED;
-		flagItem = IT_FLAG_RED;
 		break;
-
 	case Team::Blue:
 		className = ITEM_CTF_FLAG_BLUE;
-		flagItem = IT_FLAG_BLUE;
 		break;
-
 	case Team::Free:
 		className = ITEM_CTF_FLAG_NEUTRAL;
-		flagItem = IT_FLAG_NEUTRAL;
+		status = FlagStatus::AtBase;
 		break;
-
 	default:
 		return false;
 	}
@@ -473,32 +452,18 @@ bool CTF_ResetTeamFlag(Team team) {
 			ent->solid = SOLID_TRIGGER;
 			gi.linkEntity(ent);
 			ent->s.event = EV_ITEM_RESPAWN;
+			if (team == Team::Free)
+				ent->fteam = Team::Free;
 			found = true;
 		}
 	}
 
-	if (!found && team == Team::Free && neutralObelisk && neutralObelisk->inUse) {
-		Item* item = GetItemByIndex(flagItem);
-		if (!item)
-			return false;
-
-		gentity_t* flag = Spawn();
-		if (!flag)
-			return false;
-
-		flag->className = item->className;
-		flag->item = item;
-		flag->s.origin = neutralObelisk->s.origin;
-		flag->s.angles = neutralObelisk->s.angles;
-		CTF_FlagSetup(flag);
-		found = true;
-	}
-
 	if (found)
-		Team_SetFlagStatus(team, FlagStatus::AtBase);
+		Team_SetFlagStatus(team, status);
 
 	return found;
 }
+
 
 /*
 ============
@@ -521,40 +486,41 @@ CTF_PickupFlag
 ============
 */
 bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
-	if (!Game::Has(GameFlags::CTF))
+	if (!Game::Has(GameFlags::CTF) || !ent || !other || !other->client)
 		return false;
 
-	Team		team;
-	item_id_t	flag_item, enemy_flag_item;
+	Team team;
+	item_id_t flag_item = IT_NULL;
+	item_id_t enemy_flag_item = IT_NULL;
 
-	// figure out what team this flag is
-	if (ent->item->id == IT_FLAG_RED)
+	switch (ent->item->id) {
+	case IT_FLAG_RED:
 		team = Team::Red;
-	else if (ent->item->id == IT_FLAG_BLUE)
+		flag_item = IT_FLAG_RED;
+		enemy_flag_item = IT_FLAG_BLUE;
+		break;
+	case IT_FLAG_BLUE:
 		team = Team::Blue;
-	else {
+		flag_item = IT_FLAG_BLUE;
+		enemy_flag_item = IT_FLAG_RED;
+		break;
+	case IT_FLAG_NEUTRAL:
+		team = Team::Free;
+		flag_item = IT_FLAG_NEUTRAL;
+		break;
+	default:
 		gi.LocClient_Print(other, PRINT_HIGH, "Don't know what team the flag is on, removing.\n");
 		FreeEntity(ent);
 		return false;
 	}
 
-	// same team, if the flag at base, check to he has the enemy flag
-	if (team == Team::Red) {
-		flag_item = IT_FLAG_RED;
-		enemy_flag_item = IT_FLAG_BLUE;
-	}
-	else {
-		flag_item = IT_FLAG_BLUE;
-		enemy_flag_item = IT_FLAG_RED;
-	}
+	const Team playerTeam = other->client->sess.team;
+	const bool droppedFlag = ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED;
+	const bool oneFlag = Game::Is(GameType::OneFlag);
 
-	if (team == other->client->sess.team) {
-
-		if (!(ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED)) {
-			// the flag is at home base.  if the player has the enemy
-			// flag, he's just scored a capture!
-
-			if (other->client->pers.inventory[enemy_flag_item]) {
+	if (team == playerTeam && (playerTeam == Team::Red || playerTeam == Team::Blue)) {
+		if (!droppedFlag) {
+			if (enemy_flag_item != IT_NULL && other->client->pers.inventory[enemy_flag_item]) {
 				if (other->client->pers.teamState.flag_pickup_time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
 						Teams_TeamName(team), other->client->sess.netName, TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
@@ -571,18 +537,15 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 				gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
 
-				// other gets capture bonus
 				G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
 				PushAward(other, PlayerMedal::Captures);
 
-				// Ok, let's do the player loop, hand out the bonuses
 				for (auto ec : active_clients()) {
 					if (ec->client->sess.team != other->client->sess.team)
 						ec->client->resp.ctf_lasthurtcarrier = -5_sec;
 					else if (ec->client->sess.team == other->client->sess.team) {
 						if (ec != other)
 							G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
-						// award extra points for capture assists
 						if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
 							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
 							G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
@@ -605,34 +568,79 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 				return false;
 			}
-			return false; // its at home base already
+			return false;
 		}
-		// hey, its not home.  return it by teleporting it back
+
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_returned_flag",
 			other->client->sess.netName, Teams_TeamName(team));
 		G_AdjustPlayerScore(other->client, CTF_RECOVERY_BONUS, false, 0);
 		other->client->resp.ctf_lastreturnedflag = level.time;
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
-		// CTF_ResetTeamFlag will remove this entity!  We must return false
-		CTF_ResetTeamFlag((Team)team);
+		Team_SetFlagStatus(team, FlagStatus::AtBase);
+		CTF_ResetTeamFlag(team);
 		return false;
 	}
 
-	// capturestrike: can't pick up enemy flag if defending
-	if (Game::Is(GameType::CaptureStrike)) {
-		if ((level.strike_red_attacks && other->client->sess.team != Team::Red) ||
-			(!level.strike_red_attacks && other->client->sess.team != Team::Blue)) {
-			//gi.LocClient_Print(other, PRINT_CENTER, "Your team is defending!\n");
-			return false;
+	if (oneFlag && !droppedFlag && team != Team::Free &&
+		(playerTeam == Team::Red || playerTeam == Team::Blue) &&
+		other->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+		Team scoringTeam = playerTeam;
+		if (other->client->pers.teamState.flag_pickup_time) {
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
+				Teams_TeamName(scoringTeam), other->client->sess.netName, TimeString((level.time - other->client->pers.teamState.flag_pickup_time).milliseconds(), true, false));
 		}
+		else {
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! (captured by {})\n",
+				Teams_TeamName(scoringTeam), other->client->sess.netName);
+		}
+
+		other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
+		other->client->resp.ctf_flagsince = 0_ms;
+
+		level.ctf_last_flag_capture = level.time;
+		level.ctf_last_capture_team = scoringTeam;
+		G_AdjustTeamScore(scoringTeam, Game::Is(GameType::CaptureStrike) ? 2 : 1);
+
+		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
+
+		G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
+		PushAward(other, PlayerMedal::Captures);
+
+		for (auto ec : active_clients()) {
+			if (ec->client->sess.team != other->client->sess.team)
+				ec->client->resp.ctf_lasthurtcarrier = -5_sec;
+			else if (ec->client->sess.team == other->client->sess.team) {
+				if (ec != other)
+					G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
+				if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+					gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
+					G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
+					PushAward(ec, PlayerMedal::Assist);
+				}
+				if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+					gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
+					G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
+					PushAward(ec, PlayerMedal::Assist);
+				}
+			}
+		}
+
+		CTF_ResetTeamFlag(Team::Free);
+		return false;
 	}
 
-	// hey, its not our flag, pick it up
-	if (!(ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED)) {
-		other->client->pers.teamState.flag_pickup_time = level.time;
+	if (Game::Is(GameType::CaptureStrike)) {
+		if ((level.strike_red_attacks && other->client->sess.team != Team::Red) ||
+			(!level.strike_red_attacks && other->client->sess.team != Team::Blue))
+			return false;
 	}
+
+	if (!droppedFlag)
+		other->client->pers.teamState.flag_pickup_time = level.time;
+
+	const char* flagTeamName = team == Team::Free ? "NEUTRAL" : Teams_TeamName(team);
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
-		other->client->sess.netName, Teams_TeamName(team));
+		other->client->sess.netName, flagTeamName);
 	G_AdjustPlayerScore(other->client, CTF_FLAG_BONUS, false, 0);
 	if (!level.strike_flag_touch) {
 		G_AdjustTeamScore(other->client->sess.team, 1);
@@ -642,10 +650,19 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	other->client->pers.inventory[flag_item] = 1;
 	other->client->resp.ctf_flagsince = level.time;
 
+	if (flag_item == IT_FLAG_NEUTRAL) {
+		FlagStatus status = FlagStatus::Taken;
+		if (playerTeam == Team::Red)
+			status = FlagStatus::TakenRed;
+		else if (playerTeam == Team::Blue)
+			status = FlagStatus::TakenBlue;
+		Team_SetFlagStatus(Team::Free, status);
+		ent->fteam = playerTeam;
+	}
+	else {
+		Team_SetFlagStatus(team, FlagStatus::Taken);
+	}
 
-	// pick up the flag
-	// if it's not a dropped flag, we just make is disappear
-	// if it's dropped, it will be removed by the pickup caller
 	if (!(ent->spawnFlags & SPAWNFLAG_ITEM_DROPPED)) {
 		ent->flags |= FL_RESPAWN;
 		ent->svFlags |= SVF_NOCLIENT;
@@ -653,6 +670,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	}
 	return true;
 }
+
 
 /*
 ============
@@ -695,9 +713,15 @@ static THINK(CTF_DropFlagThink) (gentity_t* ent) -> void {
 	else if (ent->item->id == IT_FLAG_NEUTRAL) {
 		Team_ReturnFlag(Team::Free);
 	}
+	else if (ent->item->id == IT_FLAG_NEUTRAL) {
+		CTF_ResetTeamFlag(Team::Free);
+		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
+			Teams_TeamName(Team::Free));
+	}
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 }
+
 
 /*
 ============
@@ -711,18 +735,28 @@ void CTF_DeadDropFlag(gentity_t* self) {
 		return;
 
 	gentity_t* dropped = nullptr;
+	Team droppedTeam = Team::None;
 
 	if (self->client->pers.inventory[IT_FLAG_RED]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_RED));
 		self->client->pers.inventory[IT_FLAG_RED] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
 			self->client->sess.netName, Teams_TeamName(Team::Red));
+		droppedTeam = Team::Red;
 	}
 	else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_BLUE));
 		self->client->pers.inventory[IT_FLAG_BLUE] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
 			self->client->sess.netName, Teams_TeamName(Team::Blue));
+		droppedTeam = Team::Blue;
+	}
+	else if (self->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_NEUTRAL));
+		self->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
+		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
+			self->client->sess.netName, Teams_TeamName(Team::Free));
+		droppedTeam = Team::Free;
 	}
 
 	self->client->pers.teamState.flag_pickup_time = 0_ms;
@@ -731,8 +765,24 @@ void CTF_DeadDropFlag(gentity_t* self) {
 		dropped->think = CTF_DropFlagThink;
 		dropped->nextThink = level.time + CTF_AUTO_FLAG_RETURN_TIMEOUT;
 		dropped->touch = CTF_DropFlagTouch;
+		dropped->fteam = self->client->sess.team;
+
+		switch (droppedTeam) {
+		case Team::Red:
+			Team_SetFlagStatus(Team::Red, FlagStatus::Dropped);
+			break;
+		case Team::Blue:
+			Team_SetFlagStatus(Team::Blue, FlagStatus::Dropped);
+			break;
+		case Team::Free:
+			Team_SetFlagStatus(Team::Free, FlagStatus::Dropped);
+			break;
+		default:
+			break;
+		}
 	}
 }
+
 
 /*
 ============
@@ -817,19 +867,49 @@ void CTF_ClientEffects(gentity_t* player) {
 
 	player->s.effects &= ~(EF_FLAG_RED | EF_FLAG_BLUE);
 	if (player->health > 0) {
-		if (player->client->pers.inventory[IT_FLAG_RED])
-			player->s.effects |= EF_FLAG_RED;
-		if (player->client->pers.inventory[IT_FLAG_BLUE])
-			player->s.effects |= EF_FLAG_BLUE;
+		if (player->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+			switch (player->client->sess.team) {
+			case Team::Red:
+				player->s.effects |= EF_FLAG_RED;
+				break;
+			case Team::Blue:
+				player->s.effects |= EF_FLAG_BLUE;
+				break;
+			default:
+				player->s.effects |= EF_FLAG_RED | EF_FLAG_BLUE;
+				break;
+			}
+		}
+		else {
+			if (player->client->pers.inventory[IT_FLAG_RED])
+				player->s.effects |= EF_FLAG_RED;
+			if (player->client->pers.inventory[IT_FLAG_BLUE])
+				player->s.effects |= EF_FLAG_BLUE;
+		}
 	}
 
-	if (player->client->pers.inventory[IT_FLAG_RED])
+	if (player->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+		switch (player->client->sess.team) {
+		case Team::Red:
+			player->s.modelIndex3 = mi_ctf_red_flag;
+			break;
+		case Team::Blue:
+			player->s.modelIndex3 = mi_ctf_blue_flag;
+			break;
+		default:
+			player->s.modelIndex3 = 0;
+			break;
+		}
+	}
+	else if (player->client->pers.inventory[IT_FLAG_RED])
 		player->s.modelIndex3 = mi_ctf_red_flag;
 	else if (player->client->pers.inventory[IT_FLAG_BLUE])
 		player->s.modelIndex3 = mi_ctf_blue_flag;
 	else
 		player->s.modelIndex3 = 0;
+
 }
+
 
 namespace {
 	constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
