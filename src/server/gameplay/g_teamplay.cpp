@@ -22,56 +22,31 @@
 #include "../g_local.hpp"
 
 namespace CTF {
-	// Capture the Flag scoring bonuses
-	inline constexpr int	CAPTURE_BONUS = 100;	// Player bonus for capturing the flag
-	inline constexpr int	TEAM_BONUS = 25;	// Team bonus for a capture
-	inline constexpr int	RECOVERY_BONUS = 10;	// Bonus for returning your flag
-	inline constexpr int	FLAG_BONUS = 10;	// Bonus for picking up the enemy flag
+	// Capture the Flag scoring bonuses (live values)
+	inline constexpr int	CAPTURE_BONUS = 100;		// Player bonus for capturing the flag
+	inline constexpr int	TEAM_BONUS = 25;			// Teamwide bonus for a capture
+	inline constexpr int	RECOVERY_BONUS = 10;		// Bonus for returning your flag
+	inline constexpr int	FLAG_BONUS = 10;			// Bonus for picking up the enemy flag
 	inline constexpr int	FRAG_CARRIER_BONUS = 20;	// Bonus for fragging the enemy flag carrier
 
-	// Automatic flag return time (milliseconds)
-	inline constexpr GameTime	FLAG_RETURN_TIME = 40_sec;
+	inline constexpr GameTime	FLAG_RETURN_TIME = 40_sec;	// Delay before the flag automatically returns to base
 
-	// Flag defense and assist bonuses
+	// Flag defense and assist bonuses (live values)
 	inline constexpr int	CARRIER_DANGER_PROTECT_BONUS = 5;	// Bonus for killing someone who recently damaged your flag carrier
-	inline constexpr int	CARRIER_PROTECT_BONUS = 2;	// Bonus for killing someone near your flag carrier
-	inline constexpr int	FLAG_DEFENSE_BONUS = 10;	// Bonus for defending the flag
+	inline constexpr int	CARRIER_PROTECT_BONUS = 2;		// Bonus for killing someone near your flag carrier
+	inline constexpr int	FLAG_DEFENSE_BONUS = 10;		// Bonus for defending the flag
 	inline constexpr int	RETURN_FLAG_ASSIST_BONUS = 10;	// Bonus for returning a flag that leads to a quick capture
-	inline constexpr int	FRAG_CARRIER_ASSIST_BONUS = 10;	// Bonus for fragging carrier leading to a capture
+	inline constexpr int	FRAG_CARRIER_ASSIST_BONUS = 10;	// Bonus for fragging the carrier before a capture
 
-	// Radius within which protection bonuses apply (game units)
-	inline constexpr float	TARGET_PROTECT_RADIUS = 1000;
-	inline constexpr float	ATTACKER_PROTECT_RADIUS = 1000;
+	inline constexpr float	TARGET_PROTECT_RADIUS = 1000.0f;	// Radius for defense bonus checks (world units)
+	inline constexpr float	ATTACKER_PROTECT_RADIUS = 1000.0f;	// Radius for carrier protection checks (world units)
 
-	// Timeouts for assist tracking (milliseconds)
 	inline constexpr GameTime	CARRIER_DANGER_PROTECT_TIMEOUT = 8_sec;
 	inline constexpr GameTime	FRAG_CARRIER_ASSIST_TIMEOUT = 10_sec;
 	inline constexpr GameTime	RETURN_FLAG_ASSIST_TIMEOUT = 10_sec;
 
-	inline constexpr GameTime AUTO_FLAG_RETURN_TIMEOUT = 30_sec; // number of seconds before dropped flag auto-returns
+	inline constexpr GameTime	AUTO_FLAG_RETURN_TIMEOUT = 30_sec;	// Delay before a dropped flag auto-returns
 }
-
-constexpr int32_t CTF_CAPTURE_BONUS = 15;	  // what you get for capture
-constexpr int32_t CTF_TEAM_BONUS = 10;   // what your team gets for capture
-constexpr int32_t CTF_RECOVERY_BONUS = 1;	  // what you get for recovery
-constexpr int32_t CTF_FLAG_BONUS = 0;   // what you get for picking up enemy flag
-constexpr int32_t CTF_FRAG_CARRIER_BONUS = 2; // what you get for fragging enemy flag carrier
-constexpr GameTime CTF_FLAG_RETURN_TIME = 40_sec;  // seconds until auto return
-
-constexpr int32_t CTF_CARRIER_DANGER_PROTECT_BONUS = 2; // bonus for fraggin someone who has recently hurt your flag carrier
-constexpr int32_t CTF_CARRIER_PROTECT_BONUS = 1; // bonus for fraggin someone while either you or your target are near your flag carrier
-constexpr int32_t CTF_FLAG_DEFENSE_BONUS = 1; 	// bonus for fraggin someone while either you or your target are near your flag
-constexpr int32_t CTF_RETURN_FLAG_ASSIST_BONUS = 1; // awarded for returning a flag that causes a capture to happen almost immediately
-constexpr int32_t CTF_FRAG_CARRIER_ASSIST_BONUS = 2;	// award for fragging a flag carrier if a capture happens almost immediately
-
-constexpr float CTF_TARGET_PROTECT_RADIUS = 400;   // the radius around an object being defended where a target will be worth extra frags
-constexpr float CTF_ATTACKER_PROTECT_RADIUS = 400; // the radius around an object being defended where an attacker will get extra frags when making kills
-
-constexpr GameTime CTF_CARRIER_DANGER_PROTECT_TIMEOUT = 8_sec;
-constexpr GameTime CTF_FRAG_CARRIER_ASSIST_TIMEOUT = 10_sec;
-constexpr GameTime CTF_RETURN_FLAG_ASSIST_TIMEOUT = 10_sec;
-
-constexpr GameTime CTF_AUTO_FLAG_RETURN_TIMEOUT = 30_sec; // number of seconds before dropped flag auto-returns
 
 /*
 =================
@@ -308,7 +283,7 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker
 	// did the attacker frag the flag carrier?
 	if (targ->client->pers.inventory[enemy_flag_item]) {
 		attacker->client->resp.ctf_lastfraggedcarrier = level.time;
-		G_AdjustPlayerScore(attacker->client, CTF_FRAG_CARRIER_BONUS, false, 0);
+		G_AdjustPlayerScore(attacker->client, CTF::FRAG_CARRIER_BONUS, false, 0);
 		gi.LocBroadcast_Print(PRINT_MEDIUM, "{} fragged {}'s flag carrier!",
 			attacker->client->sess.netName,
 			Teams_TeamName(targ->client->sess.team));
@@ -323,11 +298,11 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker
 	}
 
 	if (targ->client->resp.ctf_lasthurtcarrier &&
-		level.time - targ->client->resp.ctf_lasthurtcarrier < CTF_CARRIER_DANGER_PROTECT_TIMEOUT &&
+		level.time - targ->client->resp.ctf_lasthurtcarrier < CTF::CARRIER_DANGER_PROTECT_TIMEOUT &&
 		!attacker->client->pers.inventory[flag_item]) {
 		// attacker is on the same team as the flag carrier and
 		// fragged a guy who hurt our flag carrier
-		G_AdjustPlayerScore(attacker->client, CTF_CARRIER_DANGER_PROTECT_BONUS, false, 0);
+		G_AdjustPlayerScore(attacker->client, CTF::CARRIER_DANGER_PROTECT_BONUS, false, 0);
 		PushAward(attacker, PlayerMedal::Defence);
 		return;
 	}
@@ -371,12 +346,12 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker
 	v1 = targ->s.origin - flag->s.origin;
 	v2 = attacker->s.origin - flag->s.origin;
 
-	if ((v1.length() < CTF_TARGET_PROTECT_RADIUS ||
-		v2.length() < CTF_TARGET_PROTECT_RADIUS ||
+	if ((v1.length() < CTF::TARGET_PROTECT_RADIUS ||
+		v2.length() < CTF::TARGET_PROTECT_RADIUS ||
 		LocCanSee(flag, targ) || LocCanSee(flag, attacker)) &&
 		attacker->client->sess.team != targ->client->sess.team) {
 		// we defended the base flag
-		G_AdjustPlayerScore(attacker->client, CTF_FLAG_DEFENSE_BONUS, false, 0);
+		G_AdjustPlayerScore(attacker->client, CTF::FLAG_DEFENSE_BONUS, false, 0);
 		PushAward(attacker, PlayerMedal::Defence);
 		return;
 	}
@@ -385,10 +360,10 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker
 		v1 = targ->s.origin - carrier->s.origin;
 		v2 = attacker->s.origin - carrier->s.origin;
 
-		if (v1.length() < CTF_ATTACKER_PROTECT_RADIUS ||
-			v2.length() < CTF_ATTACKER_PROTECT_RADIUS ||
+		if (v1.length() < CTF::ATTACKER_PROTECT_RADIUS ||
+			v2.length() < CTF::ATTACKER_PROTECT_RADIUS ||
 			LocCanSee(carrier, targ) || LocCanSee(carrier, attacker)) {
-			G_AdjustPlayerScore(attacker->client, CTF_CARRIER_PROTECT_BONUS, false, 0);
+			G_AdjustPlayerScore(attacker->client, CTF::CARRIER_PROTECT_BONUS, false, 0);
 			return;
 		}
 	}
@@ -537,7 +512,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 				gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
 
-				G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
+				G_AdjustPlayerScore(other->client, CTF::CAPTURE_BONUS, false, 0);
 				PushAward(other, PlayerMedal::Captures);
 
 				for (auto ec : active_clients()) {
@@ -545,15 +520,15 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 						ec->client->resp.ctf_lasthurtcarrier = -5_sec;
 					else if (ec->client->sess.team == other->client->sess.team) {
 						if (ec != other)
-							G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
-						if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+							G_AdjustPlayerScore(ec->client, CTF::TEAM_BONUS, false, 0);
+						if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF::RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
 							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
-							G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
+							G_AdjustPlayerScore(ec->client, CTF::RETURN_FLAG_ASSIST_BONUS, false, 0);
 							PushAward(ec, PlayerMedal::Assist);
 						}
-						if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+						if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF::FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
 							gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
-							G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
+							G_AdjustPlayerScore(ec->client, CTF::FRAG_CARRIER_ASSIST_BONUS, false, 0);
 							PushAward(ec, PlayerMedal::Assist);
 						}
 					}
@@ -573,7 +548,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_returned_flag",
 			other->client->sess.netName, Teams_TeamName(team));
-		G_AdjustPlayerScore(other->client, CTF_RECOVERY_BONUS, false, 0);
+		G_AdjustPlayerScore(other->client, CTF::RECOVERY_BONUS, false, 0);
 		other->client->resp.ctf_lastreturnedflag = level.time;
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 		Team_SetFlagStatus(team, FlagStatus::AtBase);
@@ -603,7 +578,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
 
-		G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
+		G_AdjustPlayerScore(other->client, CTF::CAPTURE_BONUS, false, 0);
 		PushAward(other, PlayerMedal::Captures);
 
 		for (auto ec : active_clients()) {
@@ -611,15 +586,15 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 				ec->client->resp.ctf_lasthurtcarrier = -5_sec;
 			else if (ec->client->sess.team == other->client->sess.team) {
 				if (ec != other)
-					G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
-				if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+					G_AdjustPlayerScore(ec->client, CTF::TEAM_BONUS, false, 0);
+				if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF::RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
-					G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
+					G_AdjustPlayerScore(ec->client, CTF::RETURN_FLAG_ASSIST_BONUS, false, 0);
 					PushAward(ec, PlayerMedal::Assist);
 				}
-				if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+				if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF::FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
 					gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
-					G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
+					G_AdjustPlayerScore(ec->client, CTF::FRAG_CARRIER_ASSIST_BONUS, false, 0);
 					PushAward(ec, PlayerMedal::Assist);
 				}
 			}
@@ -641,7 +616,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	const char* flagTeamName = team == Team::Free ? "NEUTRAL" : Teams_TeamName(team);
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
 		other->client->sess.netName, flagTeamName);
-	G_AdjustPlayerScore(other->client, CTF_FLAG_BONUS, false, 0);
+	G_AdjustPlayerScore(other->client, CTF::FLAG_BONUS, false, 0);
 	if (!level.strike_flag_touch) {
 		G_AdjustTeamScore(other->client->sess.team, 1);
 		level.strike_flag_touch = true;
@@ -683,7 +658,7 @@ static TOUCH(CTF_DropFlagTouch) (gentity_t* ent, gentity_t* other, const trace_t
 
 	// owner (who dropped us) can't touch for two secs
 	if (other == ent->owner &&
-		ent->nextThink - level.time > CTF_AUTO_FLAG_RETURN_TIMEOUT - 2_sec)
+		ent->nextThink - level.time > CTF::AUTO_FLAG_RETURN_TIMEOUT - 2_sec)
 		return;
 
 	Touch_Item(ent, other, tr, otherTouchingSelf);
@@ -763,7 +738,7 @@ void CTF_DeadDropFlag(gentity_t* self) {
 
 	if (dropped) {
 		dropped->think = CTF_DropFlagThink;
-		dropped->nextThink = level.time + CTF_AUTO_FLAG_RETURN_TIMEOUT;
+		dropped->nextThink = level.time + CTF::AUTO_FLAG_RETURN_TIMEOUT;
 		dropped->touch = CTF_DropFlagTouch;
 		dropped->fteam = self->client->sess.team;
 
@@ -1010,24 +985,24 @@ namespace {
 
 			gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
 
-			G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
+			G_AdjustPlayerScore(other->client, CTF::CAPTURE_BONUS, false, 0);
 			PushAward(other, PlayerMedal::Captures);
 
 			for (auto ec : active_clients()) {
 				if (ec->client->sess.team != other->client->sess.team)
 					ec->client->resp.ctf_lasthurtcarrier = -5_sec;
 				else if (ec != other) {
-					G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
+					G_AdjustPlayerScore(ec->client, CTF::TEAM_BONUS, false, 0);
 
-					if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+					if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF::RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
 						gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
-						G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
+						G_AdjustPlayerScore(ec->client, CTF::RETURN_FLAG_ASSIST_BONUS, false, 0);
 						PushAward(ec, PlayerMedal::Assist);
 					}
 
-					if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+					if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF::FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
 						gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
-						G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
+						G_AdjustPlayerScore(ec->client, CTF::FRAG_CARRIER_ASSIST_BONUS, false, 0);
 						PushAward(ec, PlayerMedal::Assist);
 					}
 				}
