@@ -248,6 +248,8 @@ static void Team_SetFlagStatus(Team team, FlagStatus status) {
 		flagStatusStr += ctfFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus));
 	}
 	else {
+		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus));
+		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus));
 		flagStatusStr += oneFlagStatusRemap.at(static_cast<int>(teamGame.neutralFlagStatus));
 	}
 
@@ -701,12 +703,15 @@ static THINK(CTF_DropFlagThink) (gentity_t* ent) -> void {
 	if (ent->item->id == IT_FLAG_RED) {
 		CTF_ResetTeamFlag(Team::Red);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
-			Teams_TeamName(Team::Red));
+				Teams_TeamName(Team::Red));
 	}
 	else if (ent->item->id == IT_FLAG_BLUE) {
 		CTF_ResetTeamFlag(Team::Blue);
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
-			Teams_TeamName(Team::Blue));
+				Teams_TeamName(Team::Blue));
+	}
+	else if (ent->item->id == IT_FLAG_NEUTRAL) {
+		Team_ReturnFlag(Team::Free);
 	}
 	else if (ent->item->id == IT_FLAG_NEUTRAL) {
 		CTF_ResetTeamFlag(Team::Free);
@@ -943,36 +948,96 @@ namespace {
 			ent->s.origin = tr.endPos;
 	}
 
-	TOUCH(Harvester_BaseTouch)(gentity_t* ent, gentity_t* other, const trace_t&, bool) -> void {
-		if (!Harvester_Active())
-			return;
-		if (!ent || !other || !other->client)
-			return;
+		TOUCH(Harvester_BaseTouch)(gentity_t* ent, gentity_t* other, const trace_t&, bool) -> void {
+			const bool harvester = Harvester_Active();
+			const bool oneFlag = Game::Is(GameType::OneFlag);
 
-		const Team baseTeam = ent->fteam;
-		if (baseTeam != Team::Red && baseTeam != Team::Blue)
-			return;
+			if (!harvester && !oneFlag)
+				return;
+			if (!ent || !other || !other->client)
+				return;
 
-		if (other->client->sess.team != baseTeam)
-			return;
+			const Team baseTeam = ent->fteam;
+			if (baseTeam != Team::Red && baseTeam != Team::Blue)
+				return;
 
-		const int tokens = other->client->ps.generic1;
-		if (tokens <= 0)
-			return;
+			if (other->client->sess.team != baseTeam)
+				return;
 
-		other->client->ps.generic1 = 0;
-		G_AdjustPlayerScore(other->client, tokens, true, tokens);
+			if (harvester) {
+				const int tokens = other->client->ps.generic1;
+				if (tokens <= 0)
+					return;
 
-		level.ctf_last_flag_capture = level.time;
-		level.ctf_last_capture_team = baseTeam;
+				other->client->ps.generic1 = 0;
+				G_AdjustPlayerScore(other->client, tokens, true, tokens);
 
-		const std::string msg = G_Fmt("{} delivered {} skull{}.",
-			other->client->sess.netName,
-			tokens,
-			tokens == 1 ? "" : "s");
-		gi.LocBroadcast_Print(PRINT_HIGH, msg.c_str());
-		Team_CaptureFlagSound(ent, baseTeam);
-	}
+				level.ctf_last_flag_capture = level.time;
+				level.ctf_last_capture_team = baseTeam;
+
+				const std::string msg = G_Fmt("{} delivered {} skull{}.",
+					other->client->sess.netName,
+					tokens,
+					tokens == 1 ? "" : "s");
+				gi.LocBroadcast_Print(PRINT_HIGH, msg.c_str());
+				Team_CaptureFlagSound(baseTeam);
+				return;
+			}
+
+			if (!oneFlag)
+				return;
+
+			if (!other->client->pers.inventory[IT_FLAG_NEUTRAL])
+				return;
+
+			const GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+			other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
+			other->client->pers.teamState.flag_pickup_time = 0_ms;
+
+			level.ctf_last_flag_capture = level.time;
+			level.ctf_last_capture_team = baseTeam;
+			G_AdjustTeamScore(baseTeam, 1);
+
+			if (pickupTime) {
+				gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! ({} captured in {})\n",
+					Teams_TeamName(baseTeam), other->client->sess.netName,
+					TimeString((level.time - pickupTime).milliseconds(), true, false));
+			}
+			else {
+				gi.LocBroadcast_Print(PRINT_HIGH, "{} TEAM CAPTURED the flag! (captured by {})\n",
+					Teams_TeamName(baseTeam), other->client->sess.netName);
+			}
+
+			gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
+
+			G_AdjustPlayerScore(other->client, CTF_CAPTURE_BONUS, false, 0);
+			PushAward(other, PlayerMedal::Captures);
+
+			for (auto ec : active_clients()) {
+				if (ec->client->sess.team != other->client->sess.team)
+					ec->client->resp.ctf_lasthurtcarrier = -5_sec;
+				else if (ec != other) {
+					G_AdjustPlayerScore(ec->client, CTF_TEAM_BONUS, false, 0);
+
+					if (ec->client->resp.ctf_lastreturnedflag && ec->client->resp.ctf_lastreturnedflag + CTF_RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
+						gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", ec->client->sess.netName);
+						G_AdjustPlayerScore(ec->client, CTF_RETURN_FLAG_ASSIST_BONUS, false, 0);
+						PushAward(ec, PlayerMedal::Assist);
+					}
+
+					if (ec->client->resp.ctf_lastfraggedcarrier && ec->client->resp.ctf_lastfraggedcarrier + CTF_FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
+						gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", ec->client->sess.netName);
+						G_AdjustPlayerScore(ec->client, CTF_FRAG_CARRIER_ASSIST_BONUS, false, 0);
+						PushAward(ec, PlayerMedal::Assist);
+					}
+				}
+			}
+
+			Team_SetFlagStatus(Team::Free, FlagStatus::AtBase);
+			CTF_ResetTeamFlag(Team::Free);
+			Team_CaptureFlagSound(baseTeam);
+		}
+
 
 	gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback) {
 		if (!Harvester_Active())
@@ -1045,10 +1110,30 @@ namespace {
 		ent->fteam = team;
 		gi.linkEntity(ent);
 
-		const size_t idx = static_cast<size_t>(team);
-		if (idx < level.harvester.bases.size())
-			level.harvester.bases[idx] = ent;
+		if (Harvester_Active()) {
+			const size_t idx = static_cast<size_t>(team);
+			if (idx < level.harvester.bases.size())
+				level.harvester.bases[idx] = ent;
+		}
 	}
+
+	void OneFlag_ApplyReceptacleVisuals(gentity_t* ent, Team team) {
+		if (!ent)
+			return;
+
+		static constexpr const char* MODEL_PATH = "models/items/keys/pyramid/tris.md2";
+		ent->model = MODEL_PATH;
+		gi.setModel(ent, MODEL_PATH);
+
+		ent->s.renderFX &= ~(RF_SHELL_RED | RF_SHELL_BLUE);
+		if (team == Team::Red)
+			ent->s.renderFX |= RF_SHELL_RED;
+		else if (team == Team::Blue)
+			ent->s.renderFX |= RF_SHELL_BLUE;
+
+		gi.linkEntity(ent);
+	}
+
 
 	void Harvester_RegisterGenerator(gentity_t* ent) {
 		if (!ent)
@@ -1170,21 +1255,25 @@ void Harvester_OnClientSpawn(gentity_t* ent) {
 }
 
 void SP_team_redobelisk(gentity_t* ent) {
-	if (Game::IsNot(GameType::Harvester)) {
-		FreeEntity(ent);
+	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
+		Harvester_RegisterBase(ent, Team::Red);
+		if (Game::Is(GameType::OneFlag))
+			OneFlag_ApplyReceptacleVisuals(ent, Team::Red);
 		return;
 	}
 
-	Harvester_RegisterBase(ent, Team::Red);
+	FreeEntity(ent);
 }
 
 void SP_team_blueobelisk(gentity_t* ent) {
-	if (Game::IsNot(GameType::Harvester)) {
-		FreeEntity(ent);
+	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
+		Harvester_RegisterBase(ent, Team::Blue);
+		if (Game::Is(GameType::OneFlag))
+			OneFlag_ApplyReceptacleVisuals(ent, Team::Blue);
 		return;
 	}
 
-	Harvester_RegisterBase(ent, Team::Blue);
+	FreeEntity(ent);
 }
 
 void SP_team_neutralobelisk(gentity_t* ent) {
