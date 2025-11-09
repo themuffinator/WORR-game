@@ -688,11 +688,6 @@ static THINK(CTF_DropFlagThink) (gentity_t* ent) -> void {
 	else if (ent->item->id == IT_FLAG_NEUTRAL) {
 		Team_ReturnFlag(Team::Free);
 	}
-	else if (ent->item->id == IT_FLAG_NEUTRAL) {
-		CTF_ResetTeamFlag(Team::Free);
-		gi.LocBroadcast_Print(PRINT_HIGH, "$g_flag_returned",
-			Teams_TeamName(Team::Free));
-	}
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 }
