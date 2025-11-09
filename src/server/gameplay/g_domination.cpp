@@ -7,6 +7,72 @@ extern const spawn_temp_t& ED_GetSpawnTemp();
 namespace {
 	constexpr GameTime kDominationScoreInterval = 5_sec;
 
+	constexpr float kDominationBeamTraceDistance = 8192.0f;
+
+	constexpr int32_t PackColor(const rgba_t& color) {
+		return static_cast<int32_t>(color.a)
+			| (static_cast<int32_t>(color.b) << 8)
+			| (static_cast<int32_t>(color.g) << 16)
+			| (static_cast<int32_t>(color.r) << 24);
+	}
+
+	int32_t BeamColorForTeam(Team team) {
+		switch (team) {
+		case Team::Red:
+			return PackColor(rgba_red);
+		case Team::Blue:
+			return PackColor(rgba_blue);
+		default:
+			return PackColor(rgba_white);
+		}
+	}
+
+	void FreePointBeam(LevelLocals::DominationState::Point& point) {
+		if (point.beam) {
+			FreeEntity(point.beam);
+			point.beam = nullptr;
+		}
+	}
+
+	void EnsurePointBeam(LevelLocals::DominationState::Point& point) {
+		if (!point.ent || !point.ent->inUse) {
+			FreePointBeam(point);
+			return;
+		}
+
+		gentity_t*& beam = point.beam;
+
+		if (!beam) {
+			beam = Spawn();
+			beam->className = "domination_point_beam";
+			beam->moveType = MoveType::None;
+			beam->solid = SOLID_NOT;
+			beam->s.renderFX = RF_BEAM;
+			beam->s.modelIndex = MODELINDEX_WORLD;
+			beam->s.frame = 4;
+		}
+
+		beam->owner = point.ent;
+		beam->count = static_cast<int32_t>(point.index);
+		beam->moveType = MoveType::None;
+		beam->solid = SOLID_NOT;
+		beam->s.renderFX |= RF_BEAM;
+		beam->s.modelIndex = MODELINDEX_WORLD;
+		beam->s.frame = 4;
+		beam->svFlags &= ~SVF_NOCLIENT;
+
+		const Vector3 start = point.ent->s.origin;
+		const Vector3 end = start + Vector3{ 0.0f, 0.0f, kDominationBeamTraceDistance };
+
+		const trace_t tr = gi.trace(start, vec3_origin, vec3_origin, end, point.ent, MASK_SOLID);
+
+		beam->s.origin = start;
+		beam->s.oldOrigin = tr.endPos;
+		beam->s.skinNum = BeamColorForTeam(point.owner);
+
+		gi.linkEntity(beam);
+	}
+
 	LevelLocals::DominationState::Point* FindPointForEntity(gentity_t* ent) {
 		auto& dom = level.domination;
 		for (size_t i = 0; i < dom.count; ++i) {
@@ -31,6 +97,8 @@ namespace {
 			point.ent->s.skinNum = 0;
 			break;
 		}
+
+		EnsurePointBeam(point);
 	}
 
 	Team SpawnFlagOwner(const gentity_t* ent) {
@@ -53,13 +121,13 @@ namespace {
 		}
 
 		auto& point = dom.points[dom.count];
+		FreePointBeam(point);
 		point = {};
 		point.ent = ent;
 		point.index = dom.count;
 		point.owner = SpawnFlagOwner(ent);
 		++dom.count;
 
-		ApplyPointOwnerVisual(point);
 		return &point;
 	}
 
@@ -124,12 +192,16 @@ namespace {
 } // namespace
 
 void Domination_ClearState() {
+	for (auto& point : level.domination.points) {
+		FreePointBeam(point);
+	}
+
 	level.domination = {};
 }
 
 void Domination_InitLevel() {
 	if (Game::IsNot(GameType::Domination)) {
-		level.domination = {};
+		Domination_ClearState();
 		return;
 	}
 
@@ -210,4 +282,7 @@ void SP_domination_point(gentity_t* ent) {
 	}
 
 	gi.linkEntity(ent);
+
+	if (point)
+		ApplyPointOwnerVisual(*point);
 }

@@ -2391,6 +2391,7 @@ struct LevelLocals {
 
 		struct Point {
 			gentity_t* ent = nullptr;
+			gentity_t* beam = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
 		};
