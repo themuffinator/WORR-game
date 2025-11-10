@@ -846,6 +846,7 @@ void Match_Start() {
 	level.matchEndRealTime = 0;
 	level.levelStartTime = carryScores ? level.time - game.marathon.totalElapsedBeforeCurrentMap : level.time;
 	level.overtime = 0_sec;
+	level.suddenDeath = false;
 
 	const char* s = TimeString(timeLimit->value ? timeLimit->value * 1000 : 0, false, true);
 	gi.configString(CONFIG_MATCH_STATE, s);
@@ -1326,6 +1327,7 @@ void Match_Reset() {
 		level.matchEndRealTime = 0;
 		level.levelStartTime = level.time;
 		level.overtime = 0_sec;
+		level.suddenDeath = false;
 		const char* s = TimeString(timeLimit->value ? timeLimit->value * 1000 : 0, false, true);
 		gi.configString(CONFIG_MATCH_STATE, s);
 		SetMatchState(LevelMatchTransition{
