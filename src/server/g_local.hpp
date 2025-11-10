@@ -288,7 +288,11 @@ namespace Game {
 	}
 
 	inline const GameTypeInfo& GetInfo(GameType type) {
-		return GAME_MODES[static_cast<size_t>(type)];
+		const int raw_value = static_cast<int>(type);
+		if (raw_value < static_cast<int>(GameType::None) || raw_value >= static_cast<int>(GameType::Total)) {
+			return GAME_MODES[static_cast<size_t>(GT_FIRST)];
+		}
+		return GAME_MODES[static_cast<size_t>(raw_value)];
 	}
 
 	inline const GameTypeInfo& GetInfo(int type_value) {
