@@ -1309,21 +1309,36 @@ Match_Reset
 */
 void Match_Reset() {
 	MarathonResetState();
-	if (!warmup_enabled->integer) {
-		level.levelStartTime = level.time;
-		// Transition: warmup disabled -> immediate in-progress gameplay.
-		SetMatchState(LevelMatchTransition{
-				MatchState::In_Progress,
-				0_sec,
-				std::optional<WarmupState>{WarmupState::Default},
-				std::optional<GameTime>{0_sec}
-			});
-		return;
-	}
 
 	ResetMatchWorldState(true);
 	ResetMatchPlayers(true, true, LimitedLivesResetMode::Force);
 	UnReadyAll();
+
+	level.intermission.queued = 0_sec;
+	level.intermission.postIntermission = false;
+	level.intermission.time = 0_sec;
+	level.intermission.duelWinLossApplied = false;
+	memset(&level.match, 0, sizeof(level.match));
+
+	if (!warmup_enabled->integer) {
+		time_t now = GetCurrentRealTimeMillis();
+		level.matchStartRealTime = now;
+		level.matchEndRealTime = 0;
+		level.levelStartTime = level.time;
+		level.overtime = 0_sec;
+		const char* s = TimeString(timeLimit->value ? timeLimit->value * 1000 : 0, false, true);
+		gi.configString(CONFIG_MATCH_STATE, s);
+		SetMatchState(LevelMatchTransition{
+				MatchState::In_Progress,
+				level.time,
+				std::optional<WarmupState>{WarmupState::Default},
+				std::optional<GameTime>{0_sec},
+				std::optional<bool>{false}
+		});
+		CalculateRanks();
+		gi.Broadcast_Print(PRINT_CENTER, ".The match has been reset.\n");
+		return;
+	}
 
 	level.matchStartRealTime = GetCurrentRealTimeMillis();
 	level.matchEndRealTime = 0;
@@ -1335,18 +1350,12 @@ void Match_Reset() {
 			std::optional<WarmupState>{WarmupState::Default},
 			std::optional<GameTime>{0_sec},
 			std::optional<bool>{false}
-		});
-	level.intermission.queued = 0_sec;
-	level.intermission.postIntermission = false;
-	level.intermission.time = 0_sec;
-	level.intermission.duelWinLossApplied = false;
-	memset(&level.match, 0, sizeof(level.match));
+	});
 
 	CalculateRanks();
 
 	gi.Broadcast_Print(PRINT_CENTER, ".The match has been reset.\n");
 }
-
 /*
 ============
 CheckDMRoundState
