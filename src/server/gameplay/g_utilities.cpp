@@ -1147,15 +1147,12 @@ GametypeIndexToString
 =================
 */
 std::string_view GametypeIndexToString(GameType gametype) {
-	const auto index = static_cast<size_t>(gametype);
+	const auto type_value = static_cast<int>(gametype);
 
-	// Validate that the gametype is within the bounds of our defined modes.
-	if (index > 0 && index < GAME_MODES.size()) {
-		return GAME_MODES[index].short_name_upper;
-	}
+	if (type_value <= static_cast<int>(GameType::None))
+		return "NONE";
 
-	// Return a default for GameType::None or any out-of-bounds value.
-	return "NONE";
+	return Game::GetInfo(type_value).short_name_upper;
 }
 
 /*
@@ -1169,7 +1166,8 @@ std::string GametypeOptionList() {
 
 	// Iterate through all gametypes, skipping the default 'None' type.
 	for (size_t i = static_cast<size_t>(GameType::FreeForAll); i < GAME_MODES.size(); ++i) {
-		ss << GAME_MODES[i].short_name;
+		const auto& info = Game::GetInfo(static_cast<GameType>(i));
+		ss << info.short_name;
 		if (i < GAME_MODES.size() - 1) {
 			ss << "|";
 		}
