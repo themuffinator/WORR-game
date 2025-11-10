@@ -2372,6 +2372,7 @@ bool Pickup_Ball(gentity_t* ent, gentity_t* other) {
 		return false;
 
 	other->client->pers.inventory[ent->item->id] = 1;
+	ProBall::OnBallPickedUp(ent, other);
 	Ball_OnPickup(ent, other);
 
 	return true;
