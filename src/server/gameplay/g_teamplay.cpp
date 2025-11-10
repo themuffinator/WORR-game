@@ -549,20 +549,29 @@ bool CTF_ResetTeamFlag(Team team) {
 	}
 
 	bool found = false;
+	bool restored = false;
 	gentity_t* ent = nullptr;
 	while ((ent = G_FindByString<&gentity_t::className>(ent, className)) != nullptr) {
 		if (IsDroppedFlag(ent) || IsDroppedByPlayer(ent)) {
 			RemoveDroppedFlag(ent);
 			found = true;
+			restored = true;
 		}
 		else {
 			RespawnFlag(ent, team);
 			found = true;
+			restored = true;
 		}
 	}
 
 	if (found) {
 		SetFlagStatus(team, FlagStatus::AtBase);
+		if (restored && Game::Is(GameType::CaptureStrike)) {
+			const Team defendingTeam = level.strike_red_attacks ? Team::Blue : Team::Red;
+			if (team == defendingTeam) {
+				level.strike_flag_touch = false;
+			}
+		}
 	}
 
 	return found;
@@ -656,8 +665,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
 		other->client->sess.netName, TeamNameOrNeutral(flagTeam));
 	G_AdjustPlayerScore(other->client, CTF::FLAG_BONUS, false, 0);
-	if (!level.strike_flag_touch) {
-		G_AdjustTeamScore(playerTeam, 1);
+	if (Game::Is(GameType::CaptureStrike) && !level.strike_flag_touch) {
 		level.strike_flag_touch = true;
 	}
 
