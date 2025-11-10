@@ -17,6 +17,8 @@ class Menu;
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <cctype>
+#include <memory>
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
@@ -287,12 +289,16 @@ namespace Game {
 		return type_value >= 0 && static_cast<GameType>(type_value) < GameType::Total;
 	}
 
+	inline char ToLowerASCII(char ch) {
+		return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+	}
+
 	// Helper for case-insensitive string_view comparison.
 	inline bool AreStringsEqualIgnoreCase(std::string_view a, std::string_view b) {
 		return std::equal(a.begin(), a.end(),
 			b.begin(), b.end(),
 			[](char a_char, char b_char) {
-				return std::tolower(a_char) == std::tolower(b_char);
+				return ToLowerASCII(a_char) == ToLowerASCII(b_char);
 			});
 	}
 

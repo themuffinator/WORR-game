@@ -1,5 +1,6 @@
 #include <cmath>
 #include <memory>
+#include <string>
 
 namespace std {
         using ::sinf;
@@ -27,6 +28,13 @@ int main() {
 
         const auto longLookup = Game::FromString("Last Team Standing");
         assert(longLookup.has_value() && *longLookup == GameType::LastTeamStanding);
+
+	// High-bit characters should not trigger UB in case-insensitive compares.
+	std::string highBitName = "lt";
+	highBitName.push_back(static_cast<char>(0xE1));
+	assert(Game::AreStringsEqualIgnoreCase(highBitName, highBitName));
+	const auto highBitLookup = Game::FromString(highBitName);
+	assert(!highBitLookup.has_value());
 
         return 0;
 }
