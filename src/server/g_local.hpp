@@ -272,16 +272,35 @@ extern cvar_t* g_gametype;
 // This namespace encapsulates game state logic and provides safe, inline
 // functions to replace the old macros.
 namespace Game {
+	inline GameType NormalizeTypeValue(int type_value) {
+		if (type_value < static_cast<int>(GT_FIRST) || type_value > static_cast<int>(GT_LAST))
+			return GT_FIRST;
+		return static_cast<GameType>(type_value);
+	}
+
 	// This function would get the current game type from your game's state,
 	// for example, a cvar like `g_gametype`.
 	inline GameType GetCurrentType() {
-		// `g_gametype->integer` is assumed to be the active gametype index.
-		return static_cast<GameType>(g_gametype->integer);
+		if (!g_gametype)
+			return GT_FIRST;
+
+		return NormalizeTypeValue(g_gametype->integer);
+	}
+
+	inline const GameTypeInfo& GetInfo(GameType type) {
+		return GAME_MODES[static_cast<size_t>(type)];
+	}
+
+	inline const GameTypeInfo& GetInfo(int type_value) {
+		return GetInfo(NormalizeTypeValue(type_value));
 	}
 
 	// Returns all information for the currently active gametype.
 	inline const GameTypeInfo& GetCurrentInfo() {
-		return GAME_MODES[static_cast<size_t>(GetCurrentType())];
+		if (!g_gametype)
+			return GetInfo(GT_FIRST);
+
+		return GetInfo(g_gametype->integer);
 	}
 
 	// Checks if the current gametype is a specific type.
@@ -309,16 +328,11 @@ namespace Game {
 	}
 
 	inline bool IsCurrentTypeValid() {
+		if (!g_gametype)
+			return false;
+
 		const int type_value = g_gametype->integer;
 		return type_value >= static_cast<int>(GT_FIRST) && type_value <= static_cast<int>(GT_LAST);
-	}
-
-	// Coerces a raw integer gametype value into the valid range. Any out-of-range
-	// value defaults to the first supported multiplayer mode (FreeForAll).
-	inline GameType NormalizeTypeValue(int type_value) {
-		if (type_value < static_cast<int>(GT_FIRST) || type_value > static_cast<int>(GT_LAST))
-			return GT_FIRST;
-		return static_cast<GameType>(type_value);
 	}
 
 	inline char ToLowerASCII(char ch) {

@@ -49,5 +49,23 @@ int main() {
 	g_gametype_storage.integer = static_cast<int>(mid_match);
 	assert(g_gametype_storage.integer == static_cast<int>(GameType::FreeForAll));
 
+	// Negative values should also fall back to FreeForAll and not crash.
+	g_gametype_storage.integer = -5;
+	assert(!Game::IsCurrentTypeValid());
+	assert(Game::GetCurrentType() == GameType::FreeForAll);
+	assert(Game::GetCurrentInfo().type == GameType::FreeForAll);
+
+	// Oversized integers must resolve to the fallback gametype info.
+	g_gametype_storage.integer = 1'000'000;
+	assert(!Game::IsCurrentTypeValid());
+	assert(Game::GetCurrentType() == GameType::FreeForAll);
+	assert(Game::GetCurrentInfo().type == GameType::FreeForAll);
+
+	// A null gametype pointer should behave identically to the fallback case.
+	g_gametype = nullptr;
+	assert(Game::GetCurrentType() == GameType::FreeForAll);
+	assert(Game::GetCurrentInfo().type == GameType::FreeForAll);
+	g_gametype = &g_gametype_storage;
+
 	return 0;
 }

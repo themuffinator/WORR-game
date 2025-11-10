@@ -18,7 +18,7 @@ int main() {
 	cvar_t gametype{};
 	g_gametype = &gametype;
 
-	const auto& info = GAME_MODES[static_cast<size_t>(GameType::Harvester)];
+	const auto& info = Game::GetInfo(GameType::Harvester);
 	assert(info.type == GameType::Harvester);
 	assert(HasFlag(info.flags, GameFlags::Teams));
 	assert(HasFlag(info.flags, GameFlags::CTF));

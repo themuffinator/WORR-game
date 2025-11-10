@@ -14,7 +14,7 @@ namespace std {
 local_game_import_t gi{};
 
 int main() {
-        const auto &info = GAME_MODES[static_cast<size_t>(GameType::LastTeamStanding)];
+	const auto &info = Game::GetInfo(GameType::LastTeamStanding);
         assert(info.type == GameType::LastTeamStanding);
         assert(info.short_name == "lts");
         assert(info.short_name_upper == "LTS");

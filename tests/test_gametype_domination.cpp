@@ -18,7 +18,7 @@ static cvar_t g_gametype_storage{};
 cvar_t* g_gametype = &g_gametype_storage;
 
 int main() {
-        const auto& info = GAME_MODES[static_cast<size_t>(GameType::Domination)];
+	const auto& info = Game::GetInfo(GameType::Domination);
         assert(info.type == GameType::Domination);
         assert(info.short_name == "dom");
         assert(info.short_name_upper == "DOM");
