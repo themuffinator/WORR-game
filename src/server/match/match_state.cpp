@@ -1383,6 +1383,7 @@ static void CheckDMRoundState() {
 		using enum GameType;
 		switch (gt) {
 		case ClanArena:     CheckRoundEliminationCA(); break;
+		case CaptureStrike: CheckRoundEliminationCA(); break;
 		case FreezeTag:     CheckRoundFreezeTag(); break;
 		case Horde:        CheckRoundHorde(); break;
 		case RedRover:     CheckRoundRR(); break;
