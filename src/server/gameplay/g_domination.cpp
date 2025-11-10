@@ -66,8 +66,13 @@ namespace {
 	}
 
 	void EnsurePointBeam(LevelLocals::DominationState::Point& point) {
-		if (!point.ent || !point.ent->inUse) {
+		if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
 			FreePointBeam(point);
+			if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
+				point.ent = nullptr;
+				point.owner = Team::None;
+				point.spawnCount = 0;
+			}
 			return;
 		}
 
@@ -107,7 +112,7 @@ namespace {
 	LevelLocals::DominationState::Point* FindPointForEntity(gentity_t* ent) {
 		auto& dom = level.domination;
 		for (size_t i = 0; i < dom.count; ++i) {
-			if (dom.points[i].ent == ent)
+			if (dom.points[i].ent == ent && dom.points[i].spawnCount == ent->spawn_count)
 				return &dom.points[i];
 		}
 		return nullptr;
@@ -157,6 +162,7 @@ namespace {
 		point.ent = ent;
 		point.index = dom.count;
 		point.owner = SpawnFlagOwner(ent);
+		point.spawnCount = ent->spawn_count;
 		++dom.count;
 
 		return &point;
@@ -274,9 +280,16 @@ void Domination_RunFrame() {
 	int blueOwned = 0;
 
 	for (size_t i = 0; i < dom.count; ++i) {
-		const auto& point = dom.points[i];
-		if (!point.ent)
+		auto& point = dom.points[i];
+		if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
+			FreePointBeam(point);
+			if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
+				point.ent = nullptr;
+				point.owner = Team::None;
+				point.spawnCount = 0;
+			}
 			continue;
+		}
 
 		if (point.owner == Team::Red)
 			++redOwned;
