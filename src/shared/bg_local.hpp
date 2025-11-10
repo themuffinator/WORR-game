@@ -233,6 +233,7 @@ enum player_stat_t {
 	STAT_MATCH_STATE = 29,
 	STAT_CROSSHAIR_ID_VIEW_COLOR = 30,
 	STAT_TEAMPLAY_INFO = 31,
+	STAT_GAMEPLAY_CARRIED,
 
 	// [Kex] More stats for weapon wheel
 	STAT_WEAPONS_OWNED_1 = 32,

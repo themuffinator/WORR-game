@@ -5,6 +5,7 @@
 // Harvester logic.
 
 #include "../g_local.hpp"
+#include "g_headhunters.hpp"
 
 #include <algorithm>
 #include <array>
@@ -933,22 +934,22 @@ namespace {
 		}
 
 		if (harvester) {
-			const int tokens = other->client->ps.generic1;
+			const int tokens = other->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 			if (tokens <= 0) {
 				return;
 			}
 
-			other->client->ps.generic1 = 0;
+			other->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
 			G_AdjustPlayerScore(other->client, tokens, true, tokens);
 
 			level.ctf_last_flag_capture = level.time;
 			level.ctf_last_capture_team = baseTeam;
 
-			const std::string msg = G_Fmt("{} delivered {} skull{}.",
+			const auto msg = G_Fmt("{} delivered {} skull{}.",
 				other->client->sess.netName,
 				tokens,
 				tokens == 1 ? "" : "s");
-			gi.LocBroadcast_Print(PRINT_HIGH, msg.c_str());
+			gi.LocBroadcast_Print(PRINT_HIGH, msg.data());
 			Team_CaptureFlagSound(baseTeam);
 			return;
 		}
@@ -1091,8 +1092,10 @@ namespace {
 		}
 
 		constexpr int MAX_SKULLS = 99;
-		if (other->client->ps.generic1 < MAX_SKULLS) {
-			other->client->ps.generic1 = std::min(MAX_SKULLS, other->client->ps.generic1 + 1);
+		auto& carried = other->client->ps.stats[STAT_GAMEPLAY_CARRIED];
+		if (carried < MAX_SKULLS) {
+			const int next = static_cast<int>(carried) + 1;
+			carried = static_cast<int16_t>(std::min(MAX_SKULLS, next));
 		}
 
 		return true;
@@ -1115,8 +1118,8 @@ void Harvester_Reset() {
 	}
 
 	ForEachClient([](gentity_t* entity) {
-		entity->client->ps.generic1 = 0;
-		});
+		entity->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
+	});
 }
 
 void Harvester_HandlePlayerDeath(gentity_t* victim) {
@@ -1130,13 +1133,13 @@ void Harvester_HandlePlayerDeath(gentity_t* victim) {
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
-	const int carried = victim->client->ps.generic1;
+	const int carried = victim->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 	if (carried > 0 && IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, victim->s.origin);
 	}
 
 	Harvester_DropSkulls(team, 1, victim->s.origin);
-	victim->client->ps.generic1 = 0;
+	victim->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
 }
 
 void Harvester_HandlePlayerDisconnect(gentity_t* ent) {
@@ -1150,12 +1153,12 @@ void Harvester_HandlePlayerDisconnect(gentity_t* ent) {
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
-	const int carried = ent->client->ps.generic1;
+	const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 	if (carried > 0 && IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, ent->s.origin);
 	}
 
-	ent->client->ps.generic1 = 0;
+	ent->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
 	Harvester_DropSkulls(team, 1, ent->s.origin);
 }
 
@@ -1170,12 +1173,12 @@ void Harvester_HandleTeamChange(gentity_t* ent) {
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
-	const int carried = ent->client->ps.generic1;
+	const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 	if (carried > 0 && IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, ent->s.origin);
 	}
 
-	ent->client->ps.generic1 = 0;
+	ent->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
 }
 
 void Harvester_OnClientSpawn(gentity_t* ent) {
@@ -1183,14 +1186,14 @@ void Harvester_OnClientSpawn(gentity_t* ent) {
 		return;
 	}
 
-	ent->client->ps.generic1 = 0;
+	ent->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
 }
 
 void SP_team_redobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Red);
 		if (Game::Is(GameType::OneFlag)) {
-			OneFlag_ApplyReceptacleVisuals(ent, Team::Red);
+			HeadHunters::ApplyReceptacleVisuals(ent, Team::Red);
 		}
 		return;
 	}
@@ -1202,7 +1205,7 @@ void SP_team_blueobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Blue);
 		if (Game::Is(GameType::OneFlag)) {
-			OneFlag_ApplyReceptacleVisuals(ent, Team::Blue);
+			HeadHunters::ApplyReceptacleVisuals(ent, Team::Blue);
 		}
 		return;
 	}

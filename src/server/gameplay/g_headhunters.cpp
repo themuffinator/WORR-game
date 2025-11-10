@@ -115,7 +115,7 @@ namespace {
 	void SyncClient(gclient_t* client) {
 		if (!client)
 			return;
-		client->ps.generic1 = client->headhunter.carried;
+		client->ps.stats[STAT_GAMEPLAY_CARRIED] = client->headhunter.carried;
 	}
 
 	Vector3 DropOrigin(const gentity_t* player) {
@@ -143,7 +143,7 @@ namespace {
 			state.headModelIndex = gi.modelIndex(kHeadModelPath);
 		head->className = "headhunters_carried_head";
 		head->solid = SOLID_NOT;
-		head->clipMask = 0;
+		head->clipMask = CONTENTS_NONE;
 		head->moveType = MoveType::None;
 		head->touch = nullptr;
 		head->think = nullptr;
@@ -155,7 +155,7 @@ namespace {
 		head->owner = owner;
 		gi.linkEntity(head);
 		return head;
-	}
+}
 
 	gentity_t* SpawnSpikeDisplayHead(gentity_t* base) {
 		gentity_t* head = Spawn();
@@ -166,7 +166,7 @@ namespace {
 			state.headModelIndex = gi.modelIndex(kHeadModelPath);
 		head->className = "headhunters_spike_head";
 		head->solid = SOLID_NOT;
-		head->clipMask = 0;
+		head->clipMask = CONTENTS_NONE;
 		head->moveType = MoveType::None;
 		head->touch = nullptr;
 		head->think = nullptr;
@@ -178,7 +178,7 @@ namespace {
 		head->owner = base;
 		gi.linkEntity(head);
 		return head;
-	}
+}
 
 	size_t DesiredAttachmentCount(const gclient_t* client) {
 		if (!client)
@@ -438,9 +438,9 @@ void RunFrame() {
 gentity_t* SpawnGroundHead(const Vector3& origin, const Vector3& velocity, Team team) {
 	if (!Active())
 		return nullptr;
-	gentity_t* head = Spawn();
-	if (!head)
-		return nullptr;
+		gentity_t* head = Spawn();
+		if (!head)
+			return nullptr;
 	head->className = "item_headhunter_head";
 	head->mins = { -12.0f, -12.0f, -12.0f };
 	head->maxs = { 12.0f, 12.0f, 12.0f };
@@ -535,29 +535,47 @@ void HandlePickup(gentity_t* ent, gentity_t* other, const trace_t&, bool) {
 		FreeEntity(ent);
 }
 
-void RegisterReceptacle(gentity_t* ent) {
-	if (!ent)
-		return;
-	auto& state = State();
-	const Team team = ReceptacleTeam(ent);
-	for (auto& slot : state.receptacles) {
-		if (slot.ent == ent) {
-			slot.team = team;
-			RefreshReceptacleCount(state);
+	void RegisterReceptacle(gentity_t* ent) {
+		if (!ent)
 			return;
+		auto& state = State();
+		const Team team = ReceptacleTeam(ent);
+		for (auto& slot : state.receptacles) {
+			if (slot.ent == ent) {
+				slot.team = team;
+				RefreshReceptacleCount(state);
+				return;
+			}
 		}
+		for (auto& slot : state.receptacles) {
+			if (!slot.ent || !slot.ent->inUse) {
+				slot = {};
+				slot.ent = ent;
+				slot.team = team;
+				RefreshReceptacleCount(state);
+				return;
+			}
+		}
+		gi.Com_PrintFmt("HeadHunters: ignoring {} because the maximum number of receptacles has been reached.\n", *ent);
 	}
-	for (auto& slot : state.receptacles) {
-		if (!slot.ent || !slot.ent->inUse) {
-			slot = {};
-			slot.ent = ent;
-			slot.team = team;
-			RefreshReceptacleCount(state);
+
+	void ApplyReceptacleVisuals(gentity_t* ent, Team team) {
+		if (!ent)
 			return;
+		EnsureReceptacleBounds(ent);
+		ent->s.renderFX &= ~(RF_SHELL_RED | RF_SHELL_BLUE);
+		switch (team) {
+		case Team::Red:
+			ent->s.renderFX |= RF_SHELL_RED;
+			break;
+		case Team::Blue:
+			ent->s.renderFX |= RF_SHELL_BLUE;
+			break;
+		default:
+			break;
 		}
+		gi.linkEntity(ent);
 	}
-	gi.Com_PrintFmt("HeadHunters: ignoring {} because the maximum number of receptacles has been reached.\n", *ent);
-}
 
 void OnReceptacleTouch(gentity_t* ent, gentity_t* other, const trace_t&, bool) {
 	if (!Active())
