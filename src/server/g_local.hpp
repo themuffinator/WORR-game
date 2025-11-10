@@ -3606,8 +3606,10 @@ namespace ProBall {
 	void RunFrame();
 	void RegisterBallSpawn(gentity_t* ent);
 	void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
-	void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
-	void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed);
+	bool DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
+	bool ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir);
+	void OnBallLaunched(gentity_t* owner, gentity_t* ballEnt, const Vector3& origin, const Vector3& velocity);
+	void OnBallDropped(gentity_t* owner, gentity_t* ballEnt, const Vector3& origin, const Vector3& velocity);
 	void HandleCarrierDeath(gentity_t* carrier);
 	void HandleCarrierDisconnect(gentity_t* carrier);
 	bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);

@@ -321,59 +321,86 @@ namespace ProBall {
 			state.assist = {};
 	}
 
-	void DropBall(gentity_t* carrier, gentity_t* instigator, bool forced) {
-		if (Game::IsNot(GameType::ProBall) || !carrier || !carrier->client)
+	void OnBallLaunched(gentity_t* owner, gentity_t* ballEnt, const Vector3& /*origin*/, const Vector3& /*velocity*/) {
+		if (Game::IsNot(GameType::ProBall))
 			return;
 
 		auto& state = State();
 
-		if (!PlayerHasBall(carrier))
+		if (ballEnt && ballEnt->inUse)
+			state.ballEntity = ballEnt;
+
+		state.carrier = nullptr;
+		if (ValidPlayer(owner))
+			state.lastToucher = owner;
+		else if (!owner)
+			state.lastToucher = nullptr;
+		state.lastTouchTime = level.time;
+		state.assist = {};
+	}
+
+	void OnBallDropped(gentity_t* owner, gentity_t* ballEnt, const Vector3& /*origin*/, const Vector3& /*velocity*/) {
+		if (Game::IsNot(GameType::ProBall))
 			return;
 
-		Vector3 origin = CarrierDropOrigin(carrier);
-		Vector3 velocity = ComputeDropVelocity(carrier, instigator, forced);
+		auto& state = State();
 
-		carrier->client->pers.inventory[IT_BALL] = 0;
-		state.lastToucher = forced && instigator ? instigator : carrier;
-		state.lastTouchTime = level.time;
+		if (ballEnt && ballEnt->inUse)
+			state.ballEntity = ballEnt;
+
 		state.carrier = nullptr;
+		if (ValidPlayer(owner))
+			state.lastToucher = owner;
+		else if (!owner)
+			state.lastToucher = nullptr;
+		state.lastTouchTime = level.time;
+		state.assist = {};
+	}
+
+	bool DropBall(gentity_t* carrier, gentity_t* instigator, bool forced) {
+		if (Game::IsNot(GameType::ProBall) || !carrier || !carrier->client)
+			return false;
+
+		if (!PlayerHasBall(carrier))
+			return false;
+
+		Vector3 origin = CarrierDropOrigin(carrier);
+		if (!Ball_Drop(carrier, origin))
+			return false;
+
+		auto& state = State();
 
 		if (forced && instigator && instigator->client) {
 			state.assist.player = instigator;
 			state.assist.team = instigator->client->sess.team;
 			state.assist.expires = level.time + kAssistWindow;
-		}
-		else {
-			state.assist = {};
+			state.lastToucher = instigator;
+			state.lastTouchTime = level.time;
 		}
 
-		ActivateLooseBall(state, origin, velocity);
+		if (forced && state.ballEntity) {
+			state.ballEntity->velocity = ComputeDropVelocity(carrier, instigator, true);
+			gi.linkEntity(state.ballEntity);
+		}
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} drops the ball!\n",
-			carrier->client->sess.netName);
+				carrier->client->sess.netName);
+		return true;
 	}
 
-	void ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir, float speed) {
+	bool ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir) {
 		if (Game::IsNot(GameType::ProBall) || !carrier || !carrier->client)
-			return;
-
-		auto& state = State();
+			return false;
 
 		if (!PlayerHasBall(carrier))
-			return;
+			return false;
 
-		Vector3 velocity = dir * speed + carrier->velocity;
-
-		carrier->client->pers.inventory[IT_BALL] = 0;
-		state.lastToucher = carrier;
-		state.lastTouchTime = level.time;
-		state.carrier = nullptr;
-		state.assist = {};
-
-		ActivateLooseBall(state, origin, velocity);
+		if (!Ball_Pass(carrier, origin, dir))
+			return false;
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} throws the ball!\n",
-			carrier->client->sess.netName);
+				carrier->client->sess.netName);
+		return true;
 	}
 
 	void HandleCarrierDeath(gentity_t* carrier) {

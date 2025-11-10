@@ -320,6 +320,8 @@ bool Ball_Launch(gentity_t* owner, const Vector3& start, const Vector3& dir, flo
 	Ball_StartWorldTravel(ball, owner, Ball_TeamForEntity(owner));
 	gi.linkEntity(ball);
 
+	ProBall::OnBallLaunched(owner, ball, spawn, ball->velocity);
+
 	if (owner && owner->client)
 		G_PlayerNoise(owner, spawn, PlayerNoise::Weapon);
 
@@ -357,6 +359,8 @@ bool Ball_Drop(gentity_t* owner, const Vector3& origin) {
 	Ball_StartWorldTravel(ball, owner, Ball_TeamForEntity(owner));
 	level.ball.idleBegin = level.time;
 	gi.linkEntity(ball);
+
+	ProBall::OnBallDropped(owner, ball, ball->s.origin, ball->velocity);
 
 	Ball_PlaySound(owner, "weapons/hgrenb1a.wav");
 	if (owner && owner->client)
