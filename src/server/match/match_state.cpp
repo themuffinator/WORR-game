@@ -2324,7 +2324,7 @@ void GT_Init() {
 	g_vampiric_percentile = gi.cvar("g_vampiric_percentile", "0.67f", CVAR_NOFLAGS);
 
 	if (!Game::IsCurrentTypeValid())
-		gi.cvarForceSet("g_gametype", G_Fmt("{}", std::clamp(g_gametype->integer, static_cast<int>(GT_FIRST), static_cast<int>(GT_LAST))).data());
+		gi.cvarForceSet("g_gametype", G_Fmt("{}", static_cast<int>(Game::NormalizeTypeValue(g_gametype->integer))).data());
 
 	if (ctf->integer) {
 		force_dm = true;
