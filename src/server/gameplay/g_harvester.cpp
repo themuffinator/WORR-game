@@ -1,4 +1,5 @@
 #include "../g_local.hpp"
+#include "g_teamplay.hpp"
 #include "g_headhunters.hpp"
 #include "g_harvester.hpp"
 
