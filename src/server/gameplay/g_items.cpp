@@ -187,16 +187,16 @@ static THINK(drop_make_touchable) (gentity_t* ent) -> void {
 }
 
 static inline void SetDroppedItemBounds(gentity_t* e, float scale = 1.0f) {
-        if (!e)
-                return;
+	if (!e)
+		return;
 
-        const float s = std::max(0.001f, scale);
-        const Vector3 extent = { 15.0f * s, 15.0f * s, 15.0f * s };
+	const float s = std::max(0.001f, scale);
+	const Vector3 extent = { 15.0f * s, 15.0f * s, 15.0f * s };
 
-        // Keep the dropped item's origin centered within its bounds so the world model
-        // doesn't clip through the floor once physics settles.
-        e->mins = -extent;
-        e->maxs = extent;
+	// Keep the dropped item's origin centered within its bounds so the world model
+	// doesn't clip through the floor once physics settles.
+	e->mins = -extent;
+	e->maxs = extent;
 }
 
 /**
@@ -300,8 +300,8 @@ static void HighValuePickupCounter(gentity_t* ent, gentity_t* other) {
 	const GameTime delay = level.time - ent->timeStamp;
 
 	// Per-client stats
-    other->client->pers.match.pickupCounts[index]++;
-    other->client->pers.match.pickupDelay[index] += delay;
+	other->client->pers.match.pickupCounts[index]++;
+	other->client->pers.match.pickupDelay[index] += delay;
 
 	// Global match stats
 	level.match.pickupCounts[index]++;
@@ -1046,11 +1046,11 @@ static void QuadHod_ClearAll() {
 		if (!ent->inUse)
 			continue;
 
-                if (ent->client) {
-                        ent->client->PowerupTimer(PowerupTimer::QuadDamage) = 0_ms;
-                        ent->client->pers.inventory[IT_POWERUP_QUAD] = 0;
-                        continue;
-                }
+		if (ent->client) {
+			ent->client->PowerupTimer(PowerupTimer::QuadDamage) = 0_ms;
+			ent->client->pers.inventory[IT_POWERUP_QUAD] = 0;
+			continue;
+		}
 
 		if (!ent->className)
 			continue;
@@ -1162,7 +1162,7 @@ TechSfxVolume
 ===============
 */
 static inline float TechSfxVolume(const gentity_t* ent) {
-        return (ent && ent->client && ent->client->PowerupCount(PowerupCount::SilencerShots)) ? 0.2f : 1.0f;
+	return (ent && ent->client && ent->client->PowerupCount(PowerupCount::SilencerShots)) ? 0.2f : 1.0f;
 }
 
 /*
@@ -1515,7 +1515,7 @@ bool Tech_ApplyPowerAmpSound(gentity_t* ent) {
 
 	if (ent->client->pers.inventory[IT_TECH_POWER_AMP]) {
 		if (TechTickReady(ent)) {
-                        const bool quad = (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time);
+			const bool quad = (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time);
 			static const int snd_amp = []() { return gi.soundIndex("ctf/tech2.wav"); }();
 			static const int snd_ampx = []() { return gi.soundIndex("ctf/tech2x.wav"); }();
 			gi.sound(ent, CHAN_AUX, quad ? snd_ampx : snd_amp, TechSfxVolume(ent), ATTN_NORM, 0);
@@ -2262,8 +2262,8 @@ bool Pickup_Sphere(gentity_t* ent, gentity_t* other) {
 void Use_IR(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
 
-        ent->client->PowerupTimer(PowerupTimer::IrGoggles) =
-                max(level.time, ent->client->PowerupTimer(PowerupTimer::IrGoggles)) + 60_sec;
+	ent->client->PowerupTimer(PowerupTimer::IrGoggles) =
+		max(level.time, ent->client->PowerupTimer(PowerupTimer::IrGoggles)) + 60_sec;
 
 	gi.sound(ent, CHAN_ITEM, gi.soundIndex("misc/ir_start.wav"), 1, ATTN_NORM, 0);
 }
@@ -2368,13 +2368,13 @@ bool Pickup_General(gentity_t* ent, gentity_t* other) {
 }
 
 bool Pickup_Ball(gentity_t* ent, gentity_t* other) {
-        if (!other || !other->client)
-                return false;
+	if (!other || !other->client)
+		return false;
 
-        other->client->pers.inventory[ent->item->id] = 1;
-        Ball_OnPickup(ent, other);
+	other->client->pers.inventory[ent->item->id] = 1;
+	Ball_OnPickup(ent, other);
 
-        return true;
+	return true;
 }
 
 // Replace the old Drop_Weapon with this one.
@@ -2396,11 +2396,12 @@ static void P_ClearPowerup(gentity_t* ent, Item* item) {
 		return;
 	}
 
-        if (const auto timer = PowerupTimerForItem(item->id)) {
-                ent->client->PowerupTimer(*timer) = 0_ms;
-        } else if (const auto count = PowerupCountForItem(item->id)) {
-                ent->client->PowerupCount(*count) = 0;
-        }
+	if (const auto timer = PowerupTimerForItem(item->id)) {
+		ent->client->PowerupTimer(*timer) = 0_ms;
+	}
+	else if (const auto count = PowerupCountForItem(item->id)) {
+		ent->client->PowerupCount(*count) = 0;
+	}
 }
 
 // Replace the old Drop_General with this one.
@@ -2682,9 +2683,9 @@ static void Use_Powerup_BroadcastMsg(gentity_t* ent, Item* item, const char* sou
 	if (!deathmatch->integer)
 		return;
 
-        if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
-                gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName);
-        }
+	if (g_quadhog->integer && item->id == IT_POWERUP_QUAD) {
+		gi.LocBroadcast_Print(PRINT_CENTER, "{} is the Quad Hog!\n", ent->client->sess.netName);
+	}
 
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex(sound_name), 1, ATTN_NONE, 0);
 	AnnouncerSound(world, announcer_name);
@@ -2703,8 +2704,8 @@ void Use_Quad(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& quadTime = ent->client->PowerupTimer(PowerupTimer::QuadDamage);
-        quadTime = max(level.time, quadTime) + timeout;
+	auto& quadTime = ent->client->PowerupTimer(PowerupTimer::QuadDamage);
+	quadTime = max(level.time, quadTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/damage.wav", "quad_damage");
 }
@@ -2723,8 +2724,8 @@ void Use_Haste(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& hasteTime = ent->client->PowerupTimer(PowerupTimer::Haste);
-        hasteTime = max(level.time, hasteTime) + timeout;
+	auto& hasteTime = ent->client->PowerupTimer(PowerupTimer::Haste);
+	hasteTime = max(level.time, hasteTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/quadfire1.wav", "haste");
 }
@@ -2744,8 +2745,8 @@ void Use_Double(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& doubleTime = ent->client->PowerupTimer(PowerupTimer::DoubleDamage);
-        doubleTime = max(level.time, doubleTime) + timeout;
+	auto& doubleTime = ent->client->PowerupTimer(PowerupTimer::DoubleDamage);
+	doubleTime = max(level.time, doubleTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "misc/ddamage1.wav", "damage");
 }
@@ -2754,24 +2755,24 @@ void Use_Double(gentity_t* ent, Item* item) {
 
 void Use_Breather(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-        auto& rebreatherTime = ent->client->PowerupTimer(PowerupTimer::Rebreather);
-        rebreatherTime = max(level.time, rebreatherTime) + 45_sec;
+	auto& rebreatherTime = ent->client->PowerupTimer(PowerupTimer::Rebreather);
+	rebreatherTime = max(level.time, rebreatherTime) + 45_sec;
 }
 
 //======================================================================
 
 void Use_EnviroSuit(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-        auto& enviroTime = ent->client->PowerupTimer(PowerupTimer::EnviroSuit);
-        enviroTime = max(level.time, enviroTime) + 30_sec;
+	auto& enviroTime = ent->client->PowerupTimer(PowerupTimer::EnviroSuit);
+	enviroTime = max(level.time, enviroTime) + 30_sec;
 }
 
 //======================================================================
 
 void Use_EmpathyShield(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-        auto& empathyTime = ent->client->PowerupTimer(PowerupTimer::EmpathyShield);
-        empathyTime = max(level.time, empathyTime) + 30_sec;
+	auto& empathyTime = ent->client->PowerupTimer(PowerupTimer::EmpathyShield);
+	empathyTime = max(level.time, empathyTime) + 30_sec;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/empathy_use.wav", "empathy_shield");
 }
@@ -2780,8 +2781,8 @@ void Use_EmpathyShield(gentity_t* ent, Item* item) {
 
 void Use_AntiGravBelt(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-        auto& antiGravTime = ent->client->PowerupTimer(PowerupTimer::AntiGravBelt);
-        antiGravTime = max(level.time, antiGravTime) + 45_sec;
+	auto& antiGravTime = ent->client->PowerupTimer(PowerupTimer::AntiGravBelt);
+	antiGravTime = max(level.time, antiGravTime) + 45_sec;
 }
 
 //======================================================================
@@ -2799,8 +2800,8 @@ void Use_BattleSuit(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& battleSuitTime = ent->client->PowerupTimer(PowerupTimer::BattleSuit);
-        battleSuitTime = max(level.time, battleSuitTime) + timeout;
+	auto& battleSuitTime = ent->client->PowerupTimer(PowerupTimer::BattleSuit);
+	battleSuitTime = max(level.time, battleSuitTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "battlesuit");
 }
@@ -2812,8 +2813,8 @@ void Use_Spawn_Protection(gentity_t* ent, Item* item) {
 
 	ent->client->pers.inventory[item->id]--;
 
-        auto& spawnProtectionTime = ent->client->PowerupTimer(PowerupTimer::SpawnProtection);
-        spawnProtectionTime = max(level.time, spawnProtectionTime) + timeout;
+	auto& spawnProtectionTime = ent->client->PowerupTimer(PowerupTimer::SpawnProtection);
+	spawnProtectionTime = max(level.time, spawnProtectionTime) + timeout;
 }
 
 //======================================================================
@@ -2831,8 +2832,8 @@ void Use_Regeneration(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& regenTime = ent->client->PowerupTimer(PowerupTimer::Regeneration);
-        regenTime = max(level.time, regenTime) + timeout;
+	auto& regenTime = ent->client->PowerupTimer(PowerupTimer::Regeneration);
+	regenTime = max(level.time, regenTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "regeneration");
 }
@@ -2850,8 +2851,8 @@ void Use_Invisibility(gentity_t* ent, Item* item) {
 		timeout = 30_sec;
 	}
 
-        auto& invisTime = ent->client->PowerupTimer(PowerupTimer::Invisibility);
-        invisTime = max(level.time, invisTime) + timeout;
+	auto& invisTime = ent->client->PowerupTimer(PowerupTimer::Invisibility);
+	invisTime = max(level.time, invisTime) + timeout;
 
 	Use_Powerup_BroadcastMsg(ent, item, "items/protect.wav", "invisibility");
 }
@@ -2860,7 +2861,7 @@ void Use_Invisibility(gentity_t* ent, Item* item) {
 
 void Use_Silencer(gentity_t* ent, Item* item) {
 	ent->client->pers.inventory[item->id]--;
-        ent->client->PowerupCount(PowerupCount::SilencerShots) += 30;
+	ent->client->PowerupCount(PowerupCount::SilencerShots) += 30;
 }
 
 //======================================================================
@@ -2897,102 +2898,102 @@ bool Add_Ammo(gentity_t* ent, Item* item, int count) {
 
 // we just got weapon `item`, check if we should switch to it
 void G_CheckAutoSwitch(gentity_t* ent, Item* item, bool is_new) {
-        // already using or switching to
-        if (ent->client->pers.weapon == item ||
-                ent->client->weapon.pending == item)
-                return;
-        // need ammo
-        else if (item->ammo) {
-                int32_t required_ammo = (item->flags & IF_AMMO) ? 1 : item->quantity;
+	// already using or switching to
+	if (ent->client->pers.weapon == item ||
+		ent->client->weapon.pending == item)
+		return;
+	// need ammo
+	else if (item->ammo) {
+		int32_t required_ammo = (item->flags & IF_AMMO) ? 1 : item->quantity;
 
-                if (ent->client->pers.inventory[item->ammo] < required_ammo)
-                        return;
-        }
+		if (ent->client->pers.inventory[item->ammo] < required_ammo)
+			return;
+	}
 
-        const WeaponAutoSwitch autoswitch = ent->client->pers.autoswitch;
-        if (autoswitch == WeaponAutoSwitch::Never)
-                return;
+	const WeaponAutoSwitch autoswitch = ent->client->pers.autoswitch;
+	if (autoswitch == WeaponAutoSwitch::Never)
+		return;
 
-        if ((item->flags & IF_AMMO) && autoswitch == WeaponAutoSwitch::Always_No_Ammo)
-                return;
+	if ((item->flags & IF_AMMO) && autoswitch == WeaponAutoSwitch::Always_No_Ammo)
+		return;
 
-        bool allowSwitch = true;
+	bool allowSwitch = true;
 
-        if (autoswitch == WeaponAutoSwitch::Smart) {
-                // smartness algorithm: in DM, we will always switch if we have the blaster out
-                // otherwise leave our active weapon alone
-                if (deathmatch->integer) {
-                        // wor: make it smarter!
-                        // switch to better weapons
-                        if (ent->client->pers.weapon) {
-                                switch (ent->client->pers.weapon->id) {
-                                case IT_WEAPON_CHAINFIST:
-                                        // always switch from chainfist
-                                        break;
-                                case IT_WEAPON_BLASTER:
-                                        // should never auto-switch to chainfist
-                                        if (item->id == IT_WEAPON_CHAINFIST)
-                                                return;
-                                        break;
-                                case IT_WEAPON_SHOTGUN:
-                                        if (RS(RS_Q1)) {
-                                                // always switch from sg in Q1
-                                        }
-                                        else {
-                                                // switch only to SSG
-                                                if (item->id != IT_WEAPON_SSHOTGUN)
-                                                        allowSwitch = false;
-                                        }
-                                        break;
-                                case IT_WEAPON_MACHINEGUN:
-                                        if (RS(RS_Q3A)) {
-                                                // always switch from mg in Q3A
-                                        }
-                                        else {
-                                                // switch only to CG
-                                                if (item->id != IT_WEAPON_CHAINGUN)
-                                                        allowSwitch = false;
-                                        }
-                                        break;
-                                default:
-                                        // otherwise don't switch!
-                                        allowSwitch = false;
-                                        break;
-                                }
-                        }
-                }
-                // in SP, only switch if it's a new weapon, or we have the blaster out
-                else if (!deathmatch->integer && !(ent->client->pers.weapon && ent->client->pers.weapon->id == IT_WEAPON_BLASTER) && !is_new) {
-                        allowSwitch = false;
-                }
-        }
+	if (autoswitch == WeaponAutoSwitch::Smart) {
+		// smartness algorithm: in DM, we will always switch if we have the blaster out
+		// otherwise leave our active weapon alone
+		if (deathmatch->integer) {
+			// wor: make it smarter!
+			// switch to better weapons
+			if (ent->client->pers.weapon) {
+				switch (ent->client->pers.weapon->id) {
+				case IT_WEAPON_CHAINFIST:
+					// always switch from chainfist
+					break;
+				case IT_WEAPON_BLASTER:
+					// should never auto-switch to chainfist
+					if (item->id == IT_WEAPON_CHAINFIST)
+						return;
+					break;
+				case IT_WEAPON_SHOTGUN:
+					if (RS(RS_Q1)) {
+						// always switch from sg in Q1
+					}
+					else {
+						// switch only to SSG
+						if (item->id != IT_WEAPON_SSHOTGUN)
+							allowSwitch = false;
+					}
+					break;
+				case IT_WEAPON_MACHINEGUN:
+					if (RS(RS_Q3A)) {
+						// always switch from mg in Q3A
+					}
+					else {
+						// switch only to CG
+						if (item->id != IT_WEAPON_CHAINGUN)
+							allowSwitch = false;
+					}
+					break;
+				default:
+					// otherwise don't switch!
+					allowSwitch = false;
+					break;
+				}
+			}
+		}
+		// in SP, only switch if it's a new weapon, or we have the blaster out
+		else if (!deathmatch->integer && !(ent->client->pers.weapon && ent->client->pers.weapon->id == IT_WEAPON_BLASTER) && !is_new) {
+			allowSwitch = false;
+		}
+	}
 
-        if (!allowSwitch)
-                return;
+	if (!allowSwitch)
+		return;
 
-        Client_RebuildWeaponPreferenceOrder(*ent->client);
-        const auto& order = ent->client->sess.weaponPrefOrder;
+	Client_RebuildWeaponPreferenceOrder(*ent->client);
+	const auto& order = ent->client->sess.weaponPrefOrder;
 
-        auto priority_of = [&order](item_id_t id) {
-                if (!id)
-                        return std::numeric_limits<size_t>::max();
+	auto priority_of = [&order](item_id_t id) {
+		if (!id)
+			return std::numeric_limits<size_t>::max();
 
-                for (size_t i = 0; i < order.size(); ++i) {
-                        if (order[i] == id)
-                                return i;
-                }
+		for (size_t i = 0; i < order.size(); ++i) {
+			if (order[i] == id)
+				return i;
+		}
 
-                return std::numeric_limits<size_t>::max();
-        };
+		return std::numeric_limits<size_t>::max();
+		};
 
-        const size_t pickupPriority = priority_of(item->id);
-        const size_t currentPriority = ent->client->pers.weapon ? priority_of(ent->client->pers.weapon->id) : std::numeric_limits<size_t>::max();
+	const size_t pickupPriority = priority_of(item->id);
+	const size_t currentPriority = ent->client->pers.weapon ? priority_of(ent->client->pers.weapon->id) : std::numeric_limits<size_t>::max();
 
-        if (pickupPriority >= currentPriority)
-                return;
+	if (pickupPriority >= currentPriority)
+		return;
 
-        // switch!
-        ent->client->weapon.pending = item;
+	// switch!
+	ent->client->weapon.pending = item;
 }
 
 bool Pickup_Ammo(gentity_t* ent, gentity_t* other) {
@@ -3632,14 +3633,14 @@ gentity_t* Drop_Item(gentity_t* ent, Item* item) {
 	dropped->className = item->className;
 	dropped->s.effects = item->worldModelFlags;
 	gi.setModel(dropped, item->worldModel);
-        dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
+	dropped->s.renderFX = RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
 
-        // Dropped items should default to a normal visual scale
-        if (dropped->s.scale <= 0.0f)
-                dropped->s.scale = 1.0f;
+	// Dropped items should default to a normal visual scale
+	if (dropped->s.scale <= 0.0f)
+		dropped->s.scale = 1.0f;
 
-        // scale the bbox
-        const float s = std::max(0.001f, dropped->s.scale); // safety
+	// scale the bbox
+	const float s = std::max(0.001f, dropped->s.scale); // safety
 	SetDroppedItemBounds(dropped, s);
 
 	dropped->solid = SOLID_TRIGGER;
@@ -3798,13 +3799,13 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		ent->use = Use_Item;
 	}
 
-        if (ent->item && ent->item->id == IT_BALL) {
-                Ball_RegisterSpawn(ent);
-                return;
-        }
+	if (ent->item && ent->item->id == IT_BALL) {
+		Ball_RegisterSpawn(ent);
+		return;
+	}
 
-        // Powerups in deathmatch spawn with a delay
-        if (deathmatch->integer && (ent->item->flags & IF_POWERUP)) {
+	// Powerups in deathmatch spawn with a delay
+	if (deathmatch->integer && (ent->item->flags & IF_POWERUP)) {
 		ent->svFlags |= SVF_NOCLIENT;
 		ent->solid = SOLID_NOT;
 		ent->nextThink = level.time + GameTime::from_sec(irandom(30, 60));
@@ -3812,11 +3813,11 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 		return;
 	}
 
-        ent->waterType = gi.pointContents(ent->s.origin);
-        gi.linkEntity(ent);
+	ent->waterType = gi.pointContents(ent->s.origin);
+	gi.linkEntity(ent);
 
-        if (Game::Is(GameType::ProBall) && ent->item && ent->item->id == IT_BALL)
-                ProBall::RegisterBallSpawn(ent);
+	if (Game::Is(GameType::ProBall) && ent->item && ent->item->id == IT_BALL)
+		ProBall::RegisterBallSpawn(ent);
 }
 
 /*
@@ -4445,48 +4446,48 @@ void Use_Compass(gentity_t* ent, Item* inv) {
 }
 
 void Use_Ball(gentity_t* ent, Item* /*item*/) {
-        if (!ent || !ent->client)
-                return;
-        if (!Game::Is(GameType::ProBall))
-                return;
-        if (!Ball_PlayerHasBall(ent))
-                return;
+	if (!ent || !ent->client)
+		return;
+	if (!Game::Is(GameType::ProBall))
+		return;
+	if (!Ball_PlayerHasBall(ent))
+		return;
 
-        if (ent->client->ball.nextPassTime > level.time)
-                return;
+	if (ent->client->ball.nextPassTime > level.time)
+		return;
 
-        Vector3 angles = {
-                std::max(-62.5f, ent->client->vAngle[PITCH]),
-                ent->client->vAngle[YAW],
-                ent->client->vAngle[ROLL]
-        };
+	Vector3 angles = {
+			std::max(-62.5f, ent->client->vAngle[PITCH]),
+			ent->client->vAngle[YAW],
+			ent->client->vAngle[ROLL]
+	};
 
-        Vector3 start{}, dir{};
-        P_ProjectSource(ent, angles, { 2.f, 0.f, -14.f }, start, dir);
+	Vector3 start{}, dir{};
+	P_ProjectSource(ent, angles, { 2.f, 0.f, -14.f }, start, dir);
 
-        if (Ball_Pass(ent, start, dir)) {
-                ent->client->ball.nextPassTime = level.time + Ball_GetPassCooldown();
-                ent->client->ball.nextDropTime = std::max(ent->client->ball.nextDropTime, level.time + 200_ms);
-        }
+	if (Ball_Pass(ent, start, dir)) {
+		ent->client->ball.nextPassTime = level.time + Ball_GetPassCooldown();
+		ent->client->ball.nextDropTime = std::max(ent->client->ball.nextDropTime, level.time + 200_ms);
+	}
 }
 
 void Drop_Ball(gentity_t* ent, Item* /*item*/) {
-        if (!ent || !ent->client)
-                return;
-        if (!Game::Is(GameType::ProBall))
-                return;
-        if (!Ball_PlayerHasBall(ent))
-                return;
+	if (!ent || !ent->client)
+		return;
+	if (!Game::Is(GameType::ProBall))
+		return;
+	if (!Ball_PlayerHasBall(ent))
+		return;
 
-        if (ent->client->ball.nextDropTime > level.time)
-                return;
+	if (ent->client->ball.nextDropTime > level.time)
+		return;
 
-        Vector3 dropOrigin = ent->s.origin + Vector3{ 0.f, 0.f, static_cast<float>(ent->viewHeight) * 0.25f };
+	Vector3 dropOrigin = ent->s.origin + Vector3{ 0.f, 0.f, static_cast<float>(ent->viewHeight) * 0.25f };
 
-        if (Ball_Drop(ent, dropOrigin)) {
-                ent->client->ball.nextDropTime = level.time + Ball_GetDropCooldown();
-                ent->client->ball.nextPassTime = std::max(ent->client->ball.nextPassTime, level.time + 200_ms);
-        }
+	if (Ball_Drop(ent, dropOrigin)) {
+		ent->client->ball.nextDropTime = level.time + Ball_GetDropCooldown();
+		ent->client->ball.nextPassTime = std::max(ent->client->ball.nextPassTime, level.time + 200_ms);
+	}
 }
 
 //======================================================================
