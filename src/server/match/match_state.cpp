@@ -548,7 +548,9 @@ static void CheckRoundStrikeTimeLimit() {
 		RoundAnnounceWin(level.strike_red_attacks ? Team::Red : Team::Blue, "scored a point");
 	}
 	else {
-		gi.LocBroadcast_Print(PRINT_CENTER, "Turn has ended.\n{} successfully defended!", Teams_TeamName(!level.strike_red_attacks ? Team::Red : Team::Blue));
+		const Team defendingTeam = level.strike_red_attacks ? Team::Blue : Team::Red;
+		RoundAnnounceWin(defendingTeam, "successfully defended");
+		gi.LocBroadcast_Print(PRINT_CENTER, "Turn has ended.\n{} successfully defended!", Teams_TeamName(defendingTeam));
 	}
 	Round_End();
 }
