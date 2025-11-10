@@ -2449,6 +2449,7 @@ struct LevelLocals {
 			std::array<GameTime, 2> captureProgress{};
 			std::array<GameTime, 2> neutralizeProgress{};
 			std::array<GameTime, 2> lastProgressUpdate{};
+			int32_t spawnCount = 0;
 		};
 
 		std::array<Point, MAX_POINTS> points{};
