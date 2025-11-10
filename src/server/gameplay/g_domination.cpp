@@ -1,11 +1,42 @@
 #include "../g_local.hpp"
 
+#include <cmath>
 #include <string>
 
 extern const spawn_temp_t& ED_GetSpawnTemp();
 
 namespace {
-	constexpr GameTime kDominationScoreInterval = 5_sec;
+	constexpr GameTime kDominationMinScoreInterval = 100_ms;
+	constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
+	constexpr int32_t kDominationDefaultPointsPerTick = 1;
+
+	GameTime DominationTickInterval() {
+		float seconds = kDominationDefaultTickIntervalSeconds;
+
+		if (g_domination_tick_interval) {
+			const float configured = g_domination_tick_interval->value;
+			if (std::isfinite(configured) && configured > 0.0f)
+				seconds = configured;
+		}
+
+		GameTime interval = GameTime::from_sec(seconds);
+		if (!interval || interval < kDominationMinScoreInterval)
+			interval = kDominationMinScoreInterval;
+
+		return interval;
+	}
+
+	int32_t DominationPointsPerTick() {
+		int32_t points = kDominationDefaultPointsPerTick;
+
+		if (g_domination_points_per_tick) {
+			const int32_t configured = g_domination_points_per_tick->integer;
+			if (configured > 0)
+				points = configured;
+		}
+
+		return points;
+	}
 
 	constexpr float kDominationBeamTraceDistance = 8192.0f;
 
@@ -215,7 +246,7 @@ void Domination_InitLevel() {
 	if (dom.count > LevelLocals::DominationState::MAX_POINTS)
 		dom.count = LevelLocals::DominationState::MAX_POINTS;
 
-	dom.nextScoreTime = level.time + kDominationScoreInterval;
+		dom.nextScoreTime = level.time + DominationTickInterval();
 
 	for (size_t i = 0; i < dom.count; ++i) {
 		dom.points[i].index = i;
@@ -235,13 +266,15 @@ void Domination_RunFrame() {
 	if (!dom.count)
 		return;
 
+	const GameTime interval = DominationTickInterval();
+
 	if (!dom.nextScoreTime)
-		dom.nextScoreTime = level.time + kDominationScoreInterval;
+		dom.nextScoreTime = level.time + interval;
 
 	if (level.time < dom.nextScoreTime)
 		return;
 
-	dom.nextScoreTime = level.time + kDominationScoreInterval;
+	dom.nextScoreTime = level.time + interval;
 
 	int redOwned = 0;
 	int blueOwned = 0;
@@ -267,10 +300,12 @@ void Domination_RunFrame() {
 	if (!redOwned && !blueOwned)
 		return;
 
+	const int32_t pointsPerTick = DominationPointsPerTick();
+
 	if (redOwned)
-		G_AdjustTeamScore(Team::Red, redOwned);
+		G_AdjustTeamScore(Team::Red, redOwned * pointsPerTick);
 	if (blueOwned)
-		G_AdjustTeamScore(Team::Blue, blueOwned);
+		G_AdjustTeamScore(Team::Blue, blueOwned * pointsPerTick);
 }
 
 void SP_domination_point(gentity_t* ent) {
