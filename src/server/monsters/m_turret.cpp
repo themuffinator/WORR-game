@@ -53,7 +53,7 @@ void TurretAim(gentity_t *self) {
 	// PMM - blindFire aiming here
 	if (self->monsterInfo.active_move == &turret_move_fire_blind) {
 		end = self->monsterInfo.blind_fire_target;
-		if (self->enemy->s.origin[Z] < self->monsterInfo.blind_fire_target[2])
+		if (self->enemy->s.origin[_Z] < self->monsterInfo.blind_fire_target[2])
 			end[2] += self->enemy->viewHeight + 10;
 		else
 			end[2] += self->enemy->mins[2] - 10;
@@ -448,7 +448,7 @@ static void TurretFireBlind(gentity_t *self) {
 	start = self->s.origin;
 	end = self->monsterInfo.blind_fire_target;
 
-	if (self->enemy->s.origin[Z] < self->monsterInfo.blind_fire_target[2])
+	if (self->enemy->s.origin[_Z] < self->monsterInfo.blind_fire_target[2])
 		end[2] += self->enemy->viewHeight + 10;
 	else
 		end[2] += self->enemy->mins[2] - 10;
@@ -878,24 +878,24 @@ void SP_monster_turret(gentity_t *self) {
 	case -1: // up
 		self->s.angles[PITCH] = 270;
 		self->s.angles[YAW] = 0;
-		self->s.origin[Z] += 2;
+		self->s.origin[_Z] += 2;
 		break;
 	case -2: // down
 		self->s.angles[PITCH] = 90;
 		self->s.angles[YAW] = 0;
-		self->s.origin[Z] -= 2;
+		self->s.origin[_Z] -= 2;
 		break;
 	case 0:
-		self->s.origin[X] += 2;
+		self->s.origin[_X] += 2;
 		break;
 	case 90:
-		self->s.origin[Y] += 2;
+		self->s.origin[_Y] += 2;
 		break;
 	case 180:
-		self->s.origin[X] -= 2;
+		self->s.origin[_X] -= 2;
 		break;
 	case 270:
-		self->s.origin[Y] -= 2;
+		self->s.origin[_Y] -= 2;
 		break;
 	default:
 		break;

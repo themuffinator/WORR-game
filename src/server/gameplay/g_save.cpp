@@ -409,22 +409,22 @@ struct save_type_deducer<char[N]> {
 // std::array<char, N> as fixed-length string
 template<size_t N>
 struct save_type_deducer<std::array<char, N>> {
-        static constexpr save_field_t get_save_type(const char* name, size_t offset) {
-                return save_field_t{ name, offset, { SaveTypeID::FixedString, 0, N } };
-        }
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::FixedString, 0, N } };
+	}
 };
 
 template<>
 struct save_type_deducer<std::string> {
-        static constexpr save_field_t get_save_type(const char* name, size_t offset) {
-                return save_field_t{ name, offset, { SaveTypeID::String, 0, 0, nullptr, nullptr, false, nullptr, read_json_std_string, write_json_std_string } };
-        }
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+		return save_field_t{ name, offset, { SaveTypeID::String, 0, 0, nullptr, nullptr, false, nullptr, read_json_std_string, write_json_std_string } };
+	}
 };
 
 // enums
 template<typename T>
 struct save_type_deducer<T, typename std::enable_if_t<std::is_enum_v<T>>> {
-        static constexpr save_field_t get_save_type(const char* name, size_t offset) {
+	static constexpr save_field_t get_save_type(const char* name, size_t offset) {
 		return save_field_t{ name,
 				 offset,
 				 { SaveTypeID::ENum, 0,
@@ -1345,12 +1345,12 @@ static size_t get_complex_type_size(const save_type_t& type) {
 void read_save_struct_json(const Json::Value& json, void* data, const save_struct_t* structure);
 
 static void read_save_type_json(const Json::Value& json, void* data, const save_type_t* type, const char* field) {
-        if (type->read) {
-                type->read(data, json, field);
-                return;
-        }
+	if (type->read) {
+		type->read(data, json, field);
+		return;
+	}
 
-        switch (type->id) {
+	switch (type->id) {
 		using enum SaveTypeID;
 	case Boolean:
 		if (!json.isBool())
@@ -1809,62 +1809,62 @@ static inline bool string_is_high(const char* c) {
 }
 
 static inline Json::Value string_to_bytes(const char* c) {
-        Json::Value array(Json::arrayValue);
+	Json::Value array(Json::arrayValue);
 
-        for (size_t i = 0; i < strlen(c); i++)
-                array.append((int32_t)(unsigned char)c[i]);
+	for (size_t i = 0; i < strlen(c); i++)
+		array.append((int32_t)(unsigned char)c[i]);
 
-        return array;
+	return array;
 }
 
 static bool write_json_std_string(const void* data, bool null_for_empty, Json::Value& output) {
-        const std::string& str = *reinterpret_cast<const std::string*>(data);
+	const std::string& str = *reinterpret_cast<const std::string*>(data);
 
-        if (null_for_empty && str.empty())
-                return false;
+	if (null_for_empty && str.empty())
+		return false;
 
-        if (string_is_high(str.c_str()))
-                output = string_to_bytes(str.c_str());
-        else
-                output = Json::Value(str);
+	if (string_is_high(str.c_str()))
+		output = string_to_bytes(str.c_str());
+	else
+		output = Json::Value(str);
 
-        return true;
+	return true;
 }
 
 static void read_json_std_string(void* data, const Json::Value& json, const char* field) {
-        std::string& str = *reinterpret_cast<std::string*>(data);
+	std::string& str = *reinterpret_cast<std::string*>(data);
 
-        if (json.isNull()) {
-                str.clear();
-        }
-        else if (json.isString()) {
-                str = json.asString();
-        }
-        else if (json.isArray()) {
-                std::string result;
-                result.reserve(json.size());
+	if (json.isNull()) {
+		str.clear();
+	}
+	else if (json.isString()) {
+		str = json.asString();
+	}
+	else if (json.isArray()) {
+		std::string result;
+		result.reserve(json.size());
 
-                for (const Json::Value& chr : json) {
-                        if (!chr.isInt()) {
-                                json_print_error(field, "expected number", false);
-                                continue;
-                        }
+		for (const Json::Value& chr : json) {
+			if (!chr.isInt()) {
+				json_print_error(field, "expected number", false);
+				continue;
+			}
 
-                        int value = chr.asInt();
-                        if (value < 0 || value > UINT8_MAX) {
-                                json_print_error(field, "char out of range", false);
-                                continue;
-                        }
+			int value = chr.asInt();
+			if (value < 0 || value > UINT8_MAX) {
+				json_print_error(field, "char out of range", false);
+				continue;
+			}
 
-                        result.push_back(static_cast<char>(value & 0xFF));
-                }
+			result.push_back(static_cast<char>(value & 0xFF));
+		}
 
-                str = std::move(result);
-        }
-        else {
-                json_print_error(field, "expected string, array or null", false);
-                str.clear();
-        }
+		str = std::move(result);
+	}
+	else {
+		json_print_error(field, "expected string, array or null", false);
+		str.clear();
+	}
 }
 
 // fetch a JSON value for the specified data.
@@ -1873,11 +1873,11 @@ static void read_json_std_string(void* data, const Json::Value& json, const char
 // space in the resulting JSON. output will be
 // unmodified in that case.
 static bool write_save_type_json(const void* data, const save_type_t* type, bool null_for_empty, Json::Value& output) {
-        if (type->write)
-                return type->write(data, null_for_empty, output);
+	if (type->write)
+		return type->write(data, null_for_empty, output);
 
-        switch (type->id) {
-        case SaveTypeID::Boolean:
+	switch (type->id) {
+	case SaveTypeID::Boolean:
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !*(const bool*)data))
 			return false;
 
@@ -2357,23 +2357,23 @@ void PrecacheInventoryItems();
 // takes in pointer to JSON data. does
 // not store or modify it.
 void ReadGameJson(const char* jsonString) {
-        const uint32_t maxEntities = game.maxEntities;
-        const uint32_t max_clients = game.maxClients;
+	const uint32_t maxEntities = game.maxEntities;
+	const uint32_t max_clients = game.maxClients;
 
-        FreeClientArray();
-        gi.FreeTags(TAG_GAME);
+	FreeClientArray();
+	gi.FreeTags(TAG_GAME);
 
-        Json::Value json = parseJson(jsonString);
+	Json::Value json = parseJson(jsonString);
 
-        game = {};
-        g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
-        game.maxEntities = maxEntities;
-        globals.gentities = g_entities;
-        globals.maxEntities = game.maxEntities;
+	game = {};
+	g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
+	game.maxEntities = maxEntities;
+	globals.gentities = g_entities;
+	globals.maxEntities = game.maxEntities;
 
-        AllocateClientArray(static_cast<int>(max_clients));
+	AllocateClientArray(static_cast<int>(max_clients));
 
-        // read game
+	// read game
 	json_push_stack("game");
 	read_save_struct_json(json["game"], &game, &GameLocals_savestruct);
 	json_pop_stack();

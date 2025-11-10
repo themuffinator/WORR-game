@@ -167,7 +167,7 @@ static void overlord_surprise(gentity_t* self) {
         constexpr float kHeightOffset = 32.f;
 
         Vector3 behindPos = target->s.origin + (forward * -kBackDistance);
-        behindPos[Z] += kHeightOffset;
+        behindPos[_Z] += kHeightOffset;
 
         trace_t tr = gi.trace(behindPos, self->mins, self->maxs, behindPos, self, MASK_MONSTERSOLID);
         if (tr.startSolid || tr.allSolid || tr.fraction < 1.f)
@@ -302,11 +302,11 @@ static void overlord_fire(gentity_t* self) {
 
         if (blindfire) {
                 dir = aimPoint - start;
-        } else if (frandom() < 0.33f || start[Z] < self->enemy->absMin[Z]) {
-                aimPoint[Z] += self->enemy->viewHeight;
+        } else if (frandom() < 0.33f || start[_Z] < self->enemy->absMin[_Z]) {
+                aimPoint[_Z] += self->enemy->viewHeight;
                 dir = aimPoint - start;
         } else {
-                aimPoint[Z] = self->enemy->absMin[Z] + 1.f;
+                aimPoint[_Z] = self->enemy->absMin[_Z] + 1.f;
                 dir = aimPoint - start;
         }
 

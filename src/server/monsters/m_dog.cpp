@@ -198,9 +198,9 @@ static void dog_jump_takeoff(gentity_t* self) {
 
         gi.sound(self, CHAN_WEAPON, sound_launch, 1, ATTN_NORM, 0);
         gi.sound(self, CHAN_VOICE, sound_jump, 1, ATTN_NORM, 0);
-        self->s.origin[Z] += 1.0f;
+        self->s.origin[_Z] += 1.0f;
         self->velocity = forward * 400.0f;
-        self->velocity[2] = 200.0f;
+        self->velocity[_Z] = 200.0f;
         self->groundEntity = nullptr;
 
         self->monsterInfo.aiFlags |= AI_DUCKED;

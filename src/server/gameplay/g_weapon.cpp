@@ -117,7 +117,7 @@ bool fire_hit(gentity_t* self, Vector3 aim, int damage, int kick) {
 	v -= point;
 	v.normalize();
 	self->enemy->velocity += v * kick;
-	if (self->enemy->velocity[2] > 0)
+	if (self->enemy->velocity[_Z] > 0)
 		self->enemy->groundEntity = nullptr;
 	return true;
 }
@@ -1748,7 +1748,7 @@ static TOUCH(disruptor_touch) (gentity_t* self, gentity_t* other, const trace_t&
 					/* self->dmg */ 0, (self->dmg * 3), DISRUPTOR_IMPACT_FLAGS | DamageFlags::StatOnce, ModID::Tracker);
 
 				if (!(other->flags & (FL_FLY | FL_SWIM)))
-					other->velocity[2] += 140;
+					other->velocity[_Z] += 140;
 
 				damagetime = ((float)self->dmg) * 0.1f;
 				damagetime = damagetime / DISRUPTOR_DAMAGE_TIME.seconds();
@@ -2464,9 +2464,9 @@ static THINK(Nuke_Quake) (gentity_t* self) -> void {
 			continue;
 
 		e->groundEntity = nullptr;
-		e->velocity[0] += crandom() * 150;
-		e->velocity[1] += crandom() * 150;
-		e->velocity[2] = self->speed * (100.0f / e->mass);
+		e->velocity[_X] += crandom() * 150;
+		e->velocity[_Y] += crandom() * 150;
+		e->velocity[_Z] = self->speed * (100.0f / e->mass);
 	}
 
 	if (level.time < self->timeStamp)
@@ -2896,7 +2896,7 @@ static TOUCH(tesla_touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, 
 	}
 
 	// Play a random bounce sound if moving
-	if (ent->velocity[0] || ent->velocity[1] || ent->velocity[2]) {
+	if (ent->velocity[_X] || ent->velocity[_Y] || ent->velocity[_Z]) {
 		const char variant = (frandom() > 0.5f) ? '1' : '2';
 
 		char path[32];
@@ -3322,10 +3322,10 @@ static THINK(Trap_Think) (gentity_t* ent) -> void {
 				best->s.scale = 1.f + ((ent->accel - 100.f) / 300.f) * 1.0f;
 				SP_item_foodcube(best);
 				best->s.origin = ent->s.origin;
-				best->s.origin[Z] += 24 * best->s.scale;
+				best->s.origin[_Z] += 24 * best->s.scale;
 				best->s.oldOrigin = best->s.origin;
 				best->s.angles[YAW] = frandom() * 360;
-				best->velocity[2] = 400;
+				best->velocity[_Z] = 400;
 				//best->think(best);
 				//best->nextThink = 0_ms;
 				gi.linkEntity(best);
@@ -3399,7 +3399,7 @@ static THINK(Trap_Think) (gentity_t* ent) -> void {
 	// pull the enemy in
 	if (best) {
 		if (best->groundEntity) {
-			best->s.origin[Z] += 1;
+			best->s.origin[_Z] += 1;
 			best->groundEntity = nullptr;
 		}
 		vec = ent->s.origin - best->s.origin;

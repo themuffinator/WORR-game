@@ -423,7 +423,7 @@ namespace {
 
 }
 
-void Team_ReturnFlag(Team team) {
+static void Team_ReturnFlag(Team team) {
 	if (!CTF_ResetTeamFlag(team)) {
 		return;
 	}
@@ -438,7 +438,7 @@ void Team_ReturnFlag(Team team) {
 	}
 }
 
-void Team_CheckDroppedItem(gentity_t* dropped) {
+static void Team_CheckDroppedItem(gentity_t* dropped) {
 	if (!SupportsCTF() || !dropped || !dropped->item) {
 		return;
 	}
@@ -1119,7 +1119,7 @@ void Harvester_Reset() {
 
 	ForEachClient([](gentity_t* entity) {
 		entity->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
-	});
+		});
 }
 
 void Harvester_HandlePlayerDeath(gentity_t* victim) {
@@ -1249,4 +1249,3 @@ void Harvester_FlagSetup(gentity_t* ent) {
 	ent->touch = nullptr;
 	gi.linkEntity(ent);
 }
-

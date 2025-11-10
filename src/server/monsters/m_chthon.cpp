@@ -409,7 +409,7 @@ static void chthon_fire_lava(gentity_t* self, float sideSign) {
         Vector3 forward, right;
         AngleVectors(self->s.angles, forward, right, nullptr);
         Vector3 offset = monster_flash_offset[MZ2_CHTON_ROCKET_1];
-        offset[Y] *= sideSign;
+        offset[_Y] *= sideSign;
         Vector3 start = M_ProjectFlashSource(self, offset, forward, right);
 
         Vector3 target = blindfire ? self->monsterInfo.blind_fire_target : self->enemy->s.origin;

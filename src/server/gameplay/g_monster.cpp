@@ -296,15 +296,15 @@ void M_CheckGround(gentity_t* ent, contents_t mask) {
 	if (ent->flags & (FL_SWIM | FL_FLY))
 		return;
 
-	if ((ent->velocity[2] * ent->gravityVector[2]) < -100) {
+	if ((ent->velocity[_Z] * ent->gravityVector[2]) < -100) {
 		ent->groundEntity = nullptr;
 		return;
 	}
 
 	// if the hull point one-quarter unit down is solid the entity is on ground
-	point[0] = ent->s.origin[X];
-	point[1] = ent->s.origin[Y];
-	point[2] = ent->s.origin[Z] + (0.25f * ent->gravityVector[2]);
+	point[0] = ent->s.origin[_X];
+	point[1] = ent->s.origin[_Y];
+	point[2] = ent->s.origin[_Z] + (0.25f * ent->gravityVector[2]);
 
 	trace = gi.trace(ent->s.origin, ent->mins, ent->maxs, point, ent, mask);
 
@@ -328,7 +328,7 @@ void M_CheckGround(gentity_t* ent, contents_t mask) {
 		ent->s.origin = trace.endPos;
 		ent->groundEntity = trace.ent;
 		ent->groundEntity_linkCount = trace.ent->linkCount;
-		ent->velocity[2] = 0;
+		ent->velocity[_Z] = 0;
 	}
 }
 
@@ -486,9 +486,9 @@ bool M_droptofloor_generic(Vector3& origin, const Vector3& mins, const Vector3& 
 
 	if (gi.trace(origin, mins, maxs, origin, ignore, mask).startSolid) {
 		if (!ceiling)
-			origin[Z] += 1;
+			origin[_Z] += 1;
 		else
-			origin[Z] -= 1;
+			origin[_Z] -= 1;
 	}
 
 	if (!ceiling) {
@@ -879,7 +879,7 @@ static THINK(monster_body_sink) (gentity_t* ent) -> void {
 		return;
 	}
 	ent->nextThink = level.time + 50_ms;
-	ent->s.origin[Z] -= 0.5;
+	ent->s.origin[_Z] -= 0.5;
 }
 
 THINK(monster_dead_think) (gentity_t* self) -> void {
@@ -1153,7 +1153,7 @@ USE(monster_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> vo
 void monster_start_go(gentity_t* self);
 
 static THINK(monster_triggered_spawn) (gentity_t* self) -> void {
-	self->s.origin[Z] += 1;
+	self->s.origin[_Z] += 1;
 
 	self->solid = SOLID_BBOX;
 	self->moveType = MoveType::Step;
@@ -1463,9 +1463,9 @@ void monster_start_go(gentity_t* self) {
 			for (int32_t y = 0; !walked && y < 3; y++)
 				for (int32_t x = 0; !walked && x < 3; x++)
 					for (int32_t z = 0; !walked && z < 3; z++) {
-						self->s.origin[X] = check[0] + adjust[x];
-						self->s.origin[Y] = check[1] + adjust[y];
-						self->s.origin[Z] = check[2] + adjust[z];
+						self->s.origin[_X] = check[0] + adjust[x];
+						self->s.origin[_Y] = check[1] + adjust[y];
+						self->s.origin[_Z] = check[2] + adjust[z];
 
 						if (self->monsterInfo.aiFlags & AI_GOOD_GUY) {
 							is_stuck = gi.trace(self->s.origin, self->mins, self->maxs, self->s.origin, self, MASK_MONSTERSOLID).startSolid;

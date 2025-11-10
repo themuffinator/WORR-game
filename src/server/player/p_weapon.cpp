@@ -109,15 +109,15 @@ void P_ProjectSource(gentity_t* ent, const Vector3& angles, Vector3 distance, Ve
 	// Adjust distance based on projection settings or handedness
 	if (g_weaponProjection->integer > 0) {
 		// Horizontally centralize the weapon projection
-		distance[Y] = 0;
+		distance[_Y] = 0;
 		if (g_weaponProjection->integer > 1)
 			// Vertically centralize the weapon projection, too
-			distance[Z] = 0;
+			distance[_Z] = 0;
 	}
 	else {
 		switch (ent->client->pers.hand) {
-		case Handedness::Left:   distance[Y] *= -1; break;
-		case Handedness::Center: distance[Y] = 0;   break;
+		case Handedness::Left:   distance[_Y] *= -1; break;
+		case Handedness::Center: distance[_Y] = 0;   break;
 		default: break;
 		}
 	}
@@ -711,7 +711,7 @@ void Think_Weapon(gentity_t* ent) {
 Weapon_AttemptSwitch
 ================
 */
-enum class WeaponSwitch {
+enum class WeaponSwitch : uint8_t {
 	AlreadyUsing, NoWeapon, NoAmmo, NotEnoughAmmo, ValidSwitch
 };
 

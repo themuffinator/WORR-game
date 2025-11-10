@@ -789,7 +789,7 @@ static gentity_t* SelectLavaCoopSpawnPoint(gentity_t* ent) {
 	float bestZ = FLT_MAX;
 
 	for (gentity_t* s : spawns) {
-		const float z = s->s.origin[Z];
+		const float z = s->s.origin[_Z];
 		if (z < lavaTopThreshold)
 			continue;
 
@@ -893,7 +893,7 @@ static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
 	angles = ent->client->oldViewAngles + landmark->s.angles;
 
 	if (landmark->spawnFlags.has(SPAWNFLAG_LANDMARK_KEEP_Z))
-		origin[Z] = spot_origin[2];
+		origin[_Z] = spot_origin[2];
 
 	// sometimes, landmark spawns can cause slight inconsistencies in collision;
 	// we'll do a bit of tracing to make sure the bbox is clear
@@ -1093,7 +1093,7 @@ static inline void PutClientOnSpawnPoint(gentity_t* ent, const Vector3& spawnOri
 
 	ent->s.origin = spawnOrigin;
 	if (!cl->coopRespawn.useSquad)
-		ent->s.origin[Z] += 1; // make sure off ground
+		ent->s.origin[_Z] += 1; // make sure off ground
 	ent->s.oldOrigin = ent->s.origin;
 
 	// set the delta angle

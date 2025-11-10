@@ -252,7 +252,7 @@ MONSTERINFO_ATTACK(arachnid_attack) (gentity_t *self) -> void {
 
 	if (self->monsterInfo.melee_debounce_time < level.time && range_to(self, self->enemy) < MELEE_DISTANCE)
 		M_SetAnimation(self, &arachnid_melee);
-	else if ((self->enemy->s.origin[Z] - self->s.origin[Z]) > 150.f)
+	else if ((self->enemy->s.origin[_Z] - self->s.origin[_Z]) > 150.f)
 		M_SetAnimation(self, &arachnid_attack_up1);
 	else
 		M_SetAnimation(self, &arachnid_attack1);

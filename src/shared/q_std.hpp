@@ -108,7 +108,7 @@ constexpr T lerp(T from, T to, float t) {
 enum { PITCH, YAW, ROLL };
 
 // coordinate indexes
-enum { X, Y, Z };
+enum { _X, _Y, _Z };
 
 /*
 ==============================================================

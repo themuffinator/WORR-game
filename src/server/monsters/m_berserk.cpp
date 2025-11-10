@@ -255,7 +255,7 @@ static TOUCH(berserk_jump_touch) (gentity_t* self, gentity_t* other, const trace
 }
 
 static void berserk_high_gravity(gentity_t* self) {
-	if (self->velocity[2] < 0)
+	if (self->velocity[_Z] < 0)
 		self->gravity = 2.25f * (800.f / level.gravity);
 	else
 		self->gravity = 5.25f * (800.f / level.gravity);
@@ -274,9 +274,9 @@ static void berserk_jump_takeoff(gentity_t* self) {
 	PredictAim(self, self->enemy, self->s.origin, fwd_speed, false, 0.f, &dir, nullptr);
 	self->s.angles[YAW] = vectoyaw(dir);
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
-	self->s.origin[Z] += 1;
+	self->s.origin[_Z] += 1;
 	self->velocity = forward * fwd_speed;
-	self->velocity[2] = 450;
+	self->velocity[_Z] = 450;
 	self->groundEntity = nullptr;
 	self->monsterInfo.aiFlags |= AI_DUCKED;
 	self->monsterInfo.attackFinished = level.time + 3_sec;

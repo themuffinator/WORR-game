@@ -394,7 +394,7 @@ static PAIN(soldier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 	self->monsterInfo.aiFlags &= ~AI_MANUAL_STEERING;
 
 	if (level.time < self->pain_debounce_time) {
-		if ((self->velocity[2] > 100) && ((self->monsterInfo.active_move == &soldier_move_pain1) || (self->monsterInfo.active_move == &soldier_move_pain2) || (self->monsterInfo.active_move == &soldier_move_pain3))) {
+		if ((self->velocity[_Z] > 100) && ((self->monsterInfo.active_move == &soldier_move_pain1) || (self->monsterInfo.active_move == &soldier_move_pain2) || (self->monsterInfo.active_move == &soldier_move_pain3))) {
 			// PMM - clear duck flag
 			if (self->monsterInfo.aiFlags & AI_DUCKED)
 				monster_duck_up(self);
@@ -414,7 +414,7 @@ static PAIN(soldier_pain) (gentity_t *self, gentity_t *other, float kick, int da
 	else
 		gi.sound(self, CHAN_VOICE, sound_pain_ss, 1, ATTN_NORM, 0);
 
-	if (self->velocity[2] > 100) {
+	if (self->velocity[_Z] > 100) {
 		// PMM - clear duck flag
 		if (self->monsterInfo.aiFlags & AI_DUCKED)
 			monster_duck_up(self);
@@ -1558,7 +1558,7 @@ static DIE(soldier_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	else // (n == 5)
 		gi.sound(self, CHAN_VOICE, sound_death_ss, 1, ATTN_NORM, 0);
 
-	if (std::fabs((self->s.origin[Z] + self->viewHeight) - point[2]) <= 4 &&
+	if (std::fabs((self->s.origin[_Z] + self->viewHeight) - point[2]) <= 4 &&
 		self->velocity.z < 65.f) {
 		// head shot
 		M_SetAnimation(self, &soldier_move_death3);

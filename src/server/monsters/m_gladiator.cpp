@@ -246,7 +246,7 @@ MMOVE_T(gladiator_move_pain_air) = { FRAME_painup2, FRAME_painup6, gladiator_fra
 
 static PAIN(gladiator_pain) (gentity_t *self, gentity_t *other, float kick, int damage, const MeansOfDeath &mod) -> void {
 	if (level.time < self->pain_debounce_time) {
-		if ((self->velocity[2] > 100) && (self->monsterInfo.active_move == &gladiator_move_pain))
+		if ((self->velocity[_Z] > 100) && (self->monsterInfo.active_move == &gladiator_move_pain))
 			M_SetAnimation(self, &gladiator_move_pain_air);
 		return;
 	}
@@ -261,7 +261,7 @@ static PAIN(gladiator_pain) (gentity_t *self, gentity_t *other, float kick, int 
 	if (!M_ShouldReactToPain(self, mod))
 		return; // no pain anims in nightmare
 
-	if (self->velocity[2] > 100)
+	if (self->velocity[_Z] > 100)
 		M_SetAnimation(self, &gladiator_move_pain_air);
 	else
 		M_SetAnimation(self, &gladiator_move_pain);

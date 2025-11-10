@@ -700,7 +700,7 @@ static DIE(guncmdr_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 	dif.normalize();
 
 	// off with da head
-	if (std::fabs((self->s.origin[Z] + self->viewHeight) - point[2]) <= 4 &&
+	if (std::fabs((self->s.origin[_Z] + self->viewHeight) - point[2]) <= 4 &&
 		self->velocity.z < 65.f) {
 		M_SetAnimation(self, &guncmdr_move_death5);
 
@@ -711,7 +711,7 @@ static DIE(guncmdr_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attac
 			head->s.origin = self->s.origin + Vector3{ 0, 0, 24.f };
 			Vector3 headDir = (self->s.origin - inflictor->s.origin);
 			head->velocity = headDir / headDir.length() * 100.0f;
-			head->velocity[2] = 200.0f;
+			head->velocity[_Z] = 200.0f;
 			head->aVelocity *= 0.15f;
 			gi.linkEntity(head);
 		}

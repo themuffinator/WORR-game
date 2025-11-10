@@ -961,8 +961,6 @@ static void InitGame() {
 	gt_g_gametype = g_gametype->modifiedCount;
 	gt_teams_on = Teams();
 
-	//Horde_Init();
-
 	LoadMotd();
 
 	InitMapSystem(host);

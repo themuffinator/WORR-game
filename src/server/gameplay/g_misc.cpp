@@ -131,18 +131,18 @@ void VelocityForDamage(int damage, Vector3& v) {
 }
 
 void ClipGibVelocity(gentity_t* ent) {
-	if (ent->velocity[0] < -300)
-		ent->velocity[0] = -300;
-	else if (ent->velocity[0] > 300)
-		ent->velocity[0] = 300;
-	if (ent->velocity[1] < -300)
-		ent->velocity[1] = -300;
-	else if (ent->velocity[1] > 300)
-		ent->velocity[1] = 300;
-	if (ent->velocity[2] < 200)
-		ent->velocity[2] = 200; // always some upwards
-	else if (ent->velocity[2] > 500)
-		ent->velocity[2] = 500;
+	if (ent->velocity[_X] < -300)
+		ent->velocity[_X] = -300;
+	else if (ent->velocity[_X] > 300)
+		ent->velocity[_X] = 300;
+	if (ent->velocity[_Y] < -300)
+		ent->velocity[_Y] = -300;
+	else if (ent->velocity[_Y] > 300)
+		ent->velocity[_Y] = 300;
+	if (ent->velocity[_Z] < 200)
+		ent->velocity[_Z] = 200; // always some upwards
+	else if (ent->velocity[_Z] > 500)
+		ent->velocity[_Z] = 500;
 }
 
 /*
@@ -182,7 +182,7 @@ static THINK(GibSink) (gentity_t* ent) -> void {
 	}
 	//ent->s.renderFX = RF_FULLBRIGHT;
 	ent->nextThink = level.time + FRAME_TIME_S;
-	ent->s.origin[Z] -= 0.5;
+	ent->s.origin[_Z] -= 0.5;
 }
 
 /*
@@ -411,7 +411,7 @@ void ThrowClientHead(gentity_t* self, int damage) {
 		self->s.skinNum = 0;
 	}
 
-	self->s.origin[Z] += 16;
+	self->s.origin[_Z] += 16;
 	self->s.frame = 0;
 	gi.setModel(self, gibname);
 	self->mins = { -8, -8, 0 };	//{ -16, -16, 0 };
@@ -914,13 +914,6 @@ static THINK(barrel_start) (gentity_t* self) -> void {
 }
 
 void SP_misc_explobox(gentity_t* self) {
-	/*
-	if (deathmatch->integer)
-	{ // auto-remove for deathmatch
-		FreeEntity(self);
-		return;
-	}
-	*/
 	gi.modelIndex("models/objects/debris1/tris.md2");
 	gi.modelIndex("models/objects/debris2/tris.md2");
 	gi.modelIndex("models/objects/debris3/tris.md2");
@@ -1107,7 +1100,7 @@ static USE(commander_body_use) (gentity_t* self, gentity_t* other, gentity_t* ac
 
 static THINK(commander_body_drop) (gentity_t* self) -> void {
 	self->moveType = MoveType::Toss;
-	self->s.origin[Z] += 2;
+	self->s.origin[_Z] += 2;
 }
 
 void SP_monster_commander_body(gentity_t* self) {
@@ -1311,7 +1304,7 @@ void SP_misc_bigviper(gentity_t* ent) {
 static TOUCH(misc_viper_bomb_touch) (gentity_t* self, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	UseTargets(self, self->activator);
 
-	self->s.origin[Z] = self->absMin[2] + 1;
+	self->s.origin[_Z] = self->absMin[2] + 1;
 	RadiusDamage(self, self, (float)self->dmg, nullptr, (float)(self->dmg + 40), DamageFlags::Normal, ModID::Bomb);
 	BecomeExplosion2(self);
 }
@@ -1461,9 +1454,9 @@ void SP_misc_gib_arm(gentity_t* ent) {
 	ent->die = gib_die;
 	ent->moveType = MoveType::Toss;
 	ent->deadFlag = true;
-	ent->aVelocity[0] = frandom(200);
-	ent->aVelocity[1] = frandom(200);
-	ent->aVelocity[2] = frandom(200);
+	ent->aVelocity[_X] = frandom(200);
+	ent->aVelocity[_Y] = frandom(200);
+	ent->aVelocity[_Z] = frandom(200);
 	ent->think = FreeEntity;
 	ent->nextThink = level.time + 10_sec;
 	gi.linkEntity(ent);
@@ -1499,9 +1492,9 @@ void SP_misc_gib_head(gentity_t* ent) {
 	ent->die = gib_die;
 	ent->moveType = MoveType::Toss;
 	ent->deadFlag = true;
-	ent->aVelocity[0] = frandom(200);
-	ent->aVelocity[1] = frandom(200);
-	ent->aVelocity[2] = frandom(200);
+	ent->aVelocity[_X] = frandom(200);
+	ent->aVelocity[_Y] = frandom(200);
+	ent->aVelocity[_Z] = frandom(200);
 	ent->think = FreeEntity;
 	ent->nextThink = level.time + 10_sec;
 	gi.linkEntity(ent);
@@ -1779,10 +1772,10 @@ static THINK(fire_fly) (gentity_t* self) -> void {
 	fireball->solid = SOLID_BBOX;
 	fireball->moveType = MoveType::Toss;
 	fireball->clipMask = MASK_SHOT;
-	fireball->velocity[0] = crandom() * 50;
-	fireball->velocity[1] = crandom() * 50;
+	fireball->velocity[_X] = crandom() * 50;
+	fireball->velocity[_Y] = crandom() * 50;
 	fireball->aVelocity = { crandom() * 360, crandom() * 360, crandom() * 360 };
-	fireball->velocity[2] = (self->speed * 1.75f) + (frandom() * 200);
+	fireball->velocity[_Z] = (self->speed * 1.75f) + (frandom() * 200);
 	fireball->className = "fireball";
 	gi.setModel(fireball, "models/objects/gibs/sm_meat/tris.md2");
 	fireball->s.origin = self->s.origin;
@@ -1881,12 +1874,13 @@ static THINK(info_world_text_think)(gentity_t* self) -> void {
 		const gentity_t* leader = &g_entities[level.sortedClients[0] + 1];
 
 		switch (level.matchState) {
-		case MatchState::Warmup_ReadyUp:
+			using enum MatchState;
+		case Warmup_ReadyUp:
 			textBuf = std::format("Welcome to {}\nKindly ready the fuck up...", worr::version::kGameTitle);
 			text = textBuf;
 			break;
 
-		case MatchState::Warmup_Default:
+		case Warmup_Default:
 			textBuf = std::format("Welcome to {}", worr::version::kGameTitle);
 			text = textBuf;
 			break;

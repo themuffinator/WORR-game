@@ -417,7 +417,7 @@ static void G_Physics_Pusher(gentity_t* ent) {
 retry:
 	pushed_p = pushed;
 	for (part = ent; part; part = part->teamChain) {
-		if (part->velocity[0] || part->velocity[1] || part->velocity[2] || part->aVelocity[0] || part->aVelocity[1] ||
+		if (part->velocity[_X] || part->velocity[_Y] || part->velocity[_Z] || part->aVelocity[0] || part->aVelocity[1] ||
 			part->aVelocity[2]) { // object is moving
 			move = part->velocity * gi.frameTimeSec;
 			amove = part->aVelocity * gi.frameTimeSec;
@@ -516,7 +516,7 @@ static void G_Physics_Toss(gentity_t* ent) {
 	if (ent->flags & FL_TEAMSLAVE)
 		return;
 
-	if (ent->velocity[2] > 0)
+	if (ent->velocity[_Z] > 0)
 		ent->groundEntity = nullptr;
 
 	// check for the groundEntity going away
@@ -690,7 +690,7 @@ void G_Physics_NewToss(gentity_t* ent) {
 
 	// if we're sitting on something flat and have no velocity of our own, return.
 	if (ent->groundEntity && (trace.plane.normal[2] == 1.0f) &&
-		!ent->velocity[0] && !ent->velocity[1] && !ent->velocity[2]) {
+		!ent->velocity[_X] && !ent->velocity[_Y] && !ent->velocity[_Z]) {
 		return;
 	}
 
@@ -826,7 +826,7 @@ static void G_Physics_Step(gentity_t* ent) {
 		G_AddRotationalFriction(ent);
 
 	// FIXME: figure out how or why this is happening
-	if (isnan(ent->velocity[0]) || isnan(ent->velocity[1]) || isnan(ent->velocity[2]))
+	if (isnan(ent->velocity[_X]) || isnan(ent->velocity[_Y]) || isnan(ent->velocity[_Z]))
 		ent->velocity = {};
 
 	// add gravity except:
@@ -835,36 +835,36 @@ static void G_Physics_Step(gentity_t* ent) {
 	if (!wasonground)
 		if (!(ent->flags & FL_FLY))
 			if (!((ent->flags & FL_SWIM) && (ent->waterLevel > WATER_WAIST))) {
-				if (ent->velocity[2] < level.gravity * -0.1f)
+				if (ent->velocity[_Z] < level.gravity * -0.1f)
 					hitsound = true;
 				if (ent->waterLevel != WATER_UNDER)
 					G_AddGravity(ent);
 			}
 
 	// friction for flying monsters that have been given vertical velocity
-	if ((ent->flags & FL_FLY) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
-		speed = std::fabs(ent->velocity[2]);
+	if ((ent->flags & FL_FLY) && (ent->velocity[_Z] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
+		speed = std::fabs(ent->velocity[_Z]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
 		friction = g_friction / 3;
 		newSpeed = speed - (gi.frameTimeSec * control * friction);
 		if (newSpeed < 0)
 			newSpeed = 0;
 		newSpeed /= speed;
-		ent->velocity[2] *= newSpeed;
+		ent->velocity[_Z] *= newSpeed;
 	}
 
 	// friction for flying monsters that have been given vertical velocity
-	if ((ent->flags & FL_SWIM) && (ent->velocity[2] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
-		speed = std::fabs(ent->velocity[2]);
+	if ((ent->flags & FL_SWIM) && (ent->velocity[_Z] != 0) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
+		speed = std::fabs(ent->velocity[_Z]);
 		control = speed < g_stopspeed->value ? g_stopspeed->value : speed;
 		newSpeed = speed - (gi.frameTimeSec * control * g_water_friction * (float)ent->waterLevel);
 		if (newSpeed < 0)
 			newSpeed = 0;
 		newSpeed /= speed;
-		ent->velocity[2] *= newSpeed;
+		ent->velocity[_Z] *= newSpeed;
 	}
 
-	if (ent->velocity[2] || ent->velocity[1] || ent->velocity[0]) {
+	if (ent->velocity[_Z] || ent->velocity[_Y] || ent->velocity[_X]) {
 		// apply friction
 		if ((wasonground || (ent->flags & (FL_SWIM | FL_FLY))) && !(ent->monsterInfo.aiFlags & AI_ALTERNATE_FLY)) {
 			vel = &ent->velocity.x;
@@ -1065,11 +1065,11 @@ void G_RunEntity(gentity_t* ent) {
 			switch (ent->moveInfo.state) {
 				using enum MoveState;
 			case Up:
-				ent->s.origin[Z] = (int)ceil(ent->s.origin[Z]);
+				ent->s.origin[_Z] = (int)ceil(ent->s.origin[_Z]);
 				gi.Com_Print("attempting mover fix\n");
 				break;
 			case Down:
-				ent->s.origin[Z] = (int)floor(ent->s.origin[Z]);
+				ent->s.origin[_Z] = (int)floor(ent->s.origin[_Z]);
 				gi.Com_Print("attempting mover fix\n");
 				break;
 			}

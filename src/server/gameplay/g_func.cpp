@@ -899,17 +899,17 @@ static void plat2_operate(gentity_t* ent, gentity_t* other) {
 	if (ent->moveInfo.state == MoveState::Top) {
 		otherState = MoveState::Top;
 		if (ent->spawnFlags.has(SPAWNFLAGS_PLAT2_BOX_LIFT)) {
-			if (platCenter > other->s.origin[Z])
+			if (platCenter > other->s.origin[_Z])
 				otherState = MoveState::Bottom;
 		}
 		else {
-			if (trigger->absMax[2] > other->s.origin[Z])
+			if (trigger->absMax[2] > other->s.origin[_Z])
 				otherState = MoveState::Bottom;
 		}
 	}
 	else {
 		otherState = MoveState::Bottom;
-		if (other->s.origin[Z] > platCenter)
+		if (other->s.origin[_Z] > platCenter)
 			otherState = MoveState::Top;
 	}
 
@@ -2527,7 +2527,7 @@ static void BobThink(gentity_t* self) {
 	const float phase1 = std::sinf(2.0f * M_PI * (nextFrame / static_cast<float>(cycleTime)));
 
 	const float delta = (self->bob / 2.0f) * (phase1 - phase0);
-	self->velocity[2] = delta / FRAME_TIME_MS.milliseconds();
+	self->velocity[_Z] = delta / FRAME_TIME_MS.milliseconds();
 
 	self->bobFrame = (self->bobFrame + 1) % cycleTime;
 	self->nextThink = level.time + FRAME_TIME_MS;
@@ -3898,9 +3898,9 @@ static THINK(func_eye_think) (gentity_t* self) -> void {
 	AngleVectors(self->s.angles, fwd, rgt, up);
 
 	Vector3 eye_pos = self->s.origin;
-	eye_pos += fwd * self->moveOrigin[X];
-	eye_pos += rgt * self->moveOrigin[Y];
-	eye_pos += up * self->moveOrigin[Z];
+	eye_pos += fwd * self->moveOrigin[_X];
+	eye_pos += rgt * self->moveOrigin[_Y];
+	eye_pos += up * self->moveOrigin[_Z];
 
 	if (self->enemy) {
 		if (!(self->spawnFlags & SPAWNFLAG_FUNC_EYE_FIRED_TARGETS)) {
@@ -4003,9 +4003,9 @@ void SP_func_eye(gentity_t* ent) {
 		AngleVectors(ent->moveAngles, ent->moveDir, right, up);
 
 		Vector3 moveOrigin = ent->moveOrigin;
-		ent->moveOrigin = ent->moveDir * moveOrigin[X];
-		ent->moveOrigin += right * moveOrigin[Y];
-		ent->moveOrigin += up * moveOrigin[Z];
+		ent->moveOrigin = ent->moveDir * moveOrigin[_X];
+		ent->moveOrigin += right * moveOrigin[_Y];
+		ent->moveOrigin += up * moveOrigin[_Z];
 	}
 
 	gi.linkEntity(ent);

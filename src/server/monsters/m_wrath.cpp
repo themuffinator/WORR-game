@@ -213,12 +213,12 @@ static void wrath_fire(gentity_t* self) {
 	if (blindfire) {
 		dir = aimPoint - start;
 	}
-	else if (frandom() < 0.33f || start[Z] < self->enemy->absMin[Z]) {
-		aimPoint[Z] += self->enemy->viewHeight;
+	else if (frandom() < 0.33f || start[_Z] < self->enemy->absMin[_Z]) {
+		aimPoint[_Z] += self->enemy->viewHeight;
 		dir = aimPoint - start;
 	}
 	else {
-		aimPoint[Z] = self->enemy->absMin[Z] + 1.f;
+		aimPoint[_Z] = self->enemy->absMin[_Z] + 1.f;
 		dir = aimPoint - start;
 	}
 

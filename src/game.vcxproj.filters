@@ -4,7 +4,6 @@
     <ClInclude Include="server\g_local.hpp" />
     <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
-    <ClInclude Include="server\gameplay\g_headhunters.hpp" />
     <ClInclude Include="server\bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
@@ -233,6 +232,9 @@
     <ClInclude Include="shared\version.hpp">
       <Filter>shared</Filter>
     </ClInclude>
+    <ClInclude Include="server\gameplay\g_headhunters.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="server\gameplay\g_combat.cpp" />
@@ -356,7 +358,6 @@
     <ClCompile Include="server\monsters\m_wyvern.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
-    <ClCompile Include="server\gameplay\g_teamplay.cpp" />
     <ClCompile Include="server\gameplay\g_map_manager.cpp" />
     <ClCompile Include="server\menu\menu_page_admin.cpp">
       <Filter>menu</Filter>
@@ -392,7 +393,6 @@
       <Filter>menu</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_combat_heatmap.cpp" />
-    <ClCompile Include="server\gameplay\g_domination.cpp" />
     <ClCompile Include="server\monsters\m_dog.cpp">
       <Filter>monsters</Filter>
     </ClCompile>
@@ -569,6 +569,12 @@
       <Filter>matches</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_domination.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_domination.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_teamplay.cpp">
       <Filter>matches</Filter>
     </ClCompile>
   </ItemGroup>

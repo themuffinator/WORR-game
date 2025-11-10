@@ -309,26 +309,6 @@ void Horde_RunSpawning() {
 	}
 }
 
-void Horde_Init() {
-	// this crashes the game
-	/*
-	if (Game::IsNot(GameType::Horde))
-		return;
-
-	// precache all items
-	for (auto &item : itemList)
-		PrecacheItem(&item);
-
-	// all monsters too
-	for (auto &monster : monsters) {
-		gentity_t *e = Spawn();
-		e->className = monster.className;
-		ED_CallSpawn(e);
-		FreeEntity(e);
-	}
-	*/
-}
-
 static bool Horde_AllMonstersDead() {
 	for (size_t i = 0; i < globals.maxEntities; i++) {
 		if (!g_entities[i].inUse) {

@@ -397,7 +397,7 @@ struct pmove_state_t {
 	int16_t				gravity = 800;
 	gvec3_t				deltaAngles = vec3_origin; // add to command angles to get view direction
 	// changed by spawns, rotating objects, and teleporters
-	int8_t				viewHeight = DEFAULT_VIEWHEIGHT; // view height, added to origin[Z] + viewOffset[2], for crouching
+	int8_t				viewHeight = DEFAULT_VIEWHEIGHT; // view height, added to origin[_Z] + viewOffset[2], for crouching
 
 //muffmode
 	bool				haste = false;

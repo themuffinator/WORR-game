@@ -567,7 +567,7 @@ static THINK(AimAtTarget) (gentity_t* self) -> void {
 	origin = self->absMin + self->absMax;
 	origin *= 0.5;
 
-	height = ent->s.origin[Z] - origin[Z];
+	height = ent->s.origin[_Z] - origin[_Z];
 	gravity = g_gravity->value;
 	time = sqrt(height / (0.5 * gravity));
 	if (!time) {
@@ -646,7 +646,7 @@ static void trigger_effect(gentity_t* self) {
 	origin = (self->absMin + self->absMax) * 0.5f;
 
 	for (i = 0; i < 10; i++) {
-		origin[Z] += (self->speed * 0.01f) * (i + frandom());
+		origin[_Z] += (self->speed * 0.01f) * (i + frandom());
 		gi.WriteByte(svc_temp_entity);
 		gi.WriteByte(TE_TUNNEL_SPARKS);
 		gi.WriteByte(1);
@@ -990,14 +990,14 @@ static TOUCH(trigger_monsterjump_touch) (gentity_t* self, gentity_t* other, cons
 	}
 
 	// set XY even if not on ground, so the jump will clear lips
-	other->velocity[0] = self->moveDir[0] * self->speed;
-	other->velocity[1] = self->moveDir[1] * self->speed;
+	other->velocity[_X] = self->moveDir[0] * self->speed;
+	other->velocity[_Y] = self->moveDir[1] * self->speed;
 
 	if (!other->groundEntity)
 		return;
 
 	other->groundEntity = nullptr;
-	other->velocity[2] = self->moveDir[2];
+	other->velocity[_Z] = self->moveDir[2];
 }
 
 void SP_trigger_monsterjump(gentity_t* self) {
@@ -1443,7 +1443,7 @@ static TOUCH(trigger_teleport_touch) (gentity_t* self, gentity_t* other, const t
 
 	other->s.origin = dest->s.origin;
 	other->s.oldOrigin = dest->s.origin;
-	other->s.origin[Z] += 10;
+	other->s.origin[_Z] += 10;
 
 	if (other->client) {
 		TeleporterVelocity(other, dest->s.angles);
@@ -1472,7 +1472,7 @@ static TOUCH(trigger_teleport_touch) (gentity_t* self, gentity_t* other, const t
 	if (other->client && other->client->ownedSphere) {
 		gentity_t* sphere = other->client->ownedSphere;
 		sphere->s.origin = other->s.origin;
-		sphere->s.origin[Z] = other->absMax[2];
+		sphere->s.origin[_Z] = other->absMax[2];
 		sphere->s.angles[YAW] = other->s.angles[YAW];
 		gi.linkEntity(sphere);
 	}
@@ -1533,7 +1533,7 @@ static TOUCH(old_teleporter_touch) (gentity_t* self, gentity_t* other, const tra
 
 	other->s.origin = dest->s.origin;
 	other->s.oldOrigin = dest->s.origin;
-	other->s.origin[Z] += 10;
+	other->s.origin[_Z] += 10;
 
 	TeleporterVelocity(other, dest->s.angles);
 
@@ -1566,7 +1566,7 @@ static TOUCH(old_teleporter_touch) (gentity_t* self, gentity_t* other, const tra
 	if (other->client->ownedSphere) {
 		gentity_t* sphere = other->client->ownedSphere;
 		sphere->s.origin = other->s.origin;
-		sphere->s.origin[Z] = other->absMax[2];
+		sphere->s.origin[_Z] = other->absMax[2];
 		sphere->s.angles[YAW] = other->s.angles[YAW];
 		gi.linkEntity(sphere);
 	}

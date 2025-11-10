@@ -386,9 +386,9 @@ static void Widow2Tongue(gentity_t *self) {
 	start = G_ProjectSource2(self->s.origin, offsets[self->s.frame - FRAME_tongs01], f, r, u);
 	end = self->enemy->s.origin;
 	if (!widow2_tongue_attack_ok(start, end, 256)) {
-		end[2] = self->enemy->s.origin[Z] + self->enemy->maxs[2] - 8;
+		end[2] = self->enemy->s.origin[_Z] + self->enemy->maxs[2] - 8;
 		if (!widow2_tongue_attack_ok(start, end, 256)) {
-			end[2] = self->enemy->s.origin[Z] + self->enemy->mins[2] + 8;
+			end[2] = self->enemy->s.origin[_Z] + self->enemy->mins[2] + 8;
 			if (!widow2_tongue_attack_ok(start, end, 256))
 				return;
 		}
@@ -430,7 +430,7 @@ static void Widow2TonguePull(gentity_t *self) {
 		return;
 
 	if (self->enemy->groundEntity) {
-		self->enemy->s.origin[Z] += 1;
+		self->enemy->s.origin[_Z] += 1;
 		self->enemy->groundEntity = nullptr;
 		// interesting, you don't have to relink the player
 	}
@@ -1003,9 +1003,9 @@ void ThrowWidowGibReal(gentity_t *self, const char *gibname, int damage, gib_typ
 		gib->s.origin = *startpos;
 	else {
 		origin = (self->absMin + self->absMax) * 0.5f;
-		gib->s.origin[X] = origin[X] + crandom() * size[0];
-		gib->s.origin[Y] = origin[Y] + crandom() * size[1];
-		gib->s.origin[Z] = origin[Z] + crandom() * size[2];
+		gib->s.origin[_X] = origin[_X] + crandom() * size[0];
+		gib->s.origin[_Y] = origin[_Y] + crandom() * size[1];
+		gib->s.origin[_Z] = origin[_Z] + crandom() * size[2];
 	}
 
 	gib->solid = SOLID_NOT;
@@ -1052,12 +1052,12 @@ void ThrowWidowGibReal(gentity_t *self, const char *gibname, int damage, gib_typ
 		gib->aVelocity[0] = frandom(400);
 		gib->aVelocity[1] = frandom(400);
 		gib->aVelocity[2] = frandom(400);
-		if (gib->velocity[2] < 0)
-			gib->velocity[2] *= -1;
-		gib->velocity[0] *= 2;
-		gib->velocity[1] *= 2;
+		if (gib->velocity[_Z] < 0)
+			gib->velocity[_Z] *= -1;
+		gib->velocity[_X] *= 2;
+		gib->velocity[_Y] *= 2;
 		ClipGibVelocity(gib);
-		gib->velocity[2] = max(frandom(350.f, 450.f), gib->velocity[2]);
+		gib->velocity[_Z] = max(frandom(350.f, 450.f), gib->velocity[_Z]);
 		gib->gravity = 0.25;
 		gib->touch = widow_gib_touch;
 		gib->owner = self;
@@ -1069,8 +1069,8 @@ void ThrowWidowGibReal(gentity_t *self, const char *gibname, int damage, gib_typ
 			gib->maxs = { 5, 5, 5 };
 		}
 	} else {
-		gib->velocity[0] *= 2;
-		gib->velocity[1] *= 2;
+		gib->velocity[_X] *= 2;
+		gib->velocity[_Y] *= 2;
 		gib->aVelocity[0] = frandom(600);
 		gib->aVelocity[1] = frandom(600);
 		gib->aVelocity[2] = frandom(600);
@@ -1145,10 +1145,10 @@ THINK(WidowExplode)(gentity_t *self) -> void {
 	case 5:  org[0] += 48; org[1] += 48; ThrowArm1(self); break;
 	case 6:  org[0] -= 48; org[1] += 48; ThrowArm2(self); break;
 	case 7:  org[0] += 48; org[1] -= 48; ThrowSmallStuff(self, org); break;
-	case 8:  org[0] += 18; org[1] += 18; org[2] = self->s.origin[Z] + 48; ThrowMoreStuff(self, org); break;
-	case 9:  org[0] -= 18; org[1] += 18; org[2] = self->s.origin[Z] + 48; break;
-	case 10: org[0] += 18; org[1] -= 18; org[2] = self->s.origin[Z] + 48; break;
-	case 11: org[0] -= 18; org[1] -= 18; org[2] = self->s.origin[Z] + 48; break;
+	case 8:  org[0] += 18; org[1] += 18; org[2] = self->s.origin[_Z] + 48; ThrowMoreStuff(self, org); break;
+	case 9:  org[0] -= 18; org[1] += 18; org[2] = self->s.origin[_Z] + 48; break;
+	case 10: org[0] += 18; org[1] -= 18; org[2] = self->s.origin[_Z] + 48; break;
+	case 11: org[0] -= 18; org[1] -= 18; org[2] = self->s.origin[_Z] + 48; break;
 
 	case 12:
 		self->s.sound = 0;

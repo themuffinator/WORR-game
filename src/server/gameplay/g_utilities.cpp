@@ -1204,7 +1204,7 @@ TeleporterVelocity
 */
 void TeleporterVelocity(gentity_t* ent, gvec3_t angles) {
 	float len = ent->velocity.length();
-	ent->velocity[2] = 0;
+	ent->velocity[_Z] = 0;
 	AngleVectors(angles, ent->velocity, NULL, NULL);
 	ent->velocity *= len;
 
@@ -1228,7 +1228,7 @@ void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
 
 	player->s.origin = origin;
 	player->s.oldOrigin = origin;
-	player->s.origin[Z] += 10;
+	player->s.origin[_Z] += 10;
 
 	TeleporterVelocity(player, angles);
 
@@ -1252,7 +1252,7 @@ void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles) {
 	if (player->client->ownedSphere) {
 		gentity_t* sphere = player->client->ownedSphere;
 		sphere->s.origin = player->s.origin;
-		sphere->s.origin[Z] = player->absMax[2];
+		sphere->s.origin[_Z] = player->absMax[2];
 		sphere->s.angles[YAW] = player->s.angles[YAW];
 		gi.linkEntity(sphere);
 	}

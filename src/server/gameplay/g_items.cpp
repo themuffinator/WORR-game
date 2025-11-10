@@ -257,7 +257,7 @@ static gentity_t* CreateDroppedItem(gentity_t* owner, Item* item, int count) {
 
 	// --- Initial Velocity and Timers ---
 	dropped->velocity = forward * 100.0f;
-	dropped->velocity[2] = 300.0f;
+	dropped->velocity[_Z] = 300.0f;
 
 	dropped->touch = drop_temp_touch; // Temporarily prevent self-pickup
 	dropped->think = drop_make_touchable;
@@ -423,7 +423,7 @@ void fire_doppelganger(gentity_t* ent, const Vector3& start, const Vector3& aimD
 	body->yawSpeed = 30;
 	body->ideal_yaw = 0;
 	body->s.origin = start;
-	body->s.origin[Z] += 8;
+	body->s.origin[_Z] += 8;
 	body->teleportTime = level.time + 10_hz;
 	body->think = body_think;
 	body->nextThink = level.time + FRAME_TIME_MS;
@@ -753,7 +753,7 @@ static PAIN(hunter_pain) (gentity_t* self, gentity_t* other, float kick, int dam
 			// move the sphere to the owner's current viewpoint.
 			// we know it's a valid spot (or will be momentarily)
 			self->s.origin = owner->s.origin;
-			self->s.origin[Z] += owner->viewHeight;
+			self->s.origin[_Z] += owner->viewHeight;
 
 			// move the player's origin to the sphere's new origin
 			owner->s.origin = self->s.origin;
@@ -876,7 +876,7 @@ static THINK(hunter_think) (gentity_t* self) -> void {
 				LookAtKiller(owner, self, self->enemy);
 				// owner is flying with us, move him too
 				owner->moveType = MoveType::FlyMissile;
-				owner->viewHeight = (int)(self->s.origin[Z] - owner->s.origin[Z]);
+				owner->viewHeight = (int)(self->s.origin[_Z] - owner->s.origin[_Z]);
 				owner->s.origin = self->s.origin;
 				owner->velocity = self->velocity;
 				owner->mins = {};
@@ -925,7 +925,7 @@ gentity_t* Sphere_Spawn(gentity_t* owner, SpawnFlags spawnFlags) {
 
 	sphere = Spawn();
 	sphere->s.origin = owner->s.origin;
-	sphere->s.origin[Z] = owner->absMax[2];
+	sphere->s.origin[_Z] = owner->absMax[2];
 	sphere->s.angles[YAW] = owner->s.angles[YAW];
 	sphere->solid = SOLID_BBOX;
 	sphere->clipMask = MASK_PROJECTILE;
@@ -1094,9 +1094,9 @@ void QuadHog_Spawn(Item* item, gentity_t* spot, bool reset) {
 
 	AngleVectors(angles, forward, right, nullptr);
 	ent->s.origin = spot->s.origin;
-	ent->s.origin[Z] += 16;
+	ent->s.origin[_Z] += 16;
 	ent->velocity = forward * 100;
-	ent->velocity[2] = 300;
+	ent->velocity[_Z] = 300;
 
 	gi.LocBroadcast_Print(PRINT_CENTER, "The Quad {}!\n", reset ? "respawned" : "has spawned");
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("misc/alarm.wav"), 1, ATTN_NONE, 0);
@@ -1283,9 +1283,9 @@ static THINK(Tech_Think) (gentity_t* tech) -> void {
 		ent->owner = ent;
 
 		ent->s.origin = spot->s.origin;
-		ent->s.origin[Z] += 16.0f;
+		ent->s.origin[_Z] += 16.0f;
 		ent->velocity = forward * 100.0f;
-		ent->velocity[2] = 300.0f;
+		ent->velocity[_Z] = 300.0f;
 
 		ent->nextThink = level.time + TECH_TIMEOUT;
 		ent->think = Tech_Think;
@@ -1348,8 +1348,8 @@ void Tech_DeadDrop(gentity_t* ent) {
 		gentity_t* dropped = Drop_Item(ent, GetItemByIndex(tid));
 		if (dropped) {
 			// hack velocity to bounce randomly
-			dropped->velocity[0] = crandom_open() * 300.0f;
-			dropped->velocity[1] = crandom_open() * 300.0f;
+			dropped->velocity[_X] = crandom_open() * 300.0f;
+			dropped->velocity[_Y] = crandom_open() * 300.0f;
 			dropped->nextThink = level.time + TECH_TIMEOUT;
 			dropped->think = Tech_Think;
 			dropped->owner = nullptr;
@@ -1390,9 +1390,9 @@ static void Tech_Spawn(Item* item, gentity_t* spot) {
 
 	AngleVectors(angles, forward, right, nullptr);
 	ent->s.origin = spot->s.origin;
-	ent->s.origin[Z] += 16.0f;
+	ent->s.origin[_Z] += 16.0f;
 	ent->velocity = forward * 100.0f;
-	ent->velocity[2] = 300.0f;
+	ent->velocity[_Z] = 300.0f;
 
 	ent->nextThink = level.time + TECH_TIMEOUT;
 	ent->think = Tech_Think;
@@ -1974,7 +1974,7 @@ void Use_Teleporter(gentity_t* ent, Item* item) {
 	fx->className = "telefx";
 	fx->s.event = EV_PLAYER_TELEPORT;
 	fx->s.origin = ent->s.origin;
-	fx->s.origin[Z] += 1.0f;
+	fx->s.origin[_Z] += 1.0f;
 	fx->s.angles = ent->s.angles;
 	fx->nextThink = level.time + 100_ms;
 	fx->solid = SOLID_NOT;
@@ -3665,7 +3665,7 @@ gentity_t* Drop_Item(gentity_t* ent, Item* item) {
 
 	// optionally scale toss impulse a bit; keep Z punch readable
 	dropped->velocity = forward * (100.0f * std::sqrt(s));
-	dropped->velocity[2] = 300.0f * std::sqrt(s);
+	dropped->velocity[_Z] = 300.0f * std::sqrt(s);
 
 	dropped->think = drop_make_touchable;
 	dropped->nextThink = level.time + 1_sec;
@@ -3746,7 +3746,7 @@ static THINK(FinishSpawningItem) (gentity_t* ent) -> void {
 			// Try to unstick
 			if (G_FixStuckObject(ent, ent->s.origin) == StuckResult::NoGoodPosition) {
 				if (strcmp(ent->className, "item_foodcube") == 0) {
-					ent->velocity[2] = 0;
+					ent->velocity[_Z] = 0;
 				}
 				else {
 					gi.Com_PrintFmt("{}: {}: startSolid\n", __FUNCTION__, *ent);
@@ -4103,9 +4103,9 @@ static USE(Item_TriggeredSpawn) (gentity_t* self, gentity_t* other, gentity_t* a
 
 		AngleVectors(self->s.angles, forward, right, nullptr);
 		self->s.origin = self->s.origin;
-		self->s.origin[Z] += 16;
+		self->s.origin[_Z] += 16;
 		self->velocity = forward * 100;
-		self->velocity[2] = 300;
+		self->velocity[_Z] = 300;
 	}
 
 	if (self->item->id != IT_KEY_POWER_CUBE && self->item->id != IT_KEY_EXPLOSIVE_CHARGES) // leave them be on key_power_cube

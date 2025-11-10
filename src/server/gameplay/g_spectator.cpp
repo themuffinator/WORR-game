@@ -134,8 +134,8 @@ void ClientUpdateFollowers(gentity_t* ent) {
 		eyePos[2] += targ->viewHeight;
 
 		cameraPos = eyePos + (forward * -30.0f);
-		if (cameraPos[2] < targ->s.origin[Z] + 20.0f)
-			cameraPos[2] = targ->s.origin[Z] + 20.0f;
+		if (cameraPos[2] < targ->s.origin[_Z] + 20.0f)
+			cameraPos[2] = targ->s.origin[_Z] + 20.0f;
 		if (!targ->groundEntity)
 			cameraPos[2] += 16.0f;
 

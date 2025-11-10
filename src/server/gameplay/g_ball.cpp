@@ -350,7 +350,7 @@ bool Ball_Drop(gentity_t* owner, const Vector3& origin) {
 
 	ball->s.origin = Ball_AdjustOrigin(owner, dropOrigin);
 	ball->velocity = owner ? owner->velocity * BALL_DROP_OWNER_VEL_SCALE : Vector3{};
-	ball->velocity[2] += BALL_DROP_UPWARD_SPEED;
+	ball->velocity[_Z] += BALL_DROP_UPWARD_SPEED;
 	ball->aVelocity = { crandom() * 60.f, crandom() * 60.f, crandom() * 60.f };
 	Ball_ApplyVelocityClamp(ball);
 

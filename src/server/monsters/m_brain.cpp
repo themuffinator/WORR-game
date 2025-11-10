@@ -377,9 +377,9 @@ static void brain_tounge_attack(gentity_t *self) {
 
 	end = self->enemy->s.origin;
 	if (!brain_tounge_attack_ok(start, end)) {
-		end[2] = self->enemy->s.origin[Z] + self->enemy->maxs[2] - 8;
+		end[2] = self->enemy->s.origin[_Z] + self->enemy->maxs[2] - 8;
 		if (!brain_tounge_attack_ok(start, end)) {
-			end[2] = self->enemy->s.origin[Z] + self->enemy->mins[2] + 8;
+			end[2] = self->enemy->s.origin[_Z] + self->enemy->mins[2] + 8;
 			if (!brain_tounge_attack_ok(start, end))
 				return;
 		}
@@ -405,7 +405,7 @@ static void brain_tounge_attack(gentity_t *self) {
 
 	// pull the enemy in
 	Vector3 forward;
-	self->s.origin[Z] += 1;
+	self->s.origin[_Z] += 1;
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
 	self->enemy->velocity = forward * -1200;
 }

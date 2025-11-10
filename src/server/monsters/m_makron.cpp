@@ -269,7 +269,7 @@ static void makron_spawn_torso(gentity_t *self) {
 	tempent->s.origin = self->s.origin;
 	tempent->s.angles = self->s.angles;
 	self->maxs[2] -= tempent->maxs[2];
-	tempent->s.origin[Z] += self->maxs[2] - 15;
+	tempent->s.origin[_Z] += self->maxs[2] - 15;
 	makron_torso(tempent);
 }
 
@@ -730,7 +730,7 @@ static THINK(MakronSpawn) (gentity_t *self) -> void {
 	self->s.angles[YAW] = vectoyaw(vec);
 	vec.normalize();
 	self->velocity = vec * 400;
-	self->velocity[2] = 200;
+	self->velocity[_Z] = 200;
 	self->groundEntity = nullptr;
 	self->enemy = player;
 	FoundTarget(self);

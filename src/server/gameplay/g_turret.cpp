@@ -67,9 +67,9 @@ static void turret_breach_fire(gentity_t* self) {
 	int	   speed;
 
 	AngleVectors(self->s.angles, f, r, u);
-	start = self->s.origin + (f * self->moveOrigin[X]);
-	start += (r * self->moveOrigin[Y]);
-	start += (u * self->moveOrigin[Z]);
+	start = self->s.origin + (f * self->moveOrigin[_X]);
+	start += (r * self->moveOrigin[_Y]);
+	start += (u * self->moveOrigin[_Z]);
 
 	if (self->count)
 		damage = self->count;
@@ -170,22 +170,22 @@ static THINK(turret_breach_think) (gentity_t* self) -> void {
 		self->owner->aVelocity[1] = self->aVelocity[1];
 
 		// x & y
-		angle = self->s.angles[YAW] + self->owner->moveOrigin[Y];
+		angle = self->s.angles[YAW] + self->owner->moveOrigin[_Y];
 		angle *= (float)(PI * 2 / 360);
-		target[0] = self->s.origin[X] + cosf(angle) * self->owner->moveOrigin[X];
-		target[1] = self->s.origin[Y] + std::sinf(angle) * self->owner->moveOrigin[X];
-		target[2] = self->owner->s.origin[Z];
+		target[0] = self->s.origin[_X] + cosf(angle) * self->owner->moveOrigin[_X];
+		target[1] = self->s.origin[_Y] + std::sinf(angle) * self->owner->moveOrigin[_X];
+		target[2] = self->owner->s.origin[_Z];
 
 		dir = target - self->owner->s.origin;
-		self->owner->velocity[0] = dir[0] * 1.0f / gi.frameTimeSec;
-		self->owner->velocity[1] = dir[1] * 1.0f / gi.frameTimeSec;
+		self->owner->velocity[_X] = dir[0] * 1.0f / gi.frameTimeSec;
+		self->owner->velocity[_Y] = dir[1] * 1.0f / gi.frameTimeSec;
 
 		// z
 		angle = self->s.angles[PITCH] * (float)(PI * 2 / 360);
-		target_z = self->s.origin[Z] + self->owner->moveOrigin[X] * tan(angle) + self->owner->moveOrigin[Z];
+		target_z = self->s.origin[_Z] + self->owner->moveOrigin[_X] * tan(angle) + self->owner->moveOrigin[_Z];
 
-		diff = target_z - self->owner->s.origin[Z];
-		self->owner->velocity[2] = diff * 1.0f / gi.frameTimeSec;
+		diff = target_z - self->owner->s.origin[_Z];
+		self->owner->velocity[_Z] = diff * 1.0f / gi.frameTimeSec;
 
 		if (self->spawnFlags.has(SPAWNFLAG_TURRET_BREACH_FIRE)) {
 			turret_breach_fire(self);
@@ -381,17 +381,17 @@ static THINK(turret_driver_link) (gentity_t* self) -> void {
 	self->targetEnt->teamMaster->owner = self;
 	self->s.angles = self->targetEnt->s.angles;
 
-	vec[0] = self->targetEnt->s.origin[X] - self->s.origin[X];
-	vec[1] = self->targetEnt->s.origin[Y] - self->s.origin[Y];
+	vec[0] = self->targetEnt->s.origin[_X] - self->s.origin[_X];
+	vec[1] = self->targetEnt->s.origin[_Y] - self->s.origin[_Y];
 	vec[2] = 0;
-	self->moveOrigin[X] = vec.length();
+	self->moveOrigin[_X] = vec.length();
 
 	vec = self->s.origin - self->targetEnt->s.origin;
 	vec = VectorToAngles(vec);
 	AnglesNormalize(vec);
-	self->moveOrigin[Y] = vec[1];
+	self->moveOrigin[_Y] = vec[1];
 
-	self->moveOrigin[Z] = self->s.origin[Z] - self->targetEnt->s.origin[Z];
+	self->moveOrigin[_Z] = self->s.origin[_Z] - self->targetEnt->s.origin[_Z];
 
 	// add the driver to the end of them team chain
 	for (ent = self->targetEnt->teamMaster; ent->teamChain; ent = ent->teamChain)
@@ -542,17 +542,17 @@ static THINK(turret_brain_link) (gentity_t* self) -> void {
 	self->targetEnt->teamMaster->owner = self;
 	self->s.angles = self->targetEnt->s.angles;
 
-	vec[0] = self->targetEnt->s.origin[X] - self->s.origin[X];
-	vec[1] = self->targetEnt->s.origin[Y] - self->s.origin[Y];
+	vec[0] = self->targetEnt->s.origin[_X] - self->s.origin[_X];
+	vec[1] = self->targetEnt->s.origin[_Y] - self->s.origin[_Y];
 	vec[2] = 0;
-	self->moveOrigin[X] = vec.length();
+	self->moveOrigin[_X] = vec.length();
 
 	vec = self->s.origin - self->targetEnt->s.origin;
 	vec = VectorToAngles(vec);
 	AnglesNormalize(vec);
-	self->moveOrigin[Y] = vec[1];
+	self->moveOrigin[_Y] = vec[1];
 
-	self->moveOrigin[Z] = self->s.origin[Z] - self->targetEnt->s.origin[Z];
+	self->moveOrigin[_Z] = self->s.origin[_Z] - self->targetEnt->s.origin[_Z];
 
 	// add the driver to the end of them team chain
 	for (ent = self->targetEnt->teamMaster; ent->teamChain; ent = ent->teamChain)

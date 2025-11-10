@@ -441,7 +441,7 @@ DIE(infantry_die) (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, i
 			head->s.origin = self->s.origin + Vector3{ 0, 0, 32.f };
 			Vector3 headDir = (self->s.origin - inflictor->s.origin);
 			head->velocity = headDir / headDir.length() * 100.0f;
-			head->velocity[2] = 200.0f;
+			head->velocity[_Z] = 200.0f;
 			head->aVelocity *= 0.15f;
 			head->s.skinNum = 0;
 			gi.linkEntity(head);

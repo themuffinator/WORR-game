@@ -1248,7 +1248,7 @@ namespace Commands {
 		const Vector3& origin = ent->s.origin;
 		const auto& angles = ent->client->ps.viewAngles;
 		std::string location = std::format("{:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f}",
-			origin[X], origin[Y], origin[Z], angles[PITCH], angles[YAW], angles[ROLL]);
+			origin[_X], origin[_Y], origin[_Z], angles[PITCH], angles[YAW], angles[ROLL]);
 		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location.c_str());
 		gi.SendToClipBoard(location.c_str());
 	}

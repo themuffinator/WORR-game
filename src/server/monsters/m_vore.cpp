@@ -31,13 +31,13 @@ static void        vore_jump_down(gentity_t* self);
 static void        vore_jump(gentity_t* self, BlockedJumpResult result);
 void               vore_attack(gentity_t* self);
 void               vore_run(gentity_t* self);
-static inline bool VORE_ON_CEILING(gentity_t* ent) { return ent->gravityVector[Z] > 0.0f; }
+static inline bool VORE_ON_CEILING(gentity_t* ent) { return ent->gravityVector[_Z] > 0.0f; }
 static void        vore_update_skin(gentity_t* self);
 
 static Vector3 VoreFlashOffset(MonsterMuzzleFlashID flash, bool onCeiling) {
         Vector3 offset = monster_flash_offset[flash];
         if (onCeiling)
-                offset[Z] = -offset[Z];
+                offset[_Z] = -offset[_Z];
         return offset;
 }
 
@@ -66,67 +66,67 @@ static bool vore_ok_to_transition(gentity_t* self) {
                         return true;
 
                 maxDist = -384.0f;
-                margin = self->mins[Z] - 8.0f;
+                margin = self->mins[_Z] - 8.0f;
         } else {
                 maxDist = 256.0f;
-                margin = self->maxs[Z] + 8.0f;
+                margin = self->maxs[_Z] + 8.0f;
         }
 
         pt = self->s.origin;
-        pt[Z] += maxDist;
+        pt[_Z] += maxDist;
         trace = gi.trace(self->s.origin, self->mins, self->maxs, pt, self, MASK_MONSTERSOLID);
 
         if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world)) {
                 if (VORE_ON_CEILING(self)) {
-                        if (trace.plane.normal[Z] < 0.9f)
+                        if (trace.plane.normal[_Z] < 0.9f)
                                 return false;
                 } else {
-                        if (trace.plane.normal[Z] > -0.9f)
+                        if (trace.plane.normal[_Z] > -0.9f)
                                 return false;
                 }
         }
 
-        endHeight = trace.endPos[Z];
+        endHeight = trace.endPos[_Z];
 
-        pt[X] = self->absMin[X];
-        pt[Y] = self->absMin[Y];
-        pt[Z] = trace.endPos[Z] + margin;
+        pt[_X] = self->absMin[_X];
+        pt[_Y] = self->absMin[_Y];
+        pt[_Z] = trace.endPos[_Z] + margin;
         start = pt;
-        start[Z] = self->s.origin[Z];
+        start[_Z] = self->s.origin[_Z];
         trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
         if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
                 return false;
-        if (std::fabs(endHeight + margin - trace.endPos[Z]) > 8.0f)
+        if (std::fabs(endHeight + margin - trace.endPos[_Z]) > 8.0f)
                 return false;
 
-        pt[X] = self->absMax[X];
-        pt[Y] = self->absMin[Y];
+        pt[_X] = self->absMax[_X];
+        pt[_Y] = self->absMin[_Y];
         start = pt;
-        start[Z] = self->s.origin[Z];
+        start[_Z] = self->s.origin[_Z];
         trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
         if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
                 return false;
-        if (std::fabs(endHeight + margin - trace.endPos[Z]) > 8.0f)
+        if (std::fabs(endHeight + margin - trace.endPos[_Z]) > 8.0f)
                 return false;
 
-        pt[X] = self->absMax[X];
-        pt[Y] = self->absMax[Y];
+        pt[_X] = self->absMax[_X];
+        pt[_Y] = self->absMax[_Y];
         start = pt;
-        start[Z] = self->s.origin[Z];
+        start[_Z] = self->s.origin[_Z];
         trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
         if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
                 return false;
-        if (std::fabs(endHeight + margin - trace.endPos[Z]) > 8.0f)
+        if (std::fabs(endHeight + margin - trace.endPos[_Z]) > 8.0f)
                 return false;
 
-        pt[X] = self->absMin[X];
-        pt[Y] = self->absMax[Y];
+        pt[_X] = self->absMin[_X];
+        pt[_Y] = self->absMax[_Y];
         start = pt;
-        start[Z] = self->s.origin[Z];
+        start[_Z] = self->s.origin[_Z];
         trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
         if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
                 return false;
-        if (std::fabs(endHeight + margin - trace.endPos[Z]) > 8.0f)
+        if (std::fabs(endHeight + margin - trace.endPos[_Z]) > 8.0f)
                 return false;
 
         return true;
@@ -415,7 +415,7 @@ static void vore_jump_straightup(gentity_t* self) {
 
         if (VORE_ON_CEILING(self)) {
                 if (vore_ok_to_transition(self)) {
-                        self->gravityVector[Z] = -1.0f;
+                        self->gravityVector[_Z] = -1.0f;
                         self->s.angles[ROLL] += 180.0f;
                         if (self->s.angles[ROLL] > 360.0f)
                                 self->s.angles[ROLL] -= 360.0f;
@@ -423,12 +423,12 @@ static void vore_jump_straightup(gentity_t* self) {
                         vore_update_skin(self);
                 }
         } else if (self->groundEntity) {
-                self->velocity[X] += crandom() * 5.0f;
-                self->velocity[Y] += crandom() * 5.0f;
-                self->velocity[Z] += -400.0f * self->gravityVector[Z];
+                self->velocity[_X] += crandom() * 5.0f;
+                self->velocity[_Y] += crandom() * 5.0f;
+                self->velocity[_Z] += -400.0f * self->gravityVector[_Z];
 
                 if (vore_ok_to_transition(self)) {
-                        self->gravityVector[Z] = 1.0f;
+                        self->gravityVector[_Z] = 1.0f;
                         self->s.angles[ROLL] = 180.0f;
                         self->groundEntity = nullptr;
                         vore_update_skin(self);
@@ -524,7 +524,7 @@ MONSTERINFO_BLOCKED(vore_blocked) (gentity_t* self, float dist) -> bool {
                         return true;
         } else {
                 if (vore_ok_to_transition(self)) {
-                        self->gravityVector[Z] = -1.0f;
+                        self->gravityVector[_Z] = -1.0f;
                         self->s.angles[ROLL] += 180.0f;
                         if (self->s.angles[ROLL] > 360.0f)
                                 self->s.angles[ROLL] -= 360.0f;
@@ -542,7 +542,7 @@ MONSTERINFO_PHYSCHANGED(vore_physics_change) (gentity_t* self) -> void {
                 self->mins = { -32, -32, -32 };
                 self->maxs = { 32, 32, 16 };
 
-                self->gravityVector[Z] = -1.0f;
+                self->gravityVector[_Z] = -1.0f;
                 self->s.angles[ROLL] += 180.0f;
                 if (self->s.angles[ROLL] > 360.0f)
                         self->s.angles[ROLL] -= 360.0f;
@@ -572,7 +572,7 @@ static void vore_dead(gentity_t* self) {
 }
 
 static void vore_corpse_shrink(gentity_t* self) {
-        self->maxs[Z] = -4.0f;
+        self->maxs[_Z] = -4.0f;
         self->svFlags |= SVF_DEADMONSTER;
         gi.linkEntity(self);
 }
@@ -699,7 +699,7 @@ void SP_monster_vore(gentity_t* self) {
 
         if (self->spawnFlags.has(SPAWNFLAG_VORE_ONROOF)) {
                 self->s.angles[ROLL] = 180.0f;
-                self->gravityVector[Z] = 1.0f;
+                self->gravityVector[_Z] = 1.0f;
                 vore_physics_change(self);
         }
 

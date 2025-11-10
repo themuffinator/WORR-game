@@ -169,7 +169,7 @@ void SP_info_player_intermission(gentity_t* ent) {}
 Point trigger_teleports at these.
 */
 void SP_info_ctf_teleport_destination(gentity_t* ent) {
-	ent->s.origin[Z] += 16;
+	ent->s.origin[_Z] += 16;
 }
 
 // [Paril-KEX] whether instanced items should be used or not
@@ -2289,7 +2289,7 @@ static DIE(body_die) (gentity_t* self, gentity_t* inflictor, gentity_t* attacker
 		self->health < self->gibHealth) {
 		gi.sound(self, CHAN_BODY, gi.soundIndex("misc/udeath.wav"), 1, ATTN_NORM, 0);
 		ThrowGibs(self, damage, { { 4, "models/objects/gibs/sm_meat/tris.md2" } });
-		self->s.origin[Z] -= 48;
+		self->s.origin[_Z] -= 48;
 		ThrowClientHead(self, damage);
 	}
 
@@ -2325,7 +2325,7 @@ static THINK(BodySink) (gentity_t* ent) -> void {
 		return;
 	}
 	ent->nextThink = level.time + 50_ms;
-	ent->s.origin[Z] -= 0.5;
+	ent->s.origin[_Z] -= 0.5;
 	gi.linkEntity(ent);
 }
 
@@ -4376,9 +4376,9 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 		Pmove(&pm);
 
 		if (pm.groundEntity && ent->groundEntity) {
-			float stepsize = fabs(ent->s.origin[Z] - pm.s.origin[Z]);
+			float stepsize = fabs(ent->s.origin[_Z] - pm.s.origin[_Z]);
 
-			if (stepsize > 4.f && stepsize < (ent->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)) {
+			if (stepsize > 4.f && stepsize < (ent->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)) {
 				ent->s.renderFX |= RF_STAIR_STEP;
 				cl->stepFrame = gi.ServerFrame() + 1;
 			}
@@ -4603,8 +4603,8 @@ static inline bool G_FindRespawnSpot(gentity_t* player, Vector3& spot) {
 			continue;
 
 		// Height delta check
-		float zDelta = std::fabs(player->s.origin[Z] - tr.endPos[2]);
-		float stepLimit = (player->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE);
+		float zDelta = std::fabs(player->s.origin[_Z] - tr.endPos[2]);
+		float stepLimit = (player->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE);
 		if (zDelta > stepLimit * 4.0f)
 			continue;
 

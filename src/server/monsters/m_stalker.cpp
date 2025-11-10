@@ -81,7 +81,7 @@ bool stalker_ok_to_transition(gentity_t *self) {
 	pt[1] = self->absMin[1];
 	pt[2] = trace.endPos[2] + margin; // give a little margin of error to allow slight inclines
 	start = pt;
-	start[2] = self->s.origin[Z];
+	start[2] = self->s.origin[_Z];
 	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
@@ -91,7 +91,7 @@ bool stalker_ok_to_transition(gentity_t *self) {
 	pt[0] = self->absMax[0];
 	pt[1] = self->absMin[1];
 	start = pt;
-	start[2] = self->s.origin[Z];
+	start[2] = self->s.origin[_Z];
 	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
@@ -101,7 +101,7 @@ bool stalker_ok_to_transition(gentity_t *self) {
 	pt[0] = self->absMax[0];
 	pt[1] = self->absMax[1];
 	start = pt;
-	start[2] = self->s.origin[Z];
+	start[2] = self->s.origin[_Z];
 	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
@@ -111,7 +111,7 @@ bool stalker_ok_to_transition(gentity_t *self) {
 	pt[0] = self->absMin[0];
 	pt[1] = self->absMax[1];
 	start = pt;
-	start[2] = self->s.origin[Z];
+	start[2] = self->s.origin[_Z];
 	trace = gi.traceLine(start, pt, self, MASK_MONSTERSOLID);
 	if (trace.fraction == 1.0f || !(trace.contents & CONTENTS_SOLID) || (trace.ent != world))
 		return false;
@@ -632,9 +632,9 @@ void stalker_jump_straightup(gentity_t *self) {
 		}
 	} else if (self->groundEntity) // make sure we're standing on SOMETHING...
 	{
-		self->velocity[0] += crandom() * 5;
-		self->velocity[1] += crandom() * 5;
-		self->velocity[2] += -400 * self->gravityVector[2];
+		self->velocity[_X] += crandom() * 5;
+		self->velocity[_Y] += crandom() * 5;
+		self->velocity[_Z] += -400 * self->gravityVector[2];
 		if (stalker_ok_to_transition(self)) {
 			self->gravityVector[2] = 1;
 			self->s.angles[ROLL] = 180.0;

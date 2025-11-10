@@ -345,7 +345,7 @@ void PM_StepSlideMove_Generic(
 	static constexpr float NUDGE_DIST = 0.01f;   // small push along plane normal
 
 	// Early out: nothing to do.
-	if (velocity[0] == 0.0f && velocity[1] == 0.0f && velocity[2] == 0.0f) {
+	if (velocity[_X] == 0.0f && velocity[_Y] == 0.0f && velocity[_Z] == 0.0f) {
 		return;
 	}
 
@@ -363,7 +363,7 @@ void PM_StepSlideMove_Generic(
 
 		// Inside a solid: zero vertical motion to avoid stacking fall damage, record touch, and bail.
 		if (tr.allSolid) {
-			velocity[2] = 0.0f;
+			velocity[_Z] = 0.0f;
 			PM_RecordTrace(touch, tr);
 			return;
 		}
@@ -408,7 +408,7 @@ void PM_StepSlideMove_Generic(
 
 		// Start in solid but not allSolid: kill vertical and keep trying.
 		if (tr.startSolid) {
-			velocity[2] = 0.0f;
+			velocity[_Z] = 0.0f;
 		}
 
 		// Too many clip planes means we are wedged; hard stop.
@@ -422,9 +422,9 @@ void PM_StepSlideMove_Generic(
 		int i = 0;
 		for (; i < numPlanes; ++i) {
 			if (tr.plane.normal.dot(planes[i]) > PARALLEL_DOT) {
-				origin[X] += tr.plane.normal[0] * NUDGE_DIST;
-				origin[Y] += tr.plane.normal[1] * NUDGE_DIST;
-				origin[Z] += tr.plane.normal[2] * NUDGE_DIST * 0.0f; // do not nudge Z here
+				origin[_X] += tr.plane.normal[0] * NUDGE_DIST;
+				origin[_Y] += tr.plane.normal[1] * NUDGE_DIST;
+				origin[_Z] += tr.plane.normal[2] * NUDGE_DIST * 0.0f; // do not nudge Z here
 				G_FixStuckObject_Generic(origin, mins, maxs, traceFunc);
 				break;
 			}
@@ -502,7 +502,7 @@ static void PM_StepSlideMove() {
 
 	// Attempt to step up
 	Vector3 up = start_o;
-	up[2] += (pml.origin[Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
+	up[2] += (pml.origin[_Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
 
 	trace_t tr = PM_Trace(start_o, pm->mins, pm->maxs, up);
 	if (tr.allSolid) {
@@ -535,7 +535,7 @@ static void PM_StepSlideMove() {
 		pml.origin = realTrace.endPos;
 
 		// Only upward vertical velocity counts as a stair clip
-		if (pml.velocity[2] > 0.0f) {
+		if (pml.velocity[_Z] > 0.0f) {
 			pm->stepClip = true;
 		}
 	}
@@ -558,17 +558,17 @@ static void PM_StepSlideMove() {
 	else {
 		// NB: Keeping this to enable ramp-jumps (per KEX/Jitspoe notes)
 		// If we were walking along a plane, copy Z velocity from the down slide
-		pml.velocity[2] = down_v[2];
+		pml.velocity[_Z] = down_v[2];
 	}
 
 	// Optional: step down stairs/slopes to keep feet grounded
 	if ((pm->s.pmFlags & PMF_ON_GROUND) &&
 		!(pm->s.pmFlags & PMF_ON_LADDER) &&
 		(pm->waterLevel < WATER_WAIST ||
-			(!(pm->cmd.buttons & BUTTON_JUMP) && pml.velocity[2] <= 0.0f))) {
+			(!(pm->cmd.buttons & BUTTON_JUMP) && pml.velocity[_Z] <= 0.0f))) {
 
 		Vector3 step_down = pml.origin;
-		step_down[2] -= (pml.origin[Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
+		step_down[2] -= (pml.origin[_Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
 
 		const trace_t down_tr = PM_Trace(pml.origin, pm->mins, pm->maxs, step_down);
 		if (down_tr.fraction < 1.0f) {
@@ -874,11 +874,11 @@ static void PM_AirMove() {
 
 		if (wishVel[2] == 0.0f) {
 			const float gz = pm->s.gravity * pml.frameTime;
-			if (pml.velocity[2] > 0.0f) {
-				pml.velocity[2] = std::max(0.0f, pml.velocity[2] - gz);
+			if (pml.velocity[_Z] > 0.0f) {
+				pml.velocity[_Z] = std::max(0.0f, pml.velocity[_Z] - gz);
 			}
 			else {
-				pml.velocity[2] = std::min(0.0f, pml.velocity[2] + gz);
+				pml.velocity[_Z] = std::min(0.0f, pml.velocity[_Z] + gz);
 			}
 		}
 
@@ -889,20 +889,20 @@ static void PM_AirMove() {
 	// Grounded walking
 	if (pm->groundEntity) {
 		// Zero vertical before accel
-		pml.velocity[2] = 0.0f;
+		pml.velocity[_Z] = 0.0f;
 
 		PM_Accelerate(wishDir, wishSpeed, pm_accelerate);
 
 		// Preserve classic behavior: positive gravity locks Z to 0, negative gravity floats up
 		if (pm->s.gravity <= 0.0f) {
-			pml.velocity[2] -= pm->s.gravity * pml.frameTime; // gravity is negative, so this adds lift
+			pml.velocity[_Z] -= pm->s.gravity * pml.frameTime; // gravity is negative, so this adds lift
 		}
 		else {
-			pml.velocity[2] = 0.0f;
+			pml.velocity[_Z] = 0.0f;
 		}
 
 		// If we are not moving horizontally, stop here
-		if (pml.velocity[0] == 0.0f && pml.velocity[1] == 0.0f)
+		if (pml.velocity[_X] == 0.0f && pml.velocity[_Y] == 0.0f)
 			return;
 
 		PM_StepSlideMove();
@@ -924,7 +924,7 @@ static void PM_AirMove() {
 
 	// Gravity while airborne (except grapple)
 	if (pm->s.pmType != PM_GRAPPLE) {
-		pml.velocity[2] -= pm->s.gravity * pml.frameTime;
+		pml.velocity[_Z] -= pm->s.gravity * pml.frameTime;
 	}
 
 	PM_StepSlideMove();
@@ -958,7 +958,7 @@ static inline void PM_GetWaterLevel(const Vector3& position, water_level_t& leve
 	level = WATER_FEET;
 
 	// Check at waist
-	point[2] = pml.origin[Z] + pm->mins[2] + static_cast<float>(sample1);
+	point[2] = pml.origin[_Z] + pm->mins[2] + static_cast<float>(sample1);
 	cont = pm->pointContents(point);
 	if (!(cont & MASK_WATER)) {
 		return;
@@ -967,7 +967,7 @@ static inline void PM_GetWaterLevel(const Vector3& position, water_level_t& leve
 	level = WATER_WAIST;
 
 	// Check at head
-	point[2] = pml.origin[Z] + pm->mins[2] + static_cast<float>(sample2);
+	point[2] = pml.origin[_Z] + pm->mins[2] + static_cast<float>(sample2);
 	cont = pm->pointContents(point);
 	if (cont & MASK_WATER) {
 		level = WATER_UNDER;
@@ -987,7 +987,7 @@ static void PM_CatagorizePosition() {
 	point[2] -= 0.25f;
 
 	// High upward velocity or grapple mode: force off-ground
-	if (pml.velocity[2] > 180.0f || pm->s.pmType == PM_GRAPPLE) {
+	if (pml.velocity[_Z] > 180.0f || pm->s.pmType == PM_GRAPPLE) {
 		pm->s.pmFlags &= ~PMF_ON_GROUND;
 		pm->groundEntity = nullptr;
 		PM_GetWaterLevel(pml.origin, pm->waterLevel, pm->waterType);
@@ -1029,7 +1029,7 @@ static void PM_CatagorizePosition() {
 
 			// Trick flag (Paril-KEX: N64 physics skip this)
 			if (!pm_config.n64Physics &&
-				pml.velocity[2] >= 100.0f &&
+				pml.velocity[_Z] >= 100.0f &&
 				pm->groundPlane.normal[2] >= 0.9f &&
 				!(pm->s.pmFlags & PMF_DUCKED)) {
 				pm->s.pmFlags |= PMF_TIME_TRICK;
@@ -1105,14 +1105,14 @@ static void PM_CheckJump() {
 	pm->s.pmFlags &= ~PMF_ON_GROUND;
 
 	float jumpHeight = 270.0f;
-	if (pml.origin[Z] < 0.0f) {
+	if (pml.origin[_Z] < 0.0f) {
 		jumpHeight += 4.0f;
 	}
 
 	// Apply vertical boost, preserving upward momentum if already rising
-	pml.velocity[2] = std::ceil(pml.velocity[2] + jumpHeight);
-	if (pml.velocity[2] < jumpHeight) {
-		pml.velocity[2] = jumpHeight;
+	pml.velocity[_Z] = std::ceil(pml.velocity[_Z] + jumpHeight);
+	if (pml.velocity[_Z] < jumpHeight) {
+		pml.velocity[_Z] = jumpHeight;
 	}
 }
 
@@ -1197,7 +1197,7 @@ static void PM_CheckSpecialMovement() {
 	}
 
 	// Already standing on ground at a valid step height
-	const float stepSize = (pml.origin[Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
+	const float stepSize = (pml.origin[_Z] < 0.0f) ? STEPSIZE_BELOW : STEPSIZE;
 	if (pm->groundEntity && std::fabs(pml.origin.z - tr.endPos.z) <= stepSize) {
 		return;
 	}
@@ -1212,7 +1212,7 @@ static void PM_CheckSpecialMovement() {
 
 	// Valid waterjump! Commit jump
 	pml.velocity = flatForward * 50.0f;
-	pml.velocity[2] = 350.0f;
+	pml.velocity[_Z] = 350.0f;
 
 	pm->s.pmFlags |= PMF_TIME_WATERJUMP;
 	pm->s.pmTime = 2048;
@@ -1477,11 +1477,11 @@ static void PM_InitialSnapPosition() {
 	const Vector3 base = pm->s.origin;
 
 	for (int z : offsets) {
-		pm->s.origin[Z] = base[2] + z;
+		pm->s.origin[_Z] = base[2] + z;
 		for (int y : offsets) {
-			pm->s.origin[Y] = base[1] + y;
+			pm->s.origin[_Y] = base[1] + y;
 			for (int x : offsets) {
-				pm->s.origin[X] = base[0] + x;
+				pm->s.origin[_X] = base[0] + x;
 				if (PM_GoodPosition()) {
 					pml.origin = pm->s.origin;
 					pml.previousOrigin = pm->s.origin;
@@ -1651,10 +1651,10 @@ void Pmove(PMove* pmove) {
 	}
 	else if (pm->s.pmFlags & PMF_TIME_WATERJUMP) {
 		// Waterjump: ballistic arc, no control
-		pml.velocity[2] -= pm->s.gravity * pml.frameTime;
+		pml.velocity[_Z] -= pm->s.gravity * pml.frameTime;
 
 		// Cancel when falling again
-		if (pml.velocity[2] < 0.0f) {
+		if (pml.velocity[_Z] < 0.0f) {
 			pm->s.pmFlags &= ~(PMF_TIME_WATERJUMP | PMF_TIME_LAND | PMF_TIME_KNOCKBACK | PMF_TIME_TRICK);
 			pm->s.pmTime = 0;
 		}

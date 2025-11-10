@@ -1520,7 +1520,7 @@ void ClientEndServerFrame(gentity_t* ent) {
 	// calculate speed and cycle to be used for
 	// all cyclic walking effects
 	//
-	xySpeed = sqrt(ent->velocity[0] * ent->velocity[0] + ent->velocity[1] * ent->velocity[1]);
+	xySpeed = sqrt(ent->velocity[_X] * ent->velocity[_X] + ent->velocity[_Y] * ent->velocity[_Y]);
 
 	if (xySpeed < 5) {
 		bobMove = 0;

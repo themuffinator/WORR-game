@@ -219,7 +219,7 @@ MONSTERINFO_RUN(hk_run) (gentity_t* self) -> void {
 	// Check if conditions are right for a charge attack
 	if (self->enemy && self->enemy->inUse && visible(self, self->enemy)) {
 		float dist = (self->s.origin - self->enemy->s.origin).length();
-		if ((dist > 80) && (dist < 300) && (fabs(self->s.origin[Z] - self->enemy->s.origin[Z]) <= 20)) {
+		if ((dist > 80) && (dist < 300) && (fabs(self->s.origin[_Z] - self->enemy->s.origin[_Z]) <= 20)) {
 			self->monsterInfo.attackFinished = level.time + 2_sec;
 			M_SetAnimation(self, &hellknight_move_charge);
 			return;

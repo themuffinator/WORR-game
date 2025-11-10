@@ -429,7 +429,7 @@ static bool G_flystep(gentity_t *ent, Vector3 move, bool relink, gentity_t *curr
 
 			Vector3 &goal_position = (ent->monsterInfo.aiFlags & AI_PATHING) ? ent->monsterInfo.nav_path.firstMovePoint : ent->goalEntity->s.origin;
 
-			float dz = ent->s.origin[Z] - goal_position[2];
+			float dz = ent->s.origin[_Z] - goal_position[2];
 			float dist = move.length();
 
 			if (ent->goalEntity->client) {
@@ -907,8 +907,8 @@ static bool G_NewChaseDir(gentity_t *actor, Vector3 pos, float dist) {
 	olddir = anglemod(truncf(actor->ideal_yaw / 45) * 45);
 	turnaround = anglemod(olddir - 180);
 
-	deltax = pos[0] - actor->s.origin[X];
-	deltay = pos[1] - actor->s.origin[Y];
+	deltax = pos[0] - actor->s.origin[_X];
+	deltay = pos[1] - actor->s.origin[_Y];
 	if (deltax > 10)
 		d[1] = 0;
 	else if (deltax < -10)

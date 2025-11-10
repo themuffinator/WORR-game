@@ -558,7 +558,7 @@ static TOUCH(target_actor_touch)(gentity_t* self, gentity_t* other, const trace_
 		other->velocity = self->moveDir * self->speed;
 		if (other->groundEntity) {
 			other->groundEntity = nullptr;
-			other->velocity[2] = self->moveDir[2];
+			other->velocity[_Z] = self->moveDir[2];
 			gi.sound(other, CHAN_VOICE, gi.soundIndex("player/male/jump1.wav"), 1, ATTN_NORM, 0);
 		}
 	}

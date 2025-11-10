@@ -261,9 +261,9 @@ static void fiend_jump_takeoff(gentity_t* self) {
 
         gi.sound(self, CHAN_VOICE, sound_jump, 1, ATTN_NORM, 0);
 
-        self->s.origin[Z] += 1.0f;
+        self->s.origin[_Z] += 1.0f;
         self->velocity = forward * 425.0f;
-        self->velocity[2] = 160.0f;
+        self->velocity[_Z] = 160.0f;
         self->groundEntity = nullptr;
 
         self->monsterInfo.aiFlags |= AI_DUCKED;

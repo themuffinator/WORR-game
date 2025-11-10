@@ -166,17 +166,17 @@ BlockedJumpResult blocked_checkjump(gentity_t* self, float dist) {
 	AngleVectors(self->s.angles, forward, nullptr, up);
 
 	if (self->monsterInfo.aiFlags & AI_PATHING) {
-		if (self->monsterInfo.nav_path.secondMovePoint[2] > (self->absMin[2] + (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		if (self->monsterInfo.nav_path.secondMovePoint[2] > (self->absMin[2] + (self->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = 1;
-		else if (self->monsterInfo.nav_path.secondMovePoint[2] < (self->absMin[2] - (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		else if (self->monsterInfo.nav_path.secondMovePoint[2] < (self->absMin[2] - (self->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = -1;
 		else
 			playerPosition = 0;
 	}
 	else {
-		if (self->enemy->absMin[2] > (self->absMin[2] + (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		if (self->enemy->absMin[2] > (self->absMin[2] + (self->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = 1;
-		else if (self->enemy->absMin[2] < (self->absMin[2] - (self->s.origin[Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
+		else if (self->enemy->absMin[2] < (self->absMin[2] - (self->s.origin[_Z] < 0 ? STEPSIZE_BELOW : STEPSIZE)))
 			playerPosition = -1;
 		else
 			playerPosition = 0;

@@ -141,7 +141,7 @@ TOUCH(tarbaby_jump_touch) (gentity_t* self, gentity_t* other, const trace_t& tr,
                         if (normal.normalize() == 0.0f)
                                 normal = { 0.0f, 0.0f, 1.0f };
 
-                        Vector3 point = self->s.origin + normal * self->maxs[X];
+                        Vector3 point = self->s.origin + normal * self->maxs[_X];
                         const int damage = irandom(10, 21);
 
                         Damage(other, self, self, self->velocity, point, normal, damage, damage, DamageFlags::Normal, ModID::Unknown);
@@ -198,9 +198,9 @@ static void tarbaby_takeoff(gentity_t* self) {
         AngleVectors(self->s.angles, &forward, nullptr, nullptr);
 
         self->moveType = MoveType::Bounce;
-        self->s.origin[Z] += 1.0f;
+        self->s.origin[_Z] += 1.0f;
         self->velocity = forward * 600.0f;
-        self->velocity[Z] = 200.0f;
+        self->velocity[_Z] = 200.0f;
         self->groundEntity = nullptr;
         self->monsterInfo.aiFlags |= AI_DUCKED;
         self->monsterInfo.attackFinished = level.time + 3_sec;
@@ -355,7 +355,7 @@ MONSTERINFO_CHECKATTACK(tarbaby_checkattack) (gentity_t* self) -> bool {
         if (!self->enemy || self->enemy->health <= 0)
                 return false;
 
-        if (self->absMin[Z] + 128.0f < self->enemy->absMin[Z])
+        if (self->absMin[_Z] + 128.0f < self->enemy->absMin[_Z])
                 return false;
 
         const Vector3 diff = self->enemy->s.origin - self->s.origin;

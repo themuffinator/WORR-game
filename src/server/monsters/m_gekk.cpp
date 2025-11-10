@@ -75,8 +75,8 @@ bool gekk_check_jump(gentity_t *self) {
 	if (self->absMin[2] + 125 < self->enemy->absMin[2])
 		return false;
 
-	v[0] = self->s.origin[X] - self->enemy->s.origin[X];
-	v[1] = self->s.origin[Y] - self->enemy->s.origin[Y];
+	v[0] = self->s.origin[_X] - self->enemy->s.origin[_X];
+	v[1] = self->s.origin[_Y] - self->enemy->s.origin[_Y];
 	v[2] = 0;
 	distance = v.length();
 
@@ -95,8 +95,8 @@ static bool gekk_check_jump_close(gentity_t *self) {
 	Vector3 v{};
 	float  distance;
 
-	v[0] = self->s.origin[X] - self->enemy->s.origin[X];
-	v[1] = self->s.origin[Y] - self->enemy->s.origin[Y];
+	v[0] = self->s.origin[_X] - self->enemy->s.origin[_X];
+	v[1] = self->s.origin[_Y] - self->enemy->s.origin[_Y];
 	v[2] = 0;
 
 	distance = v.length();
@@ -888,15 +888,15 @@ void gekk_jump_takeoff(gentity_t *self) {
 
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
-	self->s.origin[Z] += 1;
+	self->s.origin[_Z] += 1;
 
 	// high jump
 	if (gekk_check_jump(self)) {
 		self->velocity = forward * 700;
-		self->velocity[2] = 250;
+		self->velocity[_Z] = 250;
 	} else {
 		self->velocity = forward * 250;
-		self->velocity[2] = 400;
+		self->velocity[_Z] = 400;
 	}
 
 	self->groundEntity = nullptr;
@@ -911,14 +911,14 @@ void gekk_jump_takeoff2(gentity_t *self) {
 
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
-	self->s.origin[Z] = self->enemy->s.origin[Z];
+	self->s.origin[_Z] = self->enemy->s.origin[_Z];
 
 	if (gekk_check_jump(self)) {
 		self->velocity = forward * 300;
-		self->velocity[2] = 250;
+		self->velocity[_Z] = 250;
 	} else {
 		self->velocity = forward * 150;
-		self->velocity[2] = 300;
+		self->velocity[_Z] = 300;
 	}
 
 	self->groundEntity = nullptr;

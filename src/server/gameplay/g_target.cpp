@@ -1390,7 +1390,7 @@ static THINK(target_camera_dummy_think) (gentity_t* self) -> void {
 	// bit of a hack, but this will let the dummy
 	// move like a player
 	self->client = self->owner->client;
-	xySpeed = sqrtf(self->velocity[0] * self->velocity[0] + self->velocity[1] * self->velocity[1]);
+	xySpeed = sqrtf(self->velocity[_X] * self->velocity[_X] + self->velocity[_Y] * self->velocity[_Y]);
 	PlayerSetFrame(self);
 	self->client = nullptr;
 

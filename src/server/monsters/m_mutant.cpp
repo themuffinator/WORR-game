@@ -298,9 +298,9 @@ static void mutant_jump_takeoff(gentity_t *self) {
 
 	gi.sound(self, CHAN_VOICE, sound_sight, 1, ATTN_NORM, 0);
 	AngleVectors(self->s.angles, forward, nullptr, nullptr);
-	self->s.origin[Z] += 1;
+	self->s.origin[_Z] += 1;
 	self->velocity = forward * 425;
-	self->velocity[2] = 160;
+	self->velocity[_Z] = 160;
 	self->groundEntity = nullptr;
 	self->monsterInfo.aiFlags |= AI_DUCKED;
 	self->monsterInfo.attackFinished = level.time + 3_sec;
@@ -366,8 +366,8 @@ static bool mutant_check_jump(gentity_t *self) {
 	if (self->absMin[2] + 125 < self->enemy->absMin[2])
 		return false;
 
-	v[0] = self->s.origin[X] - self->enemy->s.origin[X];
-	v[1] = self->s.origin[Y] - self->enemy->s.origin[Y];
+	v[0] = self->s.origin[_X] - self->enemy->s.origin[_X];
+	v[1] = self->s.origin[_Y] - self->enemy->s.origin[_Y];
 	v[2] = 0;
 	distance = v.length();
 

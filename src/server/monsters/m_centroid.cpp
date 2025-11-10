@@ -210,9 +210,9 @@ static void centroid_jump_straightup(gentity_t* self) {
 		return;
 
 	if (self->groundEntity) {
-		self->velocity[0] += crandom() * 5.0f;
-		self->velocity[1] += crandom() * 5.0f;
-		self->velocity[2] += -400.0f * self->gravityVector[2];
+		self->velocity[_X] += crandom() * 5.0f;
+		self->velocity[_Y] += crandom() * 5.0f;
+		self->velocity[_Z] += -400.0f * self->gravityVector[2];
 	}
 }
 
