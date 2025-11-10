@@ -5,6 +5,7 @@
 // Harvester logic.
 
 #include "../g_local.hpp"
+#include "g_teamplay.hpp"
 #include "g_headhunters.hpp"
 #include "g_harvester.hpp"
 
@@ -40,15 +41,6 @@ namespace CTF {
 
 	inline constexpr GameTime AUTO_FLAG_RETURN_TIMEOUT = 30_sec;
 }
-
-enum class FlagStatus : int {
-	Invalid = -1,
-	AtBase = 0,
-	Taken = 1,
-	TakenRed = 2,
-	TakenBlue = 3,
-	Dropped = 4
-};
 
 struct TeamGame {
 	GameTime lastFlagCaptureTime = 0_sec;
@@ -307,7 +299,7 @@ namespace {
 		// TODO: hook up take VO
 	}
 
-	void Team_CaptureFlagSound(Team) {
+	void Team_CaptureFlagSound_Internal(Team) {
 		// TODO: hook up capture VO
 	}
 
@@ -331,7 +323,7 @@ namespace {
 		// trap_SetConfigstring(CS_FLAGSTATUS, flagStatusStr);
 	}
 
-	bool SetFlagStatus(Team team, FlagStatus status) {
+	bool SetFlagStatus_Internal(Team team, FlagStatus status) {
 		bool modified = false;
 
 		switch (team) {
@@ -364,10 +356,10 @@ namespace {
 		return modified;
 	}
 
-	void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
+	void AwardFlagCapture_Internal(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
 		BroadcastCaptureMessage(scoringTeam, scorer, pickupTime);
 		ApplyCaptureRewards(flagEntity, scorer, scoringTeam);
-		Team_CaptureFlagSound(scoringTeam);
+		Team_CaptureFlagSound_Internal(scoringTeam);
 	}
 
 	void GiveFlagToPlayer(gentity_t* flagEntity, gentity_t* player, Team flagTeam, item_id_t flagItem) {
@@ -390,11 +382,11 @@ namespace {
 			default:
 				break;
 			}
-			SetFlagStatus(Team::Free, status);
+			SetFlagStatus_Internal(Team::Free, status);
 			flagEntity->fteam = player->client->sess.team;
 		}
 		else {
-			SetFlagStatus(flagTeam, FlagStatus::Taken);
+			SetFlagStatus_Internal(flagTeam, FlagStatus::Taken);
 		}
 
 		Team_TakeFlagSound(player->client->sess.team);
@@ -422,6 +414,18 @@ namespace {
 		}
 	}
 
+}
+
+void Team_CaptureFlagSound(Team team) {
+	Team_CaptureFlagSound_Internal(team);
+}
+
+bool SetFlagStatus(Team team, FlagStatus status) {
+	return SetFlagStatus_Internal(team, status);
+}
+
+void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
+	AwardFlagCapture_Internal(flagEntity, scorer, scoringTeam, pickupTime);
 }
 
 static void Team_ReturnFlag(Team team) {
