@@ -19,6 +19,7 @@ namespace HeadHunters {
 	gentity_t* SpawnGroundHead(const Vector3& origin, const Vector3& velocity, Team team);
 	void HandlePickup(gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf);
 	void RegisterReceptacle(gentity_t* ent);
+	void ApplyReceptacleVisuals(gentity_t* ent, Team team);
 	void OnReceptacleTouch(gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf);
 	void SP_headhunters_receptacle(gentity_t* ent);
 }

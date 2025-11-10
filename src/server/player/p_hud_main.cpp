@@ -1427,21 +1427,28 @@ void SetStats(gentity_t* ent) {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
 		gi.configString(CONFIG_MATCH_STATE2, freezeStatus.c_str());
 	}
-	else if (Game::Is(GameType::Harvester) && ent->client->ps.generic1 > 0) {
-		const std::string harvesterStatus = fmt::format("Skulls: {}", ent->client->ps.generic1);
-		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
-		gi.configString(CONFIG_MATCH_STATE2, harvesterStatus.c_str());
-	}
-	else if (Game::Is(GameType::HeadHunters)) {
-		if (ClientIsPlaying(ent->client) && ent->client->ps.generic1 > 0) {
-			const std::string headhunterStatus = fmt::format("Heads Held: {}", ent->client->ps.generic1);
+	else if (Game::Is(GameType::Harvester)) {
+		const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
+		if (carried > 0) {
+			const auto harvesterStatus = G_Fmt("Skulls: {}", carried);
 			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
-			gi.configString(CONFIG_MATCH_STATE2, headhunterStatus.c_str());
+			gi.configString(CONFIG_MATCH_STATE2, harvesterStatus.data());
 		}
 		else {
 			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 		}
 	}
+	else if (Game::Is(GameType::HeadHunters)) {
+		const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
+		if (ClientIsPlaying(ent->client) && carried > 0) {
+			const auto headhunterStatus = G_Fmt("Heads Held: {}", carried);
+			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = CONFIG_MATCH_STATE2;
+			gi.configString(CONFIG_MATCH_STATE2, headhunterStatus.data());
+		}
+		else {
+			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
+		}
+}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 	}
