@@ -2446,6 +2446,7 @@ struct LevelLocals {
 			gentity_t* beam = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
+			int32_t spawnCount = 0;
 		};
 
 		std::array<Point, MAX_POINTS> points{};
