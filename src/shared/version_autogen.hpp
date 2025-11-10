@@ -7,4 +7,3 @@
 #define WORR_VERSION_PRERELEASE "alpha"
 #define WORR_BUILD_METADATA "20240315"
 #define WORR_SEMVER "0.1.0-alpha+20240315"
-

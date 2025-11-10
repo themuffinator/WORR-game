@@ -227,7 +227,7 @@ namespace {
 			const Vector3 offset = AttachmentOffset(forward, right, up, i);
 			const Vector3 position = base + offset;
 			head->s.origin = position;
-			head->s.old_origin = position;
+			head->s.oldOrigin = position;
 			head->s.angles = { 0.0f, client->vAngle.y, 0.0f };
 			head->velocity = player->velocity;
 			head->aVelocity = { 0.0f, 0.0f, 0.0f };
@@ -428,7 +428,7 @@ void RunFrame() {
 		if (entry.ent && entry.ent->inUse) {
 			const Vector3 position = SpikeSlotPosition(entry.base, slot);
 			entry.ent->s.origin = position;
-			entry.ent->s.old_origin = position;
+			entry.ent->s.oldOrigin = position;
 			entry.ent->s.angles = entry.base->s.angles;
 			gi.linkEntity(entry.ent);
 		}
@@ -468,7 +468,7 @@ gentity_t* SpawnGroundHead(const Vector3& origin, const Vector3& velocity, Team 
 	head->s.origin = origin;
 	head->velocity = velocity;
 	head->aVelocity = { 0.0f, 0.0f, 90.0f };
-	head->s.old_origin = origin;
+	head->s.oldOrigin = origin;
 	auto& state = State();
 	if (!state.headModelIndex)
 		state.headModelIndex = gi.modelIndex(kHeadModelPath);

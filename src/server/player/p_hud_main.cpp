@@ -57,13 +57,13 @@ void MoveClientToIntermission(gentity_t* ent) {
 	ent->client->ps.screenBlend[3] = 0;
 	ent->client->ps.rdFlags = RDF_NONE;
 
-        // Reset powerup timers
-        ent->client->ResetPowerups();
+	// Reset powerup timers
+	ent->client->ResetPowerups();
 
 	// Reset grenade and timers
 	ent->client->grenadeBlewUp = false;
 	ent->client->grenadeTime = 0_ms;
-        ent->client->PowerupTimer(PowerupTimer::IrGoggles) = 0_ms;
+	ent->client->PowerupTimer(PowerupTimer::IrGoggles) = 0_ms;
 	ent->client->nukeTime = 0_ms;
 	ent->client->trackerPainTime = 0_ms;
 
@@ -449,19 +449,19 @@ struct powerup_info_t {
 };
 
 static const std::array<powerup_info_t, 13> powerup_table{ {
-        { IT_POWERUP_QUAD, PowerupTimerForItem(IT_POWERUP_QUAD), std::nullopt },
-        { IT_POWERUP_DOUBLE, PowerupTimerForItem(IT_POWERUP_DOUBLE), std::nullopt },
-        { IT_POWERUP_BATTLESUIT, PowerupTimerForItem(IT_POWERUP_BATTLESUIT), std::nullopt },
-        { IT_POWERUP_HASTE, PowerupTimerForItem(IT_POWERUP_HASTE), std::nullopt },
-        { IT_POWERUP_INVISIBILITY, PowerupTimerForItem(IT_POWERUP_INVISIBILITY), std::nullopt },
-        { IT_POWERUP_REGEN, PowerupTimerForItem(IT_POWERUP_REGEN), std::nullopt },
-        { IT_POWERUP_ENVIROSUIT, PowerupTimerForItem(IT_POWERUP_ENVIROSUIT), std::nullopt },
-        { IT_POWERUP_EMPATHY_SHIELD, PowerupTimerForItem(IT_POWERUP_EMPATHY_SHIELD), std::nullopt },
-        { IT_POWERUP_ANTIGRAV_BELT, PowerupTimerForItem(IT_POWERUP_ANTIGRAV_BELT), std::nullopt },
-        { IT_POWERUP_SPAWN_PROTECTION, PowerupTimerForItem(IT_POWERUP_SPAWN_PROTECTION), std::nullopt },
-        { IT_POWERUP_REBREATHER, PowerupTimerForItem(IT_POWERUP_REBREATHER), std::nullopt },
-        { IT_IR_GOGGLES, PowerupTimerForItem(IT_IR_GOGGLES), std::nullopt },
-        { IT_POWERUP_SILENCER, std::nullopt, PowerupCountForItem(IT_POWERUP_SILENCER) }
+		{ IT_POWERUP_QUAD, PowerupTimerForItem(IT_POWERUP_QUAD), std::nullopt },
+		{ IT_POWERUP_DOUBLE, PowerupTimerForItem(IT_POWERUP_DOUBLE), std::nullopt },
+		{ IT_POWERUP_BATTLESUIT, PowerupTimerForItem(IT_POWERUP_BATTLESUIT), std::nullopt },
+		{ IT_POWERUP_HASTE, PowerupTimerForItem(IT_POWERUP_HASTE), std::nullopt },
+		{ IT_POWERUP_INVISIBILITY, PowerupTimerForItem(IT_POWERUP_INVISIBILITY), std::nullopt },
+		{ IT_POWERUP_REGEN, PowerupTimerForItem(IT_POWERUP_REGEN), std::nullopt },
+		{ IT_POWERUP_ENVIROSUIT, PowerupTimerForItem(IT_POWERUP_ENVIROSUIT), std::nullopt },
+		{ IT_POWERUP_EMPATHY_SHIELD, PowerupTimerForItem(IT_POWERUP_EMPATHY_SHIELD), std::nullopt },
+		{ IT_POWERUP_ANTIGRAV_BELT, PowerupTimerForItem(IT_POWERUP_ANTIGRAV_BELT), std::nullopt },
+		{ IT_POWERUP_SPAWN_PROTECTION, PowerupTimerForItem(IT_POWERUP_SPAWN_PROTECTION), std::nullopt },
+		{ IT_POWERUP_REBREATHER, PowerupTimerForItem(IT_POWERUP_REBREATHER), std::nullopt },
+		{ IT_IR_GOGGLES, PowerupTimerForItem(IT_IR_GOGGLES), std::nullopt },
+		{ IT_POWERUP_SILENCER, std::nullopt, PowerupCountForItem(IT_POWERUP_SILENCER) }
 } };
 
 /*
@@ -495,7 +495,7 @@ static void SetCrosshairIDView(gentity_t* ent) {
 		if (!ClientIsPlaying(tr.ent->client) || tr.ent->client->eliminated)
 			return;
 
-            if (tr.ent->client->PowerupTimer(PowerupTimer::Invisibility) > level.time)
+		if (tr.ent->client->PowerupTimer(PowerupTimer::Invisibility) > level.time)
 			return;
 
 		ent->client->ps.stats[STAT_CROSSHAIR_ID_VIEW] = (tr.ent - g_entities);
@@ -1011,45 +1011,45 @@ static void SetPowerupStats(gentity_t* ent) {
 	}
 
 	// Otherwise, scan for the most relevant active powerup from powerup_table
-        const powerup_info_t* best = nullptr;
+	const powerup_info_t* best = nullptr;
 
-        for (const auto& powerup : powerup_table) {
-                const GameTime* timer = powerup.timer ? &client.PowerupTimer(*powerup.timer) : nullptr;
-                const uint32_t* count = powerup.count ? &client.PowerupCount(*powerup.count) : nullptr;
+	for (const auto& powerup : powerup_table) {
+		const GameTime* timer = powerup.timer ? &client.PowerupTimer(*powerup.timer) : nullptr;
+		const uint32_t* count = powerup.count ? &client.PowerupCount(*powerup.count) : nullptr;
 
-                if (timer && *timer <= level.time)
-                        continue;
-                if (count && *count == 0)
-                        continue;
+		if (timer && *timer <= level.time)
+			continue;
+		if (count && *count == 0)
+			continue;
 
-                if (!best) {
-                        best = &powerup;
-                        continue;
-                }
+		if (!best) {
+			best = &powerup;
+			continue;
+		}
 
-                const GameTime* bestTimer = best->timer ? &client.PowerupTimer(*best->timer) : nullptr;
+		const GameTime* bestTimer = best->timer ? &client.PowerupTimer(*best->timer) : nullptr;
 
-                if (timer && bestTimer && *timer < *bestTimer) {
-                        best = &powerup;
-                }
-                else if (count && !bestTimer) {
-                        best = &powerup;
-                }
-        }
+		if (timer && bestTimer && *timer < *bestTimer) {
+			best = &powerup;
+		}
+		else if (count && !bestTimer) {
+			best = &powerup;
+		}
+	}
 
-        if (best) {
-                int16_t value = 0;
+	if (best) {
+		int16_t value = 0;
 
-                if (best->count) {
-                        value = static_cast<int16_t>(client.PowerupCount(*best->count));
-                }
-                else if (best->timer) {
-                        value = static_cast<int16_t>(std::ceil((client.PowerupTimer(*best->timer) - level.time).seconds()));
-                }
+		if (best->count) {
+			value = static_cast<int16_t>(client.PowerupCount(*best->count));
+		}
+		else if (best->timer) {
+			value = static_cast<int16_t>(std::ceil((client.PowerupTimer(*best->timer) - level.time).seconds()));
+		}
 
-                stats[STAT_POWERUP_ICON] = gi.imageIndex(GetItemByIndex(best->item)->icon);
-                stats[STAT_POWERUP_TIME] = value;
-        }
+		stats[STAT_POWERUP_ICON] = gi.imageIndex(GetItemByIndex(best->item)->icon);
+		stats[STAT_POWERUP_TIME] = value;
+	}
 }
 
 /*

@@ -64,12 +64,12 @@ struct TeamGame {
 
 TeamGame teamGame{};
 
-gentity_t *neutralObelisk = nullptr;
+gentity_t* neutralObelisk = nullptr;
 
 namespace {
 
 	template <typename Fn>
-	void ForEachClient(Fn &&fn) {
+	void ForEachClient(Fn&& fn) {
 		for (auto entity : active_clients()) {
 			if (!entity || !entity->client) {
 				continue;
@@ -86,7 +86,7 @@ namespace {
 		return team == Team::Red || team == Team::Blue;
 	}
 
-	[[nodiscard]] const char *TeamFlagClassName(Team team) {
+	[[nodiscard]] const char* TeamFlagClassName(Team team) {
 		switch (team) {
 		case Team::Red:
 			return ITEM_CTF_FLAG_RED;
@@ -126,43 +126,44 @@ namespace {
 	}
 
 	template <typename Flags>
-	[[nodiscard]] bool HasSpawnFlagImpl(const Flags &flags, int flag) {
-		if constexpr (requires(const Flags &f) { f.has(flag); }) {
+	[[nodiscard]] bool HasSpawnFlagImpl(const Flags& flags, SpawnFlags flag) {
+		if constexpr (requires(const Flags & f) { f.has(flag); }) {
 			return flags.has(flag);
-		} else {
+		}
+		else {
 			return (flags & flag) != 0;
 		}
 	}
 
-	[[nodiscard]] bool HasSpawnFlag(const gentity_t *ent, int flag) {
+	[[nodiscard]] bool HasSpawnFlag(const gentity_t* ent, SpawnFlags flag) {
 		if (!ent) {
 			return false;
 		}
 		return HasSpawnFlagImpl(ent->spawnFlags, flag);
 	}
 
-	[[nodiscard]] bool IsDroppedFlag(const gentity_t *ent) {
+	[[nodiscard]] bool IsDroppedFlag(const gentity_t* ent) {
 		return HasSpawnFlag(ent, SPAWNFLAG_ITEM_DROPPED);
 	}
 
-	[[nodiscard]] bool IsDroppedByPlayer(const gentity_t *ent) {
+	[[nodiscard]] bool IsDroppedByPlayer(const gentity_t* ent) {
 		return HasSpawnFlag(ent, SPAWNFLAG_ITEM_DROPPED_PLAYER);
 	}
 
-	[[nodiscard]] const char *TeamNameOrNeutral(Team team) {
+	[[nodiscard]] const char* TeamNameOrNeutral(Team team) {
 		return team == Team::Free ? "NEUTRAL" : Teams_TeamName(team);
 	}
 
 	void ResetCarrierHurtTimers(Team team) {
-		ForEachClient([team](gentity_t *entity) {
+		ForEachClient([team](gentity_t* entity) {
 			if (entity->client->sess.team == team) {
 				entity->client->resp.ctf_lasthurtcarrier = 0_ms;
 			}
-		});
+			});
 	}
 
-	void AwardAssistBonuses(gentity_t *scorer) {
-		ForEachClient([scorer](gentity_t *teammate) {
+	void AwardAssistBonuses(gentity_t* scorer) {
+		ForEachClient([scorer](gentity_t* teammate) {
 			if (teammate->client->sess.team != scorer->client->sess.team) {
 				teammate->client->resp.ctf_lasthurtcarrier = -5_sec;
 				return;
@@ -187,10 +188,10 @@ namespace {
 				G_AdjustPlayerScore(teammate->client, CTF::FRAG_CARRIER_ASSIST_BONUS, false, 0);
 				PushAward(teammate, PlayerMedal::Assist);
 			}
-		});
+			});
 	}
 
-	void ApplyCaptureRewards(gentity_t *flagEntity, gentity_t *scorer, Team scoringTeam) {
+	void ApplyCaptureRewards(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam) {
 		if (!flagEntity || !scorer || !scorer->client) {
 			return;
 		}
@@ -207,7 +208,7 @@ namespace {
 		AwardAssistBonuses(scorer);
 	}
 
-	void BroadcastCaptureMessage(Team scoringTeam, gentity_t *scorer, GameTime pickupTime) {
+	void BroadcastCaptureMessage(Team scoringTeam, gentity_t* scorer, GameTime pickupTime) {
 		if (!scorer || !scorer->client) {
 			return;
 		}
@@ -219,7 +220,8 @@ namespace {
 				Teams_TeamName(scoringTeam),
 				scorer->client->sess.netName,
 				TimeString((level.time - pickupTime).milliseconds(), true, false));
-		} else {
+		}
+		else {
 			gi.LocBroadcast_Print(
 				PRINT_HIGH,
 				"{} TEAM CAPTURED the flag! (captured by {})\n",
@@ -228,13 +230,13 @@ namespace {
 		}
 	}
 
-	[[nodiscard]] std::optional<gentity_t *> FindTeamFlag(Team team) {
-		const char *className = TeamFlagClassName(team);
+	[[nodiscard]] std::optional<gentity_t*> FindTeamFlag(Team team) {
+		const char* className = TeamFlagClassName(team);
 		if (!className) {
 			return std::nullopt;
 		}
 
-		gentity_t *flag = nullptr;
+		gentity_t* flag = nullptr;
 		while ((flag = G_FindByString<&gentity_t::className>(flag, className)) != nullptr) {
 			if (!IsDroppedFlag(flag)) {
 				return flag;
@@ -244,17 +246,17 @@ namespace {
 		return std::nullopt;
 	}
 
-	[[nodiscard]] gentity_t *FindFlagCarrier(item_id_t flagItem) {
-		gentity_t *carrier = nullptr;
-		ForEachClient([&carrier, flagItem](gentity_t *entity) {
+	[[nodiscard]] gentity_t* FindFlagCarrier(item_id_t flagItem) {
+		gentity_t* carrier = nullptr;
+		ForEachClient([&carrier, flagItem](gentity_t* entity) {
 			if (!carrier && entity->client->pers.inventory[flagItem]) {
 				carrier = entity;
 			}
-		});
+			});
 		return carrier;
 	}
 
-	void AwardBaseDefense(gentity_t *attacker) {
+	void AwardBaseDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
 		}
@@ -262,14 +264,14 @@ namespace {
 		PushAward(attacker, PlayerMedal::Defence);
 	}
 
-	void AwardCarrierDefense(gentity_t *attacker) {
+	void AwardCarrierDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
 		}
 		G_AdjustPlayerScore(attacker->client, CTF::CARRIER_PROTECT_BONUS, false, 0);
 	}
 
-	void AwardCarrierDangerDefense(gentity_t *attacker) {
+	void AwardCarrierDangerDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
 		}
@@ -311,13 +313,14 @@ namespace {
 		std::string flagStatusStr;
 		flagStatusStr.reserve(3);
 
-		static constexpr std::array<char, 5> ctfFlagStatusRemap{'0', '1', '*', '*', '2'};
-		static constexpr std::array<char, 5> oneFlagStatusRemap{'0', '1', '2', '3', '4'};
+		static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
+		static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
 
 		if (Game::Is(GameType::CaptureTheFlag)) {
 			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus)));
 			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus)));
-		} else {
+		}
+		else {
 			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus)));
 			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus)));
 			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.neutralFlagStatus)));
@@ -359,13 +362,13 @@ namespace {
 		return modified;
 	}
 
-	void AwardFlagCapture(gentity_t *flagEntity, gentity_t *scorer, Team scoringTeam, GameTime pickupTime) {
+	void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
 		BroadcastCaptureMessage(scoringTeam, scorer, pickupTime);
 		ApplyCaptureRewards(flagEntity, scorer, scoringTeam);
 		Team_CaptureFlagSound(scoringTeam);
 	}
 
-	void GiveFlagToPlayer(gentity_t *flagEntity, gentity_t *player, Team flagTeam, item_id_t flagItem) {
+	void GiveFlagToPlayer(gentity_t* flagEntity, gentity_t* player, Team flagTeam, item_id_t flagItem) {
 		if (!flagEntity || !player || !player->client) {
 			return;
 		}
@@ -387,14 +390,15 @@ namespace {
 			}
 			SetFlagStatus(Team::Free, status);
 			flagEntity->fteam = player->client->sess.team;
-		} else {
+		}
+		else {
 			SetFlagStatus(flagTeam, FlagStatus::Taken);
 		}
 
 		Team_TakeFlagSound(player->client->sess.team);
 	}
 
-	void RemoveDroppedFlag(gentity_t *ent) {
+	void RemoveDroppedFlag(gentity_t* ent) {
 		if (!ent) {
 			return;
 		}
@@ -402,7 +406,7 @@ namespace {
 		FreeEntity(ent);
 	}
 
-	void RespawnFlag(gentity_t *ent, Team team) {
+	void RespawnFlag(gentity_t* ent, Team team) {
 		if (!ent) {
 			return;
 		}
@@ -427,12 +431,13 @@ void Team_ReturnFlag(Team team) {
 
 	if (team == Team::Free) {
 		gi.Broadcast_Print(PRINT_HIGH, "The flag has returned!\n");
-	} else {
+	}
+	else {
 		gi.LocBroadcast_Print(PRINT_HIGH, "The {} flag has returned!\n", Teams_TeamName(team));
 	}
 }
 
-void Team_CheckDroppedItem(gentity_t *dropped) {
+void Team_CheckDroppedItem(gentity_t* dropped) {
 	if (!SupportsCTF() || !dropped || !dropped->item) {
 		return;
 	}
@@ -452,7 +457,7 @@ void Team_CheckDroppedItem(gentity_t *dropped) {
 	}
 }
 
-void CTF_ScoreBonuses(gentity_t *targ, gentity_t *, gentity_t *attacker) {
+void CTF_ScoreBonuses(gentity_t* targ, gentity_t*, gentity_t* attacker) {
 	if (!SupportsCTF()) {
 		return;
 	}
@@ -473,8 +478,8 @@ void CTF_ScoreBonuses(gentity_t *targ, gentity_t *, gentity_t *attacker) {
 		attacker->client->resp.ctf_lastfraggedcarrier = level.time;
 		G_AdjustPlayerScore(attacker->client, CTF::FRAG_CARRIER_BONUS, false, 0);
 		gi.LocBroadcast_Print(PRINT_MEDIUM, "{} fragged {}'s flag carrier!",
-							  attacker->client->sess.netName,
-							  Teams_TeamName(targetTeam));
+			attacker->client->sess.netName,
+			Teams_TeamName(targetTeam));
 		ResetCarrierHurtTimers(otherTeam);
 		return;
 	}
@@ -495,14 +500,14 @@ void CTF_ScoreBonuses(gentity_t *targ, gentity_t *, gentity_t *attacker) {
 	Vector3 v2 = attacker->s.origin - (*flagEntity)->s.origin;
 
 	if ((v1.length() < CTF::TARGET_PROTECT_RADIUS ||
-		 v2.length() < CTF::TARGET_PROTECT_RADIUS ||
-		 LocCanSee(*flagEntity, targ) || LocCanSee(*flagEntity, attacker)) &&
+		v2.length() < CTF::TARGET_PROTECT_RADIUS ||
+		LocCanSee(*flagEntity, targ) || LocCanSee(*flagEntity, attacker)) &&
 		attacker->client->sess.team != targetTeam) {
 		AwardBaseDefense(attacker);
 		return;
 	}
 
-	gentity_t *carrier = FindFlagCarrier(flagItem);
+	gentity_t* carrier = FindFlagCarrier(flagItem);
 	if (!carrier || carrier == attacker) {
 		return;
 	}
@@ -517,7 +522,7 @@ void CTF_ScoreBonuses(gentity_t *targ, gentity_t *, gentity_t *attacker) {
 	}
 }
 
-void CTF_CheckHurtCarrier(gentity_t *targ, gentity_t *attacker) {
+void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker) {
 	if (!SupportsCTF()) {
 		return;
 	}
@@ -537,18 +542,19 @@ bool CTF_ResetTeamFlag(Team team) {
 		return false;
 	}
 
-	const char *className = TeamFlagClassName(team);
+	const char* className = TeamFlagClassName(team);
 	if (!className) {
 		return false;
 	}
 
 	bool found = false;
-	gentity_t *ent = nullptr;
+	gentity_t* ent = nullptr;
 	while ((ent = G_FindByString<&gentity_t::className>(ent, className)) != nullptr) {
 		if (IsDroppedFlag(ent) || IsDroppedByPlayer(ent)) {
 			RemoveDroppedFlag(ent);
 			found = true;
-		} else {
+		}
+		else {
 			RespawnFlag(ent, team);
 			found = true;
 		}
@@ -573,7 +579,7 @@ void CTF_ResetFlags() {
 	}
 }
 
-bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
+bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	if (!SupportsCTF() || !ent || !ent->item || !other || !other->client) {
 		return false;
 	}
@@ -613,7 +619,7 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 		}
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_returned_flag",
-							  other->client->sess.netName, Teams_TeamName(flagTeam));
+			other->client->sess.netName, Teams_TeamName(flagTeam));
 		G_AdjustPlayerScore(other->client, CTF::RECOVERY_BONUS, false, 0);
 		other->client->resp.ctf_lastreturnedflag = level.time;
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
@@ -647,7 +653,7 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 	}
 
 	gi.LocBroadcast_Print(PRINT_HIGH, "$g_got_flag",
-						  other->client->sess.netName, TeamNameOrNeutral(flagTeam));
+		other->client->sess.netName, TeamNameOrNeutral(flagTeam));
 	G_AdjustPlayerScore(other->client, CTF::FLAG_BONUS, false, 0);
 	if (!level.strike_flag_touch) {
 		G_AdjustTeamScore(playerTeam, 1);
@@ -658,7 +664,7 @@ bool CTF_PickupFlag(gentity_t *ent, gentity_t *other) {
 	return true;
 }
 
-static TOUCH(CTF_DropFlagTouch)(gentity_t *ent, gentity_t *other, const trace_t &tr, bool otherTouchingSelf)->void {
+static TOUCH(CTF_DropFlagTouch)(gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf)->void {
 	if (!SupportsCTF()) {
 		return;
 	}
@@ -670,7 +676,7 @@ static TOUCH(CTF_DropFlagTouch)(gentity_t *ent, gentity_t *other, const trace_t 
 	Touch_Item(ent, other, tr, otherTouchingSelf);
 }
 
-static THINK(CTF_DropFlagThink)(gentity_t *ent)->void {
+static THINK(CTF_DropFlagThink)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent || !ent->item) {
 		return;
 	}
@@ -694,31 +700,33 @@ static THINK(CTF_DropFlagThink)(gentity_t *ent)->void {
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 }
 
-void CTF_DeadDropFlag(gentity_t *self) {
+void CTF_DeadDropFlag(gentity_t* self) {
 	if (!SupportsCTF() || !self || !self->client) {
 		return;
 	}
 
-	gentity_t *dropped = nullptr;
+	gentity_t* dropped = nullptr;
 	Team droppedTeam = Team::None;
 
 	if (self->client->pers.inventory[IT_FLAG_RED]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_RED));
 		self->client->pers.inventory[IT_FLAG_RED] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
-							  self->client->sess.netName, Teams_TeamName(Team::Red));
+			self->client->sess.netName, Teams_TeamName(Team::Red));
 		droppedTeam = Team::Red;
-	} else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
+	}
+	else if (self->client->pers.inventory[IT_FLAG_BLUE]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_BLUE));
 		self->client->pers.inventory[IT_FLAG_BLUE] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
-							  self->client->sess.netName, Teams_TeamName(Team::Blue));
+			self->client->sess.netName, Teams_TeamName(Team::Blue));
 		droppedTeam = Team::Blue;
-	} else if (self->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+	}
+	else if (self->client->pers.inventory[IT_FLAG_NEUTRAL]) {
 		dropped = Drop_Item(self, GetItemByIndex(IT_FLAG_NEUTRAL));
 		self->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
-							  self->client->sess.netName, Teams_TeamName(Team::Free));
+			self->client->sess.netName, Teams_TeamName(Team::Free));
 		droppedTeam = Team::Free;
 	}
 
@@ -748,7 +756,7 @@ void CTF_DeadDropFlag(gentity_t *self) {
 	}
 }
 
-void CTF_DropFlag(gentity_t *ent, Item *) {
+void CTF_DropFlag(gentity_t* ent, Item*) {
 	if (!SupportsCTF() || !ent || !ent->client) {
 		return;
 	}
@@ -757,12 +765,13 @@ void CTF_DropFlag(gentity_t *ent, Item *) {
 
 	if (brandom()) {
 		gi.LocClient_Print(ent, PRINT_HIGH, "$g_lusers_drop_flags");
-	} else {
+	}
+	else {
 		gi.LocClient_Print(ent, PRINT_HIGH, "$g_winners_drop_flags");
 	}
 }
 
-static THINK(CTF_FlagThink)(gentity_t *ent)->void {
+static THINK(CTF_FlagThink)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent) {
 		return;
 	}
@@ -773,17 +782,18 @@ static THINK(CTF_FlagThink)(gentity_t *ent)->void {
 	ent->nextThink = level.time + 10_hz;
 }
 
-THINK(CTF_FlagSetup)(gentity_t *ent)->void {
+THINK(CTF_FlagSetup)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent) {
 		return;
 	}
 
-	ent->mins = {-15, -15, -15};
-	ent->maxs = {15, 15, 15};
+	ent->mins = { -15, -15, -15 };
+	ent->maxs = { 15, 15, 15 };
 
 	if (ent->model) {
 		gi.setModel(ent, ent->model);
-	} else if (ent->item) {
+	}
+	else if (ent->item) {
 		gi.setModel(ent, ent->item->worldModel);
 	}
 
@@ -792,7 +802,7 @@ THINK(CTF_FlagSetup)(gentity_t *ent)->void {
 	ent->touch = Touch_Item;
 	ent->s.frame = 173;
 
-	const Vector3 dest = ent->s.origin + Vector3{0, 0, -128};
+	const Vector3 dest = ent->s.origin + Vector3{ 0, 0, -128 };
 	const trace_t tr = gi.trace(ent->s.origin, ent->mins, ent->maxs, dest, ent, MASK_SOLID);
 	if (tr.startSolid) {
 		gi.Com_PrintFmt("{}: {} startSolid\n", __FUNCTION__, *ent);
@@ -807,7 +817,7 @@ THINK(CTF_FlagSetup)(gentity_t *ent)->void {
 	ent->think = CTF_FlagThink;
 }
 
-void CTF_ClientEffects(gentity_t *player) {
+void CTF_ClientEffects(gentity_t* player) {
 	if (!SupportsCTF() || !player || !player->client) {
 		return;
 	}
@@ -826,7 +836,8 @@ void CTF_ClientEffects(gentity_t *player) {
 				player->s.effects |= EF_FLAG_RED | EF_FLAG_BLUE;
 				break;
 			}
-		} else {
+		}
+		else {
 			if (player->client->pers.inventory[IT_FLAG_RED]) {
 				player->s.effects |= EF_FLAG_RED;
 			}
@@ -848,11 +859,14 @@ void CTF_ClientEffects(gentity_t *player) {
 			player->s.modelIndex3 = 0;
 			break;
 		}
-	} else if (player->client->pers.inventory[IT_FLAG_RED]) {
+	}
+	else if (player->client->pers.inventory[IT_FLAG_RED]) {
 		player->s.modelIndex3 = mi_ctf_red_flag;
-	} else if (player->client->pers.inventory[IT_FLAG_BLUE]) {
+	}
+	else if (player->client->pers.inventory[IT_FLAG_BLUE]) {
 		player->s.modelIndex3 = mi_ctf_blue_flag;
-	} else {
+	}
+	else {
 		player->s.modelIndex3 = 0;
 	}
 }
@@ -861,28 +875,28 @@ namespace {
 	constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
 	constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
 	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
-	constexpr Vector3 HARVESTER_BASE_MINS{-24.0f, -24.0f, 0.0f};
-	constexpr Vector3 HARVESTER_BASE_MAXS{24.0f, 24.0f, 64.0f};
+	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
+	constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
 
 	[[nodiscard]] bool Harvester_Active() {
 		return Game::Is(GameType::Harvester);
 	}
 
-	[[nodiscard]] Vector3 Harvester_GeneratorOrigin(const Vector3 &fallback) {
+	[[nodiscard]] Vector3 Harvester_GeneratorOrigin(const Vector3& fallback) {
 		if (level.harvester.generator && level.harvester.generator->inUse) {
 			return level.harvester.generator->s.origin;
 		}
 		return fallback;
 	}
 
-	THINK(Harvester_SkullExpire)(gentity_t *ent)->void {
+	THINK(Harvester_SkullExpire)(gentity_t* ent)->void {
 		if (!ent) {
 			return;
 		}
 		FreeEntity(ent);
 	}
 
-	void Harvester_PositionOnFloor(gentity_t *ent) {
+	void Harvester_PositionOnFloor(gentity_t* ent) {
 		if (!ent) {
 			return;
 		}
@@ -898,7 +912,7 @@ namespace {
 		}
 	}
 
-	TOUCH(Harvester_BaseTouch)(gentity_t *ent, gentity_t *other, const trace_t &, bool)->void {
+	TOUCH(Harvester_BaseTouch)(gentity_t* ent, gentity_t* other, const trace_t&, bool)->void {
 		const bool harvester = Harvester_Active();
 		const bool oneFlag = Game::Is(GameType::OneFlag);
 
@@ -931,9 +945,9 @@ namespace {
 			level.ctf_last_capture_team = baseTeam;
 
 			const std::string msg = G_Fmt("{} delivered {} skull{}.",
-										  other->client->sess.netName,
-										  tokens,
-										  tokens == 1 ? "" : "s");
+				other->client->sess.netName,
+				tokens,
+				tokens == 1 ? "" : "s");
 			gi.LocBroadcast_Print(PRINT_HIGH, msg.c_str());
 			Team_CaptureFlagSound(baseTeam);
 			return;
@@ -957,17 +971,17 @@ namespace {
 		CTF_ResetTeamFlag(Team::Free);
 	}
 
-	gentity_t *Harvester_SpawnSkull(Team team, const Vector3 &fallback) {
+	gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback) {
 		if (!Harvester_Active()) {
 			return nullptr;
 		}
 
-		Item *item = GetItemByIndex(IT_HARVESTER_SKULL);
+		Item* item = GetItemByIndex(IT_HARVESTER_SKULL);
 		if (!item) {
 			return nullptr;
 		}
 
-		gentity_t *skull = Spawn();
+		gentity_t* skull = Spawn();
 		if (!skull) {
 			return nullptr;
 		}
@@ -978,12 +992,13 @@ namespace {
 		skull->s.renderFX |= RF_GLOW | RF_NO_LOD | RF_IR_VISIBLE;
 		if (team == Team::Red) {
 			skull->s.renderFX |= RF_SHELL_RED;
-		} else if (team == Team::Blue) {
+		}
+		else if (team == Team::Blue) {
 			skull->s.renderFX |= RF_SHELL_BLUE;
 		}
 
-		skull->mins = {-12.0f, -12.0f, -12.0f};
-		skull->maxs = {12.0f, 12.0f, 12.0f};
+		skull->mins = { -12.0f, -12.0f, -12.0f };
+		skull->maxs = { 12.0f, 12.0f, 12.0f };
 		skull->solid = SOLID_TRIGGER;
 		skull->clipMask = MASK_SOLID;
 		skull->moveType = MoveType::Toss;
@@ -1002,14 +1017,14 @@ namespace {
 		skull->velocity = {
 			crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
 			crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
-			HARVESTER_SKULL_VERTICAL_TOSS + frandom() * HARVESTER_SKULL_VERTICAL_TOSS};
+			HARVESTER_SKULL_VERTICAL_TOSS + frandom() * HARVESTER_SKULL_VERTICAL_TOSS };
 
 		gi.setModel(skull, item->worldModel);
 		gi.linkEntity(skull);
 		return skull;
 	}
 
-	void Harvester_DropSkulls(Team team, int count, const Vector3 &fallback) {
+	void Harvester_DropSkulls(Team team, int count, const Vector3& fallback) {
 		if (!IsPrimaryTeam(team) || count <= 0) {
 			return;
 		}
@@ -1019,7 +1034,7 @@ namespace {
 		}
 	}
 
-	void Harvester_RegisterBase(gentity_t *ent, Team team) {
+	void Harvester_RegisterBase(gentity_t* ent, Team team) {
 		if (!ent) {
 			return;
 		}
@@ -1040,7 +1055,7 @@ namespace {
 		}
 	}
 
-	void Harvester_RegisterGenerator(gentity_t *ent) {
+	void Harvester_RegisterGenerator(gentity_t* ent) {
 		if (!ent) {
 			return;
 		}
@@ -1057,7 +1072,7 @@ namespace {
 		level.harvester.generator = ent;
 	}
 
-	bool Harvester_TakeSkull(gentity_t *ent, gentity_t *other) {
+	bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other) {
 		if (!ent || !other || !other->client) {
 			return false;
 		}
@@ -1090,7 +1105,7 @@ void Harvester_Reset() {
 	level.harvester.bases.fill(nullptr);
 
 	for (size_t i = 0; i < globals.numEntities; ++i) {
-		gentity_t *ent = &g_entities[i];
+		gentity_t* ent = &g_entities[i];
 		if (!ent->inUse) {
 			continue;
 		}
@@ -1099,12 +1114,12 @@ void Harvester_Reset() {
 		}
 	}
 
-	ForEachClient([](gentity_t *entity) {
+	ForEachClient([](gentity_t* entity) {
 		entity->client->ps.generic1 = 0;
-	});
+		});
 }
 
-void Harvester_HandlePlayerDeath(gentity_t *victim) {
+void Harvester_HandlePlayerDeath(gentity_t* victim) {
 	if (!Harvester_Active() || !victim || !victim->client) {
 		return;
 	}
@@ -1124,7 +1139,7 @@ void Harvester_HandlePlayerDeath(gentity_t *victim) {
 	victim->client->ps.generic1 = 0;
 }
 
-void Harvester_HandlePlayerDisconnect(gentity_t *ent) {
+void Harvester_HandlePlayerDisconnect(gentity_t* ent) {
 	if (!Harvester_Active() || !ent || !ent->client) {
 		return;
 	}
@@ -1144,7 +1159,7 @@ void Harvester_HandlePlayerDisconnect(gentity_t *ent) {
 	Harvester_DropSkulls(team, 1, ent->s.origin);
 }
 
-void Harvester_HandleTeamChange(gentity_t *ent) {
+void Harvester_HandleTeamChange(gentity_t* ent) {
 	if (!Harvester_Active() || !ent || !ent->client) {
 		return;
 	}
@@ -1163,7 +1178,7 @@ void Harvester_HandleTeamChange(gentity_t *ent) {
 	ent->client->ps.generic1 = 0;
 }
 
-void Harvester_OnClientSpawn(gentity_t *ent) {
+void Harvester_OnClientSpawn(gentity_t* ent) {
 	if (!ent || !ent->client) {
 		return;
 	}
@@ -1171,7 +1186,7 @@ void Harvester_OnClientSpawn(gentity_t *ent) {
 	ent->client->ps.generic1 = 0;
 }
 
-void SP_team_redobelisk(gentity_t *ent) {
+void SP_team_redobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Red);
 		if (Game::Is(GameType::OneFlag)) {
@@ -1183,7 +1198,7 @@ void SP_team_redobelisk(gentity_t *ent) {
 	FreeEntity(ent);
 }
 
-void SP_team_blueobelisk(gentity_t *ent) {
+void SP_team_blueobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Blue);
 		if (Game::Is(GameType::OneFlag)) {
@@ -1195,7 +1210,7 @@ void SP_team_blueobelisk(gentity_t *ent) {
 	FreeEntity(ent);
 }
 
-void SP_team_neutralobelisk(gentity_t *ent) {
+void SP_team_neutralobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester)) {
 		Harvester_RegisterGenerator(ent);
 		return;
@@ -1209,7 +1224,7 @@ void SP_team_neutralobelisk(gentity_t *ent) {
 	FreeEntity(ent);
 }
 
-bool Harvester_PickupSkull(gentity_t *ent, gentity_t *other) {
+bool Harvester_PickupSkull(gentity_t* ent, gentity_t* other) {
 	if (!Harvester_Active()) {
 		return false;
 	}
@@ -1217,7 +1232,7 @@ bool Harvester_PickupSkull(gentity_t *ent, gentity_t *other) {
 	return Harvester_TakeSkull(ent, other);
 }
 
-void Harvester_FlagSetup(gentity_t *ent) {
+void Harvester_FlagSetup(gentity_t* ent) {
 	if (!ent) {
 		return;
 	}
@@ -1231,4 +1246,4 @@ void Harvester_FlagSetup(gentity_t *ent) {
 	ent->touch = nullptr;
 	gi.linkEntity(ent);
 }
-}
+
