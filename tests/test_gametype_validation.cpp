@@ -1,10 +1,12 @@
+#include <cmath>
+
+namespace std {
+using ::sinf;
+}
+
 #include "server/g_local.hpp"
 
 #include <cassert>
-
-namespace std {
-	using ::sinf;
-}
 
 GameLocals game{};
 LevelLocals level{};
@@ -36,6 +38,16 @@ int main() {
 	g_gametype_storage.integer = 256;
 	assert(!Game::IsCurrentTypeValid());
 	assert(Game::NormalizeTypeValue(g_gametype_storage.integer) == GameType::FreeForAll);
+	
+	// Mid-match assignments should coerce back to FreeForAll before additional logic runs.
+	g_gametype_storage.integer = static_cast<int>(GameType::TeamDeathmatch);
+	assert(Game::NormalizeTypeValue(g_gametype_storage.integer) == GameType::TeamDeathmatch);
+	
+	g_gametype_storage.integer = 4096;
+	const GameType mid_match = Game::NormalizeTypeValue(g_gametype_storage.integer);
+	assert(mid_match == GameType::FreeForAll);
+	g_gametype_storage.integer = static_cast<int>(mid_match);
+	assert(g_gametype_storage.integer == static_cast<int>(GameType::FreeForAll));
 
 	return 0;
 }

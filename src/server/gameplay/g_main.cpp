@@ -394,13 +394,11 @@ static void GT_Changes() {
 	GameType gt = GameType::None;
 
 	if (gt_g_gametype != g_gametype->modifiedCount) {
-		int raw = g_gametype->integer;
-		if (raw > static_cast<int>(GT_LAST))
-			raw = static_cast<int>(GT_LAST);
-		else if (raw < static_cast<int>(GT_FIRST))
-			raw = static_cast<int>(GT_FIRST);
+		const GameType normalized = Game::NormalizeTypeValue(g_gametype->integer);
+		if (static_cast<int>(normalized) != g_gametype->integer)
+			gi.cvarForceSet("g_gametype", G_Fmt("{}", static_cast<int>(normalized)).data());
 
-		gt = static_cast<GameType>(raw);
+		gt = normalized;
 
 		if (gt != gt_check) {
 			switch (gt) {
