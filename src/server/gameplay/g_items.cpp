@@ -2636,7 +2636,7 @@ Drop_Backpack
 void Drop_Backpack(gentity_t* ent) {
 	if (!deathmatch->integer)
 
-		if (notRS(RS_Q1))
+		if (notRS(Quake1))
 			return;
 
 	if (Game::Is(GameType::Horde))
@@ -2936,7 +2936,7 @@ void G_CheckAutoSwitch(gentity_t* ent, Item* item, bool is_new) {
 						return;
 					break;
 				case IT_WEAPON_SHOTGUN:
-					if (RS(RS_Q1)) {
+					if (RS(Quake1)) {
 						// always switch from sg in Q1
 					}
 					else {
@@ -2946,7 +2946,7 @@ void G_CheckAutoSwitch(gentity_t* ent, Item* item, bool is_new) {
 					}
 					break;
 				case IT_WEAPON_MACHINEGUN:
-					if (RS(RS_Q3A)) {
+					if (RS(Quake3Arena)) {
 						// always switch from mg in Q3A
 					}
 					else {
@@ -3007,10 +3007,10 @@ bool Pickup_Ammo(gentity_t* ent, gentity_t* other) {
 	else {
 		if (ent->item->id == IT_AMMO_SLUGS) {
 			switch (game.ruleset) {
-			case Ruleset::RS_Q1:
+			case Ruleset::Quake1:
 				count = 1;
 				break;
-			case Ruleset::RS_Q3A:
+			case Ruleset::Quake3Arena:
 				count = 10;
 				break;
 			default:
@@ -3102,12 +3102,12 @@ bool Pickup_Health(gentity_t* ent, gentity_t* other) {
 			return false;
 
 	int count = ent->count ? ent->count : ent->item->quantity;
-	int max = RS(RS_Q3A) ? other->maxHealth * 2 : 250;
+	int max = RS(Quake3Arena) ? other->maxHealth * 2 : 250;
 
 	if (deathmatch->integer && other->health >= max && count > 25)
 		return false;
 
-	if (RS(RS_Q3A) && !ent->count) {
+	if (RS(Quake3Arena) && !ent->count) {
 		switch (ent->item->id) {
 		case IT_HEALTH_SMALL:
 			count = 5;
@@ -3130,12 +3130,12 @@ bool Pickup_Health(gentity_t* ent, gentity_t* other) {
 		if (other->health > other->maxHealth)
 			other->health = other->maxHealth;
 
-	if (RS(RS_Q3A) && (health_flags & HEALTH_IGNORE_MAX)) {
+	if (RS(Quake3Arena) && (health_flags & HEALTH_IGNORE_MAX)) {
 		if (other->health > other->maxHealth * 2)
 			other->health = other->maxHealth * 2;
 	}
 
-	if (!(RS(RS_Q3A)) && (ent->item->tag & HEALTH_TIMED) && !Tech_HasRegeneration(other)) {
+	if (!(RS(Quake3Arena)) && (ent->item->tag & HEALTH_TIMED) && !Tech_HasRegeneration(other)) {
 		if (!deathmatch->integer) {
 			// mega health doesn't need to be special in SP
 			// since it never respawns.
@@ -3157,7 +3157,7 @@ bool Pickup_Health(gentity_t* ent, gentity_t* other) {
 		}
 	}
 	else {
-		SetRespawn(ent, RS(RS_Q3A) ? 60_sec : 30_sec);
+		SetRespawn(ent, RS(Quake3Arena) ? 60_sec : 30_sec);
 	}
 
 	return true;
@@ -3170,7 +3170,7 @@ item_id_t ArmorIndex(gentity_t* ent) {
 		return ent->monsterInfo.armorType;
 
 	if (ent->client) {
-		if (RS(RS_Q3A)) {
+		if (RS(Quake3Arena)) {
 			if (ent->client->pers.inventory[IT_ARMOR_JACKET] > 0 ||
 				ent->client->pers.inventory[IT_ARMOR_COMBAT] > 0 ||
 				ent->client->pers.inventory[IT_ARMOR_BODY] > 0)
@@ -3224,7 +3224,7 @@ bool Pickup_Armor(gentity_t* ent, gentity_t* other) {
 	// [Paril-KEX] for g_start_items
 	int32_t base_count = ent->count ? ent->count : newinfo ? newinfo->base_count : 0;
 
-	if (RS(RS_Q3A))
+	if (RS(Quake3Arena))
 		return Pickup_Armor_Q3(ent, other, base_count);
 
 	old_armor_index = ArmorIndex(other);
@@ -3273,7 +3273,7 @@ bool Pickup_Armor(gentity_t* ent, gentity_t* other) {
 			if (newcount > oldinfo->max_count)
 				newcount = oldinfo->max_count;
 
-			if (RS(RS_Q1) && other->client->pers.inventory[old_armor_index] * oldinfo->normal_protection >= newcount * newinfo->normal_protection)
+			if (RS(Quake1) && other->client->pers.inventory[old_armor_index] * oldinfo->normal_protection >= newcount * newinfo->normal_protection)
 				return false;
 
 			// if we're already maxed out then we don't need the new armor
@@ -3963,7 +3963,7 @@ bool CheckItemEnabled(Item* item) {
 	}
 
 	// Q1 ruleset: disable the pack
-	if (item->id == IT_PACK && RS(RS_Q1))
+	if (item->id == IT_PACK && RS(Quake1))
 		return false;
 
 	// Inhibit groups: choose first matching class (preserves original else-if precedence)

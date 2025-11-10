@@ -949,7 +949,7 @@ static void ClientSetEvent(gentity_t* ent) {
 	if (ent->s.event)
 		return;
 
-	if (RS(RS_Q1))
+	if (RS(Quake1))
 		return;
 
 	if (ent->client->ps.pmove.pmFlags & PMF_ON_LADDER) {

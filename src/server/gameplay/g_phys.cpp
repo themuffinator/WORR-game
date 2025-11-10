@@ -914,7 +914,7 @@ static void G_Physics_Step(gentity_t* ent) {
 
 		if (ent->groundEntity)
 			if (!wasonground)
-				if (hitsound && !(RS(RS_Q1)))
+				if (hitsound && !(RS(Quake1)))
 					ent->s.event = EV_FOOTSTEP;
 	}
 

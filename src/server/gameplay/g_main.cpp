@@ -367,7 +367,7 @@ static void CheckRuleset() {
 	if (game.ruleset && check_ruleset == g_ruleset->modifiedCount)
 		return;
 
-	game.ruleset = Ruleset(std::clamp(g_ruleset->integer, static_cast<int>(Ruleset::RS_NONE) + 1, static_cast<int>(Ruleset::RS_NUM_RULESETS) - 1));
+	game.ruleset = Ruleset(std::clamp(g_ruleset->integer, static_cast<int>(Ruleset::None) + 1, static_cast<int>(Ruleset::RS_NUM_RULESETS) - 1));
 
 	if ((int)game.ruleset != g_ruleset->integer)
 		gi.cvarForceSet("g_ruleset", G_Fmt("{}", (int)game.ruleset).data());
@@ -786,7 +786,7 @@ static void InitGame() {
 	g_marathon_timelimit = gi.cvar("g_marathon_timelimit", "0", CVAR_NOFLAGS);
 	g_marathon_scorelimit = gi.cvar("g_marathon_scorelimit", "0", CVAR_NOFLAGS);
 
-	g_ruleset = gi.cvar("g_ruleset", std::to_string(RS_Q2).c_str(), CVAR_SERVERINFO);
+	g_ruleset = gi.cvar("g_ruleset", std::to_string(Ruleset::Quake2).c_str(), CVAR_SERVERINFO);
 
 	password = gi.cvar("password", "", CVAR_USERINFO);
 	spectatorPassword = gi.cvar("spectator_password", "", CVAR_USERINFO);
@@ -1031,74 +1031,6 @@ void FindIntermissionPoint(void) {
 	}
 
 	level.intermission.spot = true;
-}
-
-/*
-==================
-SetIntermissionPoint
-==================
-*/
-void SetIntermissionPoint(void) {
-	if (level.intermission.set)
-		return;
-
-	gentity_t* ent = nullptr;
-
-	// Prefer intermission points
-	std::vector<gentity_t*> candidates;
-	for (auto* e = G_FindByString<&gentity_t::className>(nullptr, "info_player_intermission");
-		e != nullptr;
-		e = G_FindByString<&gentity_t::className>(e, "info_player_intermission")) {
-		if (level.arenaActive == 0 || e->arena == level.arenaActive)
-			candidates.push_back(e);
-	}
-
-	if (!candidates.empty()) {
-		ent = candidates[irandom(candidates.size())];
-	}
-	else {
-		// fallback: start or dm spawn (filtered if arena > 0)
-		ent = G_FindByString<&gentity_t::className>(nullptr, "info_player_start");
-		while (ent && level.arenaActive > 0 && ent->arena != level.arenaActive)
-			ent = G_FindByString<&gentity_t::className>(ent, "info_player_start");
-
-		if (!ent) {
-			ent = G_FindByString<&gentity_t::className>(nullptr, "info_player_deathmatch");
-			while (ent && level.arenaActive > 0 && ent->arena != level.arenaActive)
-				ent = G_FindByString<&gentity_t::className>(ent, "info_player_deathmatch");
-		}
-	}
-
-	if (!ent)
-		return;
-
-	level.intermission.origin = ent->s.origin;
-	level.spawnSpots[SPAWN_SPOT_INTERMISSION] = ent;
-
-	// map-specific hacks
-	if (!Q_strncasecmp(level.mapName.data(), "campgrounds", 11)) {
-		const gvec3_t v = { -320, -96, 503 };
-		if (ent->s.origin == v)
-			level.intermission.angles[PITCH] = -30;
-	}
-	else if (!Q_strncasecmp(level.mapName.data(), "rdm10", 5)) {
-		const gvec3_t v = { -1256, -1672, -136 };
-		if (ent->s.origin == v)
-			level.intermission.angles = { 15, 135, 0 };
-	}
-	else {
-		// look at target if present
-		if (ent->target) {
-			gentity_t* target = PickTarget(ent->target);
-			if (target) {
-				Vector3 dir = (target->s.origin - level.intermission.origin).normalized();
-				AngleVectors(dir);
-				level.intermission.angles = dir;
-			}
-		}
-		if (level.intermission.angles == gvec3_t{ 0, 0, 0 })
-			level.intermission.angles = ent->s.angles;
-	}
 }
 
 //===================================================================

@@ -99,14 +99,14 @@ const std::array<std::string, static_cast<uint8_t>(Weapon::Total)> weaponAbbrevi
 class Ruleset {
 public:
 	enum Value : uint8_t {
-		RS_NONE,
-		RS_Q1,
-		RS_Q2,
-		RS_Q3A,
+		None,
+		Quake1,
+		Quake2,
+		Quake3Arena,
 		RS_NUM_RULESETS
 	};
 
-	constexpr Ruleset() : value(RS_NONE) {}
+	constexpr Ruleset() : value(None) {}
 	constexpr Ruleset(Value v) : value(v) {}
 	constexpr explicit Ruleset(uint8_t v) : value(static_cast<Value>(v)) {}
 	constexpr explicit Ruleset(size_t v) : value(static_cast<Value>(v)) {}
@@ -132,10 +132,10 @@ private:
 
 constexpr size_t NUM_ALIASES = 4;
 constexpr std::array<std::array<std::string_view, NUM_ALIASES>, Ruleset::Count()> rs_short_name = { {
-	{ "", "", "", "" },        // RS_NONE
-	{ "q1", "quake1", "qw", "slipgate" }, // RS_Q1
-	{ "q2", "quake2", "q2re", "stroyent" }, // RS_Q2
-	{ "q3", "quake3", "q3a", "vadrigar" },  // RS_Q3A
+	{ "", "", "", "" },        // None
+	{ "q1", "quake1", "qw", "slipgate" }, // Quake1
+	{ "q2", "quake2", "q2re", "stroyent" }, // Quake2
+	{ "q3", "quake3", "q3a", "vadrigar" },  // Quake3Arena
 } };
 
 constexpr std::array<const char*, Ruleset::Count()> rs_long_name = {
@@ -1240,28 +1240,28 @@ using ArmorArray = std::array<gitem_armor_t, NUM_ARMOR_TYPES>;
 using ArmorStatsArray = std::array<ArmorArray, NUM_RULESETS>;
 
 constexpr ArmorStatsArray armor_stats = { {
-		// RS_NONE
+		// None
 		ArmorArray{{
 			{ 3,   999, 0.30f, 0.00f },
 			{ 25,   50, 0.30f, 0.00f },
 			{ 50,  100, 0.60f, 0.30f },
 			{ 100, 200, 0.80f, 0.60f }
 		}},
-	// RS_Q1
+	// Quake1
 	ArmorArray{{
 		{ 1,   999, 0.30f, 0.30f },
 		{ 100, 100, 0.30f, 0.30f },
 		{ 150, 150, 0.60f, 0.60f },
 		{ 200, 200, 0.80f, 0.80f }
 	}},
-	// RS_Q2
+	// Quake2
 	ArmorArray{{
 		{ 3,   999, 0.30f, 0.00f },
 		{ 25,   50, 0.30f, 0.00f },
 		{ 50,  100, 0.60f, 0.30f },
 		{ 100, 200, 0.80f, 0.60f }
 	}},
-	// RS_Q3A
+	// Quake3Arena
 	ArmorArray{{
 		{ 5,   200, 0.66f, 0.66f },
 		{ 25,  200, 0.66f, 0.66f },
@@ -1281,7 +1281,7 @@ struct gitem_ammo_t {
 const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_cast<int>(AmmoID::_Total)] = {
 	// {max_normal, max_bandolier, max_ammopack}, ammo_pu,  weapon_pu, bando_pu, ammopack_pu}
 
-	//RS_NONE
+	//None
 	{
 		/*AmmoID::Bullets*/		{ {0, 0, 0}, 0, 0, 0, 0 },
 		/*AmmoID::Shells*/		{ {0, 0, 0}, 0, 0, 0, 0 },
@@ -1295,8 +1295,8 @@ const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_
 		/*AmmoID::TeslaMines*/	{ {0, 0, 0}, 0, 0, 0, 0 },
 		/*AmmoID::Rounds*/		{ {0, 0, 0}, 0, 0, 0, 0 },
 		/*AmmoID::ProxMines*/	{ {0, 0, 0}, 0, 0, 0, 0 }
-			},
-	//RS_Q1
+	},
+	//Quake1
 	{
 		/*AmmoID::Bullets*/		{ {200, 250, 300}, 50, 50, 50, 30 },
 		/*AmmoID::Shells*/		{ {50, 100, 150}, 10, 10, 20, 10 },
@@ -1310,8 +1310,8 @@ const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_
 		/*AmmoID::TeslaMines*/	{ {3, 3, 12}, 1, 1, 0, 0 },
 		/*AmmoID::Rounds*/		{ {6, 6, 12}, 3, 3, 0, 3 },
 		/*AmmoID::ProxMines*/	{ {10, 10, 20}, 5, 5, 0, 5 }
-			},
-	//RS_Q2
+	},
+	//Quake2
 	{
 		/*AmmoID::Bullets*/		{ {200, 250, 300}, 50, 50, 50, 30 },
 		/*AmmoID::Shells*/		{ {50, 100, 150}, 10, 10, 20, 10 },
@@ -1325,8 +1325,8 @@ const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_
 		/*AmmoID::TeslaMines*/	{ {3, 3, 12}, 1, 1, 0, 0 },
 		/*AmmoID::Rounds*/		{ {6, 6, 12}, 3, 3, 0, 3 },
 		/*AmmoID::ProxMines*/	{ {10, 10, 20}, 5, 5, 0, 5 }
-			},
-	//RS_Q3A
+	},
+	//Quake3Arena
 	{
 		/*AmmoID::Bullets*/		{ {200, 250, 300}, 50, 50, 50, 30 },
 		/*AmmoID::Shells*/		{ {50, 100, 150}, 10, 10, 20, 10 },
@@ -1340,7 +1340,7 @@ const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_
 		/*AmmoID::TeslaMines*/	{ {3, 3, 12}, 1, 1, 0, 0 },
 		/*AmmoID::Rounds*/		{ {6, 6, 12}, 3, 3, 0, 3 },
 		/*AmmoID::ProxMines*/	{ {10, 10, 20}, 5, 5, 0, 5 }
-			},
+	},
 };
 
 // entity->moveType values
@@ -1654,22 +1654,22 @@ enum class HighValueItems : uint8_t {
 };
 
 static constexpr std::array<const char*, static_cast<size_t>(HighValueItems::Total)> HighValueItemNames = {
-		"",
-		"MegaHealth",
-		"BodyArmor",
-		"CombatArmor",
-		"PowerShield",
-		"PowerScreen",
-		"Adrenaline",
-		"QuadDamage",
-		"DoubleDamage",
-		"Invisibility",
-		"Haste",
-		"Regeneration",
-		"BattleSuit",
-		"EmpathyShield",
-		"AmmoPack",
-		"Bandolier"
+	"",
+	"MegaHealth",
+	"BodyArmor",
+	"CombatArmor",
+	"PowerShield",
+	"PowerScreen",
+	"Adrenaline",
+	"QuadDamage",
+	"DoubleDamage",
+	"Invisibility",
+	"Haste",
+	"Regeneration",
+	"BattleSuit",
+	"EmpathyShield",
+	"AmmoPack",
+	"Bandolier"
 };
 
 static_assert(HighValueItemNames.size() == static_cast<size_t>(HighValueItems::Total),
@@ -1935,7 +1935,7 @@ struct MapEntry {
 	int				minPlayers = -1;               // Optional
 	int				maxPlayers = -1;               // Optional
 	GameType		suggestedGametype = GameType::None;    // Optional
-	Ruleset		suggestedRuleset = Ruleset::RS_NONE; // Optional
+	Ruleset		suggestedRuleset = Ruleset::None; // Optional
 	int				scoreLimit = -1;               // Optional
 	int				timeLimit = -1;                // Optional
 	bool			isPopular = false;           // Optional
@@ -2061,7 +2061,7 @@ struct GameLocals {
 	std::string motd = "";				// message of the day
 	int			motdModificationCount = 0;	// used to detect changes
 
-	Ruleset	ruleset = Ruleset::RS_NONE;		// current ruleset
+	Ruleset	ruleset = Ruleset::None;		// current ruleset
 
 	int8_t item_inhibit_pu;
 	int8_t item_inhibit_pa;
@@ -2443,27 +2443,27 @@ struct LevelLocals {
 		static constexpr size_t MAX_RECEPTACLES = 32;
 		static constexpr size_t MAX_SPIKES = 80;
 		static constexpr size_t MAX_LOOSE_HEADS = 64;
-		
+
 		struct Receptacle {
-		gentity_t* ent = nullptr;
-		Team team = Team::None;
+			gentity_t* ent = nullptr;
+			Team team = Team::None;
 		};
-		
+
 		struct SpikeEntry {
-		gentity_t* ent = nullptr;
-		gentity_t* base = nullptr;
-		GameTime nextActivation = 0_ms;
+			gentity_t* ent = nullptr;
+			gentity_t* base = nullptr;
+			GameTime nextActivation = 0_ms;
 		};
-		
+
 		std::array<Receptacle, MAX_RECEPTACLES> receptacles{};
 		size_t receptacleCount = 0;
-		
+
 		std::array<SpikeEntry, MAX_SPIKES> spikeQueue{};
 		size_t spikeCount = 0;
-		
+
 		std::array<gentity_t*, MAX_LOOSE_HEADS> looseHeads{};
 		size_t looseHeadCount = 0;
-		
+
 		int headModelIndex = 0;
 	} headHunters{};
 
@@ -3648,6 +3648,8 @@ bool Vote_Menu_Active(gentity_t* ent);
 void  ED_CallSpawn(gentity_t* ent);
 char* ED_NewString(const char* string);
 void GT_PrecacheAssets();
+void SpawnEntities(const char* mapname, const char* entities, const char* spawnPoint);
+bool G_ResetWorldEntitiesFromSavedString();
 
 //
 // g_player_spawn.cpp
@@ -4203,10 +4205,6 @@ void		G_Impact(gentity_t* e1, const trace_t& trace);
 //
 void SaveClientData();
 void FetchClientEntData(gentity_t* ent);
-void Match_Start();
-void Match_Reset();
-void Round_End();
-void SetIntermissionPoint(void);
 void FindIntermissionPoint(void);
 void G_RevertVote(gclient_t* client);
 void Vote_Passed();
@@ -4218,13 +4216,18 @@ void QueueIntermission(const char* msg, bool boo, bool reset);
 void Match_Reset();
 gentity_t* CreateTargetChangeLevel(std::string_view map);
 bool InAMatch();
-void SpawnEntities(const char* mapname, const char* entities, const char* spawnPoint);
-bool G_ResetWorldEntitiesFromSavedString();
 void LoadMotd();
 void LoadAdminList();
 void LoadBanList();
 bool AppendIDToFile(const char* filename, const std::string& id);
 bool RemoveIDFromFile(const char* filename, const std::string& id);
+
+//
+// match_state.cpp
+//
+void Match_Start();
+void Match_Reset();
+void Round_End();
 
 //
 // g_map_manager.cpp

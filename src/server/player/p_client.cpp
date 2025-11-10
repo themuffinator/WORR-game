@@ -939,7 +939,7 @@ static void TossClientItems(gentity_t* self) {
 	gentity_t* drop;
 	bool	quad, doubled, haste, protection, invis, regen;
 
-	if (RS(RS_Q1)) {
+	if (RS(Quake1)) {
 		Drop_Backpack(self);
 	}
 	else {
@@ -954,9 +954,9 @@ static void TossClientItems(gentity_t* self) {
 				wp = nullptr;
 			else if (!wp->drop)
 				wp = nullptr;
-			else if (RS(RS_Q3A) && wp->id == IT_WEAPON_MACHINEGUN)
+			else if (RS(Quake3Arena) && wp->id == IT_WEAPON_MACHINEGUN)
 				wp = nullptr;
-			else if (RS(RS_Q1) && wp->id == IT_WEAPON_SHOTGUN)
+			else if (RS(Quake1) && wp->id == IT_WEAPON_SHOTGUN)
 				wp = nullptr;
 
 			if (wp) {
@@ -2033,10 +2033,10 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 		client->pers.health = client->pers.maxHealth = health;
 
 		if (deathmatch->integer) {
-			int bonus = RS(RS_Q3A) ? 25 : g_starting_health_bonus->integer;
+			int bonus = RS(Quake3Arena) ? 25 : g_starting_health_bonus->integer;
 			if (!(Game::Has(GameFlags::Arena)) && bonus > 0) {
 				client->pers.health += bonus;
-				if (!(RS(RS_Q3A))) {
+				if (!(RS(Quake3Arena))) {
 					client->pers.healthBonus = bonus;
 				}
 				ent->client->timeResidual = level.time;
@@ -2091,20 +2091,20 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 				client->pers.ammoMax[AmmoID::TeslaMines] = 5;
 				*/
 				client->pers.inventory[IT_AMMO_SHELLS] = 50;
-				if (!(RS(RS_Q1))) {
+				if (!(RS(Quake1))) {
 					client->pers.inventory[IT_AMMO_BULLETS] = 200;
 					client->pers.inventory[IT_AMMO_GRENADES] = 50;
 				}
 				client->pers.inventory[IT_AMMO_ROCKETS] = 50;
 				client->pers.inventory[IT_AMMO_CELLS] = 200;
-				if (!(RS(RS_Q1)))
+				if (!(RS(Quake1)))
 					client->pers.inventory[IT_AMMO_SLUGS] = 50;
 
 				client->pers.inventory[IT_WEAPON_BLASTER] = 1;
 				client->pers.inventory[IT_WEAPON_SHOTGUN] = 1;
-				if (!(RS(RS_Q3A)))
+				if (!(RS(Quake3Arena)))
 					client->pers.inventory[IT_WEAPON_SSHOTGUN] = 1;
-				if (!(RS(RS_Q1))) {
+				if (!(RS(Quake1))) {
 					client->pers.inventory[IT_WEAPON_MACHINEGUN] = 1;
 					client->pers.inventory[IT_WEAPON_CHAINGUN] = 1;
 				}
@@ -2112,11 +2112,11 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 				client->pers.inventory[IT_WEAPON_RLAUNCHER] = 1;
 				client->pers.inventory[IT_WEAPON_HYPERBLASTER] = 1;
 				client->pers.inventory[IT_WEAPON_PLASMABEAM] = 1;
-				if (!(RS(RS_Q1)))
+				if (!(RS(Quake1)))
 					client->pers.inventory[IT_WEAPON_RAILGUN] = 1;
 			}
 			else {
-				if (RS(RS_Q3A)) {
+				if (RS(Quake3Arena)) {
 					client->pers.ammoMax.fill(200);
 					client->pers.ammoMax[static_cast<int>(AmmoID::Bullets)] = 200;
 					client->pers.ammoMax[static_cast<int>(AmmoID::Shells)] = 200;
@@ -2131,7 +2131,7 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 					client->pers.inventory[IT_WEAPON_MACHINEGUN] = 1;
 					client->pers.inventory[IT_AMMO_BULLETS] = (Game::Is(GameType::TeamDeathmatch) || Game::Is(GameType::Domination)) ? 50 : 100;
 				}
-				else if (RS(RS_Q1)) {
+				else if (RS(Quake1)) {
 					client->pers.ammoMax.fill(200);
 					client->pers.ammoMax[static_cast<int>(AmmoID::Bullets)] = 200;
 					client->pers.ammoMax[static_cast<int>(AmmoID::Shells)] = 200;
@@ -3946,8 +3946,8 @@ static void P_FallingDamage(gentity_t* ent, const PMove& pm) {
 		ent->client->feedback.fallValue = 40;
 	ent->client->feedback.fallTime = level.time + FALL_TIME();
 
-	int med_min = RS(RS_Q3A) ? 40 : 30;
-	int far_min = RS(RS_Q3A) ? 61 : 55;
+	int med_min = RS(Quake3Arena) ? 40 : 30;
+	int far_min = RS(Quake3Arena) ? 61 : 55;
 
 	if (delta > med_min) {
 		if (delta >= far_min)
@@ -3956,7 +3956,7 @@ static void P_FallingDamage(gentity_t* ent, const PMove& pm) {
 			ent->s.event = EV_FALL_MEDIUM;
 		if (g_fallingDamage->integer && !Game::Has(GameFlags::Arena)) {
 			ent->pain_debounce_time = level.time + FRAME_TIME_S; // no normal pain sound
-			if (RS(RS_Q3A))
+			if (RS(Quake3Arena))
 				damage = ent->s.event == EV_FALL_FAR ? 10 : 5;
 			else {
 				damage = (int)((delta - 30) / 3);	// 2 originally
@@ -4115,7 +4115,7 @@ static void ClientTimerActions(gentity_t* ent) {
 	if (ent->client->timeResidual > level.time)
 		return;
 
-	if (RS(RS_Q3A)) {
+	if (RS(Quake3Arena)) {
 		// count down health when over max
 		if (ent->health > ent->client->pers.maxHealth)
 			ent->health--;

@@ -683,7 +683,7 @@ void ED_CallSpawn(gentity_t* ent) {
 		ent->className = GetItemByIndex(IT_WEAPON_PLASMABEAM)->className;
 	else if (!strcmp(ent->className, "item_haste"))
 		ent->className = GetItemByIndex(IT_POWERUP_HASTE)->className;
-	else if (RS(RS_Q3A) && !strcmp(ent->className, "weapon_supershotgun"))
+	else if (RS(Quake3Arena) && !strcmp(ent->className, "weapon_supershotgun"))
 		ent->className = GetItemByIndex(IT_WEAPON_SHOTGUN)->className;
 	else if (!strcmp(ent->className, "info_player_team1"))
 		ent->className = "info_player_team_red";
@@ -694,7 +694,7 @@ void ED_CallSpawn(gentity_t* ent) {
 	else if (!strcmp(ent->className, "item_flag_team2"))
 		ent->className = ITEM_CTF_FLAG_BLUE;
 
-	if (RS(RS_Q1)) {
+	if (RS(Quake1)) {
 		if (!strcmp(ent->className, "weapon_machinegun"))
 			ent->className = GetItemByIndex(IT_WEAPON_ETF_RIFLE)->className;
 		else if (!strcmp(ent->className, "weapon_chaingun"))
@@ -1377,9 +1377,9 @@ static inline bool G_InhibitEntity(gentity_t* ent) {
 	if (ent->notfree && !Teams())
 		return true;
 
-	if (ent->notq2 && RS(RS_Q2))
+	if (ent->notq2 && RS(Quake2))
 		return true;
-	if (ent->notq3a && RS(RS_Q3A))
+	if (ent->notq3a && RS(Quake3Arena))
 		return true;
 	if (ent->notarena && (Game::Has(GameFlags::Arena)))
 		return true;
@@ -2399,7 +2399,7 @@ void SP_worldspawn(gentity_t* ent) {
 
 	if (st.ruleset && st.ruleset[0] && g_level_rulesets->integer) {
 		game.ruleset = RS_IndexFromString(st.ruleset);
-		if (game.ruleset == Ruleset::RS_NONE)
+		if (game.ruleset == Ruleset::None)
 			game.ruleset = Ruleset(std::clamp(g_ruleset->integer, 1, static_cast<int>(Ruleset::RS_NUM_RULESETS)));
 	}
 	else if ((int)game.ruleset != g_ruleset->integer)
@@ -2520,15 +2520,15 @@ void SP_worldspawn(gentity_t* ent) {
 
 		if (!g_instaGib->integer && !g_nadeFest->integer && Game::IsNot(GameType::ProBall)) {
 			switch (game.ruleset) {
-			case Ruleset::RS_Q1:
+			case Ruleset::Quake1:
 				PrecacheItem(&itemList[IT_WEAPON_CHAINFIST]);
 				PrecacheItem(&itemList[IT_WEAPON_SHOTGUN]);
 				PrecacheItem(&itemList[IT_PACK]);
 				break;
-			case Ruleset::RS_Q2:
+			case Ruleset::Quake2:
 				PrecacheItem(&itemList[IT_WEAPON_BLASTER]);
 				break;
-			case Ruleset::RS_Q3A:
+			case Ruleset::Quake3Arena:
 				PrecacheItem(&itemList[IT_WEAPON_CHAINFIST]);
 				PrecacheItem(&itemList[IT_WEAPON_MACHINEGUN]);
 				break;

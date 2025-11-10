@@ -878,7 +878,7 @@ void Damage(gentity_t* targ, gentity_t* inflictor, gentity_t* attacker, const Ve
 	}
 
 	// Q3A-style knockback cap
-	if (RS(RS_Q3A)) {
+	if (RS(Quake3Arena)) {
 		knockback = std::min(damage, 200);
 	}
 

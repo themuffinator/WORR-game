@@ -1351,7 +1351,7 @@ RS_IndexFromString
 */
 Ruleset RS_IndexFromString(const char* in) {
 	if (!in || !*in)
-		return Ruleset::RS_NONE;
+		return Ruleset::None;
 
 	std::string_view input{ in };
 
@@ -1369,7 +1369,7 @@ Ruleset RS_IndexFromString(const char* in) {
 		}
 	}
 
-	return Ruleset::RS_NONE;
+	return Ruleset::None;
 }
 
 /*
@@ -1439,7 +1439,7 @@ void CreateSpawnPad(gentity_t* ent) {
 	if (level.no_dm_spawnpads || level.arenaTotal)
 		return;
 
-	if (notRS(RS_Q2))
+	if (notRS(Quake2))
 		return;
 
 	if (level.isN64)

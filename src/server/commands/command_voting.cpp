@@ -144,7 +144,7 @@ namespace Commands {
 
 	static void Pass_Ruleset() {
 		Ruleset rs = RS_IndexFromString(level.vote.arg.c_str());
-		if (rs != Ruleset::RS_NONE) {
+		if (rs != Ruleset::None) {
 			std::string cvar_val = std::format("{}", static_cast<int>(rs));
 			gi.cvarForceSet("g_ruleset", cvar_val.c_str());
 		}
@@ -211,7 +211,7 @@ namespace Commands {
 
 	static bool Validate_Ruleset(gentity_t* ent, const CommandArgs& args) {
 		Ruleset desired_rs = RS_IndexFromString(args.getString(2).data());
-		if (desired_rs == Ruleset::RS_NONE) {
+		if (desired_rs == Ruleset::None) {
 			gi.Client_Print(ent, PRINT_HIGH, "Invalid ruleset.\n");
 			return false;
 		}

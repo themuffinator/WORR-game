@@ -433,7 +433,7 @@ void fire_blaster(gentity_t* self, const Vector3& start, const Vector3& dir, int
 	bolt->nextThink = level.time + 2_sec;
 	bolt->think = FreeEntity;
 	bolt->dmg = damage;
-	if (RS(RS_Q3A) && mod.id == ModID::HyperBlaster) {
+	if (RS(Quake3Arena) && mod.id == ModID::HyperBlaster) {
 		bolt->s.scale = 100;
 		bolt->splashRadius = 30;		//20;
 		bolt->splashDamage = 20;		//15;
@@ -1407,7 +1407,7 @@ static void fire_beams(gentity_t* self, const Vector3& start, const Vector3& aim
 	dir = VectorToAngles(aimDir);
 	AngleVectors(dir, forward, right, up);
 
-	int length = RS(RS_Q1) ? 600 : 768;
+	int length = RS(Quake1) ? 600 : 768;
 	end = start + (forward * length);
 
 	if (gi.pointContents(start) & MASK_WATER) {
@@ -1527,7 +1527,7 @@ void fire_thunderbolt(gentity_t* self, const Vector3& start, const Vector3& aimD
 	dir = VectorToAngles(aimDir);
 	AngleVectors(dir, forward, right, up);
 
-	int length = RS(RS_Q3A) ? 768 : 700;
+	int length = RS(Quake3Arena) ? 768 : 700;
 	end = start + (forward * length);
 
 	if (gi.pointContents(start) & MASK_WATER) {
