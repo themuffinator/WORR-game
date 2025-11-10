@@ -1621,10 +1621,10 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		int speed = 800;
 
 		switch (game.ruleset) {
-		case RS_Q1:
+		case Ruleset::RS_Q1:
 			speed = 1000;
 			break;
-		case RS_Q3A:
+		case Ruleset::RS_Q3A:
 			speed = 900;
 			break;
 		default:
@@ -3053,10 +3053,10 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		int kick = 15;
 
 		switch (game.ruleset) {
-		case RS_Q3A:
+		case Ruleset::RS_Q3A:
 			damage = deathmatch->integer ? 8 : 15;
 			break;
-		case RS_Q1:
+		case Ruleset::RS_Q1:
 			damage = 30;
 			break;
 		default:
@@ -3155,8 +3155,8 @@ void Client_RebuildWeaponPreferenceOrder(gclient_t & cl) {
 		int kick = 15;
 
 		switch (game.ruleset) {
-		case RS_Q3A: damage = deathmatch->integer ? 8 : 15; break;
-		case RS_Q1:  damage = 30; break;
+		case Ruleset::RS_Q3A: damage = deathmatch->integer ? 8 : 15; break;
+		case Ruleset::RS_Q1:  damage = 30; break;
 		default:     damage = deathmatch->integer ? 8 : 15; break;
 		}
 		kick = damage;

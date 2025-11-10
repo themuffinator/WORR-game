@@ -367,7 +367,7 @@ static void CheckRuleset() {
 	if (game.ruleset && check_ruleset == g_ruleset->modifiedCount)
 		return;
 
-	game.ruleset = (ruleset_t)std::clamp(g_ruleset->integer, (int)RS_NONE + 1, (int)RS_NUM_RULESETS - 1);
+	game.ruleset = Ruleset(std::clamp(g_ruleset->integer, static_cast<int>(Ruleset::RS_NONE) + 1, static_cast<int>(Ruleset::RS_NUM_RULESETS) - 1));
 
 	if ((int)game.ruleset != g_ruleset->integer)
 		gi.cvarForceSet("g_ruleset", G_Fmt("{}", (int)game.ruleset).data());

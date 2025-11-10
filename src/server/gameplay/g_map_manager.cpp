@@ -410,7 +410,7 @@ void LoadMapPool(gentity_t* ent) {
 		if (entry.isMember("min"))            map.minPlayers = entry["min"].asInt();
 		if (entry.isMember("max"))            map.maxPlayers = entry["max"].asInt();
 		if (entry.isMember("gametype"))       map.suggestedGametype = static_cast<GameType>(entry["gametype"].asInt());
-		if (entry.isMember("ruleset"))        map.suggestedRuleset = static_cast<ruleset_t>(entry["ruleset"].asInt());
+		if (entry.isMember("ruleset"))        map.suggestedRuleset = Ruleset(entry["ruleset"].asInt());
 		if (entry.isMember("scorelimit"))     map.scoreLimit = entry["scorelimit"].asInt();
 		if (entry.isMember("timeLimit"))      map.timeLimit = entry["timeLimit"].asInt();
 		if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();

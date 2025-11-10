@@ -2399,11 +2399,11 @@ void SP_worldspawn(gentity_t* ent) {
 
 	if (st.ruleset && st.ruleset[0] && g_level_rulesets->integer) {
 		game.ruleset = RS_IndexFromString(st.ruleset);
-		if (game.ruleset == ruleset_t::RS_NONE)
-			game.ruleset = (ruleset_t)std::clamp(g_ruleset->integer, 1, (int)RS_NUM_RULESETS);
+		if (game.ruleset == Ruleset::RS_NONE)
+			game.ruleset = Ruleset(std::clamp(g_ruleset->integer, 1, static_cast<int>(Ruleset::RS_NUM_RULESETS)));
 	}
 	else if ((int)game.ruleset != g_ruleset->integer)
-		game.ruleset = (ruleset_t)std::clamp(g_ruleset->integer, 1, (int)RS_NUM_RULESETS);
+		game.ruleset = Ruleset(std::clamp(g_ruleset->integer, 1, static_cast<int>(Ruleset::RS_NUM_RULESETS)));
 
 	if (deathmatch->integer) {
 		if (st.arena) {
@@ -2520,15 +2520,15 @@ void SP_worldspawn(gentity_t* ent) {
 
 		if (!g_instaGib->integer && !g_nadeFest->integer && Game::IsNot(GameType::ProBall)) {
 			switch (game.ruleset) {
-			case ruleset_t::RS_Q1:
+			case Ruleset::RS_Q1:
 				PrecacheItem(&itemList[IT_WEAPON_CHAINFIST]);
 				PrecacheItem(&itemList[IT_WEAPON_SHOTGUN]);
 				PrecacheItem(&itemList[IT_PACK]);
 				break;
-			case ruleset_t::RS_Q2:
+			case Ruleset::RS_Q2:
 				PrecacheItem(&itemList[IT_WEAPON_BLASTER]);
 				break;
-			case ruleset_t::RS_Q3A:
+			case Ruleset::RS_Q3A:
 				PrecacheItem(&itemList[IT_WEAPON_CHAINFIST]);
 				PrecacheItem(&itemList[IT_WEAPON_MACHINEGUN]);
 				break;

@@ -94,25 +94,49 @@ const std::array<std::string, static_cast<uint8_t>(Weapon::Total)> weaponAbbrevi
 };
 
 // gameplay rulesets
-enum ruleset_t : uint8_t {
-	RS_NONE,
-	RS_Q1,
-	RS_Q2,
-	RS_Q3A,
-	RS_NUM_RULESETS
+class Ruleset {
+public:
+	enum Value : uint8_t {
+		RS_NONE,
+		RS_Q1,
+		RS_Q2,
+		RS_Q3A,
+		RS_NUM_RULESETS
+	};
+
+	constexpr Ruleset() : value(RS_NONE) {}
+	constexpr Ruleset(Value v) : value(v) {}
+	constexpr explicit Ruleset(uint8_t v) : value(static_cast<Value>(v)) {}
+	constexpr explicit Ruleset(size_t v) : value(static_cast<Value>(v)) {}
+	constexpr explicit Ruleset(int v) : value(static_cast<Value>(v)) {}
+
+	static constexpr size_t Count() {
+		return static_cast<size_t>(RS_NUM_RULESETS);
+	}
+
+	constexpr Value get() const {
+		return value;
+	}
+
+	constexpr operator Value() const {
+		return value;
+	}
+
+private:
+	Value value;
 };
-#define RS( x ) game.ruleset == (x)
-#define notRS( x ) game.ruleset != (x)
+#define RS( x ) game.ruleset == Ruleset::x
+#define notRS( x ) game.ruleset != Ruleset::x
 
 constexpr size_t NUM_ALIASES = 4;
-constexpr std::array<std::array<std::string_view, NUM_ALIASES>, static_cast<size_t>(ruleset_t::RS_NUM_RULESETS)> rs_short_name = { {
+constexpr std::array<std::array<std::string_view, NUM_ALIASES>, Ruleset::Count()> rs_short_name = { {
 	{ "", "", "", "" },        // RS_NONE
 	{ "q1", "quake1", "qw", "slipgate" }, // RS_Q1
 	{ "q2", "quake2", "q2re", "stroyent" }, // RS_Q2
 	{ "q3", "quake3", "q3a", "vadrigar" },  // RS_Q3A
 } };
 
-constexpr std::array<const char*, static_cast<size_t>(ruleset_t::RS_NUM_RULESETS)> rs_long_name = {
+constexpr std::array<const char*, Ruleset::Count()> rs_long_name = {
 	"",
 	"SLIPGATE",
 	"STROYENT",
@@ -1195,7 +1219,7 @@ struct gitem_armor_t {
 	float energy_protection;
 };
 
-constexpr int NUM_RULESETS = RS_NUM_RULESETS;
+constexpr int NUM_RULESETS = static_cast<int>(Ruleset::RS_NUM_RULESETS);
 constexpr int NUM_ARMOR_TYPES = Armor::Total;
 
 using ArmorArray = std::array<gitem_armor_t, NUM_ARMOR_TYPES>;
@@ -1240,7 +1264,7 @@ struct gitem_ammo_t {
 	int32_t	ammopack_pu;
 };
 
-const gitem_ammo_t ammoStats[RS_NUM_RULESETS][static_cast<int>(AmmoID::_Total)] = {
+const gitem_ammo_t ammoStats[static_cast<int>(Ruleset::RS_NUM_RULESETS)][static_cast<int>(AmmoID::_Total)] = {
 	// {max_normal, max_bandolier, max_ammopack}, ammo_pu,  weapon_pu, bando_pu, ammopack_pu}
 
 	//RS_NONE
@@ -1897,7 +1921,7 @@ struct MapEntry {
 	int				minPlayers = -1;               // Optional
 	int				maxPlayers = -1;               // Optional
 	GameType		suggestedGametype = GameType::None;    // Optional
-	ruleset_t		suggestedRuleset = RS_NONE; // Optional
+	Ruleset		suggestedRuleset = Ruleset::RS_NONE; // Optional
 	int				scoreLimit = -1;               // Optional
 	int				timeLimit = -1;                // Optional
 	bool			isPopular = false;           // Optional
@@ -2023,7 +2047,7 @@ struct GameLocals {
 	std::string motd = "";				// message of the day
 	int			motdModificationCount = 0;	// used to detect changes
 
-	ruleset_t	ruleset = RS_NONE;		// current ruleset
+	Ruleset	ruleset = Ruleset::RS_NONE;		// current ruleset
 
 	int8_t item_inhibit_pu;
 	int8_t item_inhibit_pa;
@@ -3584,7 +3608,7 @@ bool G_LimitedLivesInCoop();
 bool G_LimitedLivesInLMS();
 int G_LimitedLivesMax();
 gentity_t* ClientEntFromString(const char* in);
-ruleset_t RS_IndexFromString(const char* in);
+Ruleset RS_IndexFromString(const char* in);
 void TeleporterVelocity(gentity_t* ent, gvec3_t angles);
 void TeleportPlayer(gentity_t* player, Vector3 origin, Vector3 angles);
 void TeleportPlayerToRandomSpawnPoint(gentity_t* ent, bool fx);

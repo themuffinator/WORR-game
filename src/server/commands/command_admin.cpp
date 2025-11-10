@@ -364,8 +364,8 @@ namespace Commands {
 			return;
 		}
 
-		ruleset_t rs = RS_IndexFromString(args.getString(1).data());
-		if (rs == RS_NONE) {
+		Ruleset rs = RS_IndexFromString(args.getString(1).data());
+		if (rs == Ruleset::RS_NONE) {
 			gi.Client_Print(ent, PRINT_HIGH, "Invalid ruleset.\n");
 			return;
 		}
