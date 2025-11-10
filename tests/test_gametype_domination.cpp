@@ -126,6 +126,10 @@ int main() {
 	assert(HasFlag(info.flags, GameFlags::Teams));
 	assert(HasFlag(info.flags, GameFlags::Frags));
 
+	const auto invalidType = static_cast<GameType>(-1);
+	const auto& fallback = Game::GetInfo(invalidType);
+	assert(fallback.type == GameType::FreeForAll);
+
 	g_gametype_storage.integer = static_cast<int>(GameType::Domination);
 	assert(Game::Has(GameFlags::Teams));
 	assert(Teams());
