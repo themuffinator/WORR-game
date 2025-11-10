@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shared/q_std.hpp"
+#include "../../shared/q_std.hpp"
 
 struct gentity_t;
 enum class Team : uint8_t;
