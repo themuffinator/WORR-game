@@ -4466,7 +4466,7 @@ void Use_Ball(gentity_t* ent, Item* /*item*/) {
 	Vector3 start{}, dir{};
 	P_ProjectSource(ent, angles, { 2.f, 0.f, -14.f }, start, dir);
 
-	if (Ball_Pass(ent, start, dir)) {
+	if (ProBall::ThrowBall(ent, start, dir)) {
 		ent->client->ball.nextPassTime = level.time + Ball_GetPassCooldown();
 		ent->client->ball.nextDropTime = std::max(ent->client->ball.nextDropTime, level.time + 200_ms);
 	}
@@ -4483,9 +4483,7 @@ void Drop_Ball(gentity_t* ent, Item* /*item*/) {
 	if (ent->client->ball.nextDropTime > level.time)
 		return;
 
-	Vector3 dropOrigin = ent->s.origin + Vector3{ 0.f, 0.f, static_cast<float>(ent->viewHeight) * 0.25f };
-
-	if (Ball_Drop(ent, dropOrigin)) {
+	if (ProBall::DropBall(ent, nullptr, false)) {
 		ent->client->ball.nextDropTime = level.time + Ball_GetDropCooldown();
 		ent->client->ball.nextPassTime = std::max(ent->client->ball.nextPassTime, level.time + 200_ms);
 	}
