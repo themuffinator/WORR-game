@@ -307,8 +307,16 @@ namespace Game {
 	}
 
 	inline bool IsCurrentTypeValid() {
-		const auto type_value = g_gametype->integer;
-		return type_value >= 0 && static_cast<GameType>(type_value) < GameType::Total;
+		const int type_value = g_gametype->integer;
+		return type_value >= static_cast<int>(GT_FIRST) && type_value <= static_cast<int>(GT_LAST);
+	}
+
+	// Coerces a raw integer gametype value into the valid range. Any out-of-range
+	// value defaults to the first supported multiplayer mode (FreeForAll).
+	inline GameType NormalizeTypeValue(int type_value) {
+		if (type_value < static_cast<int>(GT_FIRST) || type_value > static_cast<int>(GT_LAST))
+			return GT_FIRST;
+		return static_cast<GameType>(type_value);
 	}
 
 	// Helper for case-insensitive string_view comparison.
