@@ -102,20 +102,20 @@ static bool Vote_Val_Gametype(gentity_t *ent) {
 }
 
 static void Vote_Pass_Ruleset() {
-	ruleset_t rs = RS_IndexFromString(level.vote.arg.data());
-	if (rs == ruleset_t::RS_NONE)
+	Ruleset rs = RS_IndexFromString(level.vote.arg.data());
+	if (rs == Ruleset::RS_NONE)
 		return;
 
 	gi.cvarForceSet("g_ruleset", G_Fmt("{}", (int)rs).data());
 }
 
 static bool Vote_Val_Ruleset(gentity_t *ent) {
-	ruleset_t desired_rs = RS_IndexFromString(gi.argv(2));
-	if (desired_rs == ruleset_t::RS_NONE) {
+	Ruleset desired_rs = RS_IndexFromString(gi.argv(2));
+	if (desired_rs == Ruleset::RS_NONE) {
 		gi.Client_Print(ent, PRINT_HIGH, "Invalid ruleset.\n");
 		return false;
 	}
-	if ((int)desired_rs == game.ruleset) {
+	if (desired_rs == game.ruleset) {
 		gi.Client_Print(ent, PRINT_HIGH, "Ruleset currently active.\n");
 		return false;
 	}

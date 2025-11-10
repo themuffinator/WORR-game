@@ -1349,27 +1349,27 @@ gentity_t* ClientEntFromString(const char* in) {
 RS_IndexFromString
 =================
 */
-ruleset_t RS_IndexFromString(const char* in) {
+Ruleset RS_IndexFromString(const char* in) {
 	if (!in || !*in)
-		return ruleset_t::RS_NONE;
+		return Ruleset::RS_NONE;
 
 	std::string_view input{ in };
 
-	for (size_t i = 1; i < static_cast<size_t>(ruleset_t::RS_NUM_RULESETS); ++i) {
+	for (size_t i = 1; i < Ruleset::Count(); ++i) {
 		// Check all aliases
 		for (const auto& alias : rs_short_name[i]) {
 			if (!alias.empty() && Q_strcasecmp(input.data(), alias.data()) == 0)
-				return static_cast<ruleset_t>(i);
+				return Ruleset(i);
 		}
 
 		// Check long name
 		if (rs_long_name[i] && *rs_long_name[i]) {
 			if (Q_strcasecmp(input.data(), rs_long_name[i]) == 0)
-				return static_cast<ruleset_t>(i);
+				return Ruleset(i);
 		}
 	}
 
-	return ruleset_t::RS_NONE;
+	return Ruleset::RS_NONE;
 }
 
 /*

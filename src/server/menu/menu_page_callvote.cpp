@@ -261,7 +261,7 @@ static void OpenCallvoteRuleset(gentity_t* ent) {
 	MenuBuilder builder;
 	builder.add("Callvote: Ruleset", MenuAlign::Center).spacer();
 
-	for (size_t i = 1; i < static_cast<size_t>(ruleset_t::RS_NUM_RULESETS); ++i) {
+	for (size_t i = 1; i < Ruleset::Count(); ++i) {
 		std::string_view shortName = rs_short_name[i][0];
 		const char* longName = rs_long_name[i];
 

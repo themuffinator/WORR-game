@@ -3007,10 +3007,10 @@ bool Pickup_Ammo(gentity_t* ent, gentity_t* other) {
 	else {
 		if (ent->item->id == IT_AMMO_SLUGS) {
 			switch (game.ruleset) {
-			case RS_Q1:
+			case Ruleset::RS_Q1:
 				count = 1;
 				break;
-			case RS_Q3A:
+			case Ruleset::RS_Q3A:
 				count = 10;
 				break;
 			default:

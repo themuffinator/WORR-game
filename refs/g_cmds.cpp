@@ -2648,8 +2648,8 @@ static void Cmd_Ruleset_f(gentity_t* ent) {
 		);
 		return;
 	}
-	ruleset_t rs = RS_IndexFromString(gi.argv(1));
-	if (rs == RS_NONE) {
+	Ruleset rs = RS_IndexFromString(gi.argv(1));
+	if (rs == Ruleset::RS_NONE) {
 		gi.Client_Print(ent, PRINT_HIGH, "Invalid ruleset.\n");
 		return;
 	}
