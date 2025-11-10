@@ -1,5 +1,6 @@
 #include "../g_local.hpp"
 
+#include <optional>
 #include <string>
 
 extern const spawn_temp_t& ED_GetSpawnTemp();
@@ -25,6 +26,24 @@ namespace {
 		default:
 			return PackColor(rgba_white);
 		}
+	}
+
+	std::optional<size_t> TeamProgressIndex(Team team) {
+		switch (team) {
+		case Team::Red:
+			return 0;
+		case Team::Blue:
+			return 1;
+		default:
+			return std::nullopt;
+		}
+	}
+
+	GameTime SecondsToTime(const cvar_t* cvar) {
+		float value = cvar ? cvar->value : 0.0f;
+		if (value < 0.0f)
+			value = 0.0f;
+		return GameTime::from_sec(value);
 	}
 
 	void FreePointBeam(LevelLocals::DominationState::Point& point) {
@@ -144,6 +163,17 @@ namespace {
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label.c_str());
 	}
 
+	void AnnounceNeutralize(gentity_t* ent, Team team, Team previousOwner, size_t index) {
+		const std::string label = PointLabel(ent, index);
+		if (previousOwner == Team::None) {
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} neutralized {}.\n", Teams_TeamName(team), label.c_str());
+		}
+		else {
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} neutralized {} from {}.\n", Teams_TeamName(team), label.c_str(),
+				Teams_TeamName(previousOwner));
+		}
+	}
+
 	TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) -> void {
 		if (!other->client)
 			return;
@@ -153,24 +183,76 @@ namespace {
 			return;
 
 		const Team team = other->client->sess.team;
-		if (team != Team::Red && team != Team::Blue)
-			return;
-
-		if (self->touch_debounce_time && self->touch_debounce_time > level.time)
+		const auto teamIndex = TeamProgressIndex(team);
+		if (!teamIndex)
 			return;
 
 		auto* point = FindPointForEntity(self);
 		if (!point)
 			return;
 
-		if (point->owner == team)
+		const auto opponentIndex = TeamProgressIndex(Teams_OtherTeam(team));
+		auto& captureProgress = point->captureProgress[*teamIndex];
+		auto& neutralizeProgress = point->neutralizeProgress[*teamIndex];
+		auto& lastUpdate = point->lastProgressUpdate[*teamIndex];
+
+		const GameTime timeout = FRAME_TIME_MS * 2;
+		if (lastUpdate && (level.time - lastUpdate) > timeout) {
+			captureProgress = 0_ms;
+			neutralizeProgress = 0_ms;
+		}
+		lastUpdate = level.time;
+
+		if (opponentIndex) {
+			point->captureProgress[*opponentIndex] = 0_ms;
+			point->neutralizeProgress[*opponentIndex] = 0_ms;
+			point->lastProgressUpdate[*opponentIndex] = 0_ms;
+		}
+
+		if (point->owner == team) {
+			captureProgress = 0_ms;
+			neutralizeProgress = 0_ms;
+			return;
+		}
+
+		GameTime carryOver = FRAME_TIME_MS;
+		const GameTime neutralizeTime = SecondsToTime(g_domination_neutralize_time);
+		const GameTime captureTime = SecondsToTime(g_domination_capture_time);
+
+		if (point->owner != Team::None) {
+			neutralizeProgress += carryOver;
+			if (neutralizeTime > 0_ms && neutralizeProgress < neutralizeTime)
+				return;
+
+			if (neutralizeTime > 0_ms)
+				carryOver = neutralizeProgress - neutralizeTime;
+			else
+				carryOver = neutralizeProgress;
+
+			const Team previousOwner = point->owner;
+			neutralizeProgress = 0_ms;
+			point->owner = Team::None;
+			ApplyPointOwnerVisual(*point);
+			AnnounceNeutralize(self, team, previousOwner, point->index);
+		}
+
+		if (carryOver < 0_ms)
+			carryOver = 0_ms;
+
+		captureProgress += carryOver;
+		if (captureTime > 0_ms && captureProgress < captureTime)
 			return;
 
 		point->owner = team;
-		self->touch_debounce_time = level.time + 500_ms;
+		point->captureProgress.fill(0_ms);
+		point->neutralizeProgress.fill(0_ms);
+		point->lastProgressUpdate.fill(0_ms);
 
 		ApplyPointOwnerVisual(*point);
 		AnnounceCapture(self, team, point->index);
+
+		if (g_domination_capture_bonus && g_domination_capture_bonus->integer)
+			G_AdjustPlayerScore(other->client, g_domination_capture_bonus->integer, false, 0);
 	}
 
 	void EnsureBounds(gentity_t* ent, const spawn_temp_t& st) {

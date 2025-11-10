@@ -2446,6 +2446,9 @@ struct LevelLocals {
 			gentity_t* beam = nullptr;
 			Team owner = Team::None;
 			size_t index = 0;
+			std::array<GameTime, 2> captureProgress{};
+			std::array<GameTime, 2> neutralizeProgress{};
+			std::array<GameTime, 2> lastProgressUpdate{};
 		};
 
 		std::array<Point, MAX_POINTS> points{};
