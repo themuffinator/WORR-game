@@ -1,10 +1,15 @@
-# WORR!
-### An extensive server mod for QUAKE II Rerelease
-
-**WORR** is an advanced gameplay expansion and server mod for **QUAKE II Rerelease**, designed to bring a richer, more dynamic single-player and multiplayer experience.
+<div align="center">
+  <img src="assets/art/logo.png" alt="Logo" width="300">
+  <h2>WORR! An extensive server mod under development for QUAKE II Rerelease</h2>
+</div>
+<p align="center">
+<b>WORR</b> is an advanced gameplay expansion and server mod for <b>QUAKE II Rerelease</b>, designed to bring a richer, more dynamic single-player and multiplayer experience.
 It dramatically extends entity and gameplay support, integrates modern competitive systems, and refines the core feel of QUAKE II while preserving its fast-paced essence.
+</p>
+<p align="center">
+  It is a successor to my previous project, <a href="https://github.com/themuffinator/muffmode" target="_blank">Muff Mode</a>.
 
-It is a successor to my previous project, [Muff Mode](https://github.com/themuffinator/muffmode).
+</p>
 
 ---
 
