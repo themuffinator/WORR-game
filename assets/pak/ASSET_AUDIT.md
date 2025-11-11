@@ -1,18 +1,18 @@
 # WORR Asset Audit
 
-This report compares the assets listed in `ASSET_REGISTER.md` against the files currently present under `assets/`. Counts below refer to unique paths.
+This report compares the assets listed in `ASSET_REGISTER.md` against the files currently present under `assets/pak/`. Counts below refer to unique paths.
 
 ## Summary
 
 - Registered asset paths: 249
-- Files present under assets/: 596
+- Files present under assets/pak/: 596
 - Matching paths: 92
 - Missing registered assets: 157
 - Unregistered files present: 504
 
 ## Category Breakdown
 
-| Category | Expected (register) | Present (assets) | Matched | Missing | Extra |
+| Category | Expected (register) | Present (assets/pak) | Matched | Missing | Extra |
 |---|---|---|---|---|---|
 | .gitkeep | 0 | 1 | 0 | 0 | 1 |
 | admin.txt | 1 | 1 | 1 | 0 | 0 |
