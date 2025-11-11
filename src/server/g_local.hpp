@@ -4183,6 +4183,7 @@ std::vector<std::string> GetSanitizedWeaponPrefStrings(const gclient_t& cl);
 void Weapon_Grapple(gentity_t* ent);
 void Weapon_Grapple_DoReset(gclient_t* cl);
 void Weapon_Grapple_Pull(gentity_t* self);
+void Weapon_ForceIdle(gentity_t* ent);
 
 // HOOK
 void Weapon_Hook(gentity_t* ent);

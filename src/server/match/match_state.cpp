@@ -30,8 +30,142 @@
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 
+extern void door_go_down(gentity_t* self);
+extern void plat_go_down(gentity_t* ent);
+extern void plat2_go_down(gentity_t* ent);
+void Weapon_ForceIdle(gentity_t* ent);
+
+static void CalmTriggerableMovers();
+static void CalmPlayerWeapons();
+static void CalmMonsters();
+static void PrepareCountdownEnvironment();
+
 static void SetMatchState(LevelMatchTransition transition) {
+	const MatchState previousState = level.matchState;
 	ApplyMatchState(level, transition);
+	if (transition.state == MatchState::Countdown && previousState != MatchState::Countdown) {
+		PrepareCountdownEnvironment();
+	}
+}
+
+/*
+=============
+PrepareCountdownEnvironment
+
+Brings the world to a neutral state when the countdown begins by calming
+triggered movers, players, and monsters.
+=============
+*/
+static void PrepareCountdownEnvironment() {
+	CalmTriggerableMovers();
+	CalmPlayerWeapons();
+	CalmMonsters();
+}
+
+/*
+=============
+CalmTriggerableMovers
+
+Transitions common triggerable movers back to their resting state so that the
+match countdown begins from a consistent world layout.
+=============
+*/
+static void CalmTriggerableMovers() {
+	for (size_t i = static_cast<size_t>(game.maxClients) + 1; i < globals.numEntities; ++i) {
+		gentity_t* ent = &g_entities[i];
+		if (!ent->inUse)
+			continue;
+		if ((ent->moveType != MoveType::Push && ent->moveType != MoveType::Stop) || !ent->className)
+			continue;
+
+		const bool isDoor = Q_strcasecmp(ent->className, "func_door") == 0 ||
+			Q_strcasecmp(ent->className, "func_door_rotating") == 0 ||
+			Q_strcasecmp(ent->className, "func_door_secret") == 0 ||
+			Q_strcasecmp(ent->className, "func_water") == 0;
+		const bool isPlat = Q_strcasecmp(ent->className, "func_plat") == 0;
+		const bool isPlat2 = Q_strcasecmp(ent->className, "func_plat2") == 0;
+
+		if (isDoor) {
+			if (ent->moveInfo.state != MoveState::Bottom)
+				door_go_down(ent);
+			continue;
+		}
+
+		if (isPlat) {
+			if (ent->moveInfo.state != MoveState::Bottom)
+				plat_go_down(ent);
+			continue;
+		}
+
+		if (isPlat2) {
+			if (ent->moveInfo.state != MoveState::Bottom)
+				plat2_go_down(ent);
+			continue;
+		}
+
+		ent->velocity = {};
+		ent->aVelocity = {};
+		ent->s.sound = 0;
+		ent->moveInfo.currentSpeed = 0.0f;
+		ent->moveInfo.remainingDistance = 0.0f;
+		ent->moveInfo.state = MoveState::Bottom;
+		ent->think = nullptr;
+		ent->nextThink = 0_ms;
+		gi.linkEntity(ent);
+	}
+}
+
+/*
+=============
+CalmPlayerWeapons
+
+Stops any active weapon fire so players enter the countdown in an idle state.
+=============
+*/
+static void CalmPlayerWeapons() {
+	for (auto player : active_players()) {
+		Weapon_ForceIdle(player);
+	}
+}
+
+/*
+=============
+CalmMonsters
+
+Forces AI-controlled monsters to idle so they do not carry aggression into the
+countdown phase.
+=============
+*/
+static void CalmMonsters() {
+	for (size_t i = static_cast<size_t>(game.maxClients) + 1; i < globals.numEntities; ++i) {
+		gentity_t* ent = &g_entities[i];
+		if (!ent->inUse)
+			continue;
+		if (!(ent->svFlags & SVF_MONSTER))
+			continue;
+
+		ent->enemy = nullptr;
+		ent->oldEnemy = nullptr;
+		ent->goalEntity = nullptr;
+		ent->moveTarget = nullptr;
+		ent->monsterInfo.attackFinished = level.time;
+		ent->monsterInfo.pauseTime = 0_ms;
+		ent->monsterInfo.trailTime = 0_ms;
+		ent->monsterInfo.blind_fire_delay = 0_ms;
+		ent->monsterInfo.savedGoal = ent->s.origin;
+		ent->monsterInfo.lastSighting = ent->s.origin;
+		ent->monsterInfo.aiFlags &= ~(AI_SOUND_TARGET | AI_TARGET_ANGER | AI_COMBAT_POINT |
+			AI_PURSUE_NEXT | AI_PURSUE_TEMP | AI_PURSUIT_LAST_SEEN |
+			AI_TEMP_STAND_GROUND | AI_STAND_GROUND | AI_CHARGING);
+		ent->velocity = {};
+		ent->aVelocity = {};
+		ent->s.sound = 0;
+
+		if (ent->monsterInfo.stand)
+			ent->monsterInfo.stand(ent);
+		else if (ent->monsterInfo.idle)
+			ent->monsterInfo.idle(ent);
+	}
 }
 
 namespace {
