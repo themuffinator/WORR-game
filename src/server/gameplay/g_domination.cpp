@@ -1,42 +1,95 @@
 #include "../g_local.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <string>
 
 extern const spawn_temp_t& ED_GetSpawnTemp();
 
 namespace {
-	constexpr GameTime kDominationMinScoreInterval = 100_ms;
-	constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
-	constexpr int32_t kDominationDefaultPointsPerTick = 1;
+constexpr GameTime kDominationMinScoreInterval = 100_ms;
+constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
+constexpr int32_t kDominationDefaultPointsPerTick = 1;
+constexpr float kDominationDefaultCaptureSeconds = 3.0f;
+constexpr int32_t kDominationOccupantGraceMinMs = 50;
+constexpr int32_t kDominationOccupantGraceMaxMs = 250;
 
-	GameTime DominationTickInterval() {
-		float seconds = kDominationDefaultTickIntervalSeconds;
+/*
+=============
+DominationTickInterval
 
-		if (g_domination_tick_interval) {
-			const float configured = g_domination_tick_interval->value;
-			if (std::isfinite(configured) && configured > 0.0f)
-				seconds = configured;
-		}
+Returns the amount of time between passive domination score ticks.
+=============
+*/
+GameTime DominationTickInterval() {
+float seconds = kDominationDefaultTickIntervalSeconds;
 
-		GameTime interval = GameTime::from_sec(seconds);
-		if (!interval || interval < kDominationMinScoreInterval)
-			interval = kDominationMinScoreInterval;
+if (g_domination_tick_interval) {
+const float configured = g_domination_tick_interval->value;
+if (std::isfinite(configured) && configured > 0.0f)
+seconds = configured;
+}
 
-		return interval;
-	}
+GameTime interval = GameTime::from_sec(seconds);
+if (!interval || interval < kDominationMinScoreInterval)
+interval = kDominationMinScoreInterval;
 
-	int32_t DominationPointsPerTick() {
-		int32_t points = kDominationDefaultPointsPerTick;
+return interval;
+}
 
-		if (g_domination_points_per_tick) {
-			const int32_t configured = g_domination_points_per_tick->integer;
-			if (configured > 0)
-				points = configured;
-		}
+/*
+=============
+DominationPointsPerTick
 
-		return points;
-	}
+Returns the number of score points earned each domination tick.
+=============
+*/
+int32_t DominationPointsPerTick() {
+int32_t points = kDominationDefaultPointsPerTick;
+
+if (g_domination_points_per_tick) {
+const int32_t configured = g_domination_points_per_tick->integer;
+if (configured > 0)
+points = configured;
+}
+
+return points;
+}
+
+/*
+=============
+DominationCaptureTime
+
+Returns how long a team must hold a point to capture it.
+=============
+*/
+GameTime DominationCaptureTime() {
+float seconds = kDominationDefaultCaptureSeconds;
+
+if (g_domination_capture_time) {
+const float configured = g_domination_capture_time->value;
+if (std::isfinite(configured))
+seconds = configured;
+}
+
+if (seconds <= 0.0f)
+return 0_ms;
+
+return GameTime::from_sec(seconds);
+}
+
+/*
+=============
+DominationOccupantGrace
+
+Returns the grace period a player remains registered inside a point volume between touch events.
+=============
+*/
+GameTime DominationOccupantGrace() {
+const uint32_t frameMs = gi.frameTimeMs ? gi.frameTimeMs : 16;
+const uint32_t graceMs = std::clamp<uint32_t>(frameMs * 2, kDominationOccupantGraceMinMs, kDominationOccupantGraceMaxMs);
+return GameTime::from_ms(static_cast<int64_t>(graceMs));
+}
 
 	constexpr float kDominationBeamTraceDistance = 8192.0f;
 
@@ -58,14 +111,28 @@ namespace {
 		}
 	}
 
-	void FreePointBeam(LevelLocals::DominationState::Point& point) {
+/*
+=============
+FreePointBeam
+
+Releases the beam entity that visually marks a domination point.
+=============
+*/
+void FreePointBeam(LevelLocals::DominationState::Point& point) {
 		if (point.beam) {
 			FreeEntity(point.beam);
 			point.beam = nullptr;
 		}
 	}
 
-	void EnsurePointBeam(LevelLocals::DominationState::Point& point) {
+/*
+=============
+EnsurePointBeam
+
+Creates or updates the beam entity for a domination point.
+=============
+*/
+void EnsurePointBeam(LevelLocals::DominationState::Point& point) {
 		if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
 			FreePointBeam(point);
 			if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
@@ -109,7 +176,14 @@ namespace {
 		gi.linkEntity(beam);
 	}
 
-	LevelLocals::DominationState::Point* FindPointForEntity(gentity_t* ent) {
+/*
+=============
+FindPointForEntity
+
+Finds the domination point that owns the provided entity.
+=============
+*/
+LevelLocals::DominationState::Point* FindPointForEntity(gentity_t* ent) {
 		auto& dom = level.domination;
 		for (size_t i = 0; i < dom.count; ++i) {
 			if (dom.points[i].ent == ent && dom.points[i].spawnCount == ent->spawn_count)
@@ -118,7 +192,14 @@ namespace {
 		return nullptr;
 	}
 
-	void ApplyPointOwnerVisual(LevelLocals::DominationState::Point& point) {
+/*
+=============
+ApplyPointOwnerVisual
+
+Updates skin and beam colors to reflect the owning team.
+=============
+*/
+void ApplyPointOwnerVisual(LevelLocals::DominationState::Point& point) {
 		if (!point.ent)
 			return;
 
@@ -137,7 +218,14 @@ namespace {
 		EnsurePointBeam(point);
 	}
 
-	Team SpawnFlagOwner(const gentity_t* ent) {
+/*
+=============
+SpawnFlagOwner
+
+Determines which team initially owns the point based on spawn flags.
+=============
+*/
+Team SpawnFlagOwner(const gentity_t* ent) {
 		const bool red = ent->spawnFlags.has(SPAWNFLAG_DOMINATION_START_RED);
 		const bool blue = ent->spawnFlags.has(SPAWNFLAG_DOMINATION_START_BLUE);
 
@@ -147,7 +235,14 @@ namespace {
 		return red ? Team::Red : Team::Blue;
 	}
 
-	LevelLocals::DominationState::Point* RegisterPoint(gentity_t* ent) {
+/*
+=============
+RegisterPoint
+
+Registers a domination point entity with the level state.
+=============
+*/
+LevelLocals::DominationState::Point* RegisterPoint(gentity_t* ent) {
 		auto& dom = level.domination;
 
 		if (dom.count >= LevelLocals::DominationState::MAX_POINTS) {
@@ -168,7 +263,14 @@ namespace {
 		return &point;
 	}
 
-	std::string PointLabel(const gentity_t* ent, size_t index) {
+/*
+=============
+PointLabel
+
+Returns a friendly label for a domination point used in announcements.
+=============
+*/
+std::string PointLabel(const gentity_t* ent, size_t index) {
 		if (ent->message && ent->message[0])
 			return ent->message;
 		if (ent->targetName && ent->targetName[0])
@@ -176,39 +278,191 @@ namespace {
 		return G_Fmt("Point {}", index + 1).data();
 	}
 
-	void AnnounceCapture(gentity_t* ent, Team team, size_t index) {
-		const std::string label = PointLabel(ent, index);
-		gi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label.c_str());
-	}
+/*
+=============
+AnnounceCapture
 
-	TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) -> void {
-		if (!other->client)
-			return;
-		if (!ClientIsPlaying(other->client) || other->client->eliminated)
-			return;
-		if (Game::IsNot(GameType::Domination))
-			return;
+Broadcasts that a team has captured the specified point.
+=============
+*/
+void AnnounceCapture(gentity_t* ent, Team team, size_t index) {
+\tconst std::string label = PointLabel(ent, index);
+\tgi.LocBroadcast_Print(PRINT_HIGH, "{} captured {}.\n", Teams_TeamName(team), label.c_str());
+}
 
-		const Team team = other->client->sess.team;
-		if (team != Team::Red && team != Team::Blue)
-			return;
+/*
+=============
+FinalizeCapture
 
-		if (self->touch_debounce_time && self->touch_debounce_time > level.time)
-			return;
+Applies the ownership change for a point capture and triggers visuals/announcements.
+=============
+*/
+void FinalizeCapture(LevelLocals::DominationState::Point& point, Team newOwner) {
+\tpoint.owner = newOwner;
+\tpoint.capturingTeam = Team::None;
+\tpoint.captureProgress = 0.0f;
+\tpoint.lastProgressTime = level.time;
+\tApplyPointOwnerVisual(point);
+\tAnnounceCapture(point.ent, newOwner, point.index);
+}
 
-		auto* point = FindPointForEntity(self);
-		if (!point)
-			return;
+/*
+=============
+UpdatePointOccupants
 
-		if (point->owner == team)
-			return;
+Refreshes the tracked player counts occupying a domination point.
+=============
+*/
+void UpdatePointOccupants(LevelLocals::DominationState::Point& point) {
+\tpoint.occupantCounts.fill(0);
 
-		point->owner = team;
-		self->touch_debounce_time = level.time + 500_ms;
+\tconst bool hasClients = game.clients && g_entities && game.maxClients > 0;
+\tconst GameTime now = level.time;
 
-		ApplyPointOwnerVisual(*point);
-		AnnounceCapture(self, team, point->index);
-	}
+\tfor (size_t i = 0; i < point.occupantExpiry.size(); ++i) {
+\tGameTime& expiry = point.occupantExpiry[i];
+\tif (!expiry)
+\tcontinue;
+
+\tif (expiry <= now) {
+\texpiry = 0_ms;
+\tcontinue;
+\t}
+
+\tif (!hasClients || i >= static_cast<size_t>(game.maxClients)) {
+\texpiry = 0_ms;
+\tcontinue;
+\t}
+
+\tgclient_t* cl = &game.clients[i];
+\tgentity_t* ent = &g_entities[i + 1];
+\tif (!ent || !ent->inUse || ent->client != cl) {
+\texpiry = 0_ms;
+\tcontinue;
+\t}
+
+\tif (!ClientIsPlaying(cl) || cl->eliminated) {
+\texpiry = 0_ms;
+\tcontinue;
+\t}
+
+\tconst Team team = cl->sess.team;
+\tif (team != Team::Red && team != Team::Blue) {
+\texpiry = 0_ms;
+\tcontinue;
+\t}
+
+\t++point.occupantCounts[static_cast<size_t>(team)];
+\t}
+}
+
+/*
+=============
+AdvanceCaptureProgress
+
+Advances or decays capture progress depending on the players present.
+=============
+*/
+void AdvanceCaptureProgress(LevelLocals::DominationState::Point& point) {
+\tconst int redCount = point.occupantCounts[static_cast<size_t>(Team::Red)];
+\tconst int blueCount = point.occupantCounts[static_cast<size_t>(Team::Blue)];
+\tconst bool contested = redCount > 0 && blueCount > 0;
+\tTeam activeTeam = Team::None;
+
+\tif (!contested) {
+\tif (redCount > 0 && blueCount == 0)
+\tactiveTeam = Team::Red;
+\telse if (blueCount > 0 && redCount == 0)
+\tactiveTeam = Team::Blue;
+\t}
+
+\tconst GameTime now = level.time;
+\tGameTime delta = point.lastProgressTime ? (now - point.lastProgressTime) : 0_ms;
+\tif (delta.milliseconds() < 0)
+\tdelta = 0_ms;
+\tpoint.lastProgressTime = now;
+
+\tconst GameTime captureTime = DominationCaptureTime();
+\tconst int64_t captureMs = captureTime.milliseconds();
+
+\tconst auto decayProgress = [&](float amount) {
+\tpoint.captureProgress = std::max(0.0f, point.captureProgress - amount);
+\tif (point.captureProgress == 0.0f)
+\tpoint.capturingTeam = Team::None;
+\t};
+
+\tif (captureMs <= 0) {
+\tif (activeTeam != Team::None && activeTeam != point.owner)
+\tFinalizeCapture(point, activeTeam);
+\telse if (contested || activeTeam == Team::None)
+\tpoint.capturingTeam = Team::None;
+\treturn;
+\t}
+
+\tconst float deltaProgress = static_cast<float>(delta.milliseconds()) / static_cast<float>(captureMs);
+
+\tif (contested) {
+\tif (point.capturingTeam != Team::None && deltaProgress > 0.0f)
+\tdecayProgress(deltaProgress);
+\treturn;
+\t}
+
+\tif (activeTeam == Team::None) {
+\tif (point.capturingTeam != Team::None && deltaProgress > 0.0f)
+\tdecayProgress(deltaProgress);
+\treturn;
+\t}
+
+\tif (point.owner == activeTeam) {
+\tpoint.capturingTeam = Team::None;
+\tpoint.captureProgress = 0.0f;
+\treturn;
+\t}
+
+\tif (point.capturingTeam != activeTeam) {
+\tpoint.capturingTeam = activeTeam;
+\tpoint.captureProgress = 0.0f;
+\t}
+
+\tif (deltaProgress > 0.0f)
+\tpoint.captureProgress = std::min(1.0f, point.captureProgress + deltaProgress);
+
+\tif (point.captureProgress >= 1.0f)
+\tFinalizeCapture(point, activeTeam);
+}
+
+/*
+=============
+Domination_PointTouch
+
+Registers a player touching a domination point so capture logic can track occupancy.
+=============
+*/
+TOUCH(Domination_PointTouch)(gentity_t* self, gentity_t* other, const trace_t&, bool) -> void {
+\tif (!other->client)
+\treturn;
+\tif (!ClientIsPlaying(other->client) || other->client->eliminated)
+\treturn;
+\tif (Game::IsNot(GameType::Domination))
+\treturn;
+
+\tconst Team team = other->client->sess.team;
+\tif (team != Team::Red && team != Team::Blue)
+\treturn;
+
+\tauto* point = FindPointForEntity(self);
+\tif (!point)
+\treturn;
+
+\tif (!game.clients)
+\treturn;
+
+\tconst ptrdiff_t clientIndex = other->client - game.clients;
+\tif (clientIndex < 0 || clientIndex >= game.maxClients)
+\treturn;
+
+\tpoint->occupantExpiry[static_cast<size_t>(clientIndex)] = level.time + DominationOccupantGrace();
+}
 
 	void EnsureBounds(gentity_t* ent, const spawn_temp_t& st) {
 		if (ent->model && ent->model[0]) {
@@ -228,14 +482,28 @@ namespace {
 
 } // namespace
 
-void Domination_ClearState() {
-	for (auto& point : level.domination.points) {
-		FreePointBeam(point);
-	}
+/*
+=============
+Domination_ClearState
 
-	level.domination = {};
+Resets domination state and frees transient entities.
+=============
+*/
+void Domination_ClearState() {
+\tfor (auto& point : level.domination.points) {
+\tFreePointBeam(point);
+\t}
+
+\tlevel.domination = {};
 }
 
+/*
+=============
+Domination_InitLevel
+
+Initializes domination state when a level loads.
+=============
+*/
 void Domination_InitLevel() {
 	if (Game::IsNot(GameType::Domination)) {
 		Domination_ClearState();
@@ -248,32 +516,43 @@ void Domination_InitLevel() {
 
 		dom.nextScoreTime = level.time + DominationTickInterval();
 
-	for (size_t i = 0; i < dom.count; ++i) {
-		dom.points[i].index = i;
-		ApplyPointOwnerVisual(dom.points[i]);
-	}
+for (size_t i = 0; i < dom.count; ++i) {
+auto& point = dom.points[i];
+point.index = i;
+point.capturingTeam = Team::None;
+point.captureProgress = 0.0f;
+point.lastProgressTime = level.time;
+point.occupantCounts.fill(0);
+point.occupantExpiry.fill(0_ms);
+ApplyPointOwnerVisual(point);
+}
 }
 
+/*
+=============
+Domination_RunFrame
+
+Advances domination capture logic each frame and awards periodic scoring.
+=============
+*/
 void Domination_RunFrame() {
 	if (Game::IsNot(GameType::Domination))
-		return;
+	return;
 	if (level.matchState != MatchState::In_Progress)
-		return;
+	return;
 	if (ScoringIsDisabled())
-		return;
+	return;
 
 	auto& dom = level.domination;
 	if (!dom.count)
-		return;
+	return;
 
 	const GameTime interval = DominationTickInterval();
-
 	if (!dom.nextScoreTime)
-		dom.nextScoreTime = level.time + interval;
+	dom.nextScoreTime = level.time + interval;
 
-	if (level.time < dom.nextScoreTime)
-		return;
-
+	const bool readyToScore = level.time >= dom.nextScoreTime;
+	if (readyToScore)
 	dom.nextScoreTime = level.time + interval;
 
 	int redOwned = 0;
@@ -281,31 +560,42 @@ void Domination_RunFrame() {
 
 	for (size_t i = 0; i < dom.count; ++i) {
 		auto& point = dom.points[i];
-		if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
-			FreePointBeam(point);
-			if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
-				point.ent = nullptr;
-				point.owner = Team::None;
-				point.spawnCount = 0;
-			}
-			continue;
-		}
+if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
+FreePointBeam(point);
+if (!point.ent || !point.ent->inUse || point.ent->spawn_count != point.spawnCount) {
+point.ent = nullptr;
+point.owner = Team::None;
+point.spawnCount = 0;
+point.capturingTeam = Team::None;
+point.captureProgress = 0.0f;
+point.lastProgressTime = level.time;
+point.occupantCounts.fill(0);
+point.occupantExpiry.fill(0_ms);
+}
+continue;
+}
+
+		UpdatePointOccupants(point);
+		AdvanceCaptureProgress(point);
 
 		if (point.owner == Team::Red)
-			++redOwned;
+		++redOwned;
 		else if (point.owner == Team::Blue)
-			++blueOwned;
+		++blueOwned;
 	}
 
+	if (!readyToScore)
+	return;
+
 	if (!redOwned && !blueOwned)
-		return;
+	return;
 
 	const int32_t pointsPerTick = DominationPointsPerTick();
 
 	if (redOwned)
-		G_AdjustTeamScore(Team::Red, redOwned * pointsPerTick);
+	G_AdjustTeamScore(Team::Red, redOwned * pointsPerTick);
 	if (blueOwned)
-		G_AdjustTeamScore(Team::Blue, blueOwned * pointsPerTick);
+	G_AdjustTeamScore(Team::Blue, blueOwned * pointsPerTick);
 }
 
 void SP_domination_point(gentity_t* ent) {
