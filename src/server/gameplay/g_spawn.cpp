@@ -1937,13 +1937,11 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         Domination_InitLevel();
         HeadHunters::InitLevel();
         ProBall::InitLevel();
-        ProBall::InitLevel();
 
         level.init = true;
 
 	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 }
-
 
 /*
 =============
@@ -1971,19 +1969,20 @@ bool G_ResetWorldEntitiesFromSavedString() {
 	gi.FreeTags(TAG_LEVEL);
 
 	level.spawn.Clear();
-        level.spawnSpots.fill(nullptr);
-        level.shadowLightCount = 0;
-        std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
-        level.campaign = {};
-        level.start_items = nullptr;
-        level.instantItems = false;
-        level.no_grapple = false;
-        level.no_dm_spawnpads = false;
-        level.no_dm_telepads = false;
-        level.timeoutOwner = nullptr;
+	level.spawnSpots.fill(nullptr);
+	level.shadowLightCount = 0;
+	std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
+	level.campaign = {};
+	level.start_items = nullptr;
+	level.instantItems = false;
+	level.no_grapple = false;
+	level.no_dm_spawnpads = false;
+	level.no_dm_telepads = false;
+	level.timeoutOwner = nullptr;
 
-        Domination_ClearState();
-        HeadHunters::ClearState();
+	Domination_ClearState();
+	HeadHunters::ClearState();
+	ProBall::ClearState();
 
 	globals.numEntities = game.maxClients + 1;
 
@@ -2051,13 +2050,14 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		InitHintPaths();
 	}
 
-        G_LocateSpawnSpots();
-        setup_shadow_lights();
+	G_LocateSpawnSpots();
+	setup_shadow_lights();
 
-        Domination_InitLevel();
-        HeadHunters::InitLevel();
+	Domination_InitLevel();
+	HeadHunters::InitLevel();
+	ProBall::InitLevel();
 
-        level.init = true;
+	level.init = true;
 
 	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 
