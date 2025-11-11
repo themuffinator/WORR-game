@@ -539,11 +539,11 @@ Maps a flag item identifier back to its owning team.
 	*/
 	[[nodiscard]] gentity_t* FindFlagCarrier(item_id_t flagItem) {
 		gentity_t* carrier = nullptr;
-		ForEachClient([&carrier, flagItem](gentity_t* entity) {
+		Teamplay_ForEachClient([&carrier, flagItem](gentity_t* entity) {
 			if (!carrier && entity->client->pers.inventory[flagItem]) {
 				carrier = entity;
 			}
-			});
+		});
 		return carrier;
 	}
 
@@ -669,11 +669,15 @@ Maps a flag item identifier back to its owning team.
 			default:
 				break;
 			}
-			Flags().SetStatus(Team::Free, status);
+			if (!Flags().SetStatus(Team::Free, status)) {
+				// Status already matched; nothing to update.
+			}
 			flagEntity->fteam = player->client->sess.team;
 		}
 		else {
-			Flags().SetStatus(flagTeam, FlagStatus::Taken);
+			if (!Flags().SetStatus(flagTeam, FlagStatus::Taken)) {
+				// Status already matched; nothing to update.
+			}
 		}
 
 		Team_TakeFlagSound(player->client->sess.team);
