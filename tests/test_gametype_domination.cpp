@@ -1,4 +1,5 @@
 #include <cmath>
+#include <array>
 #include <memory>
 #include <random>
 #include <cstring>
@@ -24,18 +25,22 @@ static void TestCenterPrint(gentity_t*, const char*) {}
 static void TestSound(gentity_t*, soundchan_t, int, float, float, float) {}
 static void TestPositionedSound(const Vector3&, gentity_t*, soundchan_t, int, float, float, float) {}
 static int TestSoundIndex(const char*) { return 0; }
+static void TestLink(gentity_t*) {}
 static void TestUnlink(gentity_t*) {}
 static void TestBotUnregister(const gentity_t*) {}
 static void TestComError(const char*) { assert(false && "Com_Error called"); }
+static void TestLocPrint(gentity_t*, print_type_t, const char*, const char**, size_t) {}
+static trace_t TestTrace(const Vector3&, const Vector3&, const Vector3&, const Vector3&, const gentity_t*, contents_t) {
+		race_t tr{};
+return tr;
+}
 
 game_export_t globals{};
 gentity_t* g_entities = nullptr;
 GameLocals game{};
 LevelLocals level{};
-game_export_t globals{};
 local_game_import_t gi{};
 std::mt19937 mt_rand{};
-gentity_t* g_entities = nullptr;
 
 static cvar_t g_gametype_storage{};
 cvar_t* g_gametype = &g_gametype_storage;
@@ -72,11 +77,11 @@ cvar_t* g_domination_tick_interval = &g_domination_tick_interval_storage;
 static cvar_t g_domination_points_per_tick_storage{};
 cvar_t* g_domination_points_per_tick = &g_domination_points_per_tick_storage;
 
-static cvar_t deathmatch_storage{};
-cvar_t* deathmatch = &deathmatch_storage;
+static cvar_t g_domination_capture_time_storage{};
+cvar_t* g_domination_capture_time = &g_domination_capture_time_storage;
 
 bool ScoringIsDisabled() {
-	return level.matchState != MatchState::In_Progress;
+        return level.matchState != MatchState::In_Progress;
 }
 
 void G_AdjustTeamScore(Team team, int32_t offset) {
@@ -89,7 +94,10 @@ bool ClientIsPlaying(gclient_t*) {
 }
 
 gentity_t* Spawn() {
-	return nullptr;
+static std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)> storage;
+auto* ent = reinterpret_cast<gentity_t*>(&storage);
+std::memset(ent, 0, sizeof(gentity_t));
+return ent;
 }
 
 void FreeEntity(gentity_t*) {}
@@ -134,25 +142,85 @@ int main() {
 	assert(Game::Has(GameFlags::Teams));
 	assert(Teams());
 
-	deathmatch->integer = 0;
-	game.maxClients = 0;
-	globals.numEntities = 0;
+	gi.Com_Print = TestComPrint;
+	gi.Broadcast_Print = TestBroadcast;
+	gi.Client_Print = TestClientPrint;
+	gi.Center_Print = TestCenterPrint;
+	gi.sound = TestSound;
+	gi.positionedSound = TestPositionedSound;
+	gi.soundIndex = TestSoundIndex;
+	gi.linkEntity = TestLink;
+	gi.unlinkEntity = TestUnlink;
+	gi.Bot_UnRegisterEntity = TestBotUnregister;
+	gi.Com_Error = TestComError;
+	gi.Loc_Print = TestLocPrint;
+	gi.trace = TestTrace;
+	gi.frameTimeMs = 100;
+
+	deathmatchVar.integer = 0;
+	deathmatchVar.value = 0.0f;
+	fragLimitVar.integer = 0;
+	fragLimitVar.value = 0.0f;
+	captureLimitVar.integer = 0;
+	captureLimitVar.value = 0.0f;
+	roundLimitVar.integer = 0;
+	roundLimitVar.value = 0.0f;
+	noPlayersTimeVar.integer = 0;
+	noPlayersTimeVar.value = 0.0f;
+	timeLimitVar.integer = 0;
+	timeLimitVar.value = 0.0f;
+	mercyLimitVar.integer = 0;
+	mercyLimitVar.value = 0.0f;
+	matchStartNoHumansVar.integer = 1;
+	matchStartNoHumansVar.value = 1.0f;
+	matchDoOvertimeVar.integer = 0;
+	matchDoOvertimeVar.value = 0.0f;
+
+	g_domination_tick_interval_storage.value = 2.0f;
+	g_domination_tick_interval_storage.integer = 2;
+	g_domination_points_per_tick_storage.value = 3.0f;
+	g_domination_points_per_tick_storage.integer = 3;
+	g_domination_capture_time_storage.value = 1.0f;
+	g_domination_capture_time_storage.integer = 1;
 
 	level.matchState = MatchState::In_Progress;
 	level.time = 0_ms;
 	level.teamScores.fill(0);
 	level.domination = {};
 
-	g_domination_tick_interval_storage.value = 2.0f;
-	g_domination_tick_interval_storage.integer = 2;
-	g_domination_points_per_tick_storage.value = 3.0f;
-	g_domination_points_per_tick_storage.integer = 3;
+	static std::array<gclient_t, 2> clientStorage{};
+	game.maxClients = clientStorage.size();
+	game.clients = clientStorage.data();
+	for (auto& client : clientStorage)
+		client = {};
+
+	static std::array<std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)>, 4> entityStorage{};
+	g_entities = reinterpret_cast<gentity_t*>(entityStorage.data());
+	std::memset(g_entities, 0, sizeof(gentity_t) * entityStorage.size());
+
+	g_entities[1].inUse = true;
+	g_entities[1].client = &game.clients[0];
+	g_entities[1].client->sess.team = Team::Red;
+	g_entities[1].client->eliminated = false;
+
+	g_entities[2].inUse = true;
+	g_entities[2].client = &game.clients[1];
+	g_entities[2].client->sess.team = Team::Blue;
+	g_entities[2].client->eliminated = false;
 
 	LevelLocals::DominationState& dom = level.domination;
 	dom.count = 2;
-	std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)> pointStorage[2];
-	dom.points[0].ent = reinterpret_cast<gentity_t*>(&pointStorage[0]);
-	dom.points[1].ent = reinterpret_cast<gentity_t*>(&pointStorage[1]);
+
+	std::array<std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)>, 2> pointStorage{};
+	for (size_t i = 0; i < dom.count; ++i) {
+		auto* ent = reinterpret_cast<gentity_t*>(&pointStorage[i]);
+		std::memset(ent, 0, sizeof(gentity_t));
+		ent->inUse = true;
+		ent->spawn_count = 1;
+		dom.points[i].ent = ent;
+		dom.points[i].spawnCount = ent->spawn_count;
+	}
+
 	dom.points[0].owner = Team::Red;
 	dom.points[1].owner = Team::Blue;
 	dom.nextScoreTime = 0_ms;
@@ -189,106 +257,87 @@ int main() {
 	assert(level.teamScores[static_cast<int>(Team::Red)] == 7);
 	assert(level.teamScores[static_cast<int>(Team::Blue)] == 5);
 	assert(dom.nextScoreTime == level.time + 100_ms);
-	gi.Com_Print = TestComPrint;
-	gi.Broadcast_Print = TestBroadcast;
-	gi.Client_Print = TestClientPrint;
-	gi.Center_Print = TestCenterPrint;
-	gi.sound = TestSound;
-	gi.positionedSound = TestPositionedSound;
-	gi.soundIndex = TestSoundIndex;
-	gi.unlinkEntity = TestUnlink;
-	gi.Bot_UnRegisterEntity = TestBotUnregister;
-	gi.Com_Error = TestComError;
 
-	deathmatchVar.integer = 0;
-	deathmatchVar.value = 0.0f;
-	fragLimitVar.integer = 0;
-	fragLimitVar.value = 0.0f;
-	captureLimitVar.integer = 0;
-	captureLimitVar.value = 0.0f;
-	roundLimitVar.integer = 0;
-	roundLimitVar.value = 0.0f;
-	noPlayersTimeVar.integer = 0;
-	noPlayersTimeVar.value = 0.0f;
-	timeLimitVar.integer = 0;
-	timeLimitVar.value = 0.0f;
-	mercyLimitVar.integer = 0;
-	mercyLimitVar.value = 0.0f;
-	matchStartNoHumansVar.integer = 1;
-	matchStartNoHumansVar.value = 1.0f;
-	matchDoOvertimeVar.integer = 0;
-	matchDoOvertimeVar.value = 0.0f;
-	minplayersVar.integer = 0;
-	minplayersVar.value = 0.0f;
-	allowSpecVoteVar.integer = 0;
-	allowSpecVoteVar.value = 0.0f;
-	teamplayForceBalanceVar.integer = 0;
-	teamplayForceBalanceVar.value = 0.0f;
-	teamplayAutoBalanceVar.integer = 0;
-	teamplayAutoBalanceVar.value = 0.0f;
+	g_domination_tick_interval_storage.value = 1.0f;
+	g_domination_tick_interval_storage.integer = 1;
+	g_domination_points_per_tick_storage.value = 1.0f;
+	g_domination_points_per_tick_storage.integer = 1;
+	level.teamScores.fill(0);
 
-	constexpr size_t kEntityCapacity = 4;
-	using EntityStorage = std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)>;
-	static EntityStorage entityStorage[kEntityCapacity];
-	g_entities = reinterpret_cast<gentity_t*>(entityStorage);
-	std::memset(g_entities, 0, sizeof(gentity_t) * kEntityCapacity);
-	for (size_t i = 0; i < kEntityCapacity; ++i) {
-	        g_entities[i].s.number = static_cast<int>(i);
-	        g_entities[i].spawn_count = 0;
+	const GameTime frameStep = GameTime::from_ms(gi.frameTimeMs);
+	trace_t tr{};
+
+	level.domination = {};
+	LevelLocals::DominationState& captureDom = level.domination;
+	captureDom.count = 1;
+	auto* captureEnt = reinterpret_cast<gentity_t*>(&pointStorage[0]);
+	std::memset(captureEnt, 0, sizeof(gentity_t));
+	captureEnt->inUse = true;
+	captureEnt->spawn_count = 1;
+	auto& capturePoint = captureDom.points[0];
+	capturePoint.ent = captureEnt;
+	capturePoint.spawnCount = captureEnt->spawn_count;
+	capturePoint.owner = Team::Red;
+	captureDom.nextScoreTime = 0_ms;
+	level.time = 0_ms;
+
+	Domination_InitLevel();
+
+	for (int i = 0; i < 9; ++i) {
+		level.time += frameStep;
+		Domination_PointTouch(capturePoint.ent, &g_entities[2], tr, false);
+		Domination_RunFrame();
+		assert(capturePoint.owner == Team::Red);
 	}
 
-	using ClientStorage = std::aligned_storage_t<sizeof(gclient_t), alignof(gclient_t)>;
-	static ClientStorage clientStorage[1];
-	game.clients = reinterpret_cast<gclient_t*>(clientStorage);
-	std::memset(game.clients, 0, sizeof(gclient_t) * 1);
-	game.maxClients = 0;
-	game.maxEntities = kEntityCapacity;
+	level.time += frameStep;
+	Domination_PointTouch(capturePoint.ent, &g_entities[2], tr, false);
+	Domination_RunFrame();
+	assert(capturePoint.owner == Team::Blue);
+	assert(capturePoint.capturingTeam == Team::None);
+	assert(capturePoint.captureProgress == 0.0f);
 
-	globals.numEntities = static_cast<uint32_t>(game.maxClients + 1);
-	globals.gentities = g_entities;
+	GameTime scoreTime = captureDom.nextScoreTime;
+	level.time = scoreTime;
+	Domination_RunFrame();
+	assert(level.teamScores[static_cast<int>(Team::Blue)] == 1);
 
-	level = {};
-	level.matchState = MatchState::In_Progress;
-	level.roundState = RoundState::In_Progress;
-	level.levelStartTime = 0_ms;
-	level.time = 10_sec;
 	level.teamScores.fill(0);
-	level.teamOldScores.fill(0);
 	level.domination = {};
-	level.domination.count = 1;
-	level.domination.nextScoreTime = level.time;
+	LevelLocals::DominationState& contestDom = level.domination;
+	contestDom.count = 1;
+	auto* contestEnt = reinterpret_cast<gentity_t*>(&pointStorage[0]);
+	std::memset(contestEnt, 0, sizeof(gentity_t));
+	contestEnt->inUse = true;
+	contestEnt->spawn_count = 1;
+	auto& contestPoint = contestDom.points[0];
+	contestPoint.ent = contestEnt;
+	contestPoint.spawnCount = contestEnt->spawn_count;
+	contestPoint.owner = Team::Red;
+	contestDom.nextScoreTime = 0_ms;
+	level.time = 0_ms;
 
-	auto& point = level.domination.points[0];
-	gentity_t* pointEnt = Spawn();
-	assert(pointEnt);
-	pointEnt->className = "domination_point";
-	point.ent = pointEnt;
-	point.owner = Team::Red;
-	point.index = 0;
-	point.spawnCount = pointEnt->spawn_count;
+	Domination_InitLevel();
 
-	const int initialRedScore = level.teamScores[static_cast<int>(Team::Red)];
-	const int initialBlueScore = level.teamScores[static_cast<int>(Team::Blue)];
+	for (int i = 0; i < 5; ++i) {
+		level.time += frameStep;
+		Domination_PointTouch(contestPoint.ent, &g_entities[2], tr, false);
+		Domination_RunFrame();
+	}
 
-	Domination_RunFrame();
+	assert(contestPoint.capturingTeam == Team::Blue);
+	assert(contestPoint.captureProgress > 0.0f);
 
-	const int firstRedScore = level.teamScores[static_cast<int>(Team::Red)];
-	assert(firstRedScore == initialRedScore + 1);
-	assert(level.teamScores[static_cast<int>(Team::Blue)] == initialBlueScore);
+	for (int i = 0; i < 5; ++i) {
+		level.time += frameStep;
+		Domination_PointTouch(contestPoint.ent, &g_entities[2], tr, false);
+		Domination_PointTouch(contestPoint.ent, &g_entities[1], tr, false);
+		Domination_RunFrame();
+	}
 
-	const GameTime nextTick = level.domination.nextScoreTime;
-
-	FreeEntity(pointEnt);
-	level.time = nextTick;
-
-	Domination_RunFrame();
-
-	assert(level.teamScores[static_cast<int>(Team::Red)] == firstRedScore);
-	assert(level.teamScores[static_cast<int>(Team::Blue)] == initialBlueScore);
-	assert(level.domination.points[0].ent == nullptr);
-	assert(level.domination.points[0].owner == Team::None);
-	assert(level.domination.points[0].spawnCount == 0);
+	assert(contestPoint.captureProgress == 0.0f);
+	assert(contestPoint.capturingTeam == Team::None);
+	assert(contestPoint.owner == Team::Red);
 
 	return 0;
 }
-
