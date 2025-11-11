@@ -9,12 +9,9 @@
 #include "g_headhunters.hpp"
 #include "g_harvester.hpp"
 
-#include <algorithm>
 #include <array>
-#include <cmath>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 
 namespace CTF {
@@ -42,82 +39,391 @@ namespace CTF {
 	inline constexpr GameTime AUTO_FLAG_RETURN_TIMEOUT = 30_sec;
 }
 
-struct TeamGame {
-	GameTime lastFlagCaptureTime = 0_sec;
-	Team lastFlagCaptureTeam = Team::None;
-
-	FlagStatus redFlagStatus = FlagStatus::AtBase;
-	FlagStatus blueFlagStatus = FlagStatus::AtBase;
-	FlagStatus neutralFlagStatus = FlagStatus::AtBase;
-
-	GameTime redTakenTime = 0_sec;
-	GameTime blueTakenTime = 0_sec;
-	GameTime redObeliskAttackedTime = 0_sec;
-	GameTime blueObeliskAttackedTime = 0_sec;
-};
-
-TeamGame teamGame{};
-
 gentity_t* neutralObelisk = nullptr;
 
 namespace {
 
-	template <typename Fn>
-	void ForEachClient(Fn&& fn) {
-		for (auto entity : active_clients()) {
-			if (!entity || !entity->client) {
-				continue;
-			}
-			std::forward<Fn>(fn)(entity);
+class FlagStateManager {
+public:
+	FlagStateManager();
+
+	[[nodiscard]] static FlagStateManager& Instance();
+
+	void Reset();
+	[[nodiscard]] bool SetStatus(Team team, FlagStatus status);
+	[[nodiscard]] FlagStatus GetStatus(Team team) const;
+	void SetTakenTime(Team team, GameTime time);
+	[[nodiscard]] GameTime GetTakenTime(Team team) const;
+	void RecordCapture(GameTime time, Team team);
+	[[nodiscard]] GameTime LastCaptureTime() const;
+	[[nodiscard]] Team LastCaptureTeam() const;
+	void UpdateConfigString() const;
+
+private:
+	struct FlagData {
+		FlagStatus status = FlagStatus::AtBase;
+		GameTime lastTaken = 0_sec;
+	};
+
+	[[nodiscard]] static std::optional<size_t> IndexForTeam(Team team);
+	[[nodiscard]] FlagData& DataFor(Team team);
+	[[nodiscard]] const FlagData& DataFor(Team team) const;
+	[[nodiscard]] std::string BuildConfigString() const;
+
+	std::array<FlagData, 3> data_{};
+	GameTime lastCaptureTime_ = 0_sec;
+	Team lastCaptureTeam_ = Team::None;
+	std::array<GameTime, 2> obeliskAttackTime_{ 0_sec, 0_sec };
+};
+
+/*
+=============
+FlagStateManager::FlagStateManager
+
+Constructs the flag state manager with default values.
+=============
+*/
+FlagStateManager::FlagStateManager() {
+	Reset();
+}
+
+/*
+=============
+FlagStateManager::Instance
+
+Returns the singleton flag state manager.
+=============
+*/
+FlagStateManager& FlagStateManager::Instance() {
+	static FlagStateManager instance;
+	return instance;
+}
+
+/*
+=============
+FlagStateManager::Reset
+
+Restores all tracked flag state to defaults.
+=============
+*/
+void FlagStateManager::Reset() {
+	for (auto& entry : data_) {
+		entry.status = FlagStatus::AtBase;
+		entry.lastTaken = 0_sec;
+	}
+	lastCaptureTime_ = 0_sec;
+	lastCaptureTeam_ = Team::None;
+	obeliskAttackTime_ = { 0_sec, 0_sec };
+	UpdateConfigString();
+}
+
+/*
+=============
+FlagStateManager::SetStatus
+
+Updates the stored flag status for the provided team.
+=============
+*/
+bool FlagStateManager::SetStatus(Team team, FlagStatus status) {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		return false;
+	}
+
+	FlagData& data = data_.at(*index);
+	if (data.status == status) {
+		return false;
+	}
+
+	data.status = status;
+	UpdateConfigString();
+	return true;
+}
+
+/*
+=============
+FlagStateManager::GetStatus
+
+Returns the stored flag status for the provided team.
+=============
+*/
+FlagStatus FlagStateManager::GetStatus(Team team) const {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		return FlagStatus::Invalid;
+	}
+
+	return data_.at(*index).status;
+}
+
+/*
+=============
+FlagStateManager::SetTakenTime
+
+Records the time at which the specified team's flag was last taken.
+=============
+*/
+void FlagStateManager::SetTakenTime(Team team, GameTime time) {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		return;
+	}
+
+	data_.at(*index).lastTaken = time;
+}
+
+/*
+=============
+FlagStateManager::GetTakenTime
+
+Fetches the last recorded time a team's flag was taken.
+=============
+*/
+GameTime FlagStateManager::GetTakenTime(Team team) const {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		return 0_sec;
+	}
+
+	return data_.at(*index).lastTaken;
+}
+
+/*
+=============
+FlagStateManager::RecordCapture
+
+Stores the most recent flag capture information.
+=============
+*/
+void FlagStateManager::RecordCapture(GameTime time, Team team) {
+	lastCaptureTime_ = time;
+	lastCaptureTeam_ = team;
+}
+
+/*
+=============
+FlagStateManager::LastCaptureTime
+
+Returns the time at which the last capture occurred.
+=============
+*/
+GameTime FlagStateManager::LastCaptureTime() const {
+	return lastCaptureTime_;
+}
+
+/*
+=============
+FlagStateManager::LastCaptureTeam
+
+Returns the team that last captured a flag.
+=============
+*/
+Team FlagStateManager::LastCaptureTeam() const {
+	return lastCaptureTeam_;
+}
+
+/*
+=============
+FlagStateManager::IndexForTeam
+
+Provides the array index backing a team's flag data.
+=============
+*/
+std::optional<size_t> FlagStateManager::IndexForTeam(Team team) {
+	switch (team) {
+	case Team::Red:
+		return 0;
+	case Team::Blue:
+		return 1;
+	case Team::Free:
+		return 2;
+	default:
+		return std::nullopt;
+	}
+}
+
+/*
+=============
+FlagStateManager::DataFor
+
+Fetches mutable flag data for the specified team.
+=============
+*/
+FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		static FlagData dummy{};
+		return dummy;
+	}
+
+	return data_.at(*index);
+}
+
+/*
+=============
+FlagStateManager::DataFor
+
+Fetches immutable flag data for the specified team.
+=============
+*/
+const FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) const {
+	const auto index = IndexForTeam(team);
+	if (!index) {
+		static FlagData dummy{};
+		return dummy;
+	}
+
+	return data_.at(*index);
+}
+
+/*
+=============
+FlagStateManager::BuildConfigString
+
+Constructs the configstring payload for clients.
+=============
+*/
+std::string FlagStateManager::BuildConfigString() const {
+	std::string flagStatusStr;
+	flagStatusStr.reserve(Game::Is(GameType::CaptureTheFlag) ? 2 : 3);
+
+	static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
+	static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
+
+	if (Game::Is(GameType::CaptureTheFlag)) {
+		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(DataFor(Team::Red).status)));
+		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(DataFor(Team::Blue).status)));
+	}
+	else {
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Red).status)));
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Blue).status)));
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Free).status)));
+	}
+
+	return flagStatusStr;
+}
+
+/*
+=============
+FlagStateManager::UpdateConfigString
+
+Sends updated flag state to connected clients.
+=============
+*/
+void FlagStateManager::UpdateConfigString() const {
+	const std::string payload = BuildConfigString();
+	(void)payload; // TODO: trap_SetConfigstring(CS_FLAGSTATUS, payload);
+}
+
+/*
+=============
+Flags
+
+Returns the shared flag state manager instance.
+=============
+*/
+FlagStateManager& Flags() {
+	return FlagStateManager::Instance();
+}
+
+/*
+=============
+ForEachClient
+
+Executes the supplied functor for each connected client.
+=============
+*/
+template <typename Fn>
+void ForEachClient(Fn&& fn) {
+	for (auto entity : active_clients()) {
+		if (!entity || !entity->client) {
+			continue;
 		}
+		std::forward<Fn>(fn)(entity);
 	}
+}
 
-	[[nodiscard]] bool SupportsCTF() {
-		return Game::Has(GameFlags::CTF);
-	}
+/*
+=============
+SupportsCTF
 
-	[[nodiscard]] bool IsPrimaryTeam(Team team) {
-		return team == Team::Red || team == Team::Blue;
-	}
+Returns true when the current gametype supports CTF features.
+=============
+*/
+[[nodiscard]] bool SupportsCTF() {
+	return Game::Has(GameFlags::CTF);
+}
 
-	[[nodiscard]] const char* TeamFlagClassName(Team team) {
-		switch (team) {
-		case Team::Red:
-			return ITEM_CTF_FLAG_RED;
-		case Team::Blue:
-			return ITEM_CTF_FLAG_BLUE;
-		case Team::Free:
-			return ITEM_CTF_FLAG_NEUTRAL;
-		default:
-			return nullptr;
-		}
-	}
+/*
+=============
+IsPrimaryTeam
 
-	[[nodiscard]] item_id_t TeamFlagItem(Team team) {
-		switch (team) {
-		case Team::Red:
-			return IT_FLAG_RED;
-		case Team::Blue:
-			return IT_FLAG_BLUE;
-		case Team::Free:
-			return IT_FLAG_NEUTRAL;
-		default:
-			return IT_NULL;
-		}
-	}
+Checks whether the provided team is a primary (red or blue) team.
+=============
+*/
+[[nodiscard]] bool IsPrimaryTeam(Team team) {
+	return team == Team::Red || team == Team::Blue;
+}
 
-	[[nodiscard]] std::optional<Team> TeamFromFlagItem(item_id_t item) {
-		switch (item) {
-		case IT_FLAG_RED:
-			return Team::Red;
-		case IT_FLAG_BLUE:
-			return Team::Blue;
-		case IT_FLAG_NEUTRAL:
-			return Team::Free;
-		default:
-			return std::nullopt;
-		}
+/*
+=============
+TeamFlagClassName
+
+Maps a team to its corresponding flag classname.
+=============
+*/
+[[nodiscard]] const char* TeamFlagClassName(Team team) {
+	switch (team) {
+	case Team::Red:
+		return ITEM_CTF_FLAG_RED;
+	case Team::Blue:
+		return ITEM_CTF_FLAG_BLUE;
+	case Team::Free:
+		return ITEM_CTF_FLAG_NEUTRAL;
+	default:
+		return nullptr;
 	}
+}
+
+/*
+=============
+TeamFlagItem
+
+Maps a team to its inventory identifier.
+=============
+*/
+[[nodiscard]] item_id_t TeamFlagItem(Team team) {
+	switch (team) {
+	case Team::Red:
+		return IT_FLAG_RED;
+	case Team::Blue:
+		return IT_FLAG_BLUE;
+	case Team::Free:
+		return IT_FLAG_NEUTRAL;
+	default:
+		return IT_NULL;
+	}
+}
+
+/*
+=============
+TeamFromFlagItem
+
+Maps a flag item identifier back to its owning team.
+=============
+*/
+[[nodiscard]] std::optional<Team> TeamFromFlagItem(item_id_t item) {
+	switch (item) {
+	case IT_FLAG_RED:
+		return Team::Red;
+	case IT_FLAG_BLUE:
+		return Team::Blue;
+	case IT_FLAG_NEUTRAL:
+		return Team::Free;
+	default:
+		return std::nullopt;
+	}
+}
 
 	template <typename Flags>
 	[[nodiscard]] bool HasSpawnFlagImpl(const Flags& flags, SpawnFlags flag) {
@@ -190,6 +496,7 @@ namespace {
 			return;
 		}
 
+		Flags().RecordCapture(level.time, scoringTeam);
 		level.ctf_last_flag_capture = level.time;
 		level.ctf_last_capture_team = scoringTeam;
 		G_AdjustTeamScore(scoringTeam, Game::Is(GameType::CaptureStrike) ? 2 : 1);
@@ -202,6 +509,13 @@ namespace {
 		AwardAssistBonuses(scorer);
 	}
 
+	/*
+	=============
+	BroadcastCaptureMessage
+
+	Informs all players about a completed capture.
+	=============
+	*/
 	void BroadcastCaptureMessage(Team scoringTeam, gentity_t* scorer, GameTime pickupTime) {
 		if (!scorer || !scorer->client) {
 			return;
@@ -224,6 +538,13 @@ namespace {
 		}
 	}
 
+	/*
+	=============
+	FindTeamFlag
+
+	Finds an in-world flag entity for the specified team.
+	=============
+	*/
 	[[nodiscard]] std::optional<gentity_t*> FindTeamFlag(Team team) {
 		const char* className = TeamFlagClassName(team);
 		if (!className) {
@@ -240,6 +561,13 @@ namespace {
 		return std::nullopt;
 	}
 
+	/*
+	=============
+	FindFlagCarrier
+
+	Searches for the player currently holding a specific flag.
+	=============
+	*/
 	[[nodiscard]] gentity_t* FindFlagCarrier(item_id_t flagItem) {
 		gentity_t* carrier = nullptr;
 		ForEachClient([&carrier, flagItem](gentity_t* entity) {
@@ -250,6 +578,13 @@ namespace {
 		return carrier;
 	}
 
+	/*
+	=============
+	AwardBaseDefense
+
+	Grants a defender bonus for protecting the base.
+	=============
+	*/
 	void AwardBaseDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
@@ -258,6 +593,13 @@ namespace {
 		PushAward(attacker, PlayerMedal::Defence);
 	}
 
+	/*
+	=============
+	AwardCarrierDefense
+
+	Grants a defender bonus for protecting the flag carrier.
+	=============
+	*/
 	void AwardCarrierDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
@@ -265,6 +607,13 @@ namespace {
 		G_AdjustPlayerScore(attacker->client, CTF::CARRIER_PROTECT_BONUS, false, 0);
 	}
 
+	/*
+	=============
+	AwardCarrierDangerDefense
+
+	Grants a defender bonus for eliminating threats near the carrier.
+	=============
+	*/
 	void AwardCarrierDangerDefense(gentity_t* attacker) {
 		if (!attacker || !attacker->client) {
 			return;
@@ -273,25 +622,39 @@ namespace {
 		PushAward(attacker, PlayerMedal::Defence);
 	}
 
+	/*
+	=============
+	Team_ReturnFlagSound
+
+	Placeholder for flag return VO triggers.
+	=============
+	*/
 	void Team_ReturnFlagSound(Team) {
 		// TODO: hook up return VO
 	}
 
+	/*
+	=============
+	Team_TakeFlagSound
+
+	Handles audio triggers for flag pickups while throttling repeats.
+	=============
+	*/
 	void Team_TakeFlagSound(Team team) {
 		switch (team) {
 		case Team::Red:
-			if (teamGame.blueFlagStatus != FlagStatus::AtBase &&
-				teamGame.blueTakenTime > level.time - 5_sec) {
+			if (Flags().GetStatus(Team::Blue) != FlagStatus::AtBase &&
+				Flags().GetTakenTime(Team::Blue) > level.time - 5_sec) {
 				return;
 			}
-			teamGame.blueTakenTime = level.time;
+			Flags().SetTakenTime(Team::Blue, level.time);
 			break;
 		case Team::Blue:
-			if (teamGame.redFlagStatus != FlagStatus::AtBase &&
-				teamGame.redTakenTime > level.time - 5_sec) {
+			if (Flags().GetStatus(Team::Red) != FlagStatus::AtBase &&
+				Flags().GetTakenTime(Team::Red) > level.time - 5_sec) {
 				return;
 			}
-			teamGame.redTakenTime = level.time;
+			Flags().SetTakenTime(Team::Red, level.time);
 			break;
 		default:
 			return;
@@ -299,69 +662,24 @@ namespace {
 		// TODO: hook up take VO
 	}
 
+	/*
+	=============
+	Team_CaptureFlagSound_Internal
+
+	Placeholder for capture VO triggers.
+	=============
+	*/
 	void Team_CaptureFlagSound_Internal(Team) {
 		// TODO: hook up capture VO
 	}
 
-	void UpdateFlagConfigString() {
-		std::string flagStatusStr;
-		flagStatusStr.reserve(3);
+	/*
+	=============
+	GiveFlagToPlayer
 
-		static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
-		static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
-
-		if (Game::Is(GameType::CaptureTheFlag)) {
-			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus)));
-			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus)));
-		}
-		else {
-			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.redFlagStatus)));
-			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.blueFlagStatus)));
-			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(teamGame.neutralFlagStatus)));
-		}
-
-		// trap_SetConfigstring(CS_FLAGSTATUS, flagStatusStr);
-	}
-
-	bool SetFlagStatus_Internal(Team team, FlagStatus status) {
-		bool modified = false;
-
-		switch (team) {
-		case Team::Red:
-			if (teamGame.redFlagStatus != status) {
-				teamGame.redFlagStatus = status;
-				modified = true;
-			}
-			break;
-		case Team::Blue:
-			if (teamGame.blueFlagStatus != status) {
-				teamGame.blueFlagStatus = status;
-				modified = true;
-			}
-			break;
-		case Team::Free:
-			if (teamGame.neutralFlagStatus != status) {
-				teamGame.neutralFlagStatus = status;
-				modified = true;
-			}
-			break;
-		default:
-			break;
-		}
-
-		if (modified) {
-			UpdateFlagConfigString();
-		}
-
-		return modified;
-	}
-
-	void AwardFlagCapture_Internal(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
-		BroadcastCaptureMessage(scoringTeam, scorer, pickupTime);
-		ApplyCaptureRewards(flagEntity, scorer, scoringTeam);
-		Team_CaptureFlagSound_Internal(scoringTeam);
-	}
-
+	Assigns the picked-up flag to the player and updates state.
+	=============
+	*/
 	void GiveFlagToPlayer(gentity_t* flagEntity, gentity_t* player, Team flagTeam, item_id_t flagItem) {
 		if (!flagEntity || !player || !player->client) {
 			return;
@@ -382,16 +700,23 @@ namespace {
 			default:
 				break;
 			}
-			SetFlagStatus_Internal(Team::Free, status);
+			Flags().SetStatus(Team::Free, status);
 			flagEntity->fteam = player->client->sess.team;
 		}
 		else {
-			SetFlagStatus_Internal(flagTeam, FlagStatus::Taken);
+			Flags().SetStatus(flagTeam, FlagStatus::Taken);
 		}
 
 		Team_TakeFlagSound(player->client->sess.team);
 	}
 
+	/*
+	=============
+	RemoveDroppedFlag
+
+	Removes a dropped flag entity from the world.
+	=============
+	*/
 	void RemoveDroppedFlag(gentity_t* ent) {
 		if (!ent) {
 			return;
@@ -400,6 +725,13 @@ namespace {
 		FreeEntity(ent);
 	}
 
+	/*
+	=============
+	RespawnFlag
+
+	Respawns a flag entity at its original location.
+	=============
+	*/
 	void RespawnFlag(gentity_t* ent, Team team) {
 		if (!ent) {
 			return;
@@ -416,18 +748,48 @@ namespace {
 
 }
 
+/*
+=============
+Team_CaptureFlagSound
+
+External entry point for capture VO triggers.
+=============
+*/
 void Team_CaptureFlagSound(Team team) {
 	Team_CaptureFlagSound_Internal(team);
 }
 
+/*
+=============
+SetFlagStatus
+
+External entry point to modify flag status.
+=============
+*/
 bool SetFlagStatus(Team team, FlagStatus status) {
-	return SetFlagStatus_Internal(team, status);
+	return Flags().SetStatus(team, status);
 }
 
+/*
+=============
+AwardFlagCapture
+
+Awards a player and team for capturing a flag.
+=============
+*/
 void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime) {
-	AwardFlagCapture_Internal(flagEntity, scorer, scoringTeam, pickupTime);
+	BroadcastCaptureMessage(scoringTeam, scorer, pickupTime);
+	ApplyCaptureRewards(flagEntity, scorer, scoringTeam);
+	Team_CaptureFlagSound_Internal(scoringTeam);
 }
 
+/*
+=============
+Team_ReturnFlag
+
+Handles logic for returning a flag to its base.
+=============
+*/
 static void Team_ReturnFlag(Team team) {
 	if (!CTF_ResetTeamFlag(team)) {
 		return;
@@ -443,6 +805,13 @@ static void Team_ReturnFlag(Team team) {
 	}
 }
 
+/*
+=============
+Team_CheckDroppedItem
+
+Updates flag status for dropped flag entities.
+=============
+*/
 static void Team_CheckDroppedItem(gentity_t* dropped) {
 	if (!SupportsCTF() || !dropped || !dropped->item) {
 		return;
@@ -463,6 +832,13 @@ static void Team_CheckDroppedItem(gentity_t* dropped) {
 	}
 }
 
+/*
+=============
+CTF_ScoreBonuses
+
+Awards context-sensitive bonuses related to flag interactions.
+=============
+*/
 void CTF_ScoreBonuses(gentity_t* targ, gentity_t*, gentity_t* attacker) {
 	if (!SupportsCTF()) {
 		return;
@@ -528,6 +904,13 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t*, gentity_t* attacker) {
 	}
 }
 
+/*
+=============
+CTF_CheckHurtCarrier
+
+Tracks when a player damages the opposing flag carrier.
+=============
+*/
 void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker) {
 	if (!SupportsCTF()) {
 		return;
@@ -543,6 +926,13 @@ void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker) {
 	}
 }
 
+/*
+=============
+CTF_ResetTeamFlag
+
+Resets a team's flag to its spawn state.
+=============
+*/
 bool CTF_ResetTeamFlag(Team team) {
 	if (!SupportsCTF()) {
 		return false;
@@ -582,6 +972,13 @@ bool CTF_ResetTeamFlag(Team team) {
 	return found;
 }
 
+/*
+=============
+CTF_ResetFlags
+
+Resets all flags for the current gametype.
+=============
+*/
 void CTF_ResetFlags() {
 	if (!SupportsCTF()) {
 		return;
@@ -594,6 +991,13 @@ void CTF_ResetFlags() {
 	}
 }
 
+/*
+=============
+CTF_PickupFlag
+
+Handles logic when a player touches a flag.
+=============
+*/
 bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	if (!SupportsCTF() || !ent || !ent->item || !other || !other->client) {
 		return false;
@@ -678,6 +1082,13 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	return true;
 }
 
+/*
+=============
+CTF_DropFlagTouch
+
+Touch handler for dropped flag entities.
+=============
+*/
 static TOUCH(CTF_DropFlagTouch)(gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf)->void {
 	if (!SupportsCTF()) {
 		return;
@@ -690,6 +1101,13 @@ static TOUCH(CTF_DropFlagTouch)(gentity_t* ent, gentity_t* other, const trace_t&
 	Touch_Item(ent, other, tr, otherTouchingSelf);
 }
 
+/*
+=============
+CTF_DropFlagThink
+
+Think function for handling automatic flag returns.
+=============
+*/
 static THINK(CTF_DropFlagThink)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent || !ent->item) {
 		return;
@@ -714,6 +1132,13 @@ static THINK(CTF_DropFlagThink)(gentity_t* ent)->void {
 	gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 }
 
+/*
+=============
+CTF_DeadDropFlag
+
+Drops any carried flags when a player dies.
+=============
+*/
 void CTF_DeadDropFlag(gentity_t* self) {
 	if (!SupportsCTF() || !self || !self->client) {
 		return;
@@ -770,6 +1195,13 @@ void CTF_DeadDropFlag(gentity_t* self) {
 	}
 }
 
+/*
+=============
+CTF_DropFlag
+
+Handles manual flag drops triggered by a player.
+=============
+*/
 void CTF_DropFlag(gentity_t* ent, Item*) {
 	if (!SupportsCTF() || !ent || !ent->client) {
 		return;
@@ -785,6 +1217,13 @@ void CTF_DropFlag(gentity_t* ent, Item*) {
 	}
 }
 
+/*
+=============
+CTF_FlagThink
+
+Animates flag models while active in the world.
+=============
+*/
 static THINK(CTF_FlagThink)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent) {
 		return;
@@ -796,6 +1235,13 @@ static THINK(CTF_FlagThink)(gentity_t* ent)->void {
 	ent->nextThink = level.time + 10_hz;
 }
 
+/*
+=============
+CTF_FlagSetup
+
+Initialises static flag entities when they spawn.
+=============
+*/
 THINK(CTF_FlagSetup)(gentity_t* ent)->void {
 	if (!SupportsCTF() || !ent) {
 		return;
@@ -831,6 +1277,13 @@ THINK(CTF_FlagSetup)(gentity_t* ent)->void {
 	ent->think = CTF_FlagThink;
 }
 
+/*
+=============
+CTF_ClientEffects
+
+Applies client-side flag visuals and effects.
+=============
+*/
 void CTF_ClientEffects(gentity_t* player) {
 	if (!SupportsCTF() || !player || !player->client) {
 		return;
