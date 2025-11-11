@@ -1,6 +1,6 @@
 # WORR Asset Register
 
-This register lists game assets referenced by the WORR codebase that do not appear in the Quake II Rerelease source found at `dev_tools/quake2-rerelease-dll-main/rerelease`. Paths are relative to the game data directory. An empty folder hierarchy mirroring these paths is provided under `assets/` so that finalized files can be dropped in without additional setup.
+This register lists game assets referenced by the WORR codebase that do not appear in the Quake II Rerelease source found at `dev_tools/quake2-rerelease-dll-main/rerelease`. Paths are relative to the game data directory. An empty folder hierarchy mirroring these paths is provided under `assets/pak/` so that finalized files can be dropped in without additional setup.
 
 ## Summary
 
