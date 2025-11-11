@@ -1842,7 +1842,6 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         Domination_ClearState();
         HeadHunters::ClearState();
         ProBall::ClearState();
-        ProBall::ClearState();
         level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
@@ -1936,7 +1935,6 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 
         Domination_InitLevel();
         HeadHunters::InitLevel();
-        ProBall::InitLevel();
         ProBall::InitLevel();
 
         level.init = true;
