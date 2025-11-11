@@ -874,6 +874,46 @@ static inline void Weapon_SetFinished(gentity_t* ent) {
 }
 
 /*
+=============
+Weapon_ForceIdle
+
+Forces an active weapon to stop firing and return to an idle-ready state.
+=============
+*/
+void Weapon_ForceIdle(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
+
+	gclient_t* cl = ent->client;
+
+	cl->latchedButtons &= ~BUTTON_ATTACK;
+	cl->buttons &= ~BUTTON_ATTACK;
+	cl->weapon.fireBuffered = false;
+	cl->weapon.thunk = false;
+	if (cl->weapon.thinkTime > level.time)
+		cl->weapon.thinkTime = level.time;
+	if (cl->weapon.fireFinished > level.time)
+		cl->weapon.fireFinished = level.time;
+
+	if (cl->weaponState != WeaponState::Ready)
+		cl->weaponState = WeaponState::Ready;
+
+	if (cl->weaponSound)
+		cl->weaponSound = 0;
+
+	if (cl->ps.gunFrame < 0)
+		cl->ps.gunFrame = 0;
+
+	Weapon_Grapple_DoReset(cl);
+
+	if (cl->grenadeTime) {
+		cl->grenadeTime = 0_ms;
+		cl->grenadeFinishedTime = level.time;
+		cl->grenadeBlewUp = false;
+	}
+}
+
+/*
 ===========================
 Weapon_HandleDropping
 ===========================
