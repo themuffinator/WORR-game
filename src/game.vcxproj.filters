@@ -235,6 +235,9 @@
     <ClInclude Include="server\gameplay\g_headhunters.hpp">
       <Filter>matches</Filter>
     </ClInclude>
+    <ClInclude Include="server\gameplay\g_capture.hpp">
+      <Filter>matches</Filter>
+    </ClInclude>
     <ClInclude Include="server\gameplay\g_harvester.hpp">
       <Filter>matches</Filter>
     </ClInclude>
@@ -578,6 +581,9 @@
       <Filter>matches</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_harvester.cpp">
+      <Filter>matches</Filter>
+    </ClCompile>
+    <ClCompile Include="server\gameplay\g_capture.cpp">
       <Filter>matches</Filter>
     </ClCompile>
     <ClCompile Include="server\gameplay\g_teamplay.cpp">

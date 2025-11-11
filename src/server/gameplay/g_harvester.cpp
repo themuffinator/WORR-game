@@ -1,4 +1,5 @@
 #include "../g_local.hpp"
+#include "g_capture.hpp"
 #include "g_teamplay.hpp"
 #include "g_headhunters.hpp"
 #include "g_harvester.hpp"
@@ -11,10 +12,6 @@ namespace {
 	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
 	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
 	constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
-
-	[[nodiscard]] bool IsPrimaryTeam(Team team) {
-		return team == Team::Red || team == Team::Blue;
-	}
 
 	THINK(Harvester_SkullExpire)(gentity_t* ent)->void {
 		if (!ent) {
@@ -51,7 +48,7 @@ namespace {
 		}
 
 		const Team baseTeam = ent->fteam;
-		if (!IsPrimaryTeam(baseTeam)) {
+		if (!Teamplay_IsPrimaryTeam(baseTeam)) {
 			return;
 		}
 
@@ -62,7 +59,7 @@ namespace {
 		if (harvester) {
 			const int tokens = other->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 			if (tokens <= 0) {
-				return;
+			return;
 			}
 
 			other->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
@@ -129,10 +126,6 @@ void Harvester_PositionOnFloor(gentity_t* ent) {
 	Harvester_PositionOnFloor_Internal(ent);
 }
 
-static bool Harvester_IsPrimaryTeam(Team team) {
-	return team == Team::Red || team == Team::Blue;
-}
-
 static void Harvester_SetupSkullEntity(gentity_t* skull, Item* item, Team team) {
 	skull->className = item->className;
 	skull->item = item;
@@ -186,7 +179,7 @@ gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtF
 }
 
 void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
-	if (!Harvester_IsPrimaryTeam(team) || count <= 0) {
+	if (!Teamplay_IsPrimaryTeam(team) || count <= 0) {
 		return;
 	}
 
@@ -288,13 +281,13 @@ void Harvester_HandlePlayerDeath(gentity_t* victim) {
 	}
 
 	const Team team = victim->client->sess.team;
-	if (!Harvester_IsPrimaryTeam(team)) {
+	if (!Teamplay_IsPrimaryTeam(team)) {
 		return;
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
 	const int carried = victim->client->ps.stats[STAT_GAMEPLAY_CARRIED];
-	if (carried > 0 && Harvester_IsPrimaryTeam(enemy)) {
+	if (carried > 0 && Teamplay_IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, victim->s.origin, true);
 	}
 
@@ -308,13 +301,13 @@ void Harvester_HandlePlayerDisconnect(gentity_t* ent) {
 	}
 
 	const Team team = ent->client->sess.team;
-	if (!Harvester_IsPrimaryTeam(team)) {
+	if (!Teamplay_IsPrimaryTeam(team)) {
 		return;
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
 	const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
-	if (carried > 0 && Harvester_IsPrimaryTeam(enemy)) {
+	if (carried > 0 && Teamplay_IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, ent->s.origin, true);
 	}
 
@@ -328,13 +321,13 @@ void Harvester_HandleTeamChange(gentity_t* ent) {
 	}
 
 	const Team team = ent->client->sess.team;
-	if (!Harvester_IsPrimaryTeam(team)) {
+	if (!Teamplay_IsPrimaryTeam(team)) {
 		return;
 	}
 
 	const Team enemy = Teams_OtherTeam(team);
 	const int carried = ent->client->ps.stats[STAT_GAMEPLAY_CARRIED];
-	if (carried > 0 && Harvester_IsPrimaryTeam(enemy)) {
+	if (carried > 0 && Teamplay_IsPrimaryTeam(enemy)) {
 		Harvester_DropSkulls(enemy, carried, ent->s.origin, true);
 	}
 

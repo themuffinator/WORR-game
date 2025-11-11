@@ -4103,7 +4103,7 @@ void G_PostRespawn(gentity_t* self);
 std::string GetPlayerNameForSocialID(const std::string& socialID);
 
 //
-// g_ctf.cpp
+// g_capture.cpp
 //
 bool CTF_PickupFlag(gentity_t* ent, gentity_t* other);
 void CTF_DropFlag(gentity_t* ent, Item* item);
