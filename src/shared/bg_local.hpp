@@ -61,6 +61,8 @@ enum class CoopRespawn {
 	Total
 };
 
+constexpr size_t MAX_DOMINATION_POINTS = 8;
+
 // reserved general CS ranges
 enum {
 	CONFIG_MATCH_STATE = CS_GENERAL,
@@ -75,6 +77,9 @@ enum {
 	// [Paril-KEX] if 1, n64 player physics apply
 	CONFIG_N64_PHYSICS_MEDAL,	// this is also used for medal display in dm
 	CONFIG_HEALTH_BAR_NAME, // active health bar name
+
+	CONFIG_DOMINATION_POINT_LABEL_START,
+	CONFIG_DOMINATION_POINT_LABEL_END = CONFIG_DOMINATION_POINT_LABEL_START + MAX_DOMINATION_POINTS - 1,
 
 	CONFIG_STORY_SCORELIMIT,	// this is also used for scorelimit display in dm
 
@@ -198,6 +203,57 @@ constexpr uint16_t GetPowerupStat(uint16_t* start, uint8_t powerup_id) {
 	return get_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id);
 }
 
+constexpr uint16_t DOMINATION_POINT_OWNER_MASK = 0x0003;
+constexpr uint16_t DOMINATION_POINT_OWNER_BITS = 2;
+constexpr uint16_t DOMINATION_POINT_TEAM_RED = 3;
+constexpr uint16_t DOMINATION_POINT_TEAM_BLUE = 4;
+
+static_assert(DOMINATION_POINT_OWNER_BITS * MAX_DOMINATION_POINTS <= 16,
+	"Domination HUD metadata exceeds stat bit-width");
+
+/*
+=============
+PackDominationPointOwner
+
+Inserts a domination point owner into the packed metadata bitfield.
+=============
+*/
+constexpr uint16_t PackDominationPointOwner(uint16_t packedValue, size_t pointIndex, uint16_t ownerIndex) {
+	const uint16_t shift = static_cast<uint16_t>(pointIndex * DOMINATION_POINT_OWNER_BITS);
+	const uint16_t mask = static_cast<uint16_t>(DOMINATION_POINT_OWNER_MASK << shift);
+	uint16_t encoded = 0;
+
+	if (ownerIndex == DOMINATION_POINT_TEAM_RED) {
+		encoded = 1;
+	}
+	else if (ownerIndex == DOMINATION_POINT_TEAM_BLUE) {
+		encoded = 2;
+	}
+
+	return static_cast<uint16_t>((packedValue & ~mask) | (encoded << shift));
+}
+
+/*
+=============
+DominationPointOwnerIndex
+
+Extracts the owning team index for a domination point from the packed metadata.
+=============
+*/
+constexpr uint16_t DominationPointOwnerIndex(uint16_t packedValue, size_t pointIndex) {
+	const uint16_t shift = static_cast<uint16_t>(pointIndex * DOMINATION_POINT_OWNER_BITS);
+	const uint16_t encoded = static_cast<uint16_t>((packedValue >> shift) & DOMINATION_POINT_OWNER_MASK);
+
+	if (encoded == 1) {
+		return DOMINATION_POINT_TEAM_RED;
+	}
+	if (encoded == 2) {
+		return DOMINATION_POINT_TEAM_BLUE;
+	}
+	return 0;
+}
+
+
 // player_state->stats[] indexes
 enum player_stat_t {
 	STAT_HEALTH_ICON = 0,
@@ -269,6 +325,8 @@ enum player_stat_t {
 	STAT_SHOW_STATUSBAR,
 
 	STAT_COUNTDOWN,
+
+	STAT_DOMINATION_POINTS,
 
 	STAT_MINISCORE_FIRST_VAL,
 	STAT_MINISCORE_SECOND_VAL,

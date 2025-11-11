@@ -1,9 +1,13 @@
 #include "../g_local.hpp"
+#include "g_domination.hpp"
 
 #include <cmath>
 #include <string>
 
 extern const spawn_temp_t& ED_GetSpawnTemp();
+
+static_assert(LevelLocals::DominationState::MAX_POINTS == MAX_DOMINATION_POINTS,
+        "Domination HUD point count mismatch");
 
 namespace {
 	constexpr GameTime kDominationMinScoreInterval = 100_ms;
@@ -168,13 +172,13 @@ namespace {
 		return &point;
 	}
 
-	std::string PointLabel(const gentity_t* ent, size_t index) {
-		if (ent->message && ent->message[0])
-			return ent->message;
-		if (ent->targetName && ent->targetName[0])
-			return ent->targetName;
-		return G_Fmt("Point {}", index + 1).data();
-	}
+        std::string PointLabel(const gentity_t* ent, size_t index) {
+                if (ent->message && ent->message[0])
+                        return ent->message;
+                if (ent->targetName && ent->targetName[0])
+                        return ent->targetName;
+                return G_Fmt("Point {}", index + 1).data();
+        }
 
 	void AnnounceCapture(gentity_t* ent, Team team, size_t index) {
 		const std::string label = PointLabel(ent, index);
@@ -228,10 +232,21 @@ namespace {
 
 } // namespace
 
+/*
+=============
+Domination_PointLabel
+
+Exposes the shared logic for deriving Domination point labels for HUD usage.
+=============
+*/
+std::string Domination_PointLabel(const gentity_t* ent, size_t index) {
+	return PointLabel(ent, index);
+}
+
 void Domination_ClearState() {
-	for (auto& point : level.domination.points) {
-		FreePointBeam(point);
-	}
+        for (auto& point : level.domination.points) {
+                FreePointBeam(point);
+        }
 
 	level.domination = {};
 }

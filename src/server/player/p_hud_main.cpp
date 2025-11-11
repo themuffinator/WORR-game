@@ -20,6 +20,7 @@
 
 #include "../g_local.hpp"
 #include "../gameplay/g_statusbar.hpp"
+#include "p_hud_domination.hpp"
 
 #include <array>
 
@@ -1448,12 +1449,14 @@ void SetStats(gentity_t* ent) {
 		else {
 			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 		}
-}
+	}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 	}
 
-	// Medal time blocking FOLLOWING tag
+	Domination_SetHudStats(ent->client->ps.stats);
+
+// Medal time blocking FOLLOWING tag
 	if (ent->client->pers.medalTime + 3_sec > level.time)
 		//todo
 		ent->client->ps.stats[STAT_FOLLOWING] = 0;

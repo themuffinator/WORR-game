@@ -20,6 +20,7 @@
 //   alternate typefaces.
 
 #include "cg_local.hpp"
+#include <algorithm>
 #include <sstream>  // for std::istringstream
 #include <string>   // for std::string
 #include <string_view> // for std::string_view
@@ -193,20 +194,20 @@ static void CG_AddNotify(hud_data_t& data, const char* msg, bool is_chat) {
 
 // draw notifies
 static void CG_DrawNotify(int32_t isplit, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale) {
-	auto& data = hud_data[isplit];
+auto& data = hud_data[isplit];
 
-	CG_Notify_CheckExpire(data);
+CG_Notify_CheckExpire(data);
 
-	int y;
+int y;
 
-	y = (hud_vrect.y * scale) + hud_safe.y;
+y = (hud_vrect.y * scale) + hud_safe.y;
 
-	cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
 
-	if (ui_acc_contrast->integer) {
-		for (auto& msg : data.notify) {
-			if (!msg.is_active || !msg.message.length())
-				break;
+if (ui_acc_contrast->integer) {
+for (auto& msg : data.notify) {
+if (!msg.is_active || !msg.message.length())
+break;
 
 			Vector2 sz = cgi.SCR_MeasureFontString(msg.message.c_str(), scale);
 			sz.x += 10; // extra padding for black bars
@@ -224,16 +225,103 @@ static void CG_DrawNotify(int32_t isplit, vrect_t hud_vrect, vrect_t hud_safe, i
 		y += 10 * scale;
 	}
 
-	cgi.SCR_SetAltTypeface(false);
+cgi.SCR_SetAltTypeface(false);
 
-	// draw text input (only the main player can really chat anyways...)
-	if (isplit == 0) {
-		const char* input_msg;
-		bool input_team;
+// draw text input (only the main player can really chat anyways...)
+if (isplit == 0) {
+const char* input_msg;
+bool input_team;
 
-		if (cgi.CL_GetTextInput(&input_msg, &input_team))
-			cgi.SCR_DrawFontString(G_Fmt("{}: {}", input_team ? "say_team" : "say", input_msg).data(), (hud_vrect.x * scale) + hud_safe.x, y, scale, rgba_white, true, text_align_t::LEFT);
+if (cgi.CL_GetTextInput(&input_msg, &input_team))
+cgi.SCR_DrawFontString(G_Fmt("{}: {}", input_team ? "say_team" : "say", input_msg).data(), (hud_vrect.x * scale) + hud_safe.x, y, scale, rgba_white, true, text_align_t::LEFT);
+}
+}
+
+/*
+=============
+CG_DominationTeamColor
+
+Maps a domination point owner index to the HUD color used for rendering.
+=============
+*/
+static rgba_t CG_DominationTeamColor(uint16_t ownerIndex) {
+	constexpr uint16_t kDominationTeamRed = 3;
+	constexpr uint16_t kDominationTeamBlue = 4;
+	constexpr rgba_t domNeutral{ 160, 160, 160, 255 };
+
+	switch (ownerIndex) {
+		case kDominationTeamRed:
+		return rgba_red;
+		case kDominationTeamBlue:
+		return rgba_blue;
+		default:
+		return domNeutral;
 	}
+}
+
+/*
+=============
+CG_DrawDominationStatus
+
+Renders the domination control-point list in the top-right corner of the HUD.
+=============
+*/
+static void CG_DrawDominationStatus(const player_state_t* ps, const vrect_t& hud_vrect, const vrect_t& hud_safe, int32_t scale) {
+	const uint16_t packedOwners = static_cast<uint16_t>(ps->stats[STAT_DOMINATION_POINTS]);
+	bool hasActivePoint = false;
+
+	for (size_t i = 0; i < MAX_DOMINATION_POINTS; ++i) {
+		const int configIndex = CONFIG_DOMINATION_POINT_LABEL_START + static_cast<int>(i);
+		if (configIndex < 0 || configIndex >= MAX_CONFIGSTRINGS) {
+			continue;
+		}
+
+		const char* configLabel = cgi.get_configString(configIndex);
+		if (configLabel && configLabel[0]) {
+			hasActivePoint = true;
+			break;
+		}
+	}
+
+	if (!hasActivePoint) {
+		return;
+	}
+
+	const int rightEdge = ((hud_vrect.x + hud_vrect.width) * scale) - hud_safe.x;
+	const int lineHeight = cgi.SCR_FontLineHeight(scale);
+	int y = (hud_vrect.y * scale) + hud_safe.y + lineHeight;
+	const int boxSize = std::max(lineHeight - scale, 4 * scale);
+	const int padding = 4 * scale;
+
+	for (size_t i = 0; i < MAX_DOMINATION_POINTS; ++i) {
+		const int configIndex = CONFIG_DOMINATION_POINT_LABEL_START + static_cast<int>(i);
+		if (configIndex < 0 || configIndex >= MAX_CONFIGSTRINGS) {
+			continue;
+		}
+
+		const char* configLabel = cgi.get_configString(configIndex);
+		if (!configLabel || !configLabel[0]) {
+			continue;
+		}
+
+		const uint16_t ownerIndex = DominationPointOwnerIndex(packedOwners, i);
+		std::string label(configLabel);
+
+		Vector2 size = cgi.SCR_MeasureFontString(label.c_str(), scale);
+		const int labelX = rightEdge - static_cast<int>(size.x);
+		const int textY = y - (font_y_offset * scale);
+		const int boxX = labelX - (boxSize + padding);
+		const int boxY = textY;
+
+		const rgba_t ownerColor = CG_DominationTeamColor(ownerIndex);
+		cgi.SCR_DrawColorPic(boxX, boxY, boxSize, boxSize, "_white", ownerColor);
+		cgi.SCR_DrawFontString(label.c_str(), labelX, textY, scale, ownerColor, true, text_align_t::LEFT);
+
+		y += lineHeight;
+	}
+}
+
+
 }
 
 /*
@@ -1822,12 +1910,13 @@ void CG_DrawHUD(int32_t isplit, const cg_server_data_t* data, vrect_t hud_vrect,
 	// draw centerprint string
 	CG_CheckDrawCenterString(ps, hud_vrect, hud_safe, isplit, scale);
 
-	// draw notify
-	CG_DrawNotify(isplit, hud_vrect, hud_safe, scale);
+// draw notify
+CG_DrawNotify(isplit, hud_vrect, hud_safe, scale);
+CG_DrawDominationStatus(ps, hud_vrect, hud_safe, scale);
 
-	// svc_layout still drawn with hud off
-	if (ps->stats[STAT_LAYOUTS] & LAYOUTS_LAYOUT)
-		CG_ExecuteLayoutString(data->layout, hud_vrect, hud_safe, scale, playernum, ps);
+// svc_layout still drawn with hud off
+if (ps->stats[STAT_LAYOUTS] & LAYOUTS_LAYOUT)
+CG_ExecuteLayoutString(data->layout, hud_vrect, hud_safe, scale, playernum, ps);
 
 	// inventory too
 	if (ps->stats[STAT_LAYOUTS] & LAYOUTS_INVENTORY)

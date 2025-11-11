@@ -3,6 +3,8 @@
 #include <random>
 #include <cstring>
 #include <type_traits>
+#include <array>
+#include <string>
 
 namespace std {
 	using ::sinf;
@@ -14,6 +16,7 @@ namespace std {
 }
 
 #include "server/g_local.hpp"
+#include "server/player/p_hud_domination.hpp"
 
 #include <cassert>
 
@@ -27,6 +30,23 @@ static int TestSoundIndex(const char*) { return 0; }
 static void TestUnlink(gentity_t*) {}
 static void TestBotUnregister(const gentity_t*) {}
 static void TestComError(const char*) { assert(false && "Com_Error called"); }
+
+static std::array<std::string, MAX_CONFIGSTRINGS> g_configStringStorage{};
+
+static void TestConfigString(int num, const char* value) {
+	if (num < 0 || num >= MAX_CONFIGSTRINGS)
+		return;
+	if (value)
+		g_configStringStorage[static_cast<size_t>(num)] = value;
+	else
+		g_configStringStorage[static_cast<size_t>(num)].clear();
+}
+
+static const char* TestGetConfigString(int num) {
+	if (num < 0 || num >= MAX_CONFIGSTRINGS)
+		return "";
+	return g_configStringStorage[static_cast<size_t>(num)].c_str();
+}
 
 game_export_t globals{};
 gentity_t* g_entities = nullptr;
@@ -156,6 +176,23 @@ int main() {
 	dom.points[0].owner = Team::Red;
 	dom.points[1].owner = Team::Blue;
 	dom.nextScoreTime = 0_ms;
+	dom.points[0].ent->inUse = true;
+	dom.points[0].ent->spawn_count = 1;
+	dom.points[0].spawnCount = dom.points[0].ent->spawn_count;
+	dom.points[0].ent->message = const_cast<char*>("Alpha");
+	dom.points[1].ent->inUse = true;
+	dom.points[1].ent->spawn_count = 2;
+	dom.points[1].spawnCount = dom.points[1].ent->spawn_count;
+	dom.points[1].ent->targetName = const_cast<char*>("Bravo");
+
+	g_configStringStorage.fill("");
+	std::array<int16_t, MAX_STATS> domStats{};
+	Domination_SetHudStats(domStats);
+	const uint16_t packedOwners = static_cast<uint16_t>(domStats[STAT_DOMINATION_POINTS]);
+	assert(DominationPointOwnerIndex(packedOwners, 0) == static_cast<uint16_t>(dom.points[0].owner));
+	assert(DominationPointOwnerIndex(packedOwners, 1) == static_cast<uint16_t>(dom.points[1].owner));
+	assert(g_configStringStorage[CONFIG_DOMINATION_POINT_LABEL_START + 0] == "Alpha");
+	assert(g_configStringStorage[CONFIG_DOMINATION_POINT_LABEL_START + 1] == "Bravo");
 
 	Domination_RunFrame();
 	assert(dom.nextScoreTime == GameTime::from_sec(2.0f));
@@ -173,6 +210,8 @@ int main() {
 	g_domination_points_per_tick_storage.value = 0.0f;
 	g_domination_points_per_tick_storage.integer = 0;
 	dom.points[1].owner = Team::Red;
+	Domination_SetHudStats(domStats);
+	assert(DominationPointOwnerIndex(static_cast<uint16_t>(domStats[STAT_DOMINATION_POINTS]), 1) == static_cast<uint16_t>(Team::Red));
 	level.time = GameTime::from_sec(4.0f);
 	Domination_RunFrame();
 	assert(level.teamScores[static_cast<int>(Team::Red)] == 5);
@@ -184,6 +223,8 @@ int main() {
 	g_domination_points_per_tick_storage.value = 2.0f;
 	g_domination_points_per_tick_storage.integer = 2;
 	dom.points[1].owner = Team::Blue;
+	Domination_SetHudStats(domStats);
+	assert(DominationPointOwnerIndex(static_cast<uint16_t>(domStats[STAT_DOMINATION_POINTS]), 1) == static_cast<uint16_t>(Team::Blue));
 	level.time = GameTime::from_sec(5.0f);
 	Domination_RunFrame();
 	assert(level.teamScores[static_cast<int>(Team::Red)] == 7);
@@ -199,6 +240,8 @@ int main() {
 	gi.unlinkEntity = TestUnlink;
 	gi.Bot_UnRegisterEntity = TestBotUnregister;
 	gi.Com_Error = TestComError;
+	gi.configString = TestConfigString;
+	gi.get_configString = TestGetConfigString;
 
 	deathmatchVar.integer = 0;
 	deathmatchVar.value = 0.0f;
@@ -288,6 +331,11 @@ int main() {
 	assert(level.domination.points[0].ent == nullptr);
 	assert(level.domination.points[0].owner == Team::None);
 	assert(level.domination.points[0].spawnCount == 0);
+
+	Domination_SetHudStats(domStats);
+	const uint16_t finalPacked = static_cast<uint16_t>(domStats[STAT_DOMINATION_POINTS]);
+	assert(finalPacked == 0);
+	assert(g_configStringStorage[CONFIG_DOMINATION_POINT_LABEL_START + 0].empty());
 
 	return 0;
 }
