@@ -138,6 +138,7 @@
     <ClInclude Include="server\match\match_state_utils.hpp" />
     <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
+    <ClInclude Include="server\gameplay\g_capture.hpp" />
     <ClInclude Include="server\gameplay\g_harvester.hpp" />
     <ClInclude Include="server\gameplay\g_headhunters.hpp" />
     <ClInclude Include="server\match\match_state_helper.hpp" />
@@ -224,6 +225,7 @@
     <ClCompile Include="server\gameplay\g_client_cfg.cpp" />
     <ClCompile Include="server\gameplay\g_combat.cpp" />
     <ClCompile Include="server\gameplay\g_harvester.cpp" />
+    <ClCompile Include="server\gameplay\g_capture.cpp" />
     <ClCompile Include="server\gameplay\g_teamplay.cpp" />
     <ClCompile Include="server\gameplay\g_func.cpp" />
     <ClCompile Include="server\gameplay\g_item_list.cpp" />
