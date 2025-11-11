@@ -1249,11 +1249,31 @@ void BeginIntermission(gentity_t* targ) {
 	if (level.intermission.time)
 		return; // already triggered
 
-	if (!targ || CharArrayIsBlank(targ->map)) {
-		gi.Com_ErrorFmt("{}: called with null map target.", __FUNCTION__);
-		return;
+	gentity_t* changeTarget = targ;
+	if (!changeTarget || CharArrayIsBlank(changeTarget->map)) {
+		if (!CharArrayHasText(level.mapName)) {
+			gi.Com_ErrorFmt("{}: unable to resolve changelevel target because the current map name is blank.", __FUNCTION__);
+			return;
+		}
+
+		const char* fallbackMap = level.mapName.data();
+		if (changeTarget) {
+			gi.Com_PrintFmt("{}: changelevel target missing map key. Falling back to current map '{}'\n", __FUNCTION__, fallbackMap);
+			Q_strlcpy(changeTarget->map.data(), fallbackMap, changeTarget->map.size());
+		}
+		else {
+			gi.Com_PrintFmt("{}: missing changelevel target. Falling back to current map '{}'\n", __FUNCTION__, fallbackMap);
+			changeTarget = CreateTargetChangeLevel(fallbackMap);
+		}
+
+		if (!changeTarget || CharArrayIsBlank(changeTarget->map)) {
+			gi.Com_ErrorFmt("{}: failed to establish a valid changelevel target for map '{}'.", __FUNCTION__, fallbackMap);
+			return;
+		}
+
 	}
 
+	targ = changeTarget;
 	// Score adjustment (for duel, gauntlet, etc.)
 	Gauntlet_MatchEnd_AdjustScores();
 
