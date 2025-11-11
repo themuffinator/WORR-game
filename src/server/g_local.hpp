@@ -263,7 +263,7 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 	{GameType::LastManStanding,"lms",      "LMS",      "Last Man Standing",   "lms",		GameFlags::Elimination},
 	{GameType::LastTeamStanding,"lts",     "LTS",      "Last Team Standing",  "lts",		GameFlags::Teams | GameFlags::Elimination},
 	{GameType::Horde,          "horde",    "HORDE",    "Horde Mode",          "horde",		GameFlags::Rounds},
-	{GameType::HeadHunters,    "hh",       "HH",       "Head Hunters",        "headhunters",		GameFlags::None},
+	{GameType::HeadHunters,    "hh",       "HH",       "Head Hunters",        "hh",			GameFlags::None},
 	{GameType::ProBall,        "ball",     "BALL",     "ProBall",             "ball",		GameFlags::Teams},
 	{GameType::Gauntlet,       "gauntlet", "GAUNTLET", "Gauntlet",            "gauntlet",	GameFlags::OneVOne | GameFlags::Rounds | GameFlags::Frags}
 } };
@@ -2446,11 +2446,16 @@ struct LevelLocals {
 		static constexpr size_t MAX_POINTS = 8;
 
 		struct Point {
-			gentity_t* ent = nullptr;
-			gentity_t* beam = nullptr;
-			Team owner = Team::None;
-			size_t index = 0;
-			int32_t spawnCount = 0;
+		gentity_t* ent = nullptr;
+		gentity_t* beam = nullptr;
+		Team owner = Team::None;
+		Team capturingTeam = Team::None;
+		float captureProgress = 0.0f;
+		GameTime lastProgressTime = 0_ms;
+		std::array<int, static_cast<size_t>(Team::Total)> occupantCounts{};
+		std::array<GameTime, MAX_CLIENTS_KEX> occupantExpiry{};
+		size_t index = 0;
+		int32_t spawnCount = 0;
 		};
 
 		std::array<Point, MAX_POINTS> points{};
