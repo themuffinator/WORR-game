@@ -1843,10 +1843,10 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         HeadHunters::ClearState();
         ProBall::ClearState();
         ProBall::ClearState();
-        level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
-	globals.serverFlags &= SERVER_FLAG_LOADING;
+	globals.serverFlags |= SERVER_FLAG_LOADING;
 
 	Q_strlcpy(level.mapName.data(), mapName, level.mapName.size());
 	if (!game.autoSaved) {
@@ -1940,12 +1940,23 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
         ProBall::InitLevel();
 
         level.init = true;
+
+	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 }
 
 
+/*
+=============
+G_ResetWorldEntitiesFromSavedString
+
+Restores world entities from the saved entity string.
+=============
+*/
 bool G_ResetWorldEntitiesFromSavedString() {
 	if (level.savedEntityString.empty())
 		return false;
+
+	globals.serverFlags |= SERVER_FLAG_LOADING;
 
 	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 
@@ -2047,6 +2058,8 @@ bool G_ResetWorldEntitiesFromSavedString() {
         HeadHunters::InitLevel();
 
         level.init = true;
+
+	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 
 	return true;
 }
