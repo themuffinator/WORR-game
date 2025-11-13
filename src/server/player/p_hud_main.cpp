@@ -139,12 +139,16 @@ Appends a single End-of-Unit stats row to the layout.
 static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry& entry) {
 	layout << G_Fmt("yv {} ", y).data();
 
-	if (!entry.longMapName[0]) {
-		layout << "table_row 1 ??? ";
-		return;
+	const char* displayName = nullptr;
+	if (entry.longMapName[0]) {
+		displayName = entry.longMapName.data();
+	} else if (entry.mapName[0]) {
+		displayName = entry.mapName.data();
+	} else {
+		displayName = "???";
 	}
 
-	layout << G_Fmt("table_row 4 \"{}\" ", entry.longMapName.data()).data()
+	layout << G_Fmt("table_row 4 \"{}\" ", displayName).data()
 		<< G_Fmt("{}/{} ", entry.killedMonsters, entry.totalMonsters).data()
 		<< G_Fmt("{}/{} ", entry.foundSecrets, entry.totalSecrets).data();
 
