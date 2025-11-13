@@ -19,6 +19,7 @@
 //   volume and `TouchTriggers` for activating triggers.
 
 #include "../g_local.hpp"
+#include "team_balance.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 #include <array>
 #include <cctype>
@@ -2026,15 +2027,8 @@ int TeamBalance(bool force) {
 	if (delta < 2)
 		return level.pop.num_playing_red - level.pop.num_playing_blue;
 	Team stack_team = level.pop.num_playing_red > level.pop.num_playing_blue ? Team::Red : Team::Blue;
-	size_t count = 0;
-	std::array<int, MAX_CLIENTS_KEX / 2> index{};
-	// assemble list of client nums of everyone on stacked team
-	for (auto ec : active_clients()) {
-		if (ec->client->sess.team != stack_team)
-			continue;
-		index[count] = ec->client - game.clients;
-		count++;
-	}
+	std::array<int, MAX_CLIENTS_KEX> index{};
+	size_t count = CollectStackedTeamClients(stack_team, index);
 	// sort client num list by join time
 	qsort(index.data(), count, sizeof(index[0]), ClientListSortByJoinTime);
 	//run through sort list, switching from stack_team until teams are even
