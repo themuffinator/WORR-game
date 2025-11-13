@@ -27,8 +27,12 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 
+#include <algorithm>
 #include <array>
+#include <cctype>
+#include <cstdlib>
 #include <filesystem>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -458,6 +462,176 @@ static void PCfg_WriteConfig(gentity_t *ent) {
 */
 /*
 =============
+PCfg_TrimView
+
+Removes leading and trailing whitespace from a string view.
+=============
+*/
+static std::string_view PCfg_TrimView(std::string_view text) {
+	while (!text.empty() && std::isspace(static_cast<unsigned char>(text.front()))) {
+		text.remove_prefix(1);
+	}
+
+	while (!text.empty() && std::isspace(static_cast<unsigned char>(text.back()))) {
+		text.remove_suffix(1);
+	}
+
+	return text;
+}
+
+/*
+=============
+PCfg_ParseInt
+
+Attempts to parse an integer from the supplied string view.
+=============
+*/
+static bool PCfg_ParseInt(std::string_view text, int& outValue) {
+	text = PCfg_TrimView(text);
+	if (text.empty()) {
+		return false;
+	}
+
+	const std::string temp(text);
+	char* end = nullptr;
+	const long parsed = std::strtol(temp.c_str(), &end, 10);
+	if (end == temp.c_str() || *end != '\0') {
+		return false;
+	}
+
+	outValue = static_cast<int>(parsed);
+	return true;
+}
+
+/*
+=============
+PCfg_ParseBool
+
+Attempts to parse a boolean from the supplied string view.
+=============
+*/
+static bool PCfg_ParseBool(std::string_view text, bool& outValue) {
+	text = PCfg_TrimView(text);
+	if (text.empty()) {
+		return false;
+	}
+
+	std::string lowered(text);
+	std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
+
+	if (lowered == "1" || lowered == "true" || lowered == "yes" || lowered == "on") {
+		outValue = true;
+		return true;
+	}
+
+	if (lowered == "0" || lowered == "false" || lowered == "no" || lowered == "off") {
+		outValue = false;
+		return true;
+	}
+
+	return false;
+}
+
+/*
+=============
+PCfg_ApplyConfigLine
+
+Parses and applies a single key/value pair from the legacy player config.
+=============
+*/
+static void PCfg_ApplyConfigLine(gentity_t* ent, std::string_view line) {
+	line = PCfg_TrimView(line);
+	if (line.empty()) {
+		return;
+	}
+
+	if (line.size() >= 2 && line[0] == '/' && line[1] == '/') {
+		return;
+	}
+
+	if (line.front() == '#') {
+		return;
+	}
+
+	const size_t separator = line.find_first_of(" \	");
+	if (separator == std::string_view::npos) {
+		return;
+	}
+
+	const std::string_view key = line.substr(0, separator);
+	const std::string_view value = PCfg_TrimView(line.substr(separator + 1));
+
+	if (key == "show_id") {
+		bool parsed = false;
+		if (PCfg_ParseBool(value, parsed)) {
+			ent->client->sess.pc.show_id = parsed;
+		}
+		return;
+	}
+
+	if (key == "show_fragmessages") {
+		bool parsed = false;
+		if (PCfg_ParseBool(value, parsed)) {
+			ent->client->sess.pc.show_fragmessages = parsed;
+		}
+		return;
+	}
+
+	if (key == "show_timer") {
+		bool parsed = false;
+		if (PCfg_ParseBool(value, parsed)) {
+			ent->client->sess.pc.show_timer = parsed;
+		}
+		return;
+	}
+
+	if (key == "killbeep_num") {
+		int parsed = 0;
+		if (PCfg_ParseInt(value, parsed)) {
+			if (parsed < 0) {
+				parsed = 0;
+			}
+			if (parsed > 4) {
+				parsed = 4;
+			}
+			ent->client->sess.pc.killbeep_num = parsed;
+		}
+		return;
+	}
+}
+
+/*
+=============
+PCfg_ParseConfigBuffer
+
+Parses the legacy player configuration buffer and applies known settings.
+=============
+*/
+static void PCfg_ParseConfigBuffer(gentity_t* ent, const char* buffer) {
+	if (!buffer || !*buffer) {
+		return;
+	}
+
+	const char* cursor = buffer;
+	while (*cursor) {
+		const char* line_start = cursor;
+		while (*cursor && *cursor != '\n' && *cursor != '\r') {
+			++cursor;
+		}
+
+		const std::string_view line(line_start, static_cast<size_t>(cursor - line_start));
+		PCfg_ApplyConfigLine(ent, line);
+
+		while (*cursor == '\n' || *cursor == '\r') {
+			++cursor;
+		}
+	}
+}
+
+/*
+=============
 PCfg_ClientInitPConfig
 
 Initializes the player configuration by loading an existing config file or
@@ -465,9 +639,9 @@ generating a default when none is present.
 =============
 */
 static void PCfg_ClientInitPConfig(gentity_t* ent) {
-	bool	file_exists = false;
-	bool	cfg_valid = true;
-	bool	directory_ready = true;
+	bool    file_exists = false;
+	bool    cfg_valid = true;
+	bool    directory_ready = true;
 
 	if (!ent->client) return;
 	if (ent->svFlags & SVF_BOT) return;
@@ -496,36 +670,47 @@ static void PCfg_ClientInitPConfig(gentity_t* ent) {
 	}
 
 	FILE* f = fopen(path.c_str(), "rb");
+	char* buffer = nullptr;
 	if (f != NULL) {
-		std::vector<char> buffer;
 		size_t length;
 		size_t read_length = 0;
 
 		fseek(f, 0, SEEK_END);
-		length = ftell(f);
+		length = static_cast<size_t>(ftell(f));
 		fseek(f, 0, SEEK_SET);
 
 		if (length > 0x40000) {
 			cfg_valid = false;
 		}
 		if (cfg_valid) {
-			buffer.assign(length + 1, '\0');
-			if (length) {
-				read_length = fread(buffer.data(), 1, length, f);
-
-				if (length != read_length) {
-					cfg_valid = false;
-				}
+			buffer = static_cast<char*>(gi.TagMalloc(length + 1, TAG_LEVEL));
+			if (!buffer) {
+				cfg_valid = false;
 			}
-			buffer[read_length] = '\0';
+			else {
+				if (length > 0) {
+					read_length = fread(buffer, 1, length, f);
+
+					if (length != read_length) {
+						cfg_valid = false;
+					}
+				}
+				buffer[read_length] = '\0';
+			}
 		}
 		file_exists = true;
 		fclose(f);
 
-		if (!cfg_valid) {
+		if (!cfg_valid || !buffer) {
+			if (buffer) {
+				gi.TagFree(buffer);
+			}
 			gi.Com_PrintFmt("{}: Player config load error for \"{}\", discarding.\n", __FUNCTION__, path.c_str());
 			return;
 		}
+
+		PCfg_ParseConfigBuffer(ent, buffer);
+		gi.TagFree(buffer);
 	}
 
 	// save file if it doesn't exist
@@ -551,7 +736,6 @@ static void PCfg_ClientInitPConfig(gentity_t* ent) {
 		//gi.Com_PrintFmt("{}: Player config not saved as file already exists: \"{}\"\n", __FUNCTION__, path.c_str());
 	}
 }
-
 //=======================================================================
 struct MonsterListInfo {
 	std::string_view class_name;
