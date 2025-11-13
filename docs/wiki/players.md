@@ -50,4 +50,5 @@
 ## Reconnect Safeguards and Ghost Tips
 - **Pending Ghost Respawns:** WORR caches your last position/angles when the auto-ghost system is active. On rejoin, it first checks if your ghost spot is clear of players or geometry before spawning you there.
 - **Blocked Ghosts:** If the spot is occupied (player or map brush), the server denies the ghost spawn, logs what blocked you, and reverts to regular spawn logic. Expect to appear at the next safe point instead.
+- **Minimum participation:** Ghost data only persists after you have logged at least `g_ghost_min_play_time` seconds of real match time (default 60). Leaving earlier clears the slot, so stay in long enough before testing quick reconnects.
 - **Quick reconnect routine:** Rejoin promptly, wait a second for the ghost check, and if you spawn elsewhere, regroup—your inventory and stats still restore thanks to the ghost system’s state persistence.

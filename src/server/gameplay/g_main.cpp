@@ -127,6 +127,7 @@ cvar_t* g_arenaSelfDmgArmor;
 cvar_t* g_arenaStartingArmor;
 cvar_t* g_arenaStartingHealth;
 cvar_t* g_cheats;
+cvar_t* g_ghost_min_play_time;
 cvar_t* g_coop_enable_lives;
 cvar_t* g_coop_health_scaling;
 cvar_t* g_coop_instanced_items;
@@ -813,6 +814,7 @@ static void InitGame() {
 	g_grapple_damage = gi.cvar("g_grapple_damage", "10", CVAR_NOFLAGS);
 
 	g_frag_messages = gi.cvar("g_frag_messages", "1", CVAR_NOFLAGS);
+	g_ghost_min_play_time = gi.cvar("g_ghost_min_play_time", "60", CVAR_NOFLAGS);
 
 	g_debug_monster_paths = gi.cvar("g_debug_monster_paths", "0", CVAR_NOFLAGS);
 	g_debug_monster_kills = gi.cvar("g_debug_monster_kills", "0", CVAR_LATCH);

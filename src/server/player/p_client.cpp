@@ -269,11 +269,12 @@ static void P_AccumulateMatchPlayTime(gclient_t* cl, int64_t now) {
 /*
 ===============
 P_SaveGhostSlot
+
+Caches the player's state for reconnects if they have met the minimum
+real-time participation threshold.
 ===============
 */
 void P_SaveGhostSlot(gentity_t* ent) {
-	constexpr int64_t MIN_GHOST_SLOT_PLAY_TIME_MS = 60 * 1000;
-
 	if (!ent || !ent->client)
 		return;
 
@@ -288,7 +289,11 @@ void P_SaveGhostSlot(gentity_t* ent) {
 	if (level.matchState != MatchState::In_Progress)
 		return;
 
-	if (cl->resp.totalMatchPlayRealTime < MIN_GHOST_SLOT_PLAY_TIME_MS)
+	const int64_t minGhostSlotPlayTimeMs = (g_ghost_min_play_time)
+		? std::max<int64_t>(0, static_cast<int64_t>(g_ghost_min_play_time->value * 1000.0f))
+		: (60 * 1000);
+
+	if (cl->resp.totalMatchPlayRealTime < minGhostSlotPlayTimeMs)
 		return;
 
 	const char* socialID = cl->sess.socialID;
