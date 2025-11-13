@@ -3561,6 +3561,8 @@ bool KillBox(gentity_t* ent, bool from_spawning, ModID mod = ModID::Telefragged,
 gentity_t* FindEntity(gentity_t* from, std::function<bool(gentity_t* e)> matcher);
 bool ReadyConditions(gentity_t* ent, bool admin_cmd);
 int TeamBalance(bool force);
+void ApplyQueuedTeamChange(gentity_t* ent, bool silent);
+void ApplyQueuedTeamChanges(bool silent);
 Team PickTeam(int ignore_client_num);
 
 // utility template for getting the type of a field
@@ -4591,6 +4593,7 @@ struct client_session_t {
 	int				skinIconIndex = 0;
 
 	Team			team = Team::None;
+	Team			queuedTeam = Team::None;
 	bool			inGame = false;
 	bool			initialised = false;
 

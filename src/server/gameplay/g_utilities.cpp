@@ -2049,10 +2049,20 @@ int TeamBalance(bool force) {
 				continue;
 			if (cl->sess.team != stack_team)
 				continue;
-			cl->sess.team = stack_team == Team::Red ? Team::Blue : Team::Red;
-			//TODO: queue this change in round-based games
-			ClientRespawn(&g_entities[cl - game.clients + 1]);
-			gi.Client_Print(&g_entities[cl - game.clients + 1], PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+			const Team targetTeam = (stack_team == Team::Red) ? Team::Blue : Team::Red;
+			gentity_t* ent = &g_entities[cl - game.clients + 1];
+			if (Game::Has(GameFlags::Rounds) || Game::Has(GameFlags::Elimination)) {
+				cl->sess.queuedTeam = targetTeam;
+				if (!SetTeam(ent, Team::Spectator, false, true, true))
+					continue;
+				gi.Client_Print(ent, PRINT_CENTER,
+					G_Fmt("Team balance queued.\nYou will join the {} team next round.\n", Teams_TeamName(targetTeam)).data());
+			}
+			else {
+				cl->sess.team = targetTeam;
+				ClientRespawn(ent);
+				gi.Client_Print(ent, PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+			}
 			delta--;
 			switched++;
 		}
@@ -2062,6 +2072,39 @@ int TeamBalance(bool force) {
 		}
 	}
 	return 0;
+}
+
+/*
+=============
+ApplyQueuedTeamChange
+
+Moves a client to their queued team assignment, if present.
+=============
+*/
+void ApplyQueuedTeamChange(gentity_t* ent, bool silent) {
+	if (!ent || !ent->client)
+		return;
+
+	gclient_t* cl = ent->client;
+	if (cl->sess.queuedTeam == Team::None)
+		return;
+
+	const Team target = cl->sess.queuedTeam;
+	cl->sess.queuedTeam = Team::None;
+
+	SetTeam(ent, target, false, true, silent);
+}
+
+/*
+=============
+ApplyQueuedTeamChanges
+
+Applies queued team assignments for all connected clients.
+=============
+*/
+void ApplyQueuedTeamChanges(bool silent) {
+	for (auto ec : active_clients())
+		ApplyQueuedTeamChange(ec, silent);
 }
 
 /*
