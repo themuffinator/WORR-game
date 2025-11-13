@@ -185,11 +185,16 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 
 	// === Early vote finalization check ===
 
-	// Count number of active players
+	// Count number of eligible voters
 	int totalVoters = 0;
-	for (auto ec : active_players()) {
-		if (ec && ec->client && !ec->client->sess.is_a_bot)
-			++totalVoters;
+	for (auto ec : active_clients()) {
+		if (!ec || !ec->client)
+			continue;
+		if (ec->client->sess.is_a_bot)
+			continue;
+		if (!ClientIsPlaying(ec->client) && !g_allowSpecVote->integer)
+			continue;
+		++totalVoters;
 	}
 
 	// If a map has more than half the votes, finalize early
