@@ -16,6 +16,7 @@
 #include <algorithm>
 #include <ranges>
 #include <sstream>
+#include <bitset>
 
 namespace Commands {
 
@@ -742,7 +743,14 @@ namespace Commands {
 			gi.Client_Print(ent, PRINT_HIGH, "No Message of the Day set.\n");
 		}
 	}
+	
+	/*
+	=============
+	MyMap
 
+	Queues a requested map for play, applying optional MyMap override flags.
+	=============
+	*/
 	void MyMap(gentity_t* ent, const CommandArgs& args) {
 		if (!g_maps_mymap->integer) {
 			gi.Client_Print(ent, PRINT_HIGH, "MyMap functionality is disabled on this server.\n");
@@ -763,6 +771,10 @@ namespace Commands {
 			gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' not found in map pool.\n", mapName.data());
 			return;
 		}
+		if (map->filename.empty()) {
+			gi.Client_Print(ent, PRINT_HIGH, "Cannot queue map with missing filename metadata.\n");
+			return;
+		}
 		if (game.mapSystem.IsMapInQueue(std::string(mapName))) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' is already in the play queue.\n", mapName.data());
 			return;
@@ -772,8 +784,37 @@ namespace Commands {
 			return;
 		}
 
-		// Implementation of flag parsing and queueing logic continues here...
-		gi.Client_Print(ent, PRINT_HIGH, "my_map command executed.\n");
+		std::vector<std::string> flagArgs;
+		flagArgs.reserve(args.count() > 2 ? args.count() - 2 : 0);
+		for (size_t i = 2; i < args.count(); ++i) {
+			std::string_view flag = args.getString(i);
+			if (!flag.empty()) {
+				flagArgs.emplace_back(flag);
+			}
+		}
+
+		uint16_t enableFlags = 0;
+		uint16_t disableFlags = 0;
+		if (!ParseMyMapFlags(flagArgs, enableFlags, disableFlags)) {
+			gi.Client_Print(ent, PRINT_HIGH, "Invalid flag(s). Use 'mymap ?' for help.\n");
+			return;
+		}
+
+		QueuedMap queued{};
+		queued.filename = map->filename;
+		queued.socialID = ent->client->sess.socialID;
+		queued.settings = std::bitset<10>(enableFlags | disableFlags);
+		game.mapSystem.playQueue.push_back(queued);
+
+		MyMapRequest request{};
+		request.mapName = map->filename;
+		request.socialID = ent->client->sess.socialID;
+		request.enableFlags = enableFlags;
+		request.disableFlags = disableFlags;
+		request.queuedTime = level.time;
+		game.mapSystem.myMapQueue.push_back(request);
+
+		gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' added to the queue.\n", map->filename.c_str());
 	}
 
 	void MySkill(gentity_t* ent, const CommandArgs& args) {
