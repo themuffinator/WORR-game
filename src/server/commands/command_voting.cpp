@@ -44,23 +44,45 @@ namespace Commands {
 		return (g_vote_flags->integer & cmd.flag) != 0;
 	}
 
-	// Helper to make registering vote commands clean and consistent.
-	static void RegisterVoteCommand(
-		std::string_view name,
-		bool (*validateFn)(gentity_t*, const CommandArgs&),
-		void (*executeFn)(),
-		int32_t flag,
-		int8_t minArgs,
-		std::string_view argsUsage,
-		std::string_view helpText,
-		bool visibleInMenu = true)
-	{
-		auto [iter, inserted] = s_voteCommands.emplace(std::string(name), VoteCommand{ name, validateFn, executeFn, flag, minArgs, argsUsage, helpText });
-		if (!inserted) {
-			iter->second = { name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+		/*
+		=============
+		RegisterVoteCommand
+
+		Helper to store vote command metadata and expose menu definitions with stable ownership.
+		=============
+		*/
+		static void RegisterVoteCommand(
+				std::string_view name,
+				bool (*validateFn)(gentity_t*, const CommandArgs&),
+				void (*executeFn)(),
+				int32_t flag,
+				int8_t minArgs,
+				std::string_view argsUsage,
+				std::string_view helpText,
+				bool visibleInMenu = true)
+		{
+			VoteCommand command{ name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+			auto [iter, inserted] = s_voteCommands.emplace(std::string(name), command);
+			if (!inserted) {
+				iter->second = std::move(command);
+			}
+
+			auto definitionIt = std::find_if(
+				s_voteDefinitions.begin(),
+				s_voteDefinitions.end(),
+				[&](const VoteDefinitionView& view) {
+					return view.name == iter->first;
+				});
+
+			if (definitionIt == s_voteDefinitions.end()) {
+				s_voteDefinitions.push_back({ std::string(iter->first), flag, visibleInMenu });
+			}
+			else {
+				definitionIt->name = iter->first;
+				definitionIt->flag = flag;
+				definitionIt->visibleInMenu = visibleInMenu;
+			}
 		}
-		s_voteDefinitions.push_back({ iter->first, flag, visibleInMenu });
-	}
 
 
 	// --- Vote Execution Functions ("Pass_*") ---
