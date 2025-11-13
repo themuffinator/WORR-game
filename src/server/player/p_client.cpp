@@ -560,7 +560,7 @@ static void PCfg_ApplyConfigLine(gentity_t* ent, std::string_view line) {
 		return;
 	}
 
-	const size_t separator = line.find_first_of(" \	");
+	const size_t separator = line.find_first_of(" 	");
 	if (separator == std::string_view::npos) {
 		return;
 	}
