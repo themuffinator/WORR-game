@@ -4272,6 +4272,7 @@ bool RemoveIDFromFile(const char* filename, const std::string& id);
 void Match_Start();
 void Match_Reset();
 void Round_End();
+void Match_ApplyQueuedTeamChanges();
 
 //
 // g_map_manager.cpp
@@ -4591,6 +4592,8 @@ struct client_session_t {
 	int				skinIconIndex = 0;
 
 	Team			team = Team::None;
+	Team			queuedTeam = Team::None;
+	bool			queuedTeamChange = false;
 	bool			inGame = false;
 	bool			initialised = false;
 

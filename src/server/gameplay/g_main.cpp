@@ -1310,6 +1310,8 @@ void BeginIntermission(gentity_t* targ) {
 	if (level.intermission.time)
 		return; // already triggered
 
+	Match_ApplyQueuedTeamChanges();
+
 	gentity_t* changeTarget = targ;
 	if (!changeTarget || CharArrayIsBlank(changeTarget->map)) {
 		if (!CharArrayHasText(level.mapName)) {

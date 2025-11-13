@@ -864,6 +864,34 @@ static void EnforceDuelRules() {
 
 /*
 =============
+Match_ApplyQueuedTeamChanges
+
+Applies any queued team changes gathered during forced balancing so they
+take effect at the next safe transition.
+=============
+*/
+void Match_ApplyQueuedTeamChanges() {
+	for (auto ec : active_clients()) {
+		if (!ec || !ec->client)
+			continue;
+
+		gclient_t* cl = ec->client;
+		if (!cl->sess.queuedTeamChange)
+			continue;
+
+		Team target = cl->sess.queuedTeam;
+		cl->sess.queuedTeamChange = false;
+		cl->sess.queuedTeam = Team::None;
+		if (target == Team::None)
+			continue;
+
+		if (SetTeam(ec, target, false, true, true))
+			gi.Client_Print(ec, PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+	}
+}
+
+/*
+=============
 Round_StartNew
 =============
 */
@@ -875,6 +903,8 @@ static bool Round_StartNew() {
 	}
 
 	bool horde = Game::Is(GameType::Horde);
+
+	Match_ApplyQueuedTeamChanges();
 
 	level.roundState = RoundState::Countdown;
 	level.roundStateTimer = level.time + 10_sec;

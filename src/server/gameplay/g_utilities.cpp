@@ -2026,6 +2026,7 @@ int TeamBalance(bool force) {
 	if (delta < 2)
 		return level.pop.num_playing_red - level.pop.num_playing_blue;
 	Team stack_team = level.pop.num_playing_red > level.pop.num_playing_blue ? Team::Red : Team::Blue;
+	const bool queueForRounds = Game::Has(GameFlags::Rounds) || Game::Has(GameFlags::Elimination);
 	size_t count = 0;
 	std::array<int, MAX_CLIENTS_KEX / 2> index{};
 	// assemble list of client nums of everyone on stacked team
@@ -2042,6 +2043,7 @@ int TeamBalance(bool force) {
 		size_t	i;
 		int switched = 0;
 		gclient_t* cl = nullptr;
+		bool queuedSwitch = false;
 		for (i = 0; i < count && delta > 1; i++) {
 			cl = &game.clients[index[i]];
 			if (!cl)
@@ -2050,15 +2052,28 @@ int TeamBalance(bool force) {
 				continue;
 			if (cl->sess.team != stack_team)
 				continue;
-			cl->sess.team = stack_team == Team::Red ? Team::Blue : Team::Red;
-			//TODO: queue this change in round-based games
-			ClientRespawn(&g_entities[cl - game.clients + 1]);
-			gi.Client_Print(&g_entities[cl - game.clients + 1], PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+			Team targetTeam = stack_team == Team::Red ? Team::Blue : Team::Red;
+			gentity_t* ent = &g_entities[static_cast<int>(cl - game.clients) + 1];
+			if (queueForRounds) {
+				cl->sess.queuedTeam = targetTeam;
+				cl->sess.queuedTeamChange = true;
+				SetTeam(ent, Team::Spectator, false, true, true);
+				gi.Client_Print(ent, PRINT_CENTER, "You will change teams next round to rebalance the game.\n");
+				queuedSwitch = true;
+			}
+			else {
+				cl->sess.team = targetTeam;
+				ClientRespawn(ent);
+				gi.Client_Print(ent, PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+			}
 			delta--;
 			switched++;
 		}
 		if (switched) {
-			gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
+			if (queuedSwitch)
+				gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced. Pending changes will apply at the next round.\n");
+			else
+				gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
 			return switched;
 		}
 	}
