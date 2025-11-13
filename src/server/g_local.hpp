@@ -4155,6 +4155,8 @@ void player_die(gentity_t* self, gentity_t* inflictor, gentity_t* attacker, int 
 //
 void ServerCommand();
 bool G_FilterPacket(const char* from);
+void G_LoadIPFilters();
+void G_SaveIPFilters();
 
 //
 // p_view.cpp
