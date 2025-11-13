@@ -29,6 +29,7 @@
 
 #include <array>
 #include <string_view>
+#include <vector>
 
 namespace {
 	uint64_t NextDuelQueueTicket() {
@@ -430,6 +431,14 @@ static void PCfg_WriteConfig(gentity_t *ent) {
 	gi.Com_PrintFmt("Player config written to: \"{}\"\n", name);
 }
 */
+/*
+=============
+PCfg_ClientInitPConfig
+
+Initializes the player configuration by loading an existing config file or
+generating a default when none is present.
+=============
+*/
 static void PCfg_ClientInitPConfig(gentity_t* ent) {
 	bool	file_exists = false;
 	bool	cfg_valid = true;
@@ -453,9 +462,9 @@ static void PCfg_ClientInitPConfig(gentity_t* ent) {
 
 	FILE* f = fopen(path.c_str(), "rb");
 	if (f != NULL) {
-		char* buffer = nullptr;
+		std::vector<char> buffer;
 		size_t length;
-		size_t read_length;
+		size_t read_length = 0;
 
 		fseek(f, 0, SEEK_END);
 		length = ftell(f);
@@ -465,14 +474,15 @@ static void PCfg_ClientInitPConfig(gentity_t* ent) {
 			cfg_valid = false;
 		}
 		if (cfg_valid) {
-			buffer = (char*)gi.TagMalloc(length + 1, '\0');
+			buffer.assign(length + 1, '\0');
 			if (length) {
-				read_length = fread(buffer, 1, length, f);
+				read_length = fread(buffer.data(), 1, length, f);
 
 				if (length != read_length) {
 					cfg_valid = false;
 				}
 			}
+			buffer[read_length] = '\0';
 		}
 		file_exists = true;
 		fclose(f);
