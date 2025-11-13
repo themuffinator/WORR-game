@@ -276,29 +276,45 @@ const FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) const {
 
 /*
 =============
+BuildFlagStatusPayload
+
+Constructs the configstring payload for the current flag states.
+=============
+*/
+std::string BuildFlagStatusPayload(bool captureTheFlagMode, const std::array<FlagStatus, 3>& statuses) {
+	std::string flagStatusStr;
+	flagStatusStr.reserve(captureTheFlagMode ? 2 : 3);
+
+	static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
+	static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
+
+	if (captureTheFlagMode) {
+		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
+		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
+	}
+	else {
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
+		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(2))));
+	}
+
+	return flagStatusStr;
+}
+
+/*
+=============
 FlagStateManager::BuildConfigString
 
 Constructs the configstring payload for clients.
 =============
 */
 std::string FlagStateManager::BuildConfigString() const {
-	std::string flagStatusStr;
-	flagStatusStr.reserve(Game::Is(GameType::CaptureTheFlag) ? 2 : 3);
-
-	static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
-	static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
-
-	if (Game::Is(GameType::CaptureTheFlag)) {
-		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(DataFor(Team::Red).status)));
-		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(DataFor(Team::Blue).status)));
-	}
-	else {
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Red).status)));
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Blue).status)));
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(DataFor(Team::Free).status)));
-	}
-
-	return flagStatusStr;
+	const std::array<FlagStatus, 3> statuses{
+		DataFor(Team::Red).status,
+		DataFor(Team::Blue).status,
+		DataFor(Team::Free).status
+	};
+	return BuildFlagStatusPayload(Game::Is(GameType::CaptureTheFlag), statuses);
 }
 
 /*
@@ -310,7 +326,7 @@ Sends updated flag state to connected clients.
 */
 void FlagStateManager::UpdateConfigString() const {
 	const std::string payload = BuildConfigString();
-	(void)payload; // TODO: trap_SetConfigstring(CS_FLAGSTATUS, payload);
+	gi.configString(CS_FLAGSTATUS, payload.c_str());
 }
 
 /*
