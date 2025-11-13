@@ -243,11 +243,32 @@ void PushAward(gentity_t* ent, PlayerMedal medal) {
 
 /*
 ===============
+P_AccumulateMatchPlayTime
+
+Accumulates the client's active match play segment into their persistent total.
+===============
+*/
+static void P_AccumulateMatchPlayTime(gclient_t* cl, int64_t now) {
+	if (!cl)
+		return;
+
+	if (cl->sess.playStartRealTime <= 0)
+		return;
+
+	if (now <= cl->sess.playStartRealTime)
+		return;
+
+	cl->resp.totalMatchPlayRealTime += now - cl->sess.playStartRealTime;
+	cl->sess.playStartRealTime = now;
+}
+
+/*
+===============
 P_SaveGhostSlot
 ===============
 */
 void P_SaveGhostSlot(gentity_t* ent) {
-	//TODO: don't do this if less than 1 minute played
+	constexpr int64_t MIN_GHOST_SLOT_PLAY_TIME_MS = 60 * 1000;
 
 	if (!ent || !ent->client)
 		return;
@@ -261,6 +282,9 @@ void P_SaveGhostSlot(gentity_t* ent) {
 		return;
 
 	if (level.matchState != MatchState::In_Progress)
+		return;
+
+	if (cl->resp.totalMatchPlayRealTime < MIN_GHOST_SLOT_PLAY_TIME_MS)
 		return;
 
 	const char* socialID = cl->sess.socialID;
@@ -3107,6 +3131,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 			ProBall::DropBall(ent, nullptr, false);
 			Tech_DeadDrop(ent);
 			Weapon_Grapple_DoReset(cl);
+			P_AccumulateMatchPlayTime(cl, now);
 			cl->sess.playEndRealTime = now;
 		}
 		cl->sess.team = Team::Spectator;
@@ -3826,10 +3851,7 @@ void ClientDisconnect(gentity_t* ent) {
 	gclient_t* cl = ent->client;
 	const int64_t now = GetCurrentRealTimeMillis();
 	cl->sess.playEndRealTime = now;
-	if (cl->sess.playStartRealTime > 0) {
-		cl->resp.totalMatchPlayRealTime += now - cl->sess.playStartRealTime;
-		cl->sess.playStartRealTime = now;
-	}
+	P_AccumulateMatchPlayTime(cl, now);
 
 	// make sure no trackers are still hurting us.
 	if (cl->trackerPainTime)
