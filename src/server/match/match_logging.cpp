@@ -20,11 +20,14 @@
 #include "../gameplay/client_config.hpp"
 #include "../../shared/char_array_utils.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
-#include <unordered_set>
 #include <string_view>
+#include <system_error>
+#include <unordered_set>
+#include <cerrno>
 
 using json = Json::Value;
 
@@ -359,7 +362,7 @@ struct MatchStats {
 };
 MatchStats matchStats;
 
-static void MatchStats_WriteJson(const MatchStats& matchStats, const std::string& fileName) {
+static bool MatchStats_WriteJson(const MatchStats& matchStats, const std::string& fileName) {
 	try {
 		std::ofstream file(fileName);
 		if (file.is_open()) {
@@ -369,14 +372,17 @@ static void MatchStats_WriteJson(const MatchStats& matchStats, const std::string
 			file << output;
 			file.close();
 			gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
+			return true;
 		}
-		else {
-			gi.Com_PrintFmt("Failed to open JSON file: {}\n", fileName.c_str());
-		}
+
+		const std::error_code ec(errno, std::system_category());
+		gi.Com_PrintFmt("Failed to open JSON file: {} ({})\n", fileName.c_str(), ec.message().c_str());
 	}
 	catch (const std::exception& e) {
-		gi.Com_PrintFmt("Exception while writing JSON: {}\n", e.what());
+		gi.Com_PrintFmt("Exception while writing JSON ({}): {}\n", fileName.c_str(), e.what());
 	}
+
+	return false;
 }
 
 /*
@@ -1389,11 +1395,12 @@ static inline void Html_WriteFooter(std::ofstream& html, const std::string& html
 MatchStats_WriteHtml
 =============
 */
-static void MatchStats_WriteHtml(const MatchStats& matchStats, const std::string& htmlPath) {
+static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string& htmlPath) {
 	std::ofstream html(htmlPath);
 	if (!html.is_open()) {
-		gi.Com_PrintFmt("Failed to open HTML file: {}\n", htmlPath.c_str());
-		return;
+		const std::error_code ec(errno, std::system_category());
+		gi.Com_PrintFmt("Failed to open HTML file: {} ({})\n", htmlPath.c_str(), ec.message().c_str());
+		return false;
 	}
 
 	// Gather players
@@ -1453,6 +1460,7 @@ static void MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 
 	html.close();
 	gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
+	return true;
 }
 
 /*
@@ -1528,11 +1536,30 @@ static void SendIndividualMiniStats(const MatchStats& matchStats) {
 /*
 =============
 MatchStats_WriteAll
+
+Ensures the destination directory exists, then writes JSON and HTML exports for the
+current match while reporting any errors that occur during the process.
 =============
 */
 static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseFilePath) {
-	MatchStats_WriteJson(matchStats, baseFilePath + ".json");
-	MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
+	const std::filesystem::path basePath(baseFilePath);
+	const std::filesystem::path directory = basePath.parent_path();
+
+	if (!directory.empty()) {
+		std::error_code dirError;
+		std::filesystem::create_directories(directory, dirError);
+		if (dirError) {
+			gi.Com_PrintFmt("{}: Failed to create directory '{}': {}\n", __FUNCTION__, directory.string().c_str(), dirError.message().c_str());
+			return;
+		}
+	}
+
+	const bool jsonWritten = MatchStats_WriteJson(matchStats, baseFilePath + ".json");
+	const bool htmlWritten = MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
+	if (!jsonWritten || !htmlWritten) {
+		gi.Com_PrintFmt("{}: Export completed with errors (JSON: {}, HTML: {})\n", __FUNCTION__, jsonWritten ? "ok" : "failed", htmlWritten ? "ok" : "failed");
+	}
+
 	SendIndividualMiniStats(matchStats);
 
 	level.match.deathLog.clear();
