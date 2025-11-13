@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+void SanitizeSpectatorString(const char* in, char* out);
+
 struct MapRecord {
 	std::string filename;
 	std::string longName;
@@ -53,6 +55,13 @@ int main() {
 	const std::string highByteNeedle = std::string(1, static_cast<char>(0xFF));
 	const bool highByteMatch = str_contains_case(maps.back().longName, highByteNeedle);
 	assert(highByteMatch);
+
+	char sanitizedBuffer[32] = {};
+	SanitizeSpectatorString("FJ\xC3\x96RD\x1F", sanitizedBuffer);
+	assert(std::string(sanitizedBuffer) == "fj\xC3\x96rd");
+
+	SanitizeSpectatorString("\xFFChamp\x01", sanitizedBuffer);
+	assert(std::string(sanitizedBuffer) == "\xFFchamp");
 
 	return 0;
 }

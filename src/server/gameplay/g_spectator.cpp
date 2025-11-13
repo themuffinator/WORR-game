@@ -20,6 +20,7 @@
 //   connect, disconnect, or switch between playing and spectating.
 
 #include "../g_local.hpp"
+#include <cctype>
 
 void FreeFollower(gentity_t* ent) {
 	if (!ent)
@@ -205,16 +206,28 @@ Remove case and control characters
 */
 static void SanitizeString(const char* in, char* out) {
 	while (*in) {
-		if (*in < ' ') {
-			in++;
+		const unsigned char ch = static_cast<unsigned char>(*in);
+		if (ch < ' ') {
+			++in;
 			continue;
 		}
-		*out = tolower(*in);
-		out++;
-		in++;
+		*out = static_cast<char>(std::tolower(ch));
+		++out;
+		++in;
 	}
 
 	*out = '\0';
+}
+
+/*
+==================
+SanitizeSpectatorString
+
+Public wrapper used by tests to exercise spectator string sanitization.
+==================
+*/
+void SanitizeSpectatorString(const char* in, char* out) {
+	SanitizeString(in, out);
 }
 
 /*
