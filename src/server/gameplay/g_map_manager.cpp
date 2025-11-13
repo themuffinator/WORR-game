@@ -687,22 +687,28 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 using MapFilter = std::function<bool(const MapEntry&)>;
 
 /*
-==============================
+=============
+str_contains_case
+
 Case-insensitive substring check
-==============================
+=============
 */
 static bool str_contains_case(const std::string& haystack, const std::string& needle) {
 	return std::search(
 		haystack.begin(), haystack.end(),
 		needle.begin(), needle.end(),
-		[](char ch1, char ch2) { return std::tolower(ch1) == std::tolower(ch2); }
+		[](char ch1, char ch2) {
+			return std::tolower(static_cast<unsigned char>(ch1)) == std::tolower(static_cast<unsigned char>(ch2));
+		}
 	) != haystack.end();
 }
 
 /*
-==============================
+=============
+TokenizeQuery
+
 Quoted string and token parser
-==============================
+=============
 */
 static std::vector<std::string> TokenizeQuery(const std::string& input) {
 	std::vector<std::string> tokens;
@@ -716,7 +722,7 @@ static std::vector<std::string> TokenizeQuery(const std::string& input) {
 				current.clear();
 			}
 		}
-		else if (std::isspace(ch) && !inQuote) {
+		else if (std::isspace(static_cast<unsigned char>(ch)) && !inQuote) {
 			if (!current.empty()) {
 				tokens.push_back(current);
 				current.clear();
