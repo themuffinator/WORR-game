@@ -26,3 +26,12 @@ Collect the client indices for the specified team until the buffer is full.
 
 		return count;
 	}
+
+/*
+=============
+TeamBalance_ApplyQueuedChanges
+
+Executes queued team balance swaps during safe transitions.
+=============
+*/
+void TeamBalance_ApplyQueuedChanges();

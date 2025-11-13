@@ -18,6 +18,7 @@
 
 #include "../g_local.hpp"
 #include "../gameplay/g_headhunters.hpp"
+#include "../gameplay/team_balance.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../commands/command_registration.hpp"
 #include "../match/match.hpp"
@@ -879,6 +880,7 @@ static bool Round_StartNew() {
 	level.roundState = RoundState::Countdown;
 	level.roundStateTimer = level.time + 10_sec;
 	level.countdownTimerCheck = 0_sec;
+	TeamBalance_ApplyQueuedChanges();
 
 	if (!horde) {
 		ResetMatchWorldState(true);

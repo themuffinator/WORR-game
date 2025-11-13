@@ -2011,6 +2011,121 @@ static int ClientListSortByJoinTime(const void* a, const void* b) {
 	return 0;
 }
 
+
+/*
+============
+TeamBalance_ClearQueueEntry
+
+Resets a queued team balance request to its default state.
+============
+*/
+static void TeamBalance_ClearQueueEntry(LevelLocals::TeamBalanceQueueEntry& entry) {
+	entry.clientNum = -1;
+	entry.targetTeam = Team::None;
+	entry.requestTime = 0_ms;
+}
+
+/*
+============
+TeamBalance_QueueClient
+
+Queues a client for a team switch at the next round transition.
+============
+*/
+static bool TeamBalance_QueueClient(int clientNum, Team targetTeam) {
+	if (clientNum < 0 || clientNum >= MAX_CLIENTS_KEX)
+		return false;
+
+	auto& queue = level.teamBalanceQueue;
+
+	for (auto& entry : queue.entries) {
+		if (entry.clientNum == clientNum) {
+			entry.targetTeam = targetTeam;
+			entry.requestTime = level.time;
+			return true;
+		}
+	}
+
+	for (auto& entry : queue.entries) {
+		if (entry.clientNum == -1) {
+			entry.clientNum = static_cast<int16_t>(clientNum);
+			entry.targetTeam = targetTeam;
+			entry.requestTime = level.time;
+			queue.size++;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+/*
+============
+TeamBalance_ApplyQueuedChanges
+
+Executes any queued team balance changes during a safe transition.
+============
+*/
+void TeamBalance_ApplyQueuedChanges() {
+	auto& queue = level.teamBalanceQueue;
+
+	if (!queue.size)
+		return;
+
+	bool applied = false;
+
+	for (auto& entry : queue.entries) {
+		if (entry.clientNum < 0) {
+			TeamBalance_ClearQueueEntry(entry);
+			continue;
+		}
+
+		const int clientNum = entry.clientNum;
+		if (clientNum < 0 || clientNum >= MAX_CLIENTS_KEX) {
+			TeamBalance_ClearQueueEntry(entry);
+			continue;
+		}
+
+		gclient_t* cl = &game.clients[clientNum];
+		if (!cl || !cl->pers.connected) {
+			TeamBalance_ClearQueueEntry(entry);
+			continue;
+		}
+
+		Team targetTeam = entry.targetTeam;
+		if (targetTeam == Team::None || cl->sess.team == targetTeam) {
+			TeamBalance_ClearQueueEntry(entry);
+			continue;
+		}
+
+		gentity_t* ent = &g_entities[clientNum + 1];
+
+		cl->sess.team = targetTeam;
+		cl->ps.teamID = static_cast<int>(targetTeam);
+		cl->sess.teamJoinTime = level.time;
+		cl->sess.inGame = (targetTeam != Team::Spectator);
+		cl->sess.matchQueued = false;
+		cl->sess.inactiveStatus = false;
+		cl->sess.duelQueueTicket = 0;
+		cl->eliminated = false;
+		cl->pers.spawned = false;
+
+		if (ent && ent->client) {
+			gi.Client_Print(ent, PRINT_CENTER, "You have been moved to the {} Team to rebalance the game.\n", Teams_TeamName(targetTeam));
+		}
+
+		applied = true;
+		TeamBalance_ClearQueueEntry(entry);
+	}
+
+	queue.size = 0;
+
+	if (applied) {
+		CalculateRanks();
+		gi.Broadcast_Print(PRINT_HIGH, "Queued team balance changes have been applied.\n");
+	}
+}
+
 /*
 ================
 TeamBalance
@@ -2029,12 +2144,15 @@ int TeamBalance(bool force) {
 	Team stack_team = level.pop.num_playing_red > level.pop.num_playing_blue ? Team::Red : Team::Blue;
 	std::array<int, MAX_CLIENTS_KEX> index{};
 	size_t count = CollectStackedTeamClients(stack_team, index);
+	const bool queueRequired = Game::Has(GameFlags::Rounds | GameFlags::Elimination);
 	// sort client num list by join time
 	qsort(index.data(), count, sizeof(index[0]), ClientListSortByJoinTime);
 	//run through sort list, switching from stack_team until teams are even
 	if (count) {
 		size_t	i;
 		int switched = 0;
+		bool queuedChanges = false;
+		bool appliedImmediately = false;
 		gclient_t* cl = nullptr;
 		for (i = 0; i < count && delta > 1; i++) {
 			cl = &game.clients[index[i]];
@@ -2044,15 +2162,41 @@ int TeamBalance(bool force) {
 				continue;
 			if (cl->sess.team != stack_team)
 				continue;
-			cl->sess.team = stack_team == Team::Red ? Team::Blue : Team::Red;
-			//TODO: queue this change in round-based games
-			ClientRespawn(&g_entities[cl - game.clients + 1]);
-			gi.Client_Print(&g_entities[cl - game.clients + 1], PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+
+			const Team targetTeam = Teams_OtherTeam(stack_team);
+			const int clientNum = static_cast<int>(cl - game.clients);
+			gentity_t* ent = &g_entities[clientNum + 1];
+			bool queued = false;
+
+			if (queueRequired && targetTeam != Team::Spectator) {
+				queued = TeamBalance_QueueClient(clientNum, targetTeam);
+				if (queued) {
+					queuedChanges = true;
+					if (ent && ent->client) {
+						gi.Client_Print(ent, PRINT_CENTER, "You will join the {} Team at the start of the next round to rebalance the game.\n", Teams_TeamName(targetTeam));
+					}
+				}
+			}
+
+			if (!queued) {
+				cl->sess.team = targetTeam;
+				ClientRespawn(ent);
+				if (ent && ent->client) {
+					gi.Client_Print(ent, PRINT_CENTER, "You have changed teams to rebalance the game.\n");
+				}
+				appliedImmediately = true;
+			}
+
 			delta--;
 			switched++;
 		}
 		if (switched) {
-			gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
+			if (queuedChanges && appliedImmediately)
+				gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced. Additional moves will occur at the start of the next round.\n");
+			else if (queuedChanges)
+				gi.Broadcast_Print(PRINT_HIGH, "Teams will be balanced at the start of the next round.\n");
+			else
+				gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
 			return switched;
 		}
 	}

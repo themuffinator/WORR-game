@@ -2442,6 +2442,17 @@ struct LevelLocals {
 	std::array<int, static_cast<int>(Team::Total)>	teamScores{};
 	std::array<int, static_cast<int>(Team::Total)>	teamOldScores{};
 
+	struct TeamBalanceQueueEntry {
+		int16_t	clientNum = -1;
+		Team	targetTeam = Team::None;
+		GameTime	requestTime = 0_ms;
+	};
+
+	struct TeamBalanceQueue {
+		std::array<TeamBalanceQueueEntry, MAX_CLIENTS_KEX> entries{};
+		size_t size = 0;
+	} teamBalanceQueue{};
+
 	struct DominationState {
 		static constexpr size_t MAX_POINTS = 8;
 
