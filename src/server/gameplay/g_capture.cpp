@@ -610,26 +610,49 @@ Maps a flag item identifier back to its owning team.
 	=============
 	*/
 	void Team_TakeFlagSound(Team team) {
+		Team targetTeam = Team::None;
+		const char* announcerKey = nullptr;
+
 		switch (team) {
 		case Team::Red:
 			if (Flags().GetStatus(Team::Blue) != FlagStatus::AtBase &&
-				Flags().GetTakenTime(Team::Blue) > level.time - 5_sec) {
+					Flags().GetTakenTime(Team::Blue) > level.time - 5_sec) {
 				return;
 			}
 			Flags().SetTakenTime(Team::Blue, level.time);
+			targetTeam = Team::Blue;
+			announcerKey = "red_flag_taken";
 			break;
 		case Team::Blue:
 			if (Flags().GetStatus(Team::Red) != FlagStatus::AtBase &&
-				Flags().GetTakenTime(Team::Red) > level.time - 5_sec) {
+					Flags().GetTakenTime(Team::Red) > level.time - 5_sec) {
 				return;
 			}
 			Flags().SetTakenTime(Team::Red, level.time);
+			targetTeam = Team::Red;
+			announcerKey = "blue_flag_taken";
 			break;
 		default:
 			return;
 		}
-		// TODO: hook up take VO
+
+		if (world) {
+			gi.sound(world, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagtk.wav"), 1, ATTN_NONE, 0);
+		}
+
+		if (announcerKey) {
+			AnnouncerSound(world, announcerKey);
+		}
+
+		if (targetTeam != Team::None) {
+			gi.LocBroadcast_Print(
+				PRINT_HIGH,
+				"{} FLAG TAKEN by {} TEAM!\n",
+				Teams_TeamName(targetTeam),
+				Teams_TeamName(team));
+		}
 	}
+
 
 	/*
 	=============
