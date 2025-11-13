@@ -18,6 +18,7 @@
 //   a specific map next.
 
 #include "../g_local.hpp"
+#include "../../shared/map_validation.hpp"
 #include <json/json.h>
 #include <fstream>
 #include <regex>
@@ -336,8 +337,10 @@ Returns true if the file can be opened.
 ===============
 */
 bool MapSystem::MapExists(std::string_view mapName) const {
-	if (mapName.empty())
+	if (!G_IsValidMapIdentifier(mapName)) {
+		gi.Com_PrintFmt("{}: rejected invalid map identifier \"{}\"\n", __FUNCTION__, std::string(mapName).c_str());
 		return false;
+	}
 
 	std::string path = "baseq2/maps/";
 	path += mapName;
@@ -403,8 +406,17 @@ void LoadMapPool(gentity_t* ent) {
 			continue;
 		}
 
+		const std::string bspName = entry["bsp"].asString();
+		if (!G_IsValidMapIdentifier(bspName)) {
+			skipped++;
+			if (entClient)
+				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Skipped invalid map identifier: {}\n", bspName.c_str());
+			gi.Com_PrintFmt("{}: ignoring invalid map identifier from pool: \"{}\"\n", __FUNCTION__, bspName.c_str());
+			continue;
+		}
+
 		MapEntry map;
-		map.filename = entry["bsp"].asString();
+		map.filename = bspName;
 
 		if (entry.isMember("title"))          map.longName = entry["title"].asString();
 		if (entry.isMember("min"))            map.minPlayers = entry["min"].asInt();
