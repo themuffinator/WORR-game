@@ -38,11 +38,11 @@ namespace Commands {
 		kVoteFlag_Ruleset |
 		kVoteFlag_Arena;
 
-	struct VoteDefinitionView {
-		std::string_view name;
-		int32_t flag;
-		bool visibleInMenu;
-	};
+		struct VoteDefinitionView {
+			std::string name;
+			int32_t flag;
+			bool visibleInMenu;
+		};
 
 	struct VoteLaunchResult {
 		bool success = false;
