@@ -31,7 +31,9 @@
 #include <system_error>
 #include <json/json.h>
 
+#include <optional>
 #include <set>
+#include <string_view>
 
 using json = Json::Value;
 
@@ -39,15 +41,45 @@ const int DEFAULT_RATING = 1500;
 const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
 
 /*
+=============
+PlayerConfigPathFromID
+
+Sanitizes the supplied player ID and returns the filesystem path for the
+associated JSON config file. Returns std::nullopt if the sanitized value is
+empty.
+=============
+*/
+static std::optional<std::string> PlayerConfigPathFromID(const std::string& playerID, const char* functionName)
+{
+	const std::string sanitized = SanitizeSocialID(playerID);
+	if (sanitized.empty()) {
+		if (!playerID.empty() && gi.Com_Print) {
+			gi.Com_PrintFmt("WARNING: {}: refusing to use invalid social ID '{}' for config filename\n", functionName, playerID.c_str());
+		}
+		return std::nullopt;
+	}
+
+	if (sanitized != playerID && gi.Com_Print) {
+		gi.Com_PrintFmt("WARNING: {}: sanitized social ID '{}' to '{}' for config filename\n", functionName, playerID.c_str(), sanitized.c_str());
+	}
+
+	return std::optional<std::string>(G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, sanitized).data());
+}
+
+/*
 ================
 GetPlayerNameForSocialID
 ================
 */
 std::string GetPlayerNameForSocialID(const std::string& socialID) {
-        if (socialID.empty())
-                return {};
+	if (socialID.empty())
+		return {};
 
-        const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, socialID).data();
+	const auto pathOpt = PlayerConfigPathFromID(socialID, __FUNCTION__);
+	if (!pathOpt)
+		return {};
+
+	const std::string path = *pathOpt;
 
 	std::ifstream file(path);
 	if (!file.is_open())
@@ -142,12 +174,16 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	newFile["firstSeen"] = TimeStamp();
 
         try {
-                const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
-
-                if (!EnsurePlayerConfigDirectory())
+		const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
+		if (!pathOpt)
                         return;
 
-                std::ofstream file(path);
+		if (!EnsurePlayerConfigDirectory())
+                        return;
+
+		const std::string path = *pathOpt;
+
+		std::ofstream file(path);
                 if (file.is_open()) {
 			Json::StreamWriterBuilder builder;
 			builder["indentation"] = "    "; // 4 spaces
@@ -172,8 +208,6 @@ ClientConfig_Init
 =============
 */
 void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
-	std::ifstream file(path);
 	Json::Value playerData;
 	bool modified = false;
 
@@ -184,6 +218,15 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		cl->sess.skillRating = DEFAULT_RATING;
 		return;
 	}
+
+	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
+	if (!pathOpt) {
+		cl->sess.skillRating = DEFAULT_RATING;
+		return;
+	}
+
+	const std::string path = *pathOpt;
+	std::ifstream file(path);
 
 	// If file doesn't exist, create a new default config
 	if (!file.is_open()) {
@@ -431,7 +474,11 @@ static void ClientConfig_SaveInternal(
 	if (playerID.empty())
 		return;
 
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
+	if (!pathOpt)
+		return;
+
+	const std::string path = *pathOpt;
 	std::ifstream file(path);
 	if (!file.is_open()) {
 		gi.Com_PrintFmt("{}: could not open file for {}\n", __FUNCTION__, playerID);
@@ -540,7 +587,7 @@ static void ClientConfig_SaveInternal(
 
         // Write updated file
         try {
-                if (!EnsurePlayerConfigDirectory())
+		if (!EnsurePlayerConfigDirectory())
                         return;
 
                 std::ofstream outFile(path);
@@ -626,7 +673,11 @@ static bool ClientConfig_Update(
 	if (playerID.empty())
 		return false;
 
-	const std::string path = G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, playerID).data();
+	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
+	if (!pathOpt)
+		return false;
+
+	const std::string path = *pathOpt;
 
 	// 1) load
 	std::ifstream in(path);
@@ -659,7 +710,7 @@ static bool ClientConfig_Update(
 
 	// 6) write back
         try {
-                if (!EnsurePlayerConfigDirectory())
+		if (!EnsurePlayerConfigDirectory())
                         return false;
 
                 std::ofstream out(path);

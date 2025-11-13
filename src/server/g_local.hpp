@@ -4102,6 +4102,23 @@ void G_PostRespawn(gentity_t* self);
 //
 std::string GetPlayerNameForSocialID(const std::string& socialID);
 
+inline std::string SanitizeSocialID(std::string_view socialID)
+{
+	std::string sanitized;
+	sanitized.reserve(socialID.size());
+
+	for (char ch : socialID) {
+		const bool is_digit = ch >= '0' && ch <= '9';
+		const bool is_upper = ch >= 'A' && ch <= 'Z';
+		const bool is_lower = ch >= 'a' && ch <= 'z';
+		if (is_digit || is_upper || is_lower || ch == '-' || ch == '_') {
+			sanitized.push_back(ch);
+		}
+	}
+
+	return sanitized;
+}
+
 //
 // g_capture.cpp
 //
