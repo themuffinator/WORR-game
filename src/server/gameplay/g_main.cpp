@@ -27,6 +27,7 @@
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
+#include <filesystem>
 #include <fstream>
 #include <new>
 #include <sstream>
@@ -298,14 +299,69 @@ void G_InitSave();
 
 // =================================================
 
-void LoadMotd() {
-	const std::string motdPath = G_Fmt(
-		"baseq2/{}",
-		g_motd_filename->string[0] ? g_motd_filename->string : "motd.txt").data();
+/*
+=============
+LoadMotd
 
+Loads the message of the day file after validating the configured filename.
+=============
+*/
+void LoadMotd() {
+	const char* rawName = g_motd_filename->string;
+	const std::string configuredName = rawName[0] ? rawName : "motd.txt";
+	const std::filesystem::path basePath("baseq2");
+	const std::filesystem::path normalizedBase = basePath.lexically_normal();
+	std::filesystem::path resolvedPath;
+	std::string effectiveName = configuredName;
+
+	auto validateAndResolve = [&](const std::string& name, std::filesystem::path& outPath) -> bool {
+		std::filesystem::path relativePath(name);
+
+		if (relativePath.empty()) {
+			return false;
+		}
+
+		if (relativePath.is_absolute() || relativePath.has_root_path()) {
+			return false;
+		}
+
+		for (const std::filesystem::path& part : relativePath) {
+			if (part == "." || part == "..") {
+				return false;
+			}
+		}
+
+		const std::filesystem::path candidate = (basePath / relativePath).lexically_normal();
+		auto candidateIter = candidate.begin();
+
+		for (const std::filesystem::path& basePart : normalizedBase) {
+			if (candidateIter == candidate.end() || basePart != *candidateIter) {
+				return false;
+			}
+
+			++candidateIter;
+		}
+
+		outPath = candidate;
+		return true;
+	};
+
+	if (!validateAndResolve(configuredName, resolvedPath)) {
+		gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: "{}"\n", __FUNCTION__, configuredName.c_str());
+		effectiveName = "motd.txt";
+
+		if (!validateAndResolve(effectiveName, resolvedPath)) {
+			gi.Com_PrintFmt("{}: Default MotD filename failed validation: "{}"\n", __FUNCTION__, effectiveName.c_str());
+			return;
+		}
+	}
+
+	const std::string motdPath = resolvedPath.string();
 	FILE* f = fopen(motdPath.c_str(), "rb");
-	if (!f)
+
+	if (!f) {
 		return;
+	}
 
 	bool valid = true;
 	std::string contents;
@@ -315,27 +371,31 @@ void LoadMotd() {
 	}
 
 	long endPosition = valid ? ftell(f) : -1;
+
 	if (endPosition < 0) {
 		valid = false;
 	}
 
 	if (valid) {
-		if (fseek(f, 0, SEEK_SET) != 0)
+		if (fseek(f, 0, SEEK_SET) != 0) {
 			valid = false;
+		}
 	}
 
 	if (valid) {
 		const std::size_t length = static_cast<std::size_t>(endPosition);
+
 		if (length > 0x40000) {
-			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: "{}"\n", __FUNCTION__, motdPath.c_str());
 			valid = false;
-		}
-		else {
+		} else {
 			contents.resize(length);
+
 			if (length > 0) {
 				const std::size_t readLength = fread(contents.data(), 1, length, f);
+
 				if (readLength != length) {
-					gi.Com_PrintFmt("{}: MoTD file read error: \"{}\"\n", __FUNCTION__, motdPath.c_str());
+					gi.Com_PrintFmt("{}: MoTD file read error: "{}"\n", __FUNCTION__, motdPath.c_str());
 					valid = false;
 				}
 			}
@@ -347,11 +407,12 @@ void LoadMotd() {
 	if (valid) {
 		game.motd = contents;
 		game.motdModificationCount++;
-		if (g_verbose->integer)
-			gi.Com_PrintFmt("{}: MotD file verified and loaded: \"{}\"\n", __FUNCTION__, motdPath.c_str());
-	}
-	else {
-		gi.Com_PrintFmt("{}: MotD file load error for \"{}\", discarding.\n", __FUNCTION__, motdPath.c_str());
+
+		if (g_verbose->integer) {
+			gi.Com_PrintFmt("{}: MotD file verified and loaded: "{}"\n", __FUNCTION__, motdPath.c_str());
+		}
+	} else {
+		gi.Com_PrintFmt("{}: MotD file load error for "{}", discarding.\n", __FUNCTION__, motdPath.c_str());
 	}
 }
 
