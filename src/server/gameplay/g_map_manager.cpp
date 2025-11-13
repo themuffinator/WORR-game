@@ -614,7 +614,8 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 	std::vector<const MapEntry*> pool;
 	const int playerCount = level.pop.num_playing_human_clients;
 	const bool avoidCustom = (level.pop.num_console_clients > 0);
-	const bool avoidCustomTextures = !g_maps_allow_custom_textures->integer;
+	const bool avoidCustomTextures = g_maps_allow_custom_textures && !g_maps_allow_custom_textures->integer;
+	const bool avoidCustomSounds = g_maps_allow_custom_sounds && !g_maps_allow_custom_sounds->integer;
 	const int cooldownSeconds = 1800;
 	const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
 	bool isCTF = Game::Has(GameFlags::CTF);
@@ -629,7 +630,7 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 		if ((map.minPlayers > 0 && playerCount < map.minPlayers) ||
 			(map.maxPlayers > 0 && playerCount > map.maxPlayers))
 			continue;
-		if (avoidCustomTextures && map.hasCustomTextures)
+		if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
 			continue;
 		if (!Q_strcasecmp(level.mapName.data(), map.filename.c_str()))
 			continue;
@@ -654,7 +655,7 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 		for (const auto& map : game.mapSystem.mapPool) {
 			if (map.lastPlayed && (secondsSinceStart - map.lastPlayed) < cooldownSeconds)
 				continue;
-			if (avoidCustomTextures && map.hasCustomTextures)
+			if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
 				continue;
 			pool.push_back(&map);
 		}
