@@ -701,6 +701,17 @@ static bool str_contains_case(const std::string& haystack, const std::string& ne
 
 /*
 ==============================
+IsWhitespaceSafe
+
+Locale-aware safe whitespace check for char inputs.
+==============================
+*/
+static bool IsWhitespaceSafe(char ch) {
+	return std::isspace(static_cast<unsigned char>(ch));
+}
+
+/*
+==============================
 Quoted string and token parser
 ==============================
 */
@@ -716,7 +727,7 @@ static std::vector<std::string> TokenizeQuery(const std::string& input) {
 				current.clear();
 			}
 		}
-		else if (std::isspace(ch) && !inQuote) {
+		else if (IsWhitespaceSafe(ch) && !inQuote) {
 			if (!current.empty()) {
 				tokens.push_back(current);
 				current.clear();
