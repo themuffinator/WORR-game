@@ -1357,6 +1357,14 @@ static THINK(trigger_coop_relay_think) (gentity_t* self) -> void {
 	self->nextThink = level.time + GameTime::from_sec(self->wait);
 }
 
+/*
+=============
+SP_trigger_coop_relay
+
+Initializes the cooperative relay trigger entity, configuring defaults for
+messaging, timing, and activation behavior.
+=============
+*/
 void SP_trigger_coop_relay(gentity_t* self) {
 	if (self->targetName && self->spawnFlags.has(SPAWNFLAG_COOP_RELAY_AUTO_FIRE))
 		gi.Com_PrintFmt("{}: targetName and auto-fire are mutually exclusive\n", *self);
@@ -1366,8 +1374,8 @@ void SP_trigger_coop_relay(gentity_t* self) {
 	if (!self->message)
 		self->message = "$g_coop_wait_for_players";
 
-        if (CharArrayIsBlank(self->map))
-                strncpy(self->map.data(), "$g_coop_players_waiting_for_you", sizeof(self->map));
+	if (CharArrayIsBlank(self->map))
+		Q_strlcpy(self->map.data(), "$g_coop_players_waiting_for_you", self->map.size());
 
 	if (!self->wait)
 		self->wait = 1;
