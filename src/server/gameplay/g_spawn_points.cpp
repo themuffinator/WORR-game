@@ -972,8 +972,10 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 
 	// Deathmatch
 	if (deathmatch->integer) {
-		// Team spawns first when in team modes
-		if (Teams()) {
+		const bool wants_player_spawn = ent && ent->client && ClientIsPlaying(ent->client) && !ent->client->eliminated;
+
+		// Team spawns first when in team modes for active players only
+		if (Teams() && wants_player_spawn) {
 			spot = SelectTeamSpawnPoint(ent, ent->client ? ent->client->sess.team : Team::Free);
 		}
 
