@@ -192,14 +192,14 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 			std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 			writer->write(newFile, &file);
 			file.close();
-			gi.Com_PrintFmt("Created new client config file: {}\n", path.c_str());
+			gi.Com_PrintFmt("Created new client config file: {}\n", path);
 		}
 		else {
-			gi.Com_PrintFmt("Failed to create client config file: {}\n", path.c_str());
+			gi.Com_PrintFmt("Failed to create client config file: {}\n", path);
 		}
 	}
 	catch (const std::exception& e) {
-		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+		gi.Com_PrintFmt("{}: exception while creating client config: {}\n", __FUNCTION__, e.what());
 	}
 }
 
