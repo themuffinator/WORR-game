@@ -12,11 +12,15 @@
 
 #include <array>
 #include <vector>
+#include <string>
 #include <string_view>
 #include <cstdint>
 #include <cstdio>
 #include <algorithm>
 #include <charconv>
+#include <filesystem>
+#include <fstream>
+#include <system_error>
 
 // External cvars/engine globals expected from g_local.hpp
 // extern cvar_t* filterBan; // 1 = matching IPs are banned, 0 = only matching IPs are allowed
@@ -47,6 +51,18 @@ namespace
 	inline bool IsDigit(char c) noexcept
 	{
 		return c >= '0' && c <= '9';
+	}
+
+	/*
+	===============
+	IsWhitespace
+
+	Returns true if the character is a standard ASCII whitespace.
+	===============
+	*/
+	inline bool IsWhitespace(char c) noexcept
+	{
+		return c == ' ' || c == '\t' || c == '\r' || c == '\n';
 	}
 
 	/*
@@ -190,16 +206,49 @@ namespace
 
 	/*
 	===============
+	FormatIP
+
+	Formats an IPv4 address into dotted-quad notation.
+	===============
+	*/
+	static std::string FormatIP(const std::array<uint8_t, 4>& b)
+	{
+		char buffer[sizeof("255.255.255.255")];
+		std::snprintf(buffer, sizeof(buffer), "%u.%u.%u.%u",
+			static_cast<unsigned>(b[0]),
+			static_cast<unsigned>(b[1]),
+			static_cast<unsigned>(b[2]),
+			static_cast<unsigned>(b[3]));
+		return std::string(buffer);
+	}
+
+	/*
+	===============
 	PrintIP
 	===============
 	*/
 	static void PrintIP(const std::array<uint8_t, 4>& b)
 	{
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}.{}.{}.{}\n",
-			static_cast<int>(b[0]),
-			static_cast<int>(b[1]),
-			static_cast<int>(b[2]),
-			static_cast<int>(b[3]));
+		const std::string formatted = FormatIP(b);
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "{}\n", formatted.c_str());
+	}
+
+	/*
+	===============
+	ResolveIPFilterPath
+
+	Determines where the persistent IP filter configuration should be stored.
+	===============
+	*/
+	static std::filesystem::path ResolveIPFilterPath()
+	{
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		const char* gameDir = (gameCvar && gameCvar->string) ? gameCvar->string : "";
+
+		if (gameDir && *gameDir)
+			return std::filesystem::path(gameDir) / "listip.cfg";
+
+		return std::filesystem::path(GAMEVERSION) / "listip.cfg";
 	}
 
 	/*
@@ -293,14 +342,51 @@ namespace
 	===============
 	SVCmd_WriteIP_f
 
-	Note: Original implementation wrote list to listip.cfg.
-	Left as a no-op unless file I/O helpers are provided.
+	Writes the active IP filters to disk in Quake II's listip.cfg format.
 	===============
 	*/
 	static void SVCmd_WriteIP_f()
 	{
-		// Intentionally left inert until file IO helper is available.
-		gi.LocClient_Print(nullptr, PRINT_HIGH, "writeip not implemented.\n");
+		const std::filesystem::path path = ResolveIPFilterPath();
+		const std::string pathStr = path.generic_string();
+
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "Writing {}.\n", pathStr.c_str());
+
+		if (!path.parent_path().empty()) {
+			std::error_code dirError;
+			std::filesystem::create_directories(path.parent_path(), dirError);
+			if (dirError) {
+				gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to create directory {}: {}\n",
+					path.parent_path().generic_string().c_str(), dirError.message().c_str());
+				return;
+			}
+		}
+
+		std::FILE* file = std::fopen(pathStr.c_str(), "wb");
+		if (!file) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Couldn't open {}\n", pathStr.c_str());
+			return;
+		}
+
+		const int filterValue = (filterBan != nullptr) ? filterBan->integer : 1;
+		if (std::fprintf(file, "set filterban %d\n", filterValue) < 0) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to write filterban state to {}\n", pathStr.c_str());
+			std::fclose(file);
+			return;
+		}
+
+		for (const auto& f : g_filters) {
+			const std::string ip = FormatIP(f.compare);
+			if (std::fprintf(file, "sv addip %s\n", ip.c_str()) < 0) {
+				gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to write entry for {}\n", ip.c_str());
+				std::fclose(file);
+				return;
+			}
+		}
+
+		if (std::fclose(file) != 0) {
+			gi.LocClient_Print(nullptr, PRINT_HIGH, "Error closing {}\n", pathStr.c_str());
+		}
 	}
 
 	/*
@@ -312,9 +398,65 @@ namespace
 	{
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_map_ended_by_server");
 		Match_End();
-	}
+}
 
 } // anonymous namespace
+
+/*
+===============
+G_LoadIPFilters
+
+Executes the persisted listip.cfg commands to rebuild the runtime filters.
+===============
+*/
+void G_LoadIPFilters()
+{
+	const std::filesystem::path path = ResolveIPFilterPath();
+	const std::string pathStr = path.generic_string();
+
+	std::error_code existsError;
+	if (!std::filesystem::exists(path, existsError) || existsError)
+		return;
+
+	std::ifstream stream(path);
+	if (!stream.is_open()) {
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to open {} for reading.\n", pathStr.c_str());
+		return;
+	}
+
+	gi.LocClient_Print(nullptr, PRINT_HIGH, "Loading IP filters from {}.\n", pathStr.c_str());
+
+	std::string line;
+	while (std::getline(stream, line)) {
+		std::string_view view(line);
+		while (!view.empty() && IsWhitespace(view.front()))
+			view.remove_prefix(1);
+		while (!view.empty() && IsWhitespace(view.back()))
+			view.remove_suffix(1);
+
+		if (view.empty())
+			continue;
+		if (view.starts_with('#') || view.starts_with("//"))
+			continue;
+
+		gi.AddCommandString(G_Fmt("{}\n", view).data());
+	}
+
+	if (stream.bad()) {
+		gi.LocClient_Print(nullptr, PRINT_HIGH, "Error reading {}.\n", pathStr.c_str());
+	}
+}
+/*
+===============
+G_SaveIPFilters
+
+Writes the active IP filters to disk.
+===============
+*/
+void G_SaveIPFilters()
+{
+	SVCmd_WriteIP_f();
+}
 
 /*
 ===============
@@ -373,7 +515,7 @@ void ServerCommand()
 		SVCmd_ListIP_f();
 	}
 	else if (Q_strcasecmp(cmd, "writeip") == 0) {
-		SVCmd_WriteIP_f();
+		G_SaveIPFilters();
 	}
 	else if (Q_strcasecmp(cmd, "nextmap") == 0) {
 		SVCmd_NextMap_f();
@@ -390,6 +532,6 @@ Notes
 - Endian safety: we compare per-octet with masks, avoiding memcpy to uint32_t.
 - Wildcard semantics: identical to legacy code; an octet value of 0 becomes mask 0.
 - Capacity: up to MAX_IPFILTERS entries, de-duplicates identical filters.
-- I/O: writeip is a stub until file helpers are available (Sys_FOpen etc.).
+- I/O: writeip now persists listip.cfg using standard file-system helpers.
 - Threading: expects main thread usage like original.
 */

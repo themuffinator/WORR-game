@@ -857,6 +857,7 @@ static void InitGame() {
 	admin_password = gi.cvar("admin_password", "", CVAR_NOFLAGS);
 	needPass = gi.cvar("needpass", "0", CVAR_SERVERINFO);
 	filterBan = gi.cvar("filterban", "1", CVAR_NOFLAGS);
+	G_LoadIPFilters();
 
 	run_pitch = gi.cvar("run_pitch", "0.002", CVAR_NOFLAGS);
 	run_roll = gi.cvar("run_roll", "0.005", CVAR_NOFLAGS);
