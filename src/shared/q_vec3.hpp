@@ -17,6 +17,7 @@
 //   tasks, such as `VectorToAngles`, `AngleVectors`, and `G_ProjectSource`.
 
 #pragma once
+#include <cmath>
 #include <stdexcept>
 #include <type_traits>
 

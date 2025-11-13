@@ -20,6 +20,7 @@
 //   music, and global game rules.
 
 #include "../g_local.hpp"
+#include "../../shared/map_validation.hpp"
 #include "g_headhunters.hpp"
 #include "../monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
@@ -1757,8 +1758,19 @@ TryLoadEntityOverride
 ==============
 */
 static const char* TryLoadEntityOverride(const char* mapName, const char* default_entities) {
+	if (!mapName || !G_IsValidMapIdentifier(mapName)) {
+		gi.Com_PrintFmt("{}: refusing to use invalid map identifier for entity override: \"{}\"\n", __FUNCTION__, mapName ? mapName : "<null>");
+		return default_entities;
+	}
+
+	std::string overrideDir = (g_entityOverrideDir && g_entityOverrideDir->string[0]) ? g_entityOverrideDir->string : "maps";
+	if (!G_IsValidOverrideDirectory(overrideDir)) {
+		gi.Com_PrintFmt("{}: invalid override directory \"{}\"; falling back to \"maps\"\n", __FUNCTION__, overrideDir.c_str());
+		overrideDir = "maps";
+	}
+
 	std::string overridePath = std::string(G_Fmt("baseq2/{}/{}.ent",
-		g_entityOverrideDir->string[0] ? g_entityOverrideDir->string : "maps",
+		overrideDir.c_str(),
 		mapName).data());
 
 	// Try to load override
