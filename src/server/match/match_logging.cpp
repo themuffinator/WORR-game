@@ -28,6 +28,41 @@
 
 using json = Json::Value;
 
+/*
+=============
+HtmlEscape
+
+Escapes special characters for safe HTML output.
+=============
+*/
+static std::string HtmlEscape(std::string_view input) {
+	std::string output;
+	output.reserve(input.size());
+	for (char c : input) {
+		switch (c) {
+		case '&':
+			output.append("&amp;");
+			break;
+		case '<':
+			output.append("&lt;");
+			break;
+		case '>':
+			output.append("&gt;");
+			break;
+		case '\"':
+			output.append("&quot;");
+			break;
+		case '\'':
+			output.append("&apos;");
+			break;
+		default:
+			output.push_back(c);
+			break;
+		}
+	}
+	return output;
+}
+
 const std::string MATCH_STATS_PATH = GAMEVERSION + "/matches";
 
 // Precomputed map for fast abbreviation-to-index lookup
@@ -385,9 +420,10 @@ Html_WriteHeader
 =============
 */
 static inline void Html_WriteHeader(std::ofstream& html, const MatchStats& matchStats) {
+	const std::string escapedMatchId = HtmlEscape(matchStats.matchID);
 	html << R"(<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8">
-<title>Match Summary - )" << matchStats.matchID << R"(</title>
+<title>Match Summary - )" << escapedMatchId << R"(</title>
 <style>
   body { font-family:Arial,sans-serif; background:#f4f4f4; margin:0; padding:20px; }
   .top-info {
@@ -505,14 +541,18 @@ Html_WriteTopInfo
 =============
 */
 static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matchStats) {
-        const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
-        html << "<div class=\"top-info\">\n"
-                << "  <h1>Match Summary - " << matchStats.matchID << "</h1>\n"
-		<< "  <p><strong>Server:</strong> " << matchStats.serverName << "</p>\n"
-		<< "  <p><strong>Type:</strong> " << matchStats.gameType << "</p>\n"
+	const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+	const std::string escapedMatchId = HtmlEscape(matchStats.matchID);
+	const std::string escapedServerName = HtmlEscape(matchStats.serverName);
+	const std::string escapedGameType = HtmlEscape(matchStats.gameType);
+	const std::string escapedMapName = HtmlEscape(matchStats.mapName);
+	html << "<div class=\"top-info\">\n"
+		<< "  <h1>Match Summary - " << escapedMatchId << "</h1>\n"
+		<< "  <p><strong>Server:</strong> " << escapedServerName << "</p>\n"
+		<< "  <p><strong>Type:</strong> " << escapedGameType << "</p>\n"
 		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(level.matchStartRealTime) << " UTC</p>\n"
 		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(level.matchEndRealTime) << " UTC</p>\n"
-		<< "  <p><strong>Map:</strong>  " << matchStats.mapName << "</p>\n"
+		<< "  <p><strong>Map:</strong>  " << escapedMapName << "</p>\n"
 		<< "  <p><strong>Score Limit:</strong> " << GT_ScoreLimit() << "</p>\n";
 	// Time Limit
 	{
@@ -528,22 +568,23 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 	}
 	// Duration
 	html << "  <p><strong>Duration:</strong> ";
-        {
-                int secs = matchStats.durationMS / 1000;
-                int h = secs / 3600;
-                int m = (secs % 3600) / 60;
-                int s = secs % 60;
-                if (h > 0)      html << h << "h " << m << "m " << s << "s";
-                else if (m > 0) html << m << "m " << s << "s";
-                else            html << s << "s";
-        }
-        html << "</p>\n";
-        if (proBall) {
-                html << "  <p><strong>Total Goals:</strong> " << matchStats.proBall_totalGoals << "</p>\n"
-                        << "  <p><strong>Total Assists:</strong> " << matchStats.proBall_totalAssists << "</p>\n";
-        }
-        html << "</div>\n";
+	{
+		int secs = matchStats.durationMS / 1000;
+		int h = secs / 3600;
+		int m = (secs % 3600) / 60;
+		int s = secs % 60;
+		if (h > 0)      html << h << "h " << m << "m " << s << "s";
+		else if (m > 0) html << m << "m " << s << "s";
+		else            html << s << "s";
+	}
+		html << "</p>\n";
+	if (proBall) {
+		html << "  <p><strong>Total Goals:</strong> " << matchStats.proBall_totalGoals << "</p>\n"
+			<< "  <p><strong>Total Assists:</strong> " << matchStats.proBall_totalAssists << "</p>\n";
+	}
+	html << "</div>\n";
 }
+
 
 /*
 =============
@@ -573,12 +614,14 @@ static inline void Html_WriteWinnerSummary(std::ofstream& html, const MatchStats
 		winner = best->playerName;
 	}
 
-	html << "<div class=\"winner";
+	const std::string escapedWinner = HtmlEscape(winner);
+	html << "<div class=\\"winner"";
 	if (!winnerClass.empty()) {
 		html << " " << winnerClass;
 	}
-	html << "\">Winner: " << winner << "</div>\n";
+	html << "\">Winner: " << escapedWinner << "</div>\\n";
 }
+
 
 /*
 =============
@@ -635,8 +678,10 @@ static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats
 			: (p->totalDmgDealt ? double(p->totalDmgDealt) : 0.0);
 		const int tp = (p->playTimeMsec > 0) ? p->playTimeMsec : matchStats.durationMS;
 
-		html << "    <tr><td title=\"" << p->socialID << "\">"
-			<< "<a href=\"#player-" << p->socialID << "\">" << p->playerName << "</a></td>";
+			const std::string escapedSocialId = HtmlEscape(p->socialID);
+			const std::string escapedPlayerName = HtmlEscape(p->playerName);
+			html << "    <tr><td title=\"" << escapedSocialId << "\">"
+				<< "<a href=\"#player-" << escapedSocialId << "\">" << escapedPlayerName << "</a></td>";
 
 		const double pctTime = (tp > 0) ? (tp / matchStats.durationMS) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"% of match time\">"
@@ -721,8 +766,9 @@ static inline void Html_WriteTeamScores(std::ofstream& html,
 		});
 
 	auto writeOneTeam = [&](const std::vector<const PlayerStats*>& teamPlayers, const std::string& color, const std::string& teamName, bool isWinner) {
+		const std::string escapedTeamName = HtmlEscape(teamName);
 		html << "<div class=\"section team-" << color << "\">\n"
-			<< "<h2>" << teamName;
+			<< "<h2>" << escapedTeamName;
 		if (isWinner) html << " (Winner)";
 		html << "</h2>\n";
 
@@ -737,7 +783,8 @@ static inline void Html_WriteTeamScores(std::ofstream& html,
 			<< "</tr>\n";
 
 		for (auto* p : teamPlayers) {
-			html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>";
+			const std::string escapedPlayerName = HtmlEscape(p->playerName);
+			html << "<tr><td class=\"player-cell " << color << "\">" << escapedPlayerName << "</td>";
 
 			double pctTime = (matchDuration > 0.0) ? (double(p->playTimeMsec) / matchDuration) * 100.0 : 0.0;
 			if (pctTime < 1.0) pctTime = 1.0;
@@ -874,10 +921,11 @@ static inline void Html_WriteTopPlayers(std::ofstream& html, const MatchStats& m
 			double val = list[i].second;
 			const char* color = getPlayerColor(p);
 
+			const std::string escapedPlayerName = HtmlEscape(p->playerName);
 			double pct = (maxVal > 0.0) ? (val / maxVal) * 100.0 : 0.0;
 			if (pct < 1.0) pct = 1.0; // enforce minimum
 
-			html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>"
+			html << "<tr><td class=\"player-cell " << color << "\">" << escapedPlayerName << "</td>"
 				<< "<td class=\"progress-cell " << color << "\">"
 				<< "<div class=\"bar\" style=\"width:" << pct << "%\"></div>"
 				<< "<span>" << std::fixed << std::setprecision(2) << val << "</span></td></tr>\n";
@@ -985,7 +1033,8 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 				if (&bp == p) { color = "blue"; break; }
 		}
 
-		html << "<tr><td class=\"player-cell " << color << "\">" << p->playerName << "</td>";
+		const std::string escapedPlayerName = HtmlEscape(p->playerName);
+		html << "<tr><td class=\"player-cell " << color << "\">" << escapedPlayerName << "</td>";
 
 		for (const auto& name : sortedItems) {
 			int idx = -1;
@@ -1102,10 +1151,11 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchSta
 
 	for (auto& modName : mods) {
 		int total = matchStats.totalDeathsByMOD.at(modName);
+		const std::string escapedModName = HtmlEscape(modName);
 
 		if (!Teams()) {
 			// Solo mode
-			html << "<tr><td>" << modName << "</td><td>" << total << "</td></tr>\n";
+			html << "<tr><td>" << escapedModName << "</td><td>" << total << "</td></tr>\n";
 		}
 		else {
 			// Team mode: split
@@ -1122,7 +1172,7 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchSta
 					blueDeaths += it->second;
 			}
 
-			html << "<tr><td>" << modName << "</td><td>" << redDeaths << "</td><td>" << blueDeaths << "</td><td>" << (redDeaths + blueDeaths) << "</td></tr>\n";
+			html << "<tr><td>" << escapedModName << "</td><td>" << redDeaths << "</td><td>" << blueDeaths << "</td><td>" << (redDeaths + blueDeaths) << "</td></tr>\n";
 		}
 	}
 
@@ -1154,11 +1204,12 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 				if (&tp == p) { color = "blue"; break; }
 		}
 
+		const std::string escapedName = HtmlEscape(name);
 		if (Teams()) {
-			nameToHtml[name] = "<span class=\"player-name " + color + "\"><b>" + name + "</b></span>";
+			nameToHtml[escapedName] = "<span class=\"player-name " + color + "\"><b>" + escapedName + "</b></span>";
 		}
 		else {
-			nameToHtml[name] = "<b>" + name + "</b>";
+			nameToHtml[escapedName] = "<b>" + escapedName + "</b>";
 		}
 	}
 
@@ -1171,7 +1222,7 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 		if (pctTime < 1.0) pctTime = 1.0;
 
 		// Start with original string
-		std::string evStr = e.eventStr;
+		std::string evStr = HtmlEscape(e.eventStr);
 
 		// Replace player names
 		for (auto& kv : nameToHtml) {
@@ -1211,6 +1262,8 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 	for (const PlayerStats* p : allPlayers) {
 		html << "<div class=\"section\">";
 		const std::string fullID = p->socialID;
+		const std::string escapedFullId = HtmlEscape(fullID);
+		const std::string escapedPlayerName = HtmlEscape(p->playerName);
 		const std::string steamPref = "Steamworks-";
 		const std::string gogPref = "Galaxy-";
 		std::string profileURL;
@@ -1230,12 +1283,13 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 		}
 
 		// emit the header
-		html << "  <h2 id=\"player-" << fullID << "\">Player: " << p->playerName << " (";
+		const std::string escapedProfileURL = HtmlEscape(profileURL);
+		html << "  <h2 id=\"player-" << escapedFullId << "\">Player: " << escapedPlayerName << " (";
 		if (!profileURL.empty()) {
-			html << "<a href=\"" << profileURL << "\">" << fullID << "</a>";
+			html << "<a href=\"" << escapedProfileURL << "\">" << escapedFullId << "</a>";
 		}
 		else {
-			html << fullID;
+			html << escapedFullId;
 		}
 		html << ")</h2>";
 
@@ -1270,10 +1324,11 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 			}
 			std::vector<std::pair<std::string, int>> victims(victimCounts.begin(), victimCounts.end());
 			std::sort(victims.begin(), victims.end(), [](auto& a, auto& b) { return a.second > b.second; });
-			html << "  <h3>Top Victims by " << p->playerName << "</h3>"
+			html << "  <h3>Top Victims by " << escapedPlayerName << "</h3>"
 				<< "  <table><tr><th>Player</th><th>Kills</th></tr>";
 			for (size_t i = 0; i < std::min<size_t>(10, victims.size()); ++i) {
-				html << "    <tr><td>" << victims[i].first
+				const std::string escapedVictim = HtmlEscape(victims[i].first);
+				html << "    <tr><td>" << escapedVictim
 					<< "</td><td>" << victims[i].second << "</td></tr>";
 			}
 			html << "  </table>";
@@ -1289,10 +1344,11 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 			}
 			std::vector<std::pair<std::string, int>> killers(killerCounts.begin(), killerCounts.end());
 			std::sort(killers.begin(), killers.end(), [](auto& a, auto& b) { return a.second > b.second; });
-			html << "  <h3>Top Killers of " << p->playerName << "</h3>"
+			html << "  <h3>Top Killers of " << escapedPlayerName << "</h3>"
 				<< "  <table><tr><th>Player</th><th>Deaths</th></tr>";
 			for (size_t i = 0; i < std::min<size_t>(10, killers.size()); ++i) {
-				html << "    <tr><td>" << killers[i].first
+				const std::string escapedKiller = HtmlEscape(killers[i].first);
+				html << "    <tr><td>" << escapedKiller
 					<< "</td><td>" << killers[i].second << "</td></tr>";
 			}
 			html << "  </table>";
