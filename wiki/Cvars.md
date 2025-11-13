@@ -105,7 +105,8 @@ This guide catalogs WORR’s server and gameplay cvars by responsibility. Defaul
 ## Player Experience & Messaging
 | Cvar | Default | Notes |
 | --- | --- | --- |
-| `g_frag_messages` | `1` | Toggles frag feed overlay.【F:src/server/gameplay/g_main.cpp†L752-L753】 |
+| `g_frag_messages` | `1` | Toggles frag feed overlay.【F:src/server/gameplay/g_main.cpp†L813-L813】 |
+| `g_ghost_min_play_time` | `60` | Minimum real-time seconds required before saving a reconnect ghost slot.【F:src/server/gameplay/g_main.cpp†L813-L814】【F:src/server/player/p_client.cpp†L289-L294】 |
 | `g_showmotd` / `g_showhelp` | `1` | Display MOTD/help prompts on connect.【F:src/server/gameplay/g_main.cpp†L888-L889】 |
 | `g_motd_filename` | `"motd.txt"` | MOTD file path relative to game dir.【F:src/server/gameplay/g_main.cpp†L876-L878】 |
 | `g_auto_screenshot_tool` | `0` | Enables automated intermission screenshots.【F:src/server/gameplay/g_main.cpp†L824-L825】 |

@@ -3335,6 +3335,7 @@ extern cvar_t* g_arenaSelfDmgArmor;
 extern cvar_t* g_arenaStartingArmor;
 extern cvar_t* g_arenaStartingHealth;
 extern cvar_t* g_cheats;
+extern cvar_t* g_ghost_min_play_time;
 extern cvar_t* g_coop_enable_lives;
 extern cvar_t* g_coop_health_scaling;
 extern cvar_t* g_coop_instanced_items;
