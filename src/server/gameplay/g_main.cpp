@@ -1340,6 +1340,7 @@ void BeginIntermission(gentity_t* targ) {
 
 	game.autoSaved = false;
 	level.intermission.time = level.time;
+	ApplyQueuedTeamChanges(false);
 
 	// Respawn any dead players (SP/Coop only)
 	for (auto ec : active_players()) {

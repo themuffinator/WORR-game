@@ -518,6 +518,11 @@ static void ResetMatchPlayers(bool resetGhost, bool resetScore, LimitedLivesRese
 			// Reserved for ghost handling
 		}
 
+		if (ec->client->sess.queuedTeam != Team::None) {
+			ApplyQueuedTeamChange(ec, false);
+			continue;
+		}
+
 		if (ClientIsPlaying(ec->client)) {
 			if (resetGhost) {
 				// Reserved for ghost handling

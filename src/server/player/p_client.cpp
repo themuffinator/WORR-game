@@ -3020,6 +3020,12 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 	const int clientNum = static_cast<int>(cl - game.clients);
 	const bool isBot = (ent->svFlags & SVF_BOT) || cl->sess.is_a_bot;
 
+	if (!force && cl->sess.queuedTeam != Team::None && desired_team != Team::Spectator) {
+		if (!silent)
+			gi.LocClient_Print(ent, PRINT_HIGH, "Your team change will be applied at the next round.\n");
+		return false;
+	}
+
 	if (!force && cl->resp.teamDelayTime > level.time) {
 		gi.LocClient_Print(ent, PRINT_HIGH, ".You must wait before switching teams again.\n");
 		return false;
