@@ -470,8 +470,6 @@ Maps a flag item identifier back to its owning team.
 		level.ctf_last_capture_team = scoringTeam;
 		G_AdjustTeamScore(scoringTeam, Game::Is(GameType::CaptureStrike) ? 2 : 1);
 
-		gi.sound(flagEntity, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagcap.wav"), 1, ATTN_NONE, 0);
-
 		G_AdjustPlayerScore(scorer->client, CTF::CAPTURE_BONUS, false, 0);
 		PushAward(scorer, PlayerMedal::Captures);
 
@@ -658,11 +656,56 @@ Maps a flag item identifier back to its owning team.
 	=============
 	Team_CaptureFlagSound_Internal
 
-	Placeholder for capture VO triggers.
+	Plays the capture stinger and announcer VO in a network-reliable way.
 	=============
 	*/
-	void Team_CaptureFlagSound_Internal(Team) {
-		// TODO: hook up capture VO
+	void Team_CaptureFlagSound_Internal(Team team) {
+		if (!SupportsCTF()) {
+			return;
+		}
+
+		constexpr soundchan_t SOUND_FLAGS = static_cast<soundchan_t>(CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX);
+		constexpr float SOUND_VOLUME = 1.0f;
+		constexpr float SOUND_ATTENUATION = ATTN_NONE;
+		constexpr uint32_t SOUND_OFFSET = 0;
+
+		const int captureSound = gi.soundIndex("ctf/flagcap.wav");
+		bool playedCaptureSound = false;
+
+		if (Teamplay_IsPrimaryTeam(team)) {
+			if (auto flagEntity = FindTeamFlag(team); flagEntity && *flagEntity) {
+				gi.sound(*flagEntity, SOUND_FLAGS, captureSound, SOUND_VOLUME, SOUND_ATTENUATION, SOUND_OFFSET);
+				playedCaptureSound = true;
+			}
+		}
+
+		if (!playedCaptureSound) {
+			gi.positionedSound(world->s.origin, world, SOUND_FLAGS, captureSound, SOUND_VOLUME, SOUND_ATTENUATION, SOUND_OFFSET);
+		}
+
+		const char* announcerKey = nullptr;
+		switch (team) {
+		case Team::Red:
+			announcerKey = "red_scores";
+			break;
+		case Team::Blue:
+			announcerKey = "blue_scores";
+			break;
+		default:
+			break;
+		}
+
+		static GameTime lastAnnounceTime = 0_ms;
+		static Team lastAnnounceTeam = Team::None;
+		const GameTime referenceTime = level.ctf_last_flag_capture ? level.ctf_last_flag_capture : level.time;
+		const bool shouldAnnounce = announcerKey &&
+			(referenceTime != lastAnnounceTime || team != lastAnnounceTeam);
+
+		if (shouldAnnounce) {
+			AnnouncerSound(world, announcerKey);
+			lastAnnounceTime = referenceTime;
+			lastAnnounceTeam = team;
+		}
 	}
 
 	/*
