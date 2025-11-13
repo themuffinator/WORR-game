@@ -18,6 +18,8 @@
 // - Gametype-Specific Scoreboards: Contains specialized functions for rendering
 //   scoreboards for different modes like FFA, Duel, and Team Deathmatch.
 
+#include <utility>
+
 #include "../g_local.hpp"
 
 /*
@@ -88,29 +90,49 @@ enum class PlayerEntryMode {
 
 /*
 ===============
+AppendFormat
+
+Attempts to append a formatted string to the layout. Returns false when
+the append would exceed MAX_STRING_CHARS, leaving the layout untouched.
+===============
+*/
+template <typename... Args>
+static bool AppendFormat(std::string& layout, fmt::format_string<Args...> fmtStr, Args&&... args)
+{
+	std::string buffer = fmt::format(fmtStr, std::forward<Args>(args)...);
+	if (layout.size() + buffer.size() > MAX_STRING_CHARS)
+		return false;
+
+	layout += buffer;
+	return true;
+}
+
+/*
+===============
 AddScoreboardHeaderAndFooter
 
 Displays standard header and footer for all scoreboard types.
 Includes map name, gametype, score limit, match time, victor string, and optional footer tip.
+Sections are omitted when insufficient room remains in the layout buffer.
 ===============
 */
 static void AddScoreboardHeaderAndFooter(std::string& layout, gentity_t* viewer, bool includeFooter = true) {
 	// Header: map and gametype
-	fmt::format_to(std::back_inserter(layout),
+	if (!AppendFormat(layout,
 		"xv 0 yv -40 cstring2 \"{} on '{}'\" "
 		"xv 0 yv -30 cstring2 \"Score Limit: {}\" ",
-		level.gametype_name.data(), level.longName.data(), GT_ScoreLimit());
+		level.gametype_name.data(), level.longName.data(), GT_ScoreLimit()))
+		return;
 
 	if (hostname->string[0] && *hostname->string)
-		fmt::format_to(std::back_inserter(layout),
-			"xv 0 yv -50 cstring2 \"{}\" ", hostname->string);
+		AppendFormat(layout, "xv 0 yv -50 cstring2 \"{}\" ", hostname->string);
 
 	// During intermission
 	if (level.intermission.time) {
 		// Match duration
 		if (level.levelStartTime && (level.time - level.levelStartTime).seconds() > 0) {
 			int duration = (level.intermission.time - level.levelStartTime - 1_sec).milliseconds();
-			fmt::format_to(std::back_inserter(layout),
+			AppendFormat(layout,
 				"xv 0 yv -50 cstring2 \"Total Match Time: {}\" ",
 				TimeString(duration, true, false));
 		}
@@ -118,30 +140,32 @@ static void AddScoreboardHeaderAndFooter(std::string& layout, gentity_t* viewer,
 		// Victor message
 		std::string_view msg(level.intermission.victorMessage.data());
 		if (!msg.empty()) {
-			fmt::format_to(std::back_inserter(layout),
+			AppendFormat(layout,
 				"xv 0 yv -10 cstring2 \"{}\" ",
 				msg);
 		}
 
 		// Press button prompt (5s gate)
 		int frameGate = level.intermission.serverFrame + (5_sec).frames();
-		fmt::format_to(std::back_inserter(layout),
+		AppendFormat(layout,
 			"ifgef {} yb -48 xv 0 loc_cstring2 0 \"$m_eou_press_button\" endif ",
 			frameGate);
 	}
 	// During live match
 	else if (level.matchState == MatchState::In_Progress && viewer->client && ClientIsPlaying(viewer->client)) {
 		if (viewer->client->resp.score > 0 && level.pop.num_playing_clients > 1) {
-			fmt::format_to(std::back_inserter(layout),
+			AppendFormat(layout,
 				"xv 0 yv -10 cstring2 \"{} place with a score of {}\" ",
 				PlaceString(viewer->client->pers.currentRank + 1), viewer->client->resp.score);
 		}
 		if (includeFooter) {
-			fmt::format_to(std::back_inserter(layout),
+			AppendFormat(layout,
 				"xv 0 yb -48 cstring2 \"{}\" ", "Show inventory to toggle menu.");
 		}
 	}
 }
+
+
 
 /*
 ===============
@@ -176,18 +200,20 @@ static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode 
 
 		// Queued header
 		if (isQueued && !wroteQueued) {
-			fmt::format_to(std::back_inserter(layout),
+			if (!AppendFormat(layout,
 				"xv 0 yv {} loc_string2 0 \"Queued Contenders:\" "
 				"xv -40 yv {} loc_string2 0 \"w  l  name\" ",
-				y, y + 8);
+				y, y + 8))
+				return; // Queued section omitted when the layout buffer is full
 			y += 16;
 			wroteQueued = true;
 		}
 
 		// Spectator header
 		if (!isQueued && !wroteSpecs) {
-			fmt::format_to(std::back_inserter(layout),
-				"xv 0 yv {} loc_string2 0 \"Spectators:\" ", y);
+			if (!AppendFormat(layout,
+				"xv 0 yv {} loc_string2 0 \"Spectators:\" ", y))
+				return; // Spectator section omitted when the layout buffer is full
 			y += 8;
 			wroteSpecs = true;
 		}
@@ -204,63 +230,63 @@ static void AddSpectatorList(std::string& layout, int startY, SpectatorListMode 
 			if ((lineIndex & 1) == 0)
 				y += 8;
 		}
-        }
+	}
 }
-
 static int AddDuelistSummary(std::string& layout, int startY) {
-        if (!Game::Has(GameFlags::OneVOne))
-                return startY;
+	if (!Game::Has(GameFlags::OneVOne))
+		return startY;
 
-        std::array<int, 2> duelists{};
-        uint8_t found = 0;
+	std::array<int, 2> duelists{};
+	uint8_t found = 0;
 
-        for (int clientIndex : level.sortedClients) {
-                if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients))
-                        continue;
+	for (int clientIndex : level.sortedClients) {
+		if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients))
+			continue;
 
-                gclient_t* cl = &game.clients[clientIndex];
-                if (!cl->pers.connected || !ClientIsPlaying(cl))
-                        continue;
+		gclient_t* cl = &game.clients[clientIndex];
+		if (!cl->pers.connected || !ClientIsPlaying(cl))
+			continue;
 
-                duelists[found++] = clientIndex;
+		duelists[found++] = clientIndex;
 
-                if (found == duelists.size())
-                        break;
-        }
+		if (found == duelists.size())
+			break;
+	}
 
-        if (!found)
-                return startY;
+	if (!found)
+		return startY;
 
-        uint32_t y = startY;
-        fmt::format_to(std::back_inserter(layout),
-                "xv 0 yv {} loc_string2 0 \\\"Current Duelists:\\\" "
-                "xv -40 yv {} loc_string2 0 \\\"w  l  name\\\" ",
-                y, y + 8);
-        y += 16;
+	uint32_t y = startY;
+	if (!AppendFormat(layout,
+		"xv 0 yv {} loc_string2 0 \"Current Duelists:\" "
+		"xv -40 yv {} loc_string2 0 \"w  l  name\" ",
+		y, y + 8))
+		return static_cast<int>(y); // Duelist header omitted when the layout buffer is full
+	y += 16;
 
-        uint8_t lineIndex = 0;
-        for (uint8_t i = 0; i < found; ++i) {
-                int x = (lineIndex & 1) ? 200 : -40;
-                gclient_t* cl = &game.clients[duelists[i]];
+	uint8_t lineIndex = 0;
+	for (uint8_t i = 0; i < found; ++i) {
+		int x = (lineIndex & 1) ? 200 : -40;
+		gclient_t* cl = &game.clients[duelists[i]];
 
-                std::string_view entry = G_Fmt("ctf {} {} {} {} {} \\\"\\\" ",
-                        x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
+		std::string_view entry = G_Fmt("ctf {} {} {} {} {} \"\" ",
+			x, y, duelists[i], cl->sess.matchWins, cl->sess.matchLosses).data();
 
-                if (layout.size() + entry.size() >= MAX_STRING_CHARS)
-                        break;
+		if (layout.size() + entry.size() >= MAX_STRING_CHARS)
+			break;
 
-                layout += entry;
+		layout += entry;
 
-                lineIndex++;
+		lineIndex++;
 
-                if ((lineIndex & 1) == 0)
-                        y += 8;
-        }
+		if ((lineIndex & 1) == 0)
+			y += 8;
+	}
 
-        if (lineIndex & 1)
-                y += 8;
+	if (lineIndex & 1)
+		y += 8;
 
-        return static_cast<int>(y + 8);
+	return static_cast<int>(y + 8);
 }
 
 /*
@@ -367,12 +393,12 @@ AddTeamScoreOverlay
 ===============
 */
 static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], const uint8_t totalLiving[2], int teamsize) {
-        const bool domination = Game::Is(GameType::Domination);
-        const bool proBall = Game::Is(GameType::ProBall);
-        const char* scoreLabel = domination ? "PT/points" : (proBall ? "GO" : "SC");
+	const bool domination = Game::Is(GameType::Domination);
+	const bool proBall = Game::Is(GameType::ProBall);
+	const char* scoreLabel = domination ? "PT/points" : (proBall ? "GO" : "SC");
 
 	if (Game::Is(GameType::CaptureTheFlag)) {
-		fmt::format_to(std::back_inserter(layout),
+		if (!AppendFormat(layout,
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv 0 yv 28 string \"{}/{}\" "
 			"xv 58 yv 12 num 2 19 "
@@ -384,10 +410,11 @@ static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], con
 			"xv 200 yv 42 string \"{}\" "
 			"xv 228 yv 42 picn ping ",
 			total[0], teamsize, scoreLabel,
-			total[1], teamsize, scoreLabel);
+			total[1], teamsize, scoreLabel))
+			return; // Team overlay omitted when the layout buffer is full
 	}
 	else if (Game::Has(GameFlags::Rounds)) {
-		fmt::format_to(std::back_inserter(layout),
+		if (!AppendFormat(layout,
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv 0 yv 28 string \"{}/{}/{}\" "
 			"xv 58 yv 12 num 2 19 "
@@ -399,10 +426,11 @@ static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], con
 			"xv 200 yv 42 string \"{}\" "
 			"xv 228 yv 42 picn ping ",
 			totalLiving[0], total[0], teamsize, scoreLabel,
-			totalLiving[1], total[1], teamsize, scoreLabel);
+			totalLiving[1], total[1], teamsize, scoreLabel))
+			return; // Team overlay omitted when the layout buffer is full
 	}
 	else {
-		fmt::format_to(std::back_inserter(layout),
+		if (!AppendFormat(layout,
 			"if 25 xv -32 yv 8 pic 25 endif "
 			"xv -123 yv 28 cstring \"{}/{}\" "
 			"xv 41 yv 12 num 3 19 "
@@ -414,7 +442,8 @@ static void AddTeamScoreOverlay(std::string& layout, const uint8_t total[2], con
 			"xv 200 yv 42 string \"{}\" "
 			"xv 228 yv 42 picn ping ",
 			total[0], teamsize, scoreLabel,
-			total[1], teamsize, scoreLabel);
+			total[1], teamsize, scoreLabel))
+			return; // Team overlay omitted when the layout buffer is full
 	}
 }
 
@@ -461,7 +490,7 @@ AddSpectatorEntries
 */
 static void AddSpectatorEntries(std::string& layout, uint8_t lastRed, uint8_t lastBlue) {
 	uint32_t j = ((std::max(lastRed, lastBlue) + 3) * 8) + 42;
-	uint32_t n = 0, lineIndex = 0;
+	uint32_t lineIndex = 0;
 	bool wroteQueued = false, wroteSpecs = false;
 
 	for (uint32_t i = 0; i < game.maxClients && layout.size() < MAX_STRING_CHARS - 50; ++i) {
@@ -473,10 +502,11 @@ static void AddSpectatorEntries(std::string& layout, uint8_t lastRed, uint8_t la
 
 		if (cl->sess.matchQueued) {
 			if (!wroteQueued) {
-				fmt::format_to(std::back_inserter(layout),
+				if (!AppendFormat(layout,
 					"xv 0 yv {} loc_string2 0 \"Queued Contenders:\" "
 					"xv -40 yv {} loc_string2 0 \"w  l  name\" ",
-					j, j + 8);
+					j, j + 8))
+					return; // Queued spectators omitted when the layout buffer is full
 				j += 16;
 				wroteQueued = true;
 			}
@@ -505,8 +535,9 @@ static void AddSpectatorEntries(std::string& layout, uint8_t lastRed, uint8_t la
 			continue;
 
 		if (!wroteSpecs) {
-			fmt::format_to(std::back_inserter(layout),
-				"xv 0 yv {} loc_string2 0 \"Spectators:\" ", j);
+			if (!AppendFormat(layout,
+				"xv 0 yv {} loc_string2 0 \"Spectators:\" ", j))
+				return; // Passive spectator section omitted when the layout buffer is full
 			j += 8;
 			wroteSpecs = true;
 		}
@@ -530,13 +561,15 @@ AddTeamSummaryLine
 static void AddTeamSummaryLine(std::string& layout, const uint8_t total[2], const uint8_t lastShown[2]) {
 	if (total[0] > lastShown[0] + 1) {
 		int y = 42 + (lastShown[0] + 1) * 8;
-		fmt::format_to(std::back_inserter(layout),
-			"xv -32 yv {} loc_string 1 $g_ctf_and_more {} ", y, total[0] - lastShown[0] - 1);
+		if (!AppendFormat(layout,
+			"xv -32 yv {} loc_string 1 $g_ctf_and_more {} ", y, total[0] - lastShown[0] - 1))
+			return; // Remaining red team members omitted when the layout buffer is full
 	}
 	if (total[1] > lastShown[1] + 1) {
 		int y = 42 + (lastShown[1] + 1) * 8;
-		fmt::format_to(std::back_inserter(layout),
-			"xv 208 yv {} loc_string 1 $g_ctf_and_more {} ", y, total[1] - lastShown[1] - 1);
+		if (!AppendFormat(layout,
+			"xv 208 yv {} loc_string 1 $g_ctf_and_more {} ", y, total[1] - lastShown[1] - 1))
+			return; // Remaining blue team members omitted when the layout buffer is full
 	}
 }
 
