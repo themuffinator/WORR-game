@@ -3713,8 +3713,8 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 			std::array<char, MAX_NETNAME> newName = {};
 
 			gi.Info_ValueForKey(userInfo, "name", oldName.data(), oldName.size());
-			strncpy(newName.data(), bot_name_prefix->string, newName.size());
-			Q_strlcat(newName.data(), oldName.data(), oldName.size());
+			Q_strlcpy(newName.data(), bot_name_prefix->string, newName.size());
+			Q_strlcat(newName.data(), oldName.data(), newName.size());
 			gi.Info_SetValueForKey(userInfo, "name", newName.data());
 		}
 	}
