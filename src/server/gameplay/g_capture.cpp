@@ -591,15 +591,107 @@ Maps a flag item identifier back to its owning team.
 		PushAward(attacker, PlayerMedal::Defence);
 	}
 
+	constexpr GameTime FLAG_RETURN_SOUND_COOLDOWN = 2_sec;
+
+	/*
+	=============
+	ReturnSoundIndex
+	
+	Maps a team to its throttling slot for flag return audio.
+	=============
+	*/
+	[[nodiscard]] std::optional<size_t> ReturnSoundIndex(Team team) {
+		switch (team) {
+		case Team::Red:
+			return 0;
+		case Team::Blue:
+			return 1;
+		case Team::Free:
+			return 2;
+		default:
+			return std::nullopt;
+		}
+	}
+
+	struct FlagReturnSoundState {
+		std::array<GameTime, 3> lastPlayed{ 0_sec, 0_sec, 0_sec };
+	};
+
+	/*
+	=============
+	ReturnSoundState
+	
+	Provides access to the shared flag return sound throttle state.
+	=============
+	*/
+	FlagReturnSoundState& ReturnSoundState() {
+		static FlagReturnSoundState state;
+		return state;
+	}
+
+	/*
+	=============
+	PlayTeamAnnouncer
+	
+	Dispatches a localized announcer cue to every member of a team.
+	=============
+	*/
+	void PlayTeamAnnouncer(Team team, const char* soundKey) {
+		if (!soundKey || !Teamplay_IsTeamValid(team)) {
+			return;
+		}
+
+		Teamplay_ForEachTeamMember(team, [soundKey](gentity_t* entity) {
+			AnnouncerSound(entity, soundKey);
+		});
+	}
+
 	/*
 	=============
 	Team_ReturnFlagSound
 
-	Placeholder for flag return VO triggers.
+	Triggers team-scoped flag return SFX and VO cues.
 	=============
 	*/
-	void Team_ReturnFlagSound(Team) {
-		// TODO: hook up return VO
+	void Team_ReturnFlagSound(Team team) {
+		if (!SupportsCTF()) {
+			return;
+		}
+
+		const auto index = ReturnSoundIndex(team);
+		if (!index) {
+			return;
+		}
+
+		auto& lastPlayed = ReturnSoundState().lastPlayed[*index];
+		if (lastPlayed != 0_sec && level.time < lastPlayed + FLAG_RETURN_SOUND_COOLDOWN) {
+			return;
+		}
+
+		lastPlayed = level.time;
+
+		constexpr soundchan_t SOUND_FLAGS = static_cast<soundchan_t>(CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX);
+		constexpr float VOLUME = 1.0f;
+		constexpr float ATTENUATION = ATTN_NONE;
+		constexpr uint32_t DUPE_KEY = 0;
+
+		if (world) {
+			const int sfx = gi.soundIndex("ctf/flagret.wav");
+			gi.sound(world, SOUND_FLAGS, sfx, VOLUME, ATTENUATION, DUPE_KEY);
+		}
+
+		if (Teamplay_IsPrimaryTeam(team)) {
+			const char* worldCue = team == Team::Red ? "red_flag_returned" : "blue_flag_returned";
+			AnnouncerSound(world, worldCue);
+			PlayTeamAnnouncer(team, "your_flag_returned");
+			const Team enemy = Teams_OtherTeam(team);
+			if (Teamplay_IsTeamValid(enemy)) {
+				PlayTeamAnnouncer(enemy, "enemy_flag_returned");
+			}
+		}
+		else if (team == Team::Free) {
+			AnnouncerSound(world, "enemy_flag_returned");
+		}
 	}
 
 	/*
