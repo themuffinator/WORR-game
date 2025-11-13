@@ -2017,7 +2017,8 @@ struct MyMapRequest {
 struct QueuedMap {
 	std::string filename;
 	std::string socialID;      // One-per-client rule
-	std::bitset<10> settings;   // MyMapSettingFlag
+	uint16_t enableFlags = 0;
+	uint16_t disableFlags = 0;
 };
 
 struct MapSystem {
@@ -2030,8 +2031,44 @@ struct MapSystem {
 	bool IsMapInQueue(const std::string& mapName) const;
 	bool IsClientInQueue(const std::string& socialID) const;
 
+	void EnqueueMyMapRequest(const MapEntry& map,
+	std::string_view socialID,
+	uint16_t enableFlags,
+	uint16_t disableFlags,
+	GameTime queuedTime);
+
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
+
+/*
+========================
+MapSystem::EnqueueMyMapRequest
+
+Adds a MyMap request to both the play queue and the persistent
+MyMap request log, preserving flag overrides and request metadata.
+========================
+*/
+inline void MapSystem::EnqueueMyMapRequest(const MapEntry& map,
+	std::string_view socialID,
+	uint16_t enableFlags,
+	uint16_t disableFlags,
+	GameTime queuedTime)
+{
+	QueuedMap queued{};
+	queued.filename = map.filename;
+	queued.socialID.assign(socialID.begin(), socialID.end());
+	queued.enableFlags = enableFlags;
+	queued.disableFlags = disableFlags;
+	playQueue.push_back(std::move(queued));
+
+	MyMapRequest request{};
+	request.mapName = map.filename;
+	request.socialID.assign(socialID.begin(), socialID.end());
+	request.enableFlags = enableFlags;
+	request.disableFlags = disableFlags;
+	request.queuedTime = queuedTime;
+	myMapQueue.push_back(std::move(request));
+}
 
 struct HelpMessage {
 	std::array<char, MAX_TOKEN_CHARS> message{};
@@ -4283,7 +4320,6 @@ void Round_End();
 //
 constexpr GameTime MAP_SELECTOR_DURATION = 5_sec;
 int PrintMapList(gentity_t* ent, bool cycleOnly);
-bool ParseMyMapFlags(const std::vector<std::string>& args, uint16_t& enableFlags, uint16_t& disableFlags);
 void LoadMapPool(gentity_t* ent);
 void LoadMapCycle(gentity_t* ent);
 std::optional<MapEntry> AutoSelectNextMap();

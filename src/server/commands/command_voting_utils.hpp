@@ -1,13 +1,12 @@
 #pragma once
 
+#include "../gameplay/map_flag_parser.hpp"
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <vector>
 
 struct gentity_t;
-
-bool ParseMyMapFlags(const std::vector<std::string>& args, uint16_t& enableFlags, uint16_t& disableFlags);
 
 namespace Commands {
 
@@ -18,7 +17,16 @@ namespace Commands {
 		uint16_t disableFlags = 0;
 	};
 
-	inline std::optional<MapVoteParseResult> ParseMapVoteArguments(
+	/*
+	=============
+	ParseMapVoteArguments
+	
+	Parses map vote arguments, reusing MyMap flag parsing to support
+	optional +flag/-flag tokens for overrides. Returns an error message
+	if validation fails.
+	=============
+	*/
+inline std::optional<MapVoteParseResult> ParseMapVoteArguments(
 		const std::vector<std::string>& args,
 		std::string& errorMessage)
 	{

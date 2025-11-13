@@ -1348,14 +1348,14 @@ void Match_End() {
 	if (!game.mapSystem.playQueue.empty()) {
 		const auto& queued = game.mapSystem.playQueue.front();
 
-		//level.changeMap = queued.filename.c_str(); // optional but keeps consistency
-
-		game.map.overrideEnableFlags = queued.settings.to_ulong();
-		game.map.overrideDisableFlags = ~queued.settings.to_ulong(); // correctly complement enabled flags
+		game.map.overrideEnableFlags = queued.enableFlags;
+		game.map.overrideDisableFlags = queued.disableFlags;
 
 		BeginIntermission(CreateTargetChangeLevel(queued.filename.c_str()));
 
-		game.mapSystem.playQueue.erase(game.mapSystem.playQueue.begin()); // remove after intermission trigger
+		game.mapSystem.playQueue.erase(game.mapSystem.playQueue.begin());
+		if (!game.mapSystem.myMapQueue.empty())
+			game.mapSystem.myMapQueue.erase(game.mapSystem.myMapQueue.begin());
 		return;
 	}
 

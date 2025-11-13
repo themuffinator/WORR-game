@@ -104,8 +104,8 @@ namespace Commands {
 		if (!game.mapSystem.playQueue.empty()) {
 			const auto& queued = game.mapSystem.playQueue.front();
 			level.changeMap = queued.filename.c_str();
-			game.map.overrideEnableFlags = queued.settings.to_ulong();
-			game.map.overrideDisableFlags = 0;
+			game.map.overrideEnableFlags = queued.enableFlags;
+			game.map.overrideDisableFlags = queued.disableFlags;
 			ExitLevel(true);
 			return;
 		}
