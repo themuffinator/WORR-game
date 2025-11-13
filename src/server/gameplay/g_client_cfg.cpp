@@ -161,7 +161,7 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 		}
 	}
 	catch (const std::exception& e) {
-		gi.Com_PrintFmt("__FUNCTION__: exception: {}\n", __FUNCTION__, e.what());
+		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
 	}
 }
 
