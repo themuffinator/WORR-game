@@ -23,6 +23,7 @@
 #include <fstream>
 #include <regex>
 #include <algorithm>
+#include <random>
 
 /*
 =============
@@ -65,7 +66,8 @@ void MapSelectorFinalize() {
 	int selectedIndex = -1;
 
 	if (!tiedIndices.empty() && maxVotes > 0) {
-		selectedIndex = tiedIndices[rand() % tiedIndices.size()];
+		std::uniform_int_distribution<size_t> distribution(0, tiedIndices.size() - 1);
+		selectedIndex = tiedIndices[distribution(game.mapRNG)];
 	}
 	else {
 		// No votes or all invalid - fallback
@@ -74,8 +76,10 @@ void MapSelectorFinalize() {
 			if (ms.candidates[i])
 				available.push_back(static_cast<int>(i));
 		}
-		if (!available.empty())
-			selectedIndex = available[rand() % available.size()];
+		if (!available.empty()) {
+			std::uniform_int_distribution<size_t> distribution(0, available.size() - 1);
+			selectedIndex = available[distribution(game.mapRNG)];
+		}
 	}
 
 	if (selectedIndex >= 0 && ms.candidates[selectedIndex]) {
@@ -661,7 +665,7 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 		}
 	}
 
-	std::shuffle(pool.begin(), pool.end(), std::default_random_engine(level.time.milliseconds()));
+	std::shuffle(pool.begin(), pool.end(), game.mapRNG);
 	if (pool.size() > maxCandidates)
 		pool.resize(maxCandidates);
 	return pool;
