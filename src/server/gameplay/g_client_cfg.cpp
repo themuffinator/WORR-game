@@ -29,6 +29,8 @@
 #include <vector>
 #include <filesystem>
 #include <system_error>
+#include <algorithm>
+#include <limits>
 #include <json/json.h>
 
 #include <set>
@@ -126,7 +128,7 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	stats["totalMatches"] = 0;
 	stats["totalWins"] = 0;
 	stats["totalLosses"] = 0;
-	stats["totalTimePlayed"] = 0;
+	stats["totalTimePlayed"] = Json::Value::Int64(0);
 	stats["bestSkillRating"] = 0;
 	stats["lastSkillRating"] = DEFAULT_RATING;
 	stats["lastSkillChange"] = 0;
@@ -265,7 +267,7 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		stats["totalMatches"] = 0;
 		stats["totalWins"] = 0;
 		stats["totalLosses"] = 0;
-		stats["totalTimePlayed"] = 0;
+		stats["totalTimePlayed"] = Json::Value::Int64(0);
 		stats["bestSkillRating"] = 0;
 		stats["lastSkillRating"] = DEFAULT_RATING;
 		stats["lastSkillChange"] = 0;
@@ -418,15 +420,15 @@ ClientConfig_SaveInternal
 ==========================
 */
 static void ClientConfig_SaveInternal(
-        const std::string& playerID,
-        int skillRating,
-        int skillChange,
-        int timePlayedSeconds,
-        bool won,
-        bool isGhost,
-        bool updateStats,
-        const client_config_t* pc = nullptr,
-        const std::vector<Weapon>* weaponPrefs = nullptr
+const std::string& playerID,
+int skillRating,
+int skillChange,
+int64_t timePlayedSeconds,
+bool won,
+bool isGhost,
+bool updateStats,
+const client_config_t* pc = nullptr,
+const std::vector<Weapon>* weaponPrefs = nullptr
 ) {
 	if (playerID.empty())
 		return;
@@ -474,11 +476,18 @@ static void ClientConfig_SaveInternal(
 		}
 		return stats[key].asInt();
 		};
+	auto ensureInt64 = [&](const char* key, Json::Value::Int64 def) -> Json::Value::Int64 {
+		if (!stats.isMember(key) || !stats[key].isIntegral()) {
+			stats[key] = Json::Value::Int64(def);
+			modified = true;
+		}
+		return stats[key].asInt64();
+		};
 
 	int totalMatches = ensureInt("totalMatches", 0);
 	int totalWins = ensureInt("totalWins", 0);
 	int totalLosses = ensureInt("totalLosses", 0);
-	int totalTimePlayed = ensureInt("totalTimePlayed", 0);
+	Json::Value::Int64 totalTimePlayed = ensureInt64("totalTimePlayed", 0);
 	int bestSkillRating = std::max(skillRating, ensureInt("bestSkillRating", skillRating));
 
 	if (updateStats) {
@@ -486,8 +495,18 @@ static void ClientConfig_SaveInternal(
 		stats["totalWins"] = won ? totalWins + 1 : totalWins;
 		stats["totalLosses"] = !won ? totalLosses + 1 : totalLosses;
 
-		if (timePlayedSeconds > 0)
-			stats["totalTimePlayed"] = totalTimePlayed + timePlayedSeconds;
+		if (timePlayedSeconds > 0) {
+			const Json::Value::Int64 maxTime = std::numeric_limits<Json::Value::Int64>::max();
+			Json::Value::Int64 clampedInput = timePlayedSeconds > maxTime ? maxTime : static_cast<Json::Value::Int64>(timePlayedSeconds);
+			Json::Value::Int64 cappedTotal = totalTimePlayed > maxTime ? maxTime : totalTimePlayed;
+			if (cappedTotal < 0)
+				cappedTotal = 0;
+			if (cappedTotal > maxTime - clampedInput)
+				cappedTotal = maxTime;
+			else
+				cappedTotal += clampedInput;
+			stats["totalTimePlayed"] = Json::Value::Int64(cappedTotal);
+		}
 
 		if (isGhost) {
 			int abandons = ensureInt("totalAbandons", 0);
@@ -571,18 +590,19 @@ void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
 	if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
 		return;
 
-	const int timePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
-        ClientConfig_SaveInternal(
-                cl->sess.socialID,
-                cl->sess.skillRating,
-                cl->sess.skillRatingChange,
-                timePlayed,
-                wonMatch,
-                false,  // isGhost
-                true,   // updateStats
-                &cl->sess.pc,
-                &cl->sess.weaponPrefs
-        );
+	const int64_t rawTimePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+	const int64_t timePlayed = rawTimePlayed > 0 ? rawTimePlayed : 0;
+	ClientConfig_SaveInternal(
+		cl->sess.socialID,
+		cl->sess.skillRating,
+		cl->sess.skillRatingChange,
+		timePlayed,
+		wonMatch,
+		false,  // isGhost
+		true,   // updateStats
+		&cl->sess.pc,
+		&cl->sess.weaponPrefs
+	);
 }
 
 /*
@@ -595,18 +615,18 @@ void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won) {
 	if (!*ghost.socialID)
 		return;
 
-	const int timePlayed = ghost.totalMatchPlayRealTime;
-        ClientConfig_SaveInternal(
-                ghost.socialID,
-                ghost.skillRating,
-                ghost.skillRatingChange,
-                timePlayed,
-                won,
-                true,   // isGhost
-                true,   // updateStats
-                nullptr, // no pc settings
-                nullptr
-        );
+	const int64_t timePlayed = ghost.totalMatchPlayRealTime > 0 ? ghost.totalMatchPlayRealTime : 0;
+	ClientConfig_SaveInternal(
+		ghost.socialID,
+		ghost.skillRating,
+		ghost.skillRatingChange,
+		timePlayed,
+		won,
+		true,   // isGhost
+		true,   // updateStats
+		nullptr, // no pc settings
+		nullptr
+	);
 }
 
 
