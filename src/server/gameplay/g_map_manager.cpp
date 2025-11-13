@@ -19,6 +19,7 @@
 
 #include "../g_local.hpp"
 #include "../../shared/map_validation.hpp"
+#include "map_flag_parser.hpp"
 #include <json/json.h>
 #include <fstream>
 #include <regex>
@@ -273,42 +274,6 @@ int PrintMapList(gentity_t* ent, bool cycleOnly) {
 		gi.LocClient_Print(ent, PRINT_HIGH, "\n");
 
 	return printedCount;
-}
-
-/*
-=========================
-ParseMyMapFlags
-=========================
-*/
-bool ParseMyMapFlags(const std::vector<std::string>& args, uint16_t& enableFlags, uint16_t& disableFlags) {
-	enableFlags = 0;
-	disableFlags = 0;
-
-	for (const std::string& arg : args) {
-		if (arg.length() < 2 || (arg[0] != '+' && arg[0] != '-'))
-			return false;
-
-		bool enable = (arg[0] == '+');
-		const char* flag = arg.c_str() + 1;
-
-		uint16_t bit = 0;
-		if (_stricmp(flag, "pu") == 0) bit = MAPFLAG_PU;
-		else if (_stricmp(flag, "pa") == 0) bit = MAPFLAG_PA;
-		else if (_stricmp(flag, "ar") == 0) bit = MAPFLAG_AR;
-		else if (_stricmp(flag, "am") == 0) bit = MAPFLAG_AM;
-		else if (_stricmp(flag, "ht") == 0) bit = MAPFLAG_HT;
-		else if (_stricmp(flag, "bfg") == 0) bit = MAPFLAG_BFG;
-		else if (_stricmp(flag, "pb") == 0) bit = MAPFLAG_PB;
-		else if (_stricmp(flag, "fd") == 0) bit = MAPFLAG_FD;
-		else if (_stricmp(flag, "sd") == 0) bit = MAPFLAG_SD;
-		else if (_stricmp(flag, "ws") == 0) bit = MAPFLAG_WS;
-		else return false;
-
-		if (enable) enableFlags |= bit;
-		else disableFlags |= bit;
-	}
-
-	return true;
 }
 
 /*

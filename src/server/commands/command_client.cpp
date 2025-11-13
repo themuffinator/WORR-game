@@ -6,6 +6,7 @@
 #include "command_system.hpp"
 #include "command_registration.hpp"
 #include "../g_local.hpp"
+#include "../gameplay/map_flag_parser.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../monsters/m_player.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
@@ -16,7 +17,6 @@
 #include <algorithm>
 #include <ranges>
 #include <sstream>
-#include <bitset>
 
 namespace Commands {
 
@@ -800,22 +800,20 @@ namespace Commands {
 			return;
 		}
 
-		QueuedMap queued{};
-		queued.filename = map->filename;
-		queued.socialID = ent->client->sess.socialID;
-		queued.settings = std::bitset<10>(enableFlags | disableFlags);
-		game.mapSystem.playQueue.push_back(queued);
+		std::string_view socialID = ent->client->sess.socialID;
+		game.mapSystem.EnqueueMyMapRequest(*map, socialID, enableFlags, disableFlags, level.time);
 
-		MyMapRequest request{};
-		request.mapName = map->filename;
-		request.socialID = ent->client->sess.socialID;
-		request.enableFlags = enableFlags;
-		request.disableFlags = disableFlags;
-		request.queuedTime = level.time;
-		game.mapSystem.myMapQueue.push_back(request);
+		std::string display = map->filename;
+		for (const auto& flag : flagArgs) {
+			display.push_back(' ');
+			display.append(flag);
+		}
 
-		gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' added to the queue.\n", map->filename.c_str());
-	}
+		gi.LocClient_Print(ent, PRINT_HIGH, "MyMap queued: {}.\n", display.c_str());
+		gi.LocBroadcast_Print(PRINT_HIGH, "{} queued {} for MyMap.\n",
+			ent->client->sess.netName,
+			display.c_str());
+        }
 
 	void MySkill(gentity_t* ent, const CommandArgs& args) {
 		int totalSkill = 0, numPlayers = 0;
