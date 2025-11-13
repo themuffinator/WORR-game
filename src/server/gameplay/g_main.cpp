@@ -728,11 +728,15 @@ bool RemoveIDFromFile(const char* filename, const std::string& id) {
 
 	while (std::getline(infile, line)) {
 		std::string trimmed = line;
-		trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
-		trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+		const std::size_t firstNonWhitespace = trimmed.find_first_not_of(" \t\r\n");
+		if (firstNonWhitespace == std::string::npos) {
+			trimmed.clear();
+		} else {
+			const std::size_t lastNonWhitespace = trimmed.find_last_not_of(" \t\r\n");
+			trimmed = trimmed.substr(firstNonWhitespace, lastNonWhitespace - firstNonWhitespace + 1);
+		}
 
-		// Skip match or comment lines
-		if (trimmed.empty() || trimmed == id || trimmed.starts_with("#") || trimmed.starts_with("//") || trimmed.starts_with("/*"))
+		if (trimmed == id)
 			continue;
 
 		lines.push_back(line); // preserve original line formatting
