@@ -416,16 +416,18 @@ void LoadMapPool(gentity_t* ent) {
 		}
 
 		const std::string bspName = entry["bsp"].asString();
-		if (!G_IsValidMapIdentifier(bspName)) {
+		std::string sanitizedName;
+		std::string rejectReason;
+		if (!G_SanitizeMapPoolFilename(bspName, sanitizedName, rejectReason)) {
 			skipped++;
 			if (entClient)
-				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Skipped invalid map identifier: {}\n", bspName.c_str());
-			gi.Com_PrintFmt("{}: ignoring invalid map identifier from pool: \"{}\"\n", __FUNCTION__, bspName.c_str());
+				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Rejected '{}': {}\n", bspName.c_str(), rejectReason.c_str());
+			gi.Com_PrintFmt("{}: ignoring map pool entry \"{}\" ({})\n", __FUNCTION__, bspName.c_str(), rejectReason.c_str());
 			continue;
 		}
 
 		MapEntry map;
-		map.filename = bspName;
+		map.filename = sanitizedName;
 
 		if (entry.isMember("title"))          map.longName = entry["title"].asString();
 		if (entry.isMember("min"))            map.minPlayers = entry["min"].asInt();

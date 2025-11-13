@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cctype>
+#include <string>
 #include <string_view>
 
 /*
@@ -36,6 +37,45 @@ inline bool G_IsValidMapIdentifier(std::string_view mapName)
 		}
 	}
 
+	return true;
+}
+
+/*
+=============
+G_SanitizeMapPoolFilename
+
+Trims whitespace and rejects any map entry filenames containing
+path separators, traversal tokens, or other illegal characters.
+=============
+*/
+inline bool G_SanitizeMapPoolFilename(std::string_view rawName, std::string& sanitized, std::string& rejectReason)
+{
+	const size_t start = rawName.find_first_not_of(" \t\r\n");
+	if (start == std::string_view::npos) {
+		sanitized.clear();
+		rejectReason = "is empty";
+		return false;
+	}
+
+	const size_t end = rawName.find_last_not_of(" \t\r\n");
+	std::string candidate(rawName.substr(start, end - start + 1));
+
+	if (candidate.find('/') != std::string::npos || candidate.find('\\') != std::string::npos) {
+		rejectReason = "contains path separators";
+		return false;
+	}
+
+	if (candidate == "." || candidate == ".." || candidate.find("..") != std::string::npos) {
+		rejectReason = "contains traversal tokens";
+		return false;
+	}
+
+	if (!G_IsValidMapIdentifier(candidate)) {
+		rejectReason = "contains illegal characters";
+		return false;
+	}
+
+	sanitized = std::move(candidate);
 	return true;
 }
 
