@@ -2028,10 +2028,26 @@ int TeamBalance(bool force) {
 		return 0;
 	if (Game::Is(GameType::RedRover))
 		return 0;
+	const bool queueSwap = Game::Has(GameFlags::Rounds | GameFlags::Elimination);
 	int delta = abs(level.pop.num_playing_red - level.pop.num_playing_blue);
 	if (delta < 2)
 		return level.pop.num_playing_red - level.pop.num_playing_blue;
 	Team stack_team = level.pop.num_playing_red > level.pop.num_playing_blue ? Team::Red : Team::Blue;
+	const Team targetTeam = (stack_team == Team::Red) ? Team::Blue : Team::Red;
+	if (queueSwap) {
+		int pendingQueued = 0;
+		for (auto ec : active_clients()) {
+			if (!ec->client || ec->client->sess.team != stack_team)
+				continue;
+			if (ec->client->sess.queuedTeam == targetTeam)
+				pendingQueued++;
+		}
+		delta -= pendingQueued;
+		if (delta < 0)
+			delta = 0;
+		if (delta < 2)
+			return level.pop.num_playing_red - level.pop.num_playing_blue;
+	}
 	std::array<int, MAX_CLIENTS_KEX> index{};
 	size_t count = CollectStackedTeamClients(stack_team, index);
 	// sort client num list by join time
@@ -2049,14 +2065,15 @@ int TeamBalance(bool force) {
 				continue;
 			if (cl->sess.team != stack_team)
 				continue;
-			const Team targetTeam = (stack_team == Team::Red) ? Team::Blue : Team::Red;
 			gentity_t* ent = &g_entities[cl - game.clients + 1];
-			if (Game::Has(GameFlags::Rounds) || Game::Has(GameFlags::Elimination)) {
-				cl->sess.queuedTeam = targetTeam;
-				if (!SetTeam(ent, Team::Spectator, false, true, true))
+			if (queueSwap) {
+				if (cl->sess.queuedTeam == targetTeam)
 					continue;
+				cl->sess.queuedTeam = targetTeam;
 				gi.Client_Print(ent, PRINT_CENTER,
 					G_Fmt("Team balance queued.\nYou will join the {} team next round.\n", Teams_TeamName(targetTeam)).data());
+				gi.Broadcast_Print(PRINT_HIGH,
+					G_Fmt("{} will swap to the {} team when the next round begins.\n", cl->pers.netName, Teams_TeamName(targetTeam)).data());
 			}
 			else {
 				cl->sess.team = targetTeam;
@@ -2067,7 +2084,10 @@ int TeamBalance(bool force) {
 			switched++;
 		}
 		if (switched) {
-			gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
+			if (queueSwap)
+				gi.Broadcast_Print(PRINT_HIGH, "Team balance changes are queued for the next round.\n");
+			else
+				gi.Broadcast_Print(PRINT_HIGH, "Teams have been balanced.\n");
 			return switched;
 		}
 	}
