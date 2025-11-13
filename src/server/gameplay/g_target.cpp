@@ -2070,10 +2070,21 @@ static USE(use_target_sky)(gentity_t* self, gentity_t* other, gentity_t* activat
 	}
 }
 
+/*
+=============
+SP_target_sky
+
+Initializes the target_sky entity and copies configuration data with safe bounds checks.
+=============
+*/
 void SP_target_sky(gentity_t* self) {
 	self->use = use_target_sky;
-	if (st.was_key_specified("sky"))
-		strncpy(self->map.data(), st.sky, self->map.size());
+	if (st.was_key_specified("sky") && st.sky) {
+		const auto copied = Q_strlcpy(self->map.data(), st.sky, self->map.size());
+		if (copied >= self->map.size()) {
+			gi.Com_PrintFmt("{}: sky '{}' truncated to fit {} characters\n", *self, st.sky, self->map.size() - 1);
+		}
+	}
 	if (st.was_key_specified("skyAxis")) {
 		self->count |= 4;
 		self->moveDir = st.skyAxis;
@@ -2087,6 +2098,7 @@ void SP_target_sky(gentity_t* self) {
 		self->style = st.skyAutoRotate;
 	}
 }
+
 
 //==========================================================
 
@@ -2146,15 +2158,28 @@ static USE(use_target_achievement) (gentity_t* self, gentity_t* other, gentity_t
 	gi.multicast(vec3_origin, MULTICAST_ALL, true);
 }
 
+/*
+=============
+SP_target_achievement
+
+Initializes the target_achievement entity and ensures the achievement name fits within the buffer.
+=============
+*/
 void SP_target_achievement(gentity_t* self) {
 	if (deathmatch->integer) {
 		FreeEntity(self);
 		return;
 	}
 
-	strncpy(self->map.data(), st.achievement, self->map.size());
+	if (st.achievement) {
+		const auto copied = Q_strlcpy(self->map.data(), st.achievement, self->map.size());
+		if (copied >= self->map.size()) {
+			gi.Com_PrintFmt("{}: achievement '{}' truncated to fit {} characters\n", *self, st.achievement, self->map.size() - 1);
+		}
+	}
 	self->use = use_target_achievement;
 }
+
 
 static USE(use_target_story) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	level.campaign.story_active = !!(self->message && *self->message);
