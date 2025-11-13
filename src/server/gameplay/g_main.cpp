@@ -351,11 +351,11 @@ void LoadMotd() {
 	};
 
 	if (!validateAndResolve(configuredName, resolvedPath)) {
-		gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: "{}"\n", __FUNCTION__, configuredName.c_str());
+		gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: {}\n", __FUNCTION__, configuredName);
 		effectiveName = "motd.txt";
 
 		if (!validateAndResolve(effectiveName, resolvedPath)) {
-			gi.Com_PrintFmt("{}: Default MotD filename failed validation: "{}"\n", __FUNCTION__, effectiveName.c_str());
+			gi.Com_PrintFmt("{}: Default MotD filename failed validation: {}\n", __FUNCTION__, effectiveName);
 			return;
 		}
 	}
@@ -390,7 +390,7 @@ void LoadMotd() {
 		const std::size_t length = static_cast<std::size_t>(endPosition);
 
 		if (length > 0x40000) {
-			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: "{}"\n", __FUNCTION__, motdPath.c_str());
+			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: {}\n", __FUNCTION__, motdPath);
 			valid = false;
 		} else {
 			contents.resize(length);
@@ -399,7 +399,7 @@ void LoadMotd() {
 				const std::size_t readLength = fread(contents.data(), 1, length, f);
 
 				if (readLength != length) {
-					gi.Com_PrintFmt("{}: MoTD file read error: "{}"\n", __FUNCTION__, motdPath.c_str());
+					gi.Com_PrintFmt("{}: MoTD file read error: {}\n", __FUNCTION__, motdPath);
 					valid = false;
 				}
 			}
@@ -413,10 +413,10 @@ void LoadMotd() {
 		game.motdModificationCount++;
 
 		if (g_verbose->integer) {
-			gi.Com_PrintFmt("{}: MotD file verified and loaded: "{}"\n", __FUNCTION__, motdPath.c_str());
+			gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, motdPath);
 		}
 	} else {
-		gi.Com_PrintFmt("{}: MotD file load error for "{}", discarding.\n", __FUNCTION__, motdPath.c_str());
+		gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, motdPath);
 	}
 }
 

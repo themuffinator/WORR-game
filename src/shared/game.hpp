@@ -1203,6 +1203,7 @@ enum {
 	CS_WHEEL_POWERUPS = (CS_WHEEL_AMMO + MAX_WHEEL_ITEMS), // [Paril-KEX] see MAX_WHEEL_ITEMS
 	CS_CD_LOOP_COUNT = (CS_WHEEL_POWERUPS + MAX_WHEEL_ITEMS), // [Paril-KEX] override default loop count
 	CS_GAME_STYLE, // [Paril-KEX] see game_style_t
+	CS_FLAGSTATUS, // [WORR-KEX] capture-the-flag status indicator
 	MAX_CONFIGSTRINGS
 };
 
