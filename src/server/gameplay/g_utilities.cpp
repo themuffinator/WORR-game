@@ -27,18 +27,23 @@
 #include <ctime>
 #include <string_view>
 
-namespace {
-	std::tm LocalTimeNow() {
-		const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-		std::tm result{};
+/*
+=============
+LocalTimeNow
+
+Returns the current local time using a thread-safe conversion across platforms.
+=============
+*/
+std::tm LocalTimeNow() {
+	const std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm result{};
 #ifdef _WIN32
-		localtime_s(&result, &now);
+	localtime_s(&result, &now);
 #else
-		localtime_r(&now, &result);
+	localtime_r(&now, &result);
 #endif
-		return result;
-	}
-} // namespace
+	return result;
+}
 
 /*
 =========================

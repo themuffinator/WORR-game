@@ -27,6 +27,7 @@
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
+#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <new>
@@ -35,6 +36,8 @@
 
 CHECK_GCLIENT_INTEGRITY;
 CHECK_ENTITY_INTEGRITY;
+
+std::tm LocalTimeNow();
 
 constexpr int32_t DEFAULT_GRAPPLE_SPEED = 750; // speed of grapple in flight
 constexpr float	  DEFAULT_GRAPPLE_PULL_SPEED = 750; // speed player is pulled at
@@ -1438,10 +1441,7 @@ static void TakeIntermissionScreenshot() {
 		return;
 
 	// Build timestamp
-	time_t rawTime;
-	tm lTime{};
-	time(&rawTime);
-	localtime_s(&lTime, &rawTime);
+	const std::tm lTime = LocalTimeNow();
 
 	char timestamp[64];
 	std::snprintf(timestamp, sizeof(timestamp),
