@@ -19,7 +19,35 @@
 // - State Management: Handles freeing and attaching followers when players
 //   connect, disconnect, or switch between playing and spectating.
 
+#ifndef SPECTATOR_SANITIZE_ONLY
 #include "../g_local.hpp"
+#endif
+#include <cctype>
+
+/*
+=============
+SanitizeString
+
+Removes control characters and normalizes ASCII characters to lowercase for spectator lookups.
+=============
+*/
+void SanitizeString(const char* in, char* out)
+{
+	while (*in) {
+		const unsigned char ch = static_cast<unsigned char>(*in);
+		if (ch < ' ') {
+			++in;
+			continue;
+		}
+		*out = static_cast<char>(std::tolower(ch));
+		++out;
+		++in;
+	}
+
+	*out = '\0';
+}
+
+#ifndef SPECTATOR_SANITIZE_ONLY
 
 void FreeFollower(gentity_t* ent) {
 	if (!ent)
@@ -198,27 +226,6 @@ void ClientUpdateFollowers(gentity_t* ent) {
 
 /*
 ==================
-SanitizeString
-
-Remove case and control characters
-==================
-*/
-static void SanitizeString(const char* in, char* out) {
-	while (*in) {
-		if (*in < ' ') {
-			in++;
-			continue;
-		}
-		*out = tolower(*in);
-		out++;
-		in++;
-	}
-
-	*out = '\0';
-}
-
-/*
-==================
 ClientNumberFromString
 
 Returns a player number for either a number or name string
@@ -324,3 +331,4 @@ void GetFollowTarget(gentity_t* ent) {
 		}
 	}
 }
+#endif // SPECTATOR_SANITIZE_ONLY

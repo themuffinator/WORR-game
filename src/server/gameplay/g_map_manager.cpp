@@ -695,7 +695,11 @@ static bool str_contains_case(const std::string& haystack, const std::string& ne
 	return std::search(
 		haystack.begin(), haystack.end(),
 		needle.begin(), needle.end(),
-		[](char ch1, char ch2) { return std::tolower(ch1) == std::tolower(ch2); }
+		[](char ch1, char ch2) {
+			const unsigned char c1 = static_cast<unsigned char>(ch1);
+			const unsigned char c2 = static_cast<unsigned char>(ch2);
+			return std::tolower(c1) == std::tolower(c2);
+		}
 	) != haystack.end();
 }
 
