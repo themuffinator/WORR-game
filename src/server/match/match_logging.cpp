@@ -621,7 +621,7 @@ static inline void Html_WriteWinnerSummary(std::ofstream& html, const MatchStats
 	}
 
 	const std::string escapedWinner = HtmlEscape(winner);
-	html << "<div class=\\"winner";
+	html << "<div class=\"winner";
 	if (!winnerClass.empty()) {
 		html << ' ' << winnerClass;
 	}
