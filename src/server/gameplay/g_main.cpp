@@ -260,6 +260,7 @@ cvar_t* g_maps_allow_custom_sounds;
 
 cvar_t* g_statex_enabled;
 cvar_t* g_statex_humans_present;
+cvar_t* g_statex_export_html;
 
 cvar_t* g_blueTeamName;
 cvar_t* g_redTeamName;
@@ -986,8 +987,9 @@ static void InitGame() {
 	g_maps_allow_custom_textures = gi.cvar("g_maps_allow_custom_textures", "1", CVAR_NOFLAGS);
 	g_maps_allow_custom_sounds = gi.cvar("g_maps_allow_custom_sounds", "1", CVAR_NOFLAGS);
 
-	g_statex_enabled = gi.cvar("g_statex_enabled", "1", CVAR_NOFLAGS);
-	g_statex_humans_present = gi.cvar("g_statex_humans_present", "1", CVAR_NOFLAGS);
+g_statex_enabled = gi.cvar("g_statex_enabled", "1", CVAR_NOFLAGS);
+g_statex_humans_present = gi.cvar("g_statex_humans_present", "1", CVAR_NOFLAGS);
+g_statex_export_html = gi.cvar("g_statex_export_html", "1", CVAR_NOFLAGS);
 
 	g_blueTeamName = gi.cvar("g_blue_team_name", "Team BLUE", CVAR_NOFLAGS);
 	g_redTeamName = gi.cvar("g_red_team_name", "Team RED", CVAR_NOFLAGS);

@@ -3512,6 +3512,7 @@ extern cvar_t* g_maps_allow_custom_sounds;
 
 extern cvar_t* g_statex_enabled;
 extern cvar_t* g_statex_humans_present;
+extern cvar_t* g_statex_export_html;
 
 extern cvar_t* g_blueTeamName;
 extern cvar_t* g_redTeamName;
