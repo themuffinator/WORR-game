@@ -1646,8 +1646,9 @@ void MatchStats_End() {
 	}
 
 	try {
+		const auto& currentGameInfo = Game::GetCurrentInfo();
 		matchStats.matchID = level.matchID;
-		matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
+		matchStats.gameType = std::string(currentGameInfo.short_name_upper);
 		matchStats.ruleSet = rs_long_name[game.ruleset];
 		matchStats.serverName = hostname->string ? hostname->string : "";
 		matchStats.serverHostName.clear();
@@ -1667,6 +1668,16 @@ void MatchStats_End() {
 		matchStats.totalSuicides = level.match.totalSuicides;
 		matchStats.proBall_totalGoals = level.match.proBallGoals;
 		matchStats.proBall_totalAssists = level.match.proBallAssists;
+
+		if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+			const int64_t ctfTotalCaptures = level.match.ctfRedTeamTotalCaptures + level.match.ctfBlueTeamTotalCaptures;
+			const int64_t ctfTotalAssists = level.match.ctfRedTeamTotalAssists + level.match.ctfBlueTeamTotalAssists;
+			const int64_t ctfTotalDefends = level.match.ctfRedTeamTotalDefences + level.match.ctfBlueTeamTotalDefences;
+
+			matchStats.ctf_totalFlagsCaptured = static_cast<int>(ctfTotalCaptures);
+			matchStats.ctf_totalFlagAssists = static_cast<int>(ctfTotalAssists);
+			matchStats.ctf_totalFlagDefends = static_cast<int>(ctfTotalDefends);
+		}
 
 		matchStats.calculateDuration();
 		matchStats.avKillsPerMinute = matchStats.durationMS > 0
