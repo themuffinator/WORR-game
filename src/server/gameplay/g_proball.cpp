@@ -18,6 +18,10 @@ void OnBallReset(gentity_t* ball);
 
 namespace {
 
+static THINK(Ball_Think)(gentity_t* ball) -> void;
+static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other,
+		const trace_t& tr, bool otherTouchingSelf) -> void;
+
 constexpr Vector3 BALL_MINS{-12.f, -12.f, -12.f};
 constexpr Vector3 BALL_MAXS{12.f, 12.f, 12.f};
 constexpr GameTime BALL_THINK_INTERVAL = 50_ms;
@@ -1097,8 +1101,8 @@ void HandleCarrierDisconnect(gentity_t* carrier) {
 HandleCarrierHit
 =============
 */
-static bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
-		      const MeansOfDeath& mod) {
+bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
+		const MeansOfDeath& mod) {
 	if (Game::IsNot(GameType::ProBall))
 		return false;
 
