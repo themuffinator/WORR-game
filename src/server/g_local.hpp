@@ -640,30 +640,43 @@ public:
 	constexpr BitFlags<Enum>& operator^=(BitFlags<Enum> other) { value ^= other.value; return *this; }
 };
 
+/*
+=============
+EnumToUnderlying
+
+Converts an enum value to its underlying integral representation.
+=============
+*/
+template <typename Enum>
+	requires std::is_enum_v<Enum>
+constexpr std::underlying_type_t<Enum> EnumToUnderlying(Enum value) noexcept {
+	return static_cast<std::underlying_type_t<Enum>>(value);
+}
+
 // Trait-constrained free-function operators for seamless enum usage.
 // These will only be enabled for enums that specialize 'is_bitmask_enum'.
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator|(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) | std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToUnderlying(lhs) | EnumToUnderlying(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator&(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) & std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToUnderlying(lhs) & EnumToUnderlying(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator^(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToUnderlying(lhs) ^ EnumToUnderlying(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator~(Enum val) {
-	return BitFlags<Enum>(~std::to_underlying(val));
+	return BitFlags<Enum>(~EnumToUnderlying(val));
 }
 
 // ==================================================================

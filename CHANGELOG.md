@@ -7,7 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 ## [Unreleased]
 
 ### Added
-- Placeholder for upcoming changes.
+- Regression test that ensures legacy `.cfg` files populate session preferences when loaded.
+
+### Changed
+- Restored legacy `.cfg` loading during client connection so saved HUD preferences immediately apply.
 
 ## [0.1.0-alpha+20240315] - 2024-03-15
 
