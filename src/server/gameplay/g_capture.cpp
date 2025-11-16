@@ -464,6 +464,7 @@ namespace {
 				teammate->client->resp.ctf_lastreturnedflag + CTF::RETURN_FLAG_ASSIST_TIMEOUT > level.time) {
 				gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_return", teammate->client->sess.netName);
 				G_AdjustPlayerScore(teammate->client, CTF::RETURN_FLAG_ASSIST_BONUS, false, 0);
+				teammate->client->pers.match.ctfFlagAssists++;
 				PushAward(teammate, PlayerMedal::Assist);
 			}
 
@@ -471,6 +472,7 @@ namespace {
 				teammate->client->resp.ctf_lastfraggedcarrier + CTF::FRAG_CARRIER_ASSIST_TIMEOUT > level.time) {
 				gi.LocBroadcast_Print(PRINT_HIGH, "$g_bonus_assist_frag_carrier", teammate->client->sess.netName);
 				G_AdjustPlayerScore(teammate->client, CTF::FRAG_CARRIER_ASSIST_BONUS, false, 0);
+				teammate->client->pers.match.ctfFlagAssists++;
 				PushAward(teammate, PlayerMedal::Assist);
 			}
 			});
@@ -830,6 +832,7 @@ namespace {
 
 		player->client->pers.inventory[flagItem] = 1;
 		player->client->resp.ctf_flagsince = level.time;
+		player->client->pers.match.ctfFlagPickups++;
 
 		if (flagItem == IT_FLAG_NEUTRAL) {
 			FlagStatus status = FlagStatus::Taken;
@@ -897,6 +900,46 @@ namespace {
 
 /*
 =============
+CTF_RecordCarrierTime
+
+Aggregates carrier duration statistics for the provided client.
+=============
+*/
+static void CTF_RecordCarrierTime(gclient_t* client, GameTime pickupTime) {
+	if (!client) {
+		return;
+	}
+
+	GameTime startTime = pickupTime;
+	if (!startTime) {
+		startTime = client->resp.ctf_flagsince;
+	}
+	if (!startTime) {
+		startTime = client->pers.teamState.flag_pickup_time;
+	}
+	if (!startTime) {
+		return;
+	}
+
+	const GameTime elapsed = level.time - startTime;
+	const int64_t elapsedMs = elapsed.milliseconds();
+	if (elapsedMs <= 0) {
+		return;
+	}
+
+	auto& match = client->pers.match;
+	match.ctfFlagCarrierTimeTotalMsec += static_cast<uint64_t>(elapsedMs);
+	const uint32_t duration = static_cast<uint32_t>(elapsedMs);
+	if (match.ctfFlagCarrierTimeShortestMsec == 0 || duration < match.ctfFlagCarrierTimeShortestMsec) {
+		match.ctfFlagCarrierTimeShortestMsec = duration;
+	}
+	if (duration > match.ctfFlagCarrierTimeLongestMsec) {
+		match.ctfFlagCarrierTimeLongestMsec = duration;
+	}
+}
+
+/*
+=============
 Team_CaptureFlagSound
 
 External entry point for capture VO triggers.
@@ -928,6 +971,10 @@ void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam
 	BroadcastCaptureMessage(scoringTeam, scorer, pickupTime);
 	ApplyCaptureRewards(flagEntity, scorer, scoringTeam);
 	Team_CaptureFlagSound_Internal(scoringTeam);
+	if (scorer && scorer->client) {
+		CTF_RecordCarrierTime(scorer->client, pickupTime);
+		scorer->client->pers.match.ctfFlagCaptures++;
+	}
 }
 
 /*
@@ -1167,7 +1214,10 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	if (flagTeam == playerTeam && Teamplay_IsPrimaryTeam(playerTeam)) {
 		if (!droppedFlag) {
 			if (enemyFlagItem != IT_NULL && other->client->pers.inventory[enemyFlagItem]) {
-				const GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+				GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+				if (!pickupTime) {
+					pickupTime = other->client->resp.ctf_flagsince;
+				}
 				other->client->pers.inventory[enemyFlagItem] = 0;
 				other->client->resp.ctf_flagsince = 0_ms;
 
@@ -1188,6 +1238,7 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 			other->client->sess.netName, Teams_TeamName(flagTeam));
 		G_AdjustPlayerScore(other->client, CTF::RECOVERY_BONUS, false, 0);
 		other->client->resp.ctf_lastreturnedflag = level.time;
+		other->client->pers.match.ctfFlagReturns++;
 		gi.sound(ent, CHAN_RELIABLE | CHAN_NO_PHS_ADD | CHAN_AUX, gi.soundIndex("ctf/flagret.wav"), 1, ATTN_NONE, 0);
 		SetFlagStatus(flagTeam, FlagStatus::AtBase);
 		CTF_ResetTeamFlag(flagTeam);
@@ -1197,7 +1248,10 @@ bool CTF_PickupFlag(gentity_t* ent, gentity_t* other) {
 	if (oneFlag && !droppedFlag && flagTeam != Team::Free && Teamplay_IsPrimaryTeam(playerTeam) &&
 		other->client->pers.inventory[IT_FLAG_NEUTRAL]) {
 		const Team scoringTeam = playerTeam;
-		const GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+		GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+		if (!pickupTime) {
+			pickupTime = other->client->resp.ctf_flagsince;
+		}
 		other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
 		other->client->resp.ctf_flagsince = 0_ms;
 		other->client->pers.teamState.flag_pickup_time = 0_ms;
@@ -1314,6 +1368,16 @@ void CTF_DeadDropFlag(gentity_t* self) {
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_lost_flag",
 			self->client->sess.netName, Teams_TeamName(Team::Free));
 		droppedTeam = Team::Free;
+	}
+
+	if (droppedTeam != Team::None) {
+		GameTime carryStart = self->client->resp.ctf_flagsince;
+		if (!carryStart) {
+			carryStart = self->client->pers.teamState.flag_pickup_time;
+		}
+		CTF_RecordCarrierTime(self->client, carryStart);
+		self->client->pers.match.ctfFlagDrops++;
+		self->client->resp.ctf_flagsince = 0_ms;
 	}
 
 	self->client->pers.teamState.flag_pickup_time = 0_ms;

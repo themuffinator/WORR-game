@@ -130,6 +130,15 @@ struct PlayerStats {
 	std::array <uint32_t, static_cast<size_t>(HighValueItems::Total)> pickupCounts = {};
 	std::array <double, static_cast<size_t>(HighValueItems::Total)> pickupDelays = {};
 
+	int ctfFlagPickups = 0;
+	int ctfFlagDrops = 0;
+	int ctfFlagReturns = 0;
+	int ctfFlagAssists = 0;
+	int ctfFlagCaptures = 0;
+	int64_t ctfFlagCarrierTimeTotalMsec = 0;
+	int ctfFlagCarrierTimeShortestMsec = 0;
+	int ctfFlagCarrierTimeLongestMsec = 0;
+
 	// Weapon-based stats
 	std::map<std::string, int> totalShotsPerWeapon;
 	std::map<std::string, int> totalHitsPerWeapon;
@@ -198,6 +207,14 @@ struct PlayerStats {
 		if (totalTeamKills > 0)    result["totalTeamKills"] = totalTeamKills; // fixed
 		if (totalDeaths > 0)       result["totalDeaths"] = totalDeaths;
 		if (totalSuicides > 0)     result["totalSuicides"] = totalSuicides;
+		if (ctfFlagPickups > 0)     result["ctfFlagPickups"] = ctfFlagPickups;
+		if (ctfFlagDrops > 0)     result["ctfFlagDrops"] = ctfFlagDrops;
+		if (ctfFlagReturns > 0)     result["ctfFlagReturns"] = ctfFlagReturns;
+		if (ctfFlagAssists > 0)     result["ctfFlagAssists"] = ctfFlagAssists;
+		if (ctfFlagCaptures > 0)     result["ctfFlagCaptures"] = ctfFlagCaptures;
+		if (ctfFlagCarrierTimeTotalMsec > 0)     result["ctfFlagCarrierTimeTotalMsec"] = Json::Int64(ctfFlagCarrierTimeTotalMsec);
+		if (ctfFlagCarrierTimeShortestMsec > 0)     result["ctfFlagCarrierTimeShortestMsec"] = ctfFlagCarrierTimeShortestMsec;
+		if (ctfFlagCarrierTimeLongestMsec > 0)     result["ctfFlagCarrierTimeLongestMsec"] = ctfFlagCarrierTimeLongestMsec;
 		if (totalKDR > 0.0)        result["totalKDR"] = totalKDR;
 		if (totalHits > 0)         result["totalHits"] = totalHits;
 		if (totalShots > 0)        result["totalShots"] = totalShots;
@@ -1705,6 +1722,14 @@ void MatchStats_End() {
 			p.totalHits = cl->pers.match.totalHits;
 			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
 			p.totalDmgReceived = cl->pers.match.totalDmgReceived;
+			p.ctfFlagPickups = cl->pers.match.ctfFlagPickups;
+			p.ctfFlagDrops = cl->pers.match.ctfFlagDrops;
+			p.ctfFlagReturns = cl->pers.match.ctfFlagReturns;
+			p.ctfFlagAssists = cl->pers.match.ctfFlagAssists;
+			p.ctfFlagCaptures = cl->pers.match.ctfFlagCaptures;
+			p.ctfFlagCarrierTimeTotalMsec = static_cast<int64_t>(cl->pers.match.ctfFlagCarrierTimeTotalMsec);
+			p.ctfFlagCarrierTimeShortestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeShortestMsec);
+			p.ctfFlagCarrierTimeLongestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeLongestMsec);
 
 			p.playTimeMsec = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
 			if (p.playTimeMsec > 0)
