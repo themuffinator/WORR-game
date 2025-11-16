@@ -21,8 +21,8 @@ following table summarizes the top-level fields that analytics pipelines typical
 | `totalFlagsCaptured` | integer | Capture-the-flag captures (0 when not applicable). |
 | `totalFlagAssists` | integer | Capture-the-flag assists. |
 | `totalFlagDefends` | integer | Capture-the-flag defends. |
-| `matchTimeStart` | integer | Epoch milliseconds when the match started. |
-| `matchTimeEnd` | integer | Epoch milliseconds when the match ended. |
+| `matchStartMS` | integer | Epoch milliseconds when the match started (captured at match end). |
+| `matchEndMS` | integer | Epoch milliseconds when the match ended (captured at match end). |
 | `matchTimeDuration` | integer | Match length in milliseconds. |
 | `players` | array | Player-level stat objects. |
 | `teams` | array | Team-level stat objects (empty for FFA/Duel). |

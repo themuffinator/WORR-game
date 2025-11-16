@@ -449,8 +449,9 @@ struct MatchStats {
 		matchJson["totalFlagsCaptured"] = ctf_totalFlagsCaptured;
 		matchJson["totalFlagAssists"] = ctf_totalFlagAssists;
 		matchJson["totalFlagDefends"] = ctf_totalFlagDefends;
-		matchJson["matchTimeStart"] = matchStartMS;
-		matchJson["matchTimeEnd"] = matchEndMS;
+		// NOTE: Exporters intentionally rely on frozen timestamps captured at match end.
+		matchJson["matchStartMS"] = matchStartMS;
+		matchJson["matchEndMS"] = matchEndMS;
 		matchJson["matchTimeDuration"] = durationMS;
 		matchJson["timeLimitSeconds"] = timeLimitSeconds;
 		matchJson["scoreLimit"] = scoreLimit;
@@ -658,6 +659,7 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 	const std::string escapedServerName = HtmlEscape(matchStats.serverName);
 	const std::string escapedGameType = HtmlEscape(matchStats.gameType);
 	const std::string escapedMapName = HtmlEscape(matchStats.mapName);
+	// NOTE: HTML exports intentionally render frozen timestamps captured when the match ended.
 	html << "<div class=\"top-info\">\n"
 		<< "  <h1>Match Summary - " << escapedMatchId << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << escapedServerName << "</p>\n"
