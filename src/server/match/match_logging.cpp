@@ -275,6 +275,8 @@ struct PlayerStats {
 	json toJson() const {
 		json result;
 		result["socialID"] = socialID;
+		const std::string& identifier = !socialID.empty() ? socialID : playerName;
+		result["playerIdentifier"] = identifier;
 		result["playerName"] = playerName;
 		result["totalScore"] = totalScore;
 		if (proBallGoals > 0)    result["proBallGoals"] = proBallGoals;
@@ -1969,66 +1971,74 @@ static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 
 /*
 =============
-MatchStats_WriteAll
+SendIndividualMiniStats
+
+Matches aggregated player statistics to active clients via a stable identifier
+and prints a short personal summary for each client.
 =============
 */
 static void SendIndividualMiniStats(const MatchStats& matchStats) {
+	auto findStatsForClient = [&](std::string_view identifier, std::string_view fallbackName) -> const PlayerStats* {
+		auto matches = [&](const PlayerStats& stats) {
+			if (!identifier.empty() && !stats.socialID.empty()) {
+				return _stricmp(stats.socialID.c_str(), identifier.data()) == 0;
+			}
+
+			if (!fallbackName.empty() && !stats.playerName.empty()) {
+				return _stricmp(stats.playerName.c_str(), fallbackName.data()) == 0;
+			}
+
+			return false;
+		};
+
+		for (const PlayerStats& p : matchStats.players) {
+			if (matches(p)) {
+				return &p;
+			}
+		}
+
+		for (const TeamStats& team : matchStats.teams) {
+			for (const PlayerStats& teamPlayer : team.players) {
+				if (matches(teamPlayer)) {
+					return &teamPlayer;
+				}
+			}
+		}
+
+		return nullptr;
+	};
+
 	for (auto ec : active_players()) {
 		if (!ec || !ec->client)
 			continue;
 
 		const char* rawName = ec->client->sess.netName;
+		const char* rawIdentifier = ec->client->sess.socialID;
 
-		if (!rawName[0]) {
-			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
+		const bool hasName = rawName && rawName[0];
+		const bool hasIdentifier = rawIdentifier && rawIdentifier[0];
+
+		if (!hasName && !hasIdentifier) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to missing identifier and name\n", ec->s.number);
 			continue;
 		}
 
-		std::string_view name(rawName);
+		const std::string_view identifierView = hasIdentifier ? std::string_view(rawIdentifier) : std::string_view();
+		const std::string_view nameView = hasName ? std::string_view(rawName) : std::string_view();
 
-		const PlayerStats* matchedStats = nullptr;
-
-		auto matchesName = [&](const PlayerStats& stats) {
-			if (stats.playerName.empty())
-				return false;
-
-			return _stricmp(stats.playerName.c_str(), name.data()) == 0;
-			};
-
-		for (const PlayerStats& p : matchStats.players) {
-			if (!matchesName(p))
-				continue;
-
-			matchedStats = &p;
-			break;
-		}
-
-		if (!matchedStats) {
-			for (const TeamStats& team : matchStats.teams) {
-				for (const PlayerStats& teamPlayer : team.players) {
-					if (!matchesName(teamPlayer))
-						continue;
-
-					matchedStats = &teamPlayer;
-					break;
-				}
-
-				if (matchedStats)
-					break;
-			}
-		}
-
+		const PlayerStats* matchedStats = findStatsForClient(identifierView, nameView);
 		if (!matchedStats)
 			continue;
 
 		const PlayerStats& p = *matchedStats;
+		const char* displayName = hasName ? rawName : (hasIdentifier ? rawIdentifier : "Unknown");
 
 		std::string msg;
 		msg += ":: Match Summary ::\n";
-		msg += G_Fmt("{} - ", rawName);
+		msg += G_Fmt("{} - ", displayName);
 		msg += G_Fmt("Kills: {} | Deaths: {}", p.totalKills, p.totalDeaths);
-
 		msg += G_Fmt(" | K/D Ratio: {:.2f}", p.totalKDR);
+
 		/*
 		double total = p.totalKills + p.totalAssists + p.totalDeaths;
 		double eff = total > 0 ? (double)p.totalKills / total * 100.0 : 0.0;
@@ -2455,6 +2465,8 @@ void MatchStats_End() {
 
 				json entry;
 				entry["socialID"] = player.socialID;
+				const std::string& gametypeIdentifier = !player.socialID.empty() ? player.socialID : player.playerName;
+				entry["playerIdentifier"] = gametypeIdentifier;
 				entry["playerName"] = player.playerName;
 				if (!teamLabel.empty())
 					entry["team"] = teamLabel;
