@@ -1940,7 +1940,12 @@ static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseF
 	}
 
 	const bool jsonWritten = MatchStats_WriteJson(matchStats, baseFilePath + ".json");
-	const bool htmlWritten = MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
+	bool htmlWritten = true;
+	if (g_statex_export_html->integer) {
+		htmlWritten = MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
+	} else {
+		gi.Com_PrintFmt("{}: HTML export disabled via g_statex_export_html.\n", __FUNCTION__);
+	}
 	if (!jsonWritten || !htmlWritten) {
 		gi.Com_PrintFmt("{}: Export completed with errors (JSON: {}, HTML: {})\n", __FUNCTION__, jsonWritten ? "ok" : "failed", htmlWritten ? "ok" : "failed");
 	}
