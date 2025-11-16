@@ -24,8 +24,10 @@
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
+#include <sstream>
 #include <string_view>
 #include <system_error>
+#include <unordered_map>
 #include <unordered_set>
 #include <cerrno>
 
@@ -84,6 +86,28 @@ static std::string HtmlEscape(std::string_view input) {
 }
 
 const std::string MATCH_STATS_PATH = GAMEVERSION + "/matches";
+
+/*
+=============
+Html_FormatMilliseconds
+
+Converts a millisecond duration into a short, human-readable string for HTML output.
+=============
+*/
+static inline std::string Html_FormatMilliseconds(int64_t milliseconds) {
+	if (milliseconds <= 0) {
+		return "0s";
+	}
+
+	const int seconds = static_cast<int>(milliseconds / 1000);
+	if (seconds > 0) {
+		return FormatDuration(seconds);
+	}
+
+	std::ostringstream stream;
+	stream << std::fixed << std::setprecision(2) << (milliseconds / 1000.0) << 's';
+	return stream.str();
+}
 
 // Precomputed map for fast abbreviation-to-index lookup
 const std::unordered_map<std::string, Weapon> weaponAbbreviationMap = []() {
@@ -1229,6 +1253,195 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchSta
 
 /*
 =============
+Html_WriteGametypeStats
+
+Outputs gametype-specific highlights (currently CTF) including team totals,
+standout performers, and player-level breakdowns derived from the aggregated
+gametype statistics.
+=============
+*/
+static inline void Html_WriteGametypeStats(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& allPlayers) {
+	if (!matchStats.gametypeStats.isObject()) {
+		return;
+	}
+
+	if (!matchStats.gametypeStats.isMember("ctf") || !JsonHasData(matchStats.gametypeStats["ctf"])) {
+		return;
+	}
+
+	const json& ctfJson = matchStats.gametypeStats["ctf"];
+	const json& totalsJson = ctfJson["totals"];
+	const json& teamsJson = ctfJson["teams"];
+	const json& playersJson = ctfJson["players"];
+
+	auto readInt64 = [](const json& node, const char* key) -> int64_t {
+		if (!node.isObject() || !node.isMember(key)) {
+			return 0;
+		}
+		const json& value = node[key];
+		if (value.isInt64()) {
+			return value.asInt64();
+		}
+		if (value.isUInt64()) {
+			return static_cast<int64_t>(value.asUInt64());
+		}
+		if (value.isInt()) {
+			return value.asInt64();
+		}
+		if (value.isUInt()) {
+			return static_cast<int64_t>(value.asUInt());
+		}
+		return 0;
+	};
+
+	html << "<div class=\"section gametype\">\n"
+		<< "  <h2>CTF Highlights</h2>\n";
+
+	if (totalsJson.isObject() && JsonHasData(totalsJson)) {
+		const int64_t totalCaptures = readInt64(totalsJson, "flagsCaptured");
+		const int64_t totalAssists = readInt64(totalsJson, "flagAssists");
+		const int64_t totalDefends = readInt64(totalsJson, "flagDefends");
+		const std::string totalCarry = Html_FormatMilliseconds(readInt64(totalsJson, "flagHoldTimeTotalMsec"));
+		html << "  <p><strong>Total Captures:</strong> " << totalCaptures
+			<< " | <strong>Assists:</strong> " << totalAssists
+			<< " | <strong>Defends:</strong> " << totalDefends
+			<< " | <strong>Combined Carry Time:</strong> " << totalCarry << "</p>\n";
+	}
+
+	if (teamsJson.isObject()) {
+		html << "  <h3>Team Totals</h3>\n"
+			<< "  <table><tr><th>Team</th><th>Captures</th><th>Assists</th><th>Defends</th><th>Pickups</th><th>Drops</th><th>Carry Time</th></tr>\n";
+		bool wroteTeamRow = false;
+		auto writeTeamRow = [&](const char* teamLabel, const char* cssClass, const json& teamJson) {
+			if (!teamJson.isObject() || !JsonHasData(teamJson)) {
+				return;
+			}
+			html << "    <tr><td class=\"player-cell " << cssClass << "\">" << teamLabel << "</td>"
+				<< "<td>" << readInt64(teamJson, "flagsCaptured") << "</td>"
+				<< "<td>" << readInt64(teamJson, "flagAssists") << "</td>"
+				<< "<td>" << readInt64(teamJson, "flagDefends") << "</td>"
+				<< "<td>" << readInt64(teamJson, "flagPickups") << "</td>"
+				<< "<td>" << readInt64(teamJson, "flagDrops") << "</td>"
+				<< "<td>" << Html_FormatMilliseconds(readInt64(teamJson, "flagHoldTimeTotalMsec")) << "</td></tr>\n";
+			wroteTeamRow = true;
+		};
+
+		if (teamsJson.isMember("red")) {
+			writeTeamRow("Red", "red", teamsJson["red"]);
+		}
+		if (teamsJson.isMember("blue")) {
+			writeTeamRow("Blue", "blue", teamsJson["blue"]);
+		}
+
+		if (!wroteTeamRow) {
+			html << "    <tr><td colspan=\"7\">No team data recorded.</td></tr>\n";
+		}
+		html << "  </table>\n";
+	}
+
+	std::unordered_map<std::string, const json*> playerLookup;
+	const json* topCaptureEntry = nullptr;
+	const json* topCarryEntry = nullptr;
+	int64_t maxCaptures = 0;
+	int64_t maxCarryTime = 0;
+
+	if (playersJson.isArray()) {
+		for (Json::ArrayIndex i = 0; i < playersJson.size(); ++i) {
+			const json& entry = playersJson[i];
+			if (!entry.isObject()) {
+				continue;
+			}
+			if (!entry.isMember("stats") || !entry["stats"].isObject()) {
+				continue;
+			}
+			const json& stats = entry["stats"];
+			if (!JsonHasData(stats)) {
+				continue;
+			}
+			if (entry.isMember("socialID")) {
+				playerLookup[entry["socialID"].asString()] = &entry;
+			}
+			const int64_t captures = readInt64(stats, "flagCaptures");
+			if (captures > maxCaptures) {
+				maxCaptures = captures;
+				topCaptureEntry = &entry;
+			}
+			const int64_t carryTime = readInt64(stats, "flagCarrierTimeTotalMsec");
+			if (carryTime > maxCarryTime) {
+				maxCarryTime = carryTime;
+				topCarryEntry = &entry;
+			}
+		}
+	}
+
+	if ((topCaptureEntry && maxCaptures > 0) || (topCarryEntry && maxCarryTime > 0)) {
+		html << "  <h3>Standouts</h3>\n"
+			<< "  <ul>\n";
+		if (topCaptureEntry && maxCaptures > 0) {
+			const std::string bestCaptureName = HtmlEscape(topCaptureEntry->isMember("playerName") ? (*topCaptureEntry)["playerName"].asString() : std::string("Unknown"));
+			html << "    <li>Top Flag Captures: " << bestCaptureName << " (" << maxCaptures << ")</li>\n";
+		}
+		if (topCarryEntry && maxCarryTime > 0) {
+			const std::string bestCarrierName = HtmlEscape(topCarryEntry->isMember("playerName") ? (*topCarryEntry)["playerName"].asString() : std::string("Unknown"));
+			html << "    <li>Longest Carrier: " << bestCarrierName << " (" << Html_FormatMilliseconds(maxCarryTime) << ")</li>\n";
+		}
+		html << "  </ul>\n";
+	}
+
+	html << "  <h3>Player CTF Stats</h3>\n"
+		<< "  <table><tr><th>Player</th><th>Team</th><th>Captures</th><th>Assists</th><th>Returns</th><th>Pickups</th><th>Drops</th><th>Carry Time</th></tr>\n";
+	bool wrotePlayerRow = false;
+	for (const PlayerStats* player : allPlayers) {
+		if (!player) {
+			continue;
+		}
+		auto it = playerLookup.find(player->socialID);
+		if (it == playerLookup.end()) {
+			continue;
+		}
+		const json& entry = *it->second;
+		const json& stats = entry["stats"];
+		const int captures = static_cast<int>(readInt64(stats, "flagCaptures"));
+		const int assists = static_cast<int>(readInt64(stats, "flagAssists"));
+		const int returns = static_cast<int>(readInt64(stats, "flagReturns"));
+		const int pickups = static_cast<int>(readInt64(stats, "flagPickups"));
+		const int drops = static_cast<int>(readInt64(stats, "flagDrops"));
+		const int64_t carryTime = readInt64(stats, "flagCarrierTimeTotalMsec");
+		if (!(captures || assists || returns || pickups || drops || carryTime)) {
+			continue;
+		}
+		wrotePlayerRow = true;
+		std::string teamLabel = "-";
+		std::string teamClass = "player-cell";
+		if (entry.isMember("team")) {
+			teamLabel = entry["team"].asString();
+			if (teamLabel == "Red") {
+				teamClass += " red";
+			}
+			else if (teamLabel == "Blue") {
+				teamClass += " blue";
+			}
+		}
+		const std::string escapedName = HtmlEscape(player->playerName);
+		html << "    <tr><td class=\"player-cell\">" << escapedName << "</td>"
+			<< "<td class=\"" << teamClass << "\">" << HtmlEscape(teamLabel) << "</td>"
+			<< "<td>" << captures << "</td>"
+			<< "<td>" << assists << "</td>"
+			<< "<td>" << returns << "</td>"
+			<< "<td>" << pickups << "</td>"
+			<< "<td>" << drops << "</td>"
+			<< "<td>" << Html_FormatMilliseconds(carryTime) << "</td></tr>\n";
+	}
+	if (!wrotePlayerRow) {
+		html << "    <tr><td colspan=\"8\">No CTF player activity recorded.</td></tr>\n";
+	}
+	html << "  </table>\n";
+
+	html << "</div>\n";
+}
+
+/*
+=============
 Html_WriteEventLog
 =============
 */
@@ -1360,6 +1573,47 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 				<< " | Suicides: " << p->totalSuicides
 				<< " | Score: " << p->totalScore
 				<< "</p>";
+		}
+
+		const bool hasPlayerCtfStats = p->gametypeStats.isObject()
+			&& p->gametypeStats.isMember("ctf")
+			&& JsonHasData(p->gametypeStats["ctf"]);
+		const bool hasCtfValues = (p->ctfFlagPickups > 0 || p->ctfFlagDrops > 0 || p->ctfFlagReturns > 0
+			|| p->ctfFlagAssists > 0 || p->ctfFlagCaptures > 0
+			|| p->ctfFlagCarrierTimeTotalMsec > 0 || p->ctfFlagCarrierTimeShortestMsec > 0
+			|| p->ctfFlagCarrierTimeLongestMsec > 0);
+		if (hasPlayerCtfStats && hasCtfValues) {
+			html << "  <h3>CTF Performance</h3>\n"
+				<< "  <table><tr><th>Metric</th><th>Value</th></tr>\n";
+			bool wroteMetric = false;
+			auto writeCountMetric = [&](const char* label, int value) {
+				if (value <= 0) {
+					return;
+				}
+				html << "    <tr><td>" << label << "</td><td>" << value << "</td></tr>\n";
+				wroteMetric = true;
+			};
+			auto writeTimeMetric = [&](const char* label, int64_t value) {
+				if (value <= 0) {
+					return;
+				}
+				html << "    <tr><td>" << label << "</td><td>" << Html_FormatMilliseconds(value) << "</td></tr>\n";
+				wroteMetric = true;
+			};
+
+			writeCountMetric("Flag Pickups", p->ctfFlagPickups);
+			writeCountMetric("Flag Drops", p->ctfFlagDrops);
+			writeCountMetric("Flag Returns", p->ctfFlagReturns);
+			writeCountMetric("Flag Assists", p->ctfFlagAssists);
+			writeCountMetric("Flag Captures", p->ctfFlagCaptures);
+			writeTimeMetric("Total Carry Time", p->ctfFlagCarrierTimeTotalMsec);
+			writeTimeMetric("Shortest Carry", p->ctfFlagCarrierTimeShortestMsec);
+			writeTimeMetric("Longest Carry", p->ctfFlagCarrierTimeLongestMsec);
+
+			if (!wroteMetric) {
+				html << "    <tr><td colspan=\"2\">No gametype metrics recorded.</td></tr>\n";
+			}
+			html << "  </table>";
 		}
 
 		// Top Victims by this player
@@ -1552,6 +1806,7 @@ static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 	Html_WriteTopPlayers(html, matchStats, allPlayers);
 	Html_WriteItemPickups(html, matchStats, allPlayers);
 	Html_WriteTopMeansOfDeath(html, matchStats, redPlayers, bluePlayers);
+	Html_WriteGametypeStats(html, matchStats, allPlayers);
 	Html_WriteEventLog(html, matchStats, allPlayers);
 	Html_WriteIndividualPlayerSections(html, matchStats, allPlayers);
 	Html_WriteFooter(html, htmlPath);
