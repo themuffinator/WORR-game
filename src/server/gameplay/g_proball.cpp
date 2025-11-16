@@ -18,9 +18,9 @@ void OnBallReset(gentity_t* ball);
 
 namespace {
 
-static THINK(Ball_Think)(gentity_t* ball) -> void;
-static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other,
-		const trace_t& tr, bool otherTouchingSelf) -> void;
+void Ball_Think(gentity_t* ball);
+void Ball_Touch(gentity_t* ball, gentity_t* other,
+		const trace_t& tr, bool otherTouchingSelf);
 
 constexpr Vector3 BALL_MINS{-12.f, -12.f, -12.f};
 constexpr Vector3 BALL_MAXS{12.f, 12.f, 12.f};
