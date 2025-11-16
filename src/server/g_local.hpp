@@ -19,6 +19,7 @@ class Menu;
 #include <algorithm>
 #include <cctype>
 #include <memory>
+#include <mutex>
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
@@ -2627,6 +2628,9 @@ std::array<gentity_t*, 4> outOfBounds{};
 
 	//overall match stats
 	MatchOverallStats	match;
+
+	// protects death/event logs while async jobs grab snapshots
+	std::mutex		matchLogMutex;
 
 	// new map system stuff
 	uint16_t	vote_flags_enable = 0;
