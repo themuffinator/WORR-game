@@ -21,6 +21,7 @@
 #include "../../shared/char_array_utils.hpp"
 #include <algorithm>
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
@@ -86,6 +87,52 @@ static std::string HtmlEscape(std::string_view input) {
 }
 
 const std::string MATCH_STATS_PATH = GAMEVERSION + "/matches";
+
+/*
+=============
+WriteFileAtomically
+
+Writes file contents to a temporary sibling (<path>.tmp) before renaming the
+result into place. Ensures output streams are opened in binary mode with
+exceptions enabled so callers can detect failures.
+=============
+*/
+static void WriteFileAtomically(const std::filesystem::path& finalPath, const std::function<void(std::ofstream&)>& writer) {
+	const std::string finalPathStr = finalPath.string();
+	const std::filesystem::path tempPath(finalPathStr + ".tmp");
+
+	std::ofstream file;
+	file.exceptions(std::ios::failbit | std::ios::badbit);
+	try {
+		file.open(tempPath, std::ios::binary);
+		writer(file);
+		file.flush();
+		file.close();
+
+		std::error_code removeExistingError;
+		std::filesystem::remove(finalPath, removeExistingError);
+		if (removeExistingError && removeExistingError != std::errc::no_such_file_or_directory) {
+			throw std::system_error(removeExistingError, "Failed to remove existing file prior to rename");
+		}
+
+		std::filesystem::rename(tempPath, finalPath);
+	}
+	catch (...) {
+		if (file.is_open()) {
+			try {
+				file.close();
+			}
+			catch (...) {
+			}
+		}
+
+		std::error_code cleanupError;
+		std::filesystem::remove(tempPath, cleanupError);
+		throw;
+	}
+}
+
+
 
 /*
 =============
@@ -545,26 +592,26 @@ static void ValidateModTotals(const MatchStats& matchStats) {
 
 static bool MatchStats_WriteJson(const MatchStats& matchStats, const std::string& fileName) {
 	try {
-		std::ofstream file(fileName);
-		if (file.is_open()) {
-		Json::StreamWriterBuilder writer;
-		writer["indentation"] = "    "; // match original .dump(4)
-		std::string output = Json::writeString(writer, matchStats.toJson());
+		WriteFileAtomically(fileName, [&](std::ofstream& file) {
+			Json::StreamWriterBuilder writer;
+			writer["indentation"] = "    "; // match original .dump(4)
+			std::string output = Json::writeString(writer, matchStats.toJson());
 			file << output;
-			file.close();
-			gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
-			return true;
-		}
-
-		const std::error_code ec(errno, std::system_category());
-		gi.Com_PrintFmt("Failed to open JSON file: {} ({})\n", fileName.c_str(), ec.message().c_str());
+		});
+		gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
+		return true;
 	}
 	catch (const std::exception& e) {
 		gi.Com_PrintFmt("Exception while writing JSON ({}): {}\n", fileName.c_str(), e.what());
 	}
+	catch (...) {
+		gi.Com_PrintFmt("Unknown error while writing JSON ({})\n", fileName.c_str());
+	}
 
 	return false;
 }
+
+
 
 /*
 =============
@@ -1837,7 +1884,6 @@ static inline void Html_WriteFooter(std::ofstream& html, const std::string& html
 	html << "<div class=\"footer\">Compiled by " << worr::version::kGameTitle << " "
 		<< worr::version::kGameVersion << "</div>\n";
 	html << "</body></html>\n";
-	html.close();
 }
 
 /*
@@ -1846,77 +1892,82 @@ MatchStats_WriteHtml
 =============
 */
 static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string& htmlPath) {
-	std::ofstream html(htmlPath);
-	if (!html.is_open()) {
-		const std::error_code ec(errno, std::system_category());
-		gi.Com_PrintFmt("Failed to open HTML file: {} ({})\n", htmlPath.c_str(), ec.message().c_str());
-		return false;
-	}
+	try {
+		WriteFileAtomically(htmlPath, [&](std::ofstream& html) {
+			// Gather players
+			std::vector<const PlayerStats*> allPlayers;
+			std::vector<const PlayerStats*> redPlayers;
+			std::vector<const PlayerStats*> bluePlayers;
 
-	// Gather players
-	std::vector<const PlayerStats*> allPlayers;
-	std::vector<const PlayerStats*> redPlayers;
-	std::vector<const PlayerStats*> bluePlayers;
+			int redScore = 0, blueScore = 0;
+			int maxGlobalScore = 0;
 
-	int redScore = 0, blueScore = 0;
-	int maxGlobalScore = 0;
+			// solo players
+			for (const auto& p : matchStats.players) {
+				allPlayers.push_back(&p);
+				maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
+			}
 
-	// solo players
-	for (const auto& p : matchStats.players) {
-		allPlayers.push_back(&p);
-		maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
-	}
+			// team players
+			for (size_t i = 0; i < matchStats.teams.size(); ++i) {
+				const auto& team = matchStats.teams[i];
+				if (i == 0) redScore = team.score;
+				if (i == 1) blueScore = team.score;
 
-	// team players
-	for (size_t i = 0; i < matchStats.teams.size(); ++i) {
-		const auto& team = matchStats.teams[i];
-		if (i == 0) redScore = team.score;
-		if (i == 1) blueScore = team.score;
+				for (const auto& p : team.players) {
+					allPlayers.push_back(&p);
+					maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
+					if (i == 0)
+						redPlayers.push_back(&p);
+					else if (i == 1)
+						bluePlayers.push_back(&p);
+				}
+			}
 
-		for (const auto& p : team.players) {
-			allPlayers.push_back(&p);
-			maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
-			if (i == 0)
-				redPlayers.push_back(&p);
-			else if (i == 1)
-				bluePlayers.push_back(&p);
-		}
-	}
+			const bool hadTeams = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
+			const bool hadCtf = HasFlag(matchStats.recordedFlags, GameFlags::CTF);
+			// Sort by totalScore descending
+			std::sort(allPlayers.begin(), allPlayers.end(), [](auto a, auto b) {
+				return a->totalScore > b->totalScore;
+			});
 
-	const bool hadTeams = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
-	const bool hadCtf = HasFlag(matchStats.recordedFlags, GameFlags::CTF);
-	// Sort by totalScore descending
-	std::sort(allPlayers.begin(), allPlayers.end(), [](auto a, auto b) {
-		return a->totalScore > b->totalScore;
+			Html_WriteHeader(html, matchStats);
+			Html_WriteTopInfo(html, matchStats);
+			Html_WriteWinnerSummary(html, matchStats);
+
+			if (hadTeams) {
+				Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
+				const double matchDurationMs = static_cast<double>(matchStats.durationMS);
+				Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
+			}
+			else {
+				Html_WriteOverallScores(html, matchStats, allPlayers);
+			}
+
+			Html_WriteTopPlayers(html, matchStats, allPlayers);
+			Html_WriteItemPickups(html, matchStats, allPlayers);
+			Html_WriteTopMeansOfDeath(html, matchStats, redPlayers, bluePlayers);
+			if (hadCtf) {
+				Html_WriteGametypeStats(html, matchStats, allPlayers);
+			}
+			Html_WriteEventLog(html, matchStats, allPlayers);
+			Html_WriteIndividualPlayerSections(html, matchStats, allPlayers);
+			Html_WriteFooter(html, htmlPath);
 		});
-
-	Html_WriteHeader(html, matchStats);
-	Html_WriteTopInfo(html, matchStats);
-	Html_WriteWinnerSummary(html, matchStats);
-
-	if (hadTeams) {
-		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
-		const double matchDurationMs = static_cast<double>(matchStats.durationMS);
-		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
+		gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
+		return true;
 	}
-	else {
-		Html_WriteOverallScores(html, matchStats, allPlayers);
+	catch (const std::exception& e) {
+		gi.Com_PrintFmt("Exception while writing HTML ({}): {}\n", htmlPath.c_str(), e.what());
+	}
+	catch (...) {
+		gi.Com_PrintFmt("Unknown error while writing HTML ({})\n", htmlPath.c_str());
 	}
 
-	Html_WriteTopPlayers(html, matchStats, allPlayers);
-	Html_WriteItemPickups(html, matchStats, allPlayers);
-	Html_WriteTopMeansOfDeath(html, matchStats, redPlayers, bluePlayers);
-	if (hadCtf) {
-		Html_WriteGametypeStats(html, matchStats, allPlayers);
-	}
-	Html_WriteEventLog(html, matchStats, allPlayers);
-	Html_WriteIndividualPlayerSections(html, matchStats, allPlayers);
-	Html_WriteFooter(html, htmlPath);
-
-	html.close();
-	gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
-	return true;
+	return false;
 }
+
+
 
 /*
 =============
