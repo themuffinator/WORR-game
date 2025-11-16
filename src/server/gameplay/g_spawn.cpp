@@ -27,11 +27,29 @@
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
 #include <algorithm>	// for std::fill
+#include <new>
 
 struct spawn_t {
 	const char* name;
 	void (*spawn)(gentity_t* ent);
 };
+
+namespace {
+
+/*
+=============
+ResetLevelLocals
+
+Reinitializes the global level state without relying on the deleted copy
+assignment operator.
+=============
+*/
+void ResetLevelLocals() {
+	level.~LevelLocals();
+	new (&level) LevelLocals();
+}
+
+} // namespace
 
 const spawn_temp_t& ED_GetSpawnTemp()
 {
@@ -1851,7 +1869,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	// Reset all persistent game state
 	SaveClientData();
 	gi.FreeTags(TAG_LEVEL);
-	level = LevelLocals{};
+	ResetLevelLocals();
 	Domination_ClearState();
 	HeadHunters::ClearState();
 	ProBall::ClearState();

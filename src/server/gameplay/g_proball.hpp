@@ -24,7 +24,8 @@ namespace ProBall {
 	void OnBallDropped(gentity_t* owner, gentity_t* ballEnt, const Vector3& origin, const Vector3& velocity);
 	void HandleCarrierDeath(gentity_t* carrier);
 	void HandleCarrierDisconnect(gentity_t* carrier);
-	bool HandleCarrierHit(gentity_t* carrier, const MeansOfDeath& mod);
+	bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
+		const MeansOfDeath& mod);
 }
 
 void SP_trigger_proball_goal(gentity_t* ent);
