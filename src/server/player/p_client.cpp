@@ -725,7 +725,7 @@ Initializes the player configuration by loading an existing config file or
 generating a default when none is present.
 =============
 */
-static void PCfg_ClientInitPConfig(gentity_t* ent) {
+void PCfg_ClientInitPConfig(gentity_t* ent) {
 	bool	file_exists = false;
 	bool	cfg_valid = true;
 	bool	directory_ready = true;
@@ -4030,13 +4030,14 @@ bool ClientConnect(gentity_t* ent, char* userInfo, const char* socialID, bool is
 	ent->client->sess.skillRating = 0;
 	ent->client->sess.skillRatingChange = 0;
 
-	if (!isBot) {
-		if (ent->client->sess.socialID[0]) {
-			ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
-		}
-		else {
-			ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
-		}
+if (!isBot) {
+if (ent->client->sess.socialID[0]) {
+ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(), Game::GetCurrentInfo().short_name_upper.data());
+PCfg_ClientInitPConfig(ent);
+}
+else {
+ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
+}
 
 		if (ent->client->sess.banned) {
 			gi.LocBroadcast_Print(PRINT_HIGH, "BANNED PLAYER {} connects.\n", value.data());
