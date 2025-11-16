@@ -2528,28 +2528,26 @@ struct LevelLocals {
 		int headModelIndex = 0;
 	} headHunters{};
 
-	struct ProBallState {
-		struct AssistInfo {
-			gentity_t* player = nullptr;
-			GameTime expires = 0_ms;
-			Team team = Team::None;
-		} assist{};
+struct ProBallState {
+struct AssistInfo {
+gentity_t* player = nullptr;
+GameTime expires = 0_ms;
+Team team = Team::None;
+} assist{};
 
-		struct GoalVolume {
-			gentity_t* ent = nullptr;
-			Team team = Team::None;
-		};
+struct GoalVolume {
+gentity_t* ent = nullptr;
+Team team = Team::None;
+};
 
-		gentity_t* spawnEntity = nullptr;
-		gentity_t* ballEntity = nullptr;
-		gentity_t* carrier = nullptr;
-		gentity_t* lastToucher = nullptr;
-		Vector3 spawnOrigin = vec3_origin;
-		Vector3 spawnAngles = vec3_origin;
-		GameTime lastTouchTime = 0_ms;
-		std::array<GoalVolume, 4> goals{};
-		std::array<gentity_t*, 4> outOfBounds{};
-	} proBall{};
+gentity_t* spawnEntity = nullptr;
+gentity_t* ballEntity = nullptr;
+gentity_t* carrier = nullptr;
+gentity_t* lastToucher = nullptr;
+GameTime lastTouchTime = 0_ms;
+std::array<GoalVolume, 4> goals{};
+std::array<gentity_t*, 4> outOfBounds{};
+} proBall{};
 
 	struct BallState {
 		gentity_t* entity = nullptr;
@@ -3580,16 +3578,6 @@ void		RespawnItem(gentity_t* ent);
 void		fire_doppelganger(gentity_t* ent, const Vector3& start, const Vector3& aimDir);
 void		Drop_Backpack(gentity_t* ent);
 void		G_CapAllAmmo(gentity_t* ent);
-void		Ball_RegisterSpawn(gentity_t* ent);
-void		Ball_OnPickup(gentity_t* ball, gentity_t* player);
-bool		Ball_Launch(gentity_t* owner, const Vector3& start, const Vector3& dir, float speed);
-bool		Ball_Pass(gentity_t* owner, const Vector3& start, const Vector3& dir);
-bool		Ball_Drop(gentity_t* owner, const Vector3& origin);
-void		Ball_Reset(bool silent);
-GameTime	Ball_GetPassCooldown();
-GameTime	Ball_GetDropCooldown();
-bool		Ball_PlayerHasBall(const gentity_t* ent);
-
 //
 // g_utilities.cpp
 //
@@ -3650,23 +3638,6 @@ void Domination_ClearState();
 void Domination_InitLevel();
 void Domination_RunFrame();
 
-namespace ProBall {
-	void ClearState();
-	void InitLevel();
-	void RunFrame();
-	void RegisterBallSpawn(gentity_t* ent);
-	void OnBallPickedUp(gentity_t* ballEnt, gentity_t* player);
-	bool DropBall(gentity_t* carrier, gentity_t* instigator, bool forced);
-	bool ThrowBall(gentity_t* carrier, const Vector3& origin, const Vector3& dir);
-	void OnBallLaunched(gentity_t* owner, gentity_t* ballEnt, const Vector3& origin, const Vector3& velocity);
-	void OnBallDropped(gentity_t* owner, gentity_t* ballEnt, const Vector3& origin, const Vector3& velocity);
-	void HandleCarrierDeath(gentity_t* carrier);
-	void HandleCarrierDisconnect(gentity_t* carrier);
-	bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker, const MeansOfDeath& mod);
-}
-
-void SP_trigger_proball_goal(gentity_t* ent);
-void SP_trigger_proball_oob(gentity_t* ent);
 const char* PlaceString(int rank);
 bool ItemSpawnsEnabled();
 bool LocCanSee(gentity_t* targetEnt, gentity_t* sourceEnt);

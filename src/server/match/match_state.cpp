@@ -17,6 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "../g_local.hpp"
+#include "../gameplay/g_proball.hpp"
 #include "../gameplay/g_headhunters.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../commands/command_registration.hpp"

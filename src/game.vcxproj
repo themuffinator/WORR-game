@@ -231,7 +231,6 @@
     <ClCompile Include="server\gameplay\g_item_list.cpp" />
     <ClCompile Include="server\gameplay\g_items.cpp" />
     <ClCompile Include="server\gameplay\g_clients.cpp" />
-    <ClCompile Include="server\gameplay\g_ball.cpp" />
     <ClCompile Include="server\gameplay\g_proball.cpp" />
     <ClCompile Include="server\match\match_logging.cpp" />
     <ClCompile Include="server\gameplay\g_main.cpp" />

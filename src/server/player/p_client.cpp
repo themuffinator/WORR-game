@@ -21,6 +21,7 @@
 //   holds all of a player's game-related state.
 
 #include "../g_local.hpp"
+#include "../gameplay/g_proball.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../commands/commands.hpp"
 #include "../gameplay/g_headhunters.hpp"
