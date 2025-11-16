@@ -186,7 +186,7 @@ Ball_StartWorldTravel
 =============
 */
 static void Ball_StartWorldTravel(gentity_t* ball, gentity_t* owner,
-				  Team team) {
+			Team team) {
 	ball->svFlags &= ~SVF_NOCLIENT;
 	ball->solid = SOLID_TRIGGER;
 	ball->moveType = MoveType::NewToss;
@@ -201,8 +201,6 @@ static void Ball_StartWorldTravel(gentity_t* ball, gentity_t* owner,
 	level.ball.carrier = nullptr;
 	level.ball.idleBegin = 0_ms;
 }
-
-} // namespace
 
 /*
 =============
@@ -303,7 +301,7 @@ Ball_Touch
 =============
 */
 static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other,
-			 const trace_t& tr, bool otherTouchingSelf) -> void {
+						 const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (!ball)
 		return;
 
@@ -327,6 +325,8 @@ static TOUCH(Ball_Touch)(gentity_t* ball, gentity_t* other,
 
 	Touch_Item(ball, other, safeTrace, otherTouchingSelf);
 }
+
+} // namespace
 
 /*
 =============
