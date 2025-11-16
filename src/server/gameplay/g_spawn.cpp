@@ -22,6 +22,7 @@
 #include "../g_local.hpp"
 #include "../../shared/map_validation.hpp"
 #include "g_headhunters.hpp"
+#include "g_proball.hpp"
 #include "../monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides

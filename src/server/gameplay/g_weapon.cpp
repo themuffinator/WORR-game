@@ -20,6 +20,7 @@
 //   idle, etc.).
 
 #include "../g_local.hpp"
+#include "g_proball.hpp"
 
 static void PlayClientPowerupFireSound(gentity_t* self) {
 	if (!self->owner || !self->owner->client)

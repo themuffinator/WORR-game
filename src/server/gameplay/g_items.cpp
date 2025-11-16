@@ -20,6 +20,7 @@
 //   precache assets and set up server configuration strings for all items.
 
 #include "../g_local.hpp"
+#include "g_proball.hpp"
 #include "../bots/bot_includes.hpp"
 #include "../monsters/m_player.hpp"	//doppelganger
 

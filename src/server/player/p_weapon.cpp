@@ -3,6 +3,7 @@
 // g_weapon.c
 
 #include "../g_local.hpp"
+#include "../gameplay/g_proball.hpp"
 #include "../monsters/m_player.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 
