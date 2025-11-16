@@ -114,6 +114,6 @@ Each completed match emits a JSON payload that summarizes the session. Archive t
 - Capture the output by tailing the server log directory or configuring WORR to write JSON blobs to a dedicated analytics folder. Rotate daily and retain at least the past tournament cycle so retroactive audits remain possible.
 - Store payloads with deterministic filenames such as `<epoch>-<matchID>.json` to simplify ingest pipelines. Compress older files (for example, using `xz` or `zstd`) once they age beyond active analysis windows.
 - Downstream consumers should treat optional keys as absent when missing—avoid defaulting to empty strings or zeroes so schema changes remain forward-compatible.
-- Key fields include match metadata (`matchID`, `mapName`, `gameType`), aggregate totals (`totalKills`, `totalTeamKills`), and arrays for per-player or per-team breakdowns. Use the `matchTimeStart`/`matchTimeEnd` timestamps to align with external telemetry such as stream markers or anti-cheat logs.
+- Key fields include match metadata (`matchID`, `mapName`, `gameType`), aggregate totals (`totalKills`, `totalTeamKills`), and arrays for per-player or per-team breakdowns. Use the stored `matchStartMS`/`matchEndMS` timestamps (frozen at match end) to align with external telemetry such as stream markers or anti-cheat logs.
 
 Before promoting a new build, replay recent JSON exports against your analytics importer to ensure format changes are handled gracefully. Keep retention policies documented alongside your backup plan so staff know when it is safe to prune historical data.
