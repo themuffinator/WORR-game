@@ -121,6 +121,18 @@ int main() {
 	assert(ghostData["stats"]["totalTimePlayed"].asInt64() == cappedMax);
 	assert(ghostData["stats"]["totalAbandons"].asInt() >= 1);
 
+	{
+		std::ofstream corrupt(playerPath);
+		assert(corrupt.is_open());
+		corrupt << "{ this is not valid json";
+	}
+
+	client.sess.skillRating = 0;
+	client.sess.skillRatingChange = 42;
+	ClientConfig_Init(&client, playerID, playerName, gameType);
+	assert(client.sess.skillRating == ClientConfig_DefaultSkillRating());
+	assert(client.sess.skillRatingChange == 0);
+
 	std::filesystem::remove(playerPath, ec);
 	std::filesystem::remove(ghostPath, ec);
 

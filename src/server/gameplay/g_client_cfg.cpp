@@ -241,7 +241,17 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 	Json::CharReaderBuilder builder;
 	std::string errs;
 	if (!Json::parseFromStream(builder, file, &playerData, &errs)) {
-		gi.Com_PrintFmt("Failed to parse client config for {}: {}\n", playerName.c_str(), path.c_str());
+		file.close();
+		gi.Com_PrintFmt("Failed to parse client config for {}: {} ({})\n",
+			playerName.c_str(), path.c_str(), errs.c_str());
+		gi.Com_PrintFmt("Resetting {} to default configuration and recreating the client config.\n",
+			playerName.c_str());
+		cl->sess.skillRating = DEFAULT_RATING;
+		cl->sess.skillRatingChange = 0;
+		cl->sess.admin = false;
+		cl->sess.banned = false;
+		cl->sess.weaponPrefs.clear();
+		ClientConfig_Create(cl, playerID, playerName, gameType);
 		return;
 	}
 	file.close();
