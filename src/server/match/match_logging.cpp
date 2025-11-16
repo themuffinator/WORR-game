@@ -365,6 +365,10 @@ struct MatchStats {
 	std::string ruleSet;
 	std::string mapName;           // Name of the map
 	bool ranked = false;
+	int64_t matchStartMS = 0;
+	int64_t matchEndMS = 0;
+	bool wasTeamMode = false;
+	GameFlags recordedFlags = GameFlags::None;
 	int totalKills = 0;            // Total kills in the match
 	int totalSpawnKills = 0;        // Total spawn kills in the match
 	int totalTeamKills = 0;        // Total team kills in the match
@@ -409,12 +413,18 @@ struct MatchStats {
 		return "error";
 	}
 
-
-	// Calculate duration based on start and end times
-	void calculateDuration() {
-		// level.matchStartRealTime and matchEndRealTime are in milliseconds
-		durationMS = level.matchEndRealTime - level.matchStartRealTime;
-	}
+		// Calculate duration based on start and end times
+		void calculateDuration() {
+			if (matchEndMS > matchStartMS && matchStartMS > 0) {
+				durationMS = matchEndMS - matchStartMS;
+			}
+			else if (matchEndMS > 0 && matchStartMS == 0) {
+				durationMS = matchEndMS;
+			}
+			else {
+				durationMS = 0;
+			}
+		}
 
 	// Generate JSON object for the match stats
 	json toJson() const {
@@ -441,8 +451,8 @@ struct MatchStats {
 		matchJson["totalFlagsCaptured"] = ctf_totalFlagsCaptured;
 		matchJson["totalFlagAssists"] = ctf_totalFlagAssists;
 		matchJson["totalFlagDefends"] = ctf_totalFlagDefends;
-		matchJson["matchTimeStart"] = level.matchStartRealTime;
-		matchJson["matchTimeEnd"] = level.matchEndRealTime;
+		matchJson["matchTimeStart"] = matchStartMS;
+		matchJson["matchTimeEnd"] = matchEndMS;
 		matchJson["matchTimeDuration"] = durationMS;
 		matchJson["timeLimitSeconds"] = timeLimitSeconds;
 		matchJson["scoreLimit"] = scoreLimit;
@@ -454,7 +464,7 @@ struct MatchStats {
 			matchJson["players"].append(player.toJson());
 		}
 
-		if (Teams()) {
+		if (wasTeamMode) {
 			// Add team stats for team-based modes
 			for (const auto& team : teams) {
 				matchJson["teams"].append(team.toJson());
@@ -499,9 +509,9 @@ static bool MatchStats_WriteJson(const MatchStats& matchStats, const std::string
 	try {
 		std::ofstream file(fileName);
 		if (file.is_open()) {
-			Json::StreamWriterBuilder writer;
-			writer["indentation"] = "    "; // match original .dump(4)
-			std::string output = Json::writeString(writer, matchStats.toJson());
+		Json::StreamWriterBuilder writer;
+		writer["indentation"] = "    "; // match original .dump(4)
+		std::string output = Json::writeString(writer, matchStats.toJson());
 			file << output;
 			file.close();
 			gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
@@ -654,8 +664,8 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 		<< "  <h1>Match Summary - " << escapedMatchId << "</h1>\n"
 		<< "  <p><strong>Server:</strong> " << escapedServerName << "</p>\n"
 		<< "  <p><strong>Type:</strong> " << escapedGameType << "</p>\n"
-		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(level.matchStartRealTime) << " UTC</p>\n"
-		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(level.matchEndRealTime) << " UTC</p>\n"
+		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(matchStats.matchStartMS) << " UTC</p>\n"
+		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(matchStats.matchEndMS) << " UTC</p>\n"
 		<< "  <p><strong>Map:</strong>  " << escapedMapName << "</p>\n"
 		<< "  <p><strong>Score Limit:</strong> " << matchStats.scoreLimit << "</p>\n";
 	// Time Limit
@@ -991,9 +1001,11 @@ Html_WriteTopPlayers
 */
 static inline void Html_WriteTopPlayers(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
 	html << "<div class=\"section\">\n<h2>Top Players</h2>\n";
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
 
 	auto getPlayerColor = [&](const PlayerStats* p) -> const char* {
-		if (!Teams()) return "green";
+		if (!hasTeamData)
+			return "green";
 		for (const auto& tp : matchStats.teams[0].players)
 			if (&tp == p) return "red";
 		for (const auto& tp : matchStats.teams[1].players)
@@ -1066,6 +1078,8 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 	if (allPlayers.empty())
 		return;
 
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
+
 	std::unordered_map<std::string, uint32_t> itemTotals;
 	std::unordered_map<std::string, double> itemDelays;
 
@@ -1130,7 +1144,7 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 		wrotePlayerRow = true;
 
 		std::string color = "green";
-		if (Teams()) {
+		if (hasTeamData) {
 			for (const auto& rp : matchStats.teams[0].players)
 				if (&rp == p) { color = "red"; break; }
 			for (const auto& bp : matchStats.teams[1].players)
@@ -1189,7 +1203,7 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 	html << "</table>\n</div>\n"; // flex-item (players)
 
 	// --- Team Totals Table ---
-	if (Teams()) {
+	if (hasTeamData) {
 		uint32_t redTotal = 0, blueTotal = 0;
 		double redDelay = 0.0, blueDelay = 0.0;
 
@@ -1234,8 +1248,9 @@ Html_WriteTopMeansOfDeath
 */
 static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& redPlayers, const std::vector<const PlayerStats*>& bluePlayers) {
 	html << "<div class=\"section\">\n<h2>Deaths by Type</h2>\n<table>\n";
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
 
-	if (Teams()) {
+	if (hasTeamData) {
 		html << "<tr><th>MOD</th><th>Red</th><th>Blue</th><th>Total</th></tr>\n";
 	}
 	else {
@@ -1257,7 +1272,7 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchSta
 		int total = matchStats.totalDeathsByMOD.at(modName);
 		const std::string escapedModName = HtmlEscape(modName);
 
-		if (!Teams()) {
+		if (!hasTeamData) {
 			// Solo mode
 			html << "<tr><td>" << escapedModName << "</td><td>" << total << "</td></tr>\n";
 		}
@@ -1481,6 +1496,8 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 	if (matchStats.eventLog.empty())
 		return;
 
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
+
 	int matchDuration = matchStats.durationMS;
 
 	// === Precompute name replacements ===
@@ -1490,7 +1507,7 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 		std::string name = p->playerName;
 		std::string color = "green";
 
-		if (Teams()) {
+		if (hasTeamData) {
 			for (const auto& tp : matchStats.teams[0].players)
 				if (&tp == p) { color = "red"; break; }
 			for (const auto& tp : matchStats.teams[1].players)
@@ -1498,7 +1515,7 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 		}
 
 		const std::string escapedName = HtmlEscape(name);
-		if (Teams()) {
+		if (hasTeamData) {
 			nameToHtml[escapedName] = "<span class=\"player-name " + color + "\"><b>" + escapedName + "</b></span>";
 		}
 		else {
@@ -1552,6 +1569,7 @@ Html_WriteIndividualPlayerSections
 =============
 */
 static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
 	for (const PlayerStats* p : allPlayers) {
 		html << "<div class=\"section\">";
 		const std::string fullID = p->socialID;
@@ -1587,7 +1605,7 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 		html << ")</h2>";
 
 		// Top-line summary
-		if (Teams()) {
+		if (hasTeamData) {
 			html << "  <p>"
 				<< "Kills: " << p->totalKills
 				<< " | SpawnKills: " << p->totalSpawnKills
@@ -1817,6 +1835,7 @@ static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 		}
 	}
 
+	const bool hasTeamData = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
 	// Sort by totalScore descending
 	std::sort(allPlayers.begin(), allPlayers.end(), [](auto a, auto b) {
 		return a->totalScore > b->totalScore;
@@ -1826,7 +1845,7 @@ static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string
 	Html_WriteTopInfo(html, matchStats);
 	Html_WriteWinnerSummary(html, matchStats);
 
-	if (Teams()) {
+	if (hasTeamData) {
 		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
 		const double matchDurationMs = static_cast<double>(matchStats.durationMS);
 		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
@@ -1976,8 +1995,12 @@ void MatchStats_End() {
 		return;
 	}
 
-	try {
+try {
 		const auto& currentGameInfo = Game::GetCurrentInfo();
+		matchStats.recordedFlags = currentGameInfo.flags;
+		matchStats.wasTeamMode = HasFlag(matchStats.recordedFlags, GameFlags::Teams);
+		matchStats.matchStartMS = level.matchStartRealTime;
+		matchStats.matchEndMS = level.matchEndRealTime;
 		matchStats.matchID = level.matchID;
 		matchStats.gameType = std::string(currentGameInfo.short_name_upper);
 		matchStats.ruleSet = rs_long_name[game.ruleset];
@@ -2004,7 +2027,7 @@ void MatchStats_End() {
 		matchStats.eventLog = level.match.eventLog;
 		matchStats.deathLog = level.match.deathLog;
 
-		if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+		if (HasFlag(matchStats.recordedFlags, GameFlags::CTF)) {
 			const int64_t ctfTotalCaptures = level.match.ctfRedTeamTotalCaptures + level.match.ctfBlueTeamTotalCaptures;
 			const int64_t ctfTotalAssists = level.match.ctfRedTeamTotalAssists + level.match.ctfBlueTeamTotalAssists;
 			const int64_t ctfTotalDefends = level.match.ctfRedTeamTotalDefences + level.match.ctfBlueTeamTotalDefences;
@@ -2050,6 +2073,7 @@ void MatchStats_End() {
 		matchStats.avKillsPerMinute = matchStats.durationMS > 0
 			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
 			: 0.0;
+		const bool hasTeamData = matchStats.wasTeamMode;
 
 		auto process_player = [&](gentity_t* ec) {
 			auto* cl = ec->client;
@@ -2081,7 +2105,7 @@ void MatchStats_End() {
 			p.ctfFlagCarrierTimeShortestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeShortestMsec);
 			p.ctfFlagCarrierTimeLongestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeLongestMsec);
 
-			if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+		if (HasFlag(matchStats.recordedFlags, GameFlags::CTF)) {
 				json& playerCtfJson = p.gametypeStats["ctf"];
 				if (p.ctfFlagPickups > 0)
 				playerCtfJson["flagPickups"] = p.ctfFlagPickups;
@@ -2191,7 +2215,7 @@ void MatchStats_End() {
 			return p;
 			};
 
-		if (Teams()) {
+		if (hasTeamData) {
 			TeamStats redTeam = { "Red",  level.teamScores[static_cast<int>(Team::Red)],  level.teamScores[static_cast<int>(Team::Red)] > level.teamScores[static_cast<int>(Team::Blue)] ? "win" : "loss" };
 			TeamStats blueTeam = { "Blue", level.teamScores[static_cast<int>(Team::Blue)], level.teamScores[static_cast<int>(Team::Blue)] > level.teamScores[static_cast<int>(Team::Red)] ? "win" : "loss" };
 
@@ -2212,7 +2236,7 @@ void MatchStats_End() {
 			}
 		}
 
-		if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+		if (HasFlag(matchStats.recordedFlags, GameFlags::CTF)) {
 			json& ctfPlayersJson = matchStats.gametypeStats["ctf"]["players"];
 			if (!ctfPlayersJson.isArray())
 				ctfPlayersJson = json(Json::arrayValue);
