@@ -33,6 +33,23 @@ using json = Json::Value;
 
 /*
 =============
+JsonHasData
+
+Returns true when the provided Json::Value is non-null and, for objects or
+arrays, contains at least one element. Used to avoid emitting empty
+gametype-specific blocks.
+=============
+*/
+static bool JsonHasData(const json& value) {
+	if (value.isNull())
+		return false;
+	if (value.isArray() || value.isObject())
+		return value.size() > 0;
+	return true;
+}
+
+/*
+=============
 HtmlEscape
 
 Escapes special characters for safe HTML output.
@@ -152,6 +169,7 @@ struct PlayerStats {
 	std::map<ModID, int> modTotalDmgR;
 
 	std::array<uint32_t, static_cast<size_t>(PlayerMedal::Total)> awards = {};
+	json gametypeStats;
 
 	PlayerStats() {
 		for (const auto& weapon : weaponAbbreviations) {
@@ -288,8 +306,11 @@ struct PlayerStats {
 		if (!pickupDelayJson.empty())
 			result["pickupDelays"] = std::move(pickupDelayJson);
 
+		if (JsonHasData(gametypeStats))
+			result["gametype"] = gametypeStats;
+
 		return result;
-	}
+}
 };
 
 struct TeamStats {
@@ -337,6 +358,7 @@ struct MatchStats {
 	int64_t durationMS = 0;         // Match duration in msec
 	std::vector<PlayerStats> players; // Individual player stats (for FFA/Duel)
 	std::vector<TeamStats> teams;  // Team stats (for TDM/CTF)
+	json gametypeStats;
 #if 0
 	// Convert time_t to ISO 8601 string
 	std::string formatTime(std::time_t time) const {
@@ -409,8 +431,11 @@ struct MatchStats {
 			}
 		}
 
+		if (JsonHasData(gametypeStats))
+			matchJson["gametype"] = gametypeStats;
+
 		return matchJson;
-	}
+}
 };
 MatchStats matchStats;
 
@@ -1694,6 +1719,38 @@ void MatchStats_End() {
 			matchStats.ctf_totalFlagsCaptured = static_cast<int>(ctfTotalCaptures);
 			matchStats.ctf_totalFlagAssists = static_cast<int>(ctfTotalAssists);
 			matchStats.ctf_totalFlagDefends = static_cast<int>(ctfTotalDefends);
+
+			json& ctfJson = matchStats.gametypeStats["ctf"];
+			json& totalsJson = ctfJson["totals"];
+			totalsJson["flagsCaptured"] = Json::Int64(ctfTotalCaptures);
+			totalsJson["flagAssists"] = Json::Int64(ctfTotalAssists);
+			totalsJson["flagDefends"] = Json::Int64(ctfTotalDefends);
+			totalsJson["flagPickups"] = Json::Int64(level.match.ctfRedFlagPickupCount + level.match.ctfBlueFlagPickupCount);
+			totalsJson["flagDrops"] = Json::Int64(level.match.ctfRedFlagDropCount + level.match.ctfBlueFlagDropCount);
+			totalsJson["flagHoldTimeTotalMsec"] = Json::Int64(level.match.ctfRedFlagTotalHoldTimeMsec + level.match.ctfBlueFlagTotalHoldTimeMsec);
+			totalsJson["flagHoldTimeShortestMsec"] = Json::Int64(level.match.ctfRedFlagShortestHoldTimeMsec + level.match.ctfBlueFlagShortestHoldTimeMsec);
+			totalsJson["flagHoldTimeLongestMsec"] = Json::Int64(level.match.ctfRedFlagLongestHoldTimeMsec + level.match.ctfBlueFlagLongestHoldTimeMsec);
+
+			json& teamsJson = ctfJson["teams"];
+			json& redJson = teamsJson["red"];
+			redJson["flagsCaptured"] = Json::Int64(level.match.ctfRedTeamTotalCaptures);
+			redJson["flagAssists"] = Json::Int64(level.match.ctfRedTeamTotalAssists);
+			redJson["flagDefends"] = Json::Int64(level.match.ctfRedTeamTotalDefences);
+			redJson["flagPickups"] = Json::Int64(level.match.ctfRedFlagPickupCount);
+			redJson["flagDrops"] = Json::Int64(level.match.ctfRedFlagDropCount);
+			redJson["flagHoldTimeTotalMsec"] = Json::Int64(level.match.ctfRedFlagTotalHoldTimeMsec);
+			redJson["flagHoldTimeShortestMsec"] = Json::Int64(level.match.ctfRedFlagShortestHoldTimeMsec);
+			redJson["flagHoldTimeLongestMsec"] = Json::Int64(level.match.ctfRedFlagLongestHoldTimeMsec);
+
+			json& blueJson = teamsJson["blue"];
+			blueJson["flagsCaptured"] = Json::Int64(level.match.ctfBlueTeamTotalCaptures);
+			blueJson["flagAssists"] = Json::Int64(level.match.ctfBlueTeamTotalAssists);
+			blueJson["flagDefends"] = Json::Int64(level.match.ctfBlueTeamTotalDefences);
+			blueJson["flagPickups"] = Json::Int64(level.match.ctfBlueFlagPickupCount);
+			blueJson["flagDrops"] = Json::Int64(level.match.ctfBlueFlagDropCount);
+			blueJson["flagHoldTimeTotalMsec"] = Json::Int64(level.match.ctfBlueFlagTotalHoldTimeMsec);
+			blueJson["flagHoldTimeShortestMsec"] = Json::Int64(level.match.ctfBlueFlagShortestHoldTimeMsec);
+			blueJson["flagHoldTimeLongestMsec"] = Json::Int64(level.match.ctfBlueFlagLongestHoldTimeMsec);
 		}
 
 		matchStats.calculateDuration();
@@ -1730,6 +1787,26 @@ void MatchStats_End() {
 			p.ctfFlagCarrierTimeTotalMsec = static_cast<int64_t>(cl->pers.match.ctfFlagCarrierTimeTotalMsec);
 			p.ctfFlagCarrierTimeShortestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeShortestMsec);
 			p.ctfFlagCarrierTimeLongestMsec = static_cast<int>(cl->pers.match.ctfFlagCarrierTimeLongestMsec);
+
+			if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+				json& playerCtfJson = p.gametypeStats["ctf"];
+				if (p.ctfFlagPickups > 0)
+				playerCtfJson["flagPickups"] = p.ctfFlagPickups;
+				if (p.ctfFlagDrops > 0)
+				playerCtfJson["flagDrops"] = p.ctfFlagDrops;
+				if (p.ctfFlagReturns > 0)
+				playerCtfJson["flagReturns"] = p.ctfFlagReturns;
+				if (p.ctfFlagAssists > 0)
+				playerCtfJson["flagAssists"] = p.ctfFlagAssists;
+				if (p.ctfFlagCaptures > 0)
+				playerCtfJson["flagCaptures"] = p.ctfFlagCaptures;
+				if (p.ctfFlagCarrierTimeTotalMsec > 0)
+				playerCtfJson["flagCarrierTimeTotalMsec"] = Json::Int64(p.ctfFlagCarrierTimeTotalMsec);
+				if (p.ctfFlagCarrierTimeShortestMsec > 0)
+				playerCtfJson["flagCarrierTimeShortestMsec"] = p.ctfFlagCarrierTimeShortestMsec;
+				if (p.ctfFlagCarrierTimeLongestMsec > 0)
+				playerCtfJson["flagCarrierTimeLongestMsec"] = p.ctfFlagCarrierTimeLongestMsec;
+			}
 
 			p.playTimeMsec = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
 			if (p.playTimeMsec > 0)
@@ -1839,6 +1916,38 @@ void MatchStats_End() {
 		else {
 			for (auto ec : active_players()) {
 				matchStats.players.push_back(process_player(ec));
+			}
+		}
+
+		if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
+			json& ctfPlayersJson = matchStats.gametypeStats["ctf"]["players"];
+			if (!ctfPlayersJson.isArray())
+				ctfPlayersJson = json(Json::arrayValue);
+
+			auto appendPlayerGametypeStats = [&](const PlayerStats& player, const std::string& teamLabel) {
+				if (!player.gametypeStats.isObject() || !player.gametypeStats.isMember("ctf"))
+					return;
+				const json& playerCtfJson = player.gametypeStats["ctf"];
+				if (!JsonHasData(playerCtfJson))
+					return;
+
+				json entry;
+				entry["socialID"] = player.socialID;
+				entry["playerName"] = player.playerName;
+				if (!teamLabel.empty())
+					entry["team"] = teamLabel;
+				entry["stats"] = playerCtfJson;
+				ctfPlayersJson.append(entry);
+			};
+
+			for (const auto& player : matchStats.players) {
+				appendPlayerGametypeStats(player, std::string());
+			}
+
+			for (const auto& team : matchStats.teams) {
+				for (const auto& player : team.players) {
+					appendPlayerGametypeStats(player, team.teamName);
+				}
 			}
 		}
 
