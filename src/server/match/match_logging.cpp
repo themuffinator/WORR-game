@@ -236,6 +236,13 @@ struct PlayerStats {
 		}
 	}
 
+	/*
+	=============
+	PlayerStats::toJson
+	
+	Serializes the per-player statistics into a JSON object for export.
+	=============
+	*/
 	json toJson() const {
 		json result;
 		result["socialID"] = socialID;
@@ -300,21 +307,6 @@ struct PlayerStats {
 		if (!modKDRJson.empty())    result["totalKDRByMOD"] = modKDRJson;
 		if (!modDmgDJson.empty())   result["totalDmgDByMOD"] = modDmgDJson;
 		if (!modDmgRJson.empty())   result["totalDmgRByMOD"] = modDmgRJson;
-
-		if (!level.match.deathLog.empty()) {
-			json dlog = json(Json::arrayValue);
-			for (auto& e : level.match.deathLog) {
-				json entry;
-				entry["time"] = e.time.seconds();
-				entry["victim"]["name"] = e.victim.name;
-				entry["victim"]["id"] = e.victim.id;
-				entry["attacker"]["name"] = e.attacker.name;
-				entry["attacker"]["id"] = e.attacker.id;
-				entry["mod"] = modr[static_cast<int>(e.mod.id)].name;
-				dlog.append(entry);
-			}
-			result["deathLog"] = std::move(dlog);
-		}
 
 		json pickupsJson;
 		json pickupDelayJson;
@@ -416,7 +408,13 @@ struct MatchStats {
 		durationMS = level.matchEndRealTime - level.matchStartRealTime;
 	}
 
-	// Generate JSON object for the match stats
+	/*
+	=============
+	MatchStats::toJson
+	
+	Serializes the collected match-wide statistics to JSON.
+	=============
+	*/
 	json toJson() const {
 		json matchJson;
 		matchJson["matchID"] = matchID;
@@ -1648,44 +1646,47 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 			html << "  </table>";
 		}
 
-		// Top Victims by this player
-		{
-			std::unordered_map<std::string, int> victimCounts;
-			for (const auto& e : matchStats.deathLog) {
-				if (e.attacker.id == p->socialID) {
-					victimCounts[e.victim.name]++;
+		const auto& matchDeathLog = matchStats.deathLog;
+		if (!matchDeathLog.empty()) {
+			// Top Victims by this player
+			{
+				std::unordered_map<std::string, int> victimCounts;
+				for (const auto& e : matchDeathLog) {
+					if (e.attacker.id == p->socialID) {
+						victimCounts[e.victim.name]++;
+					}
 				}
+				std::vector<std::pair<std::string, int>> victims(victimCounts.begin(), victimCounts.end());
+				std::sort(victims.begin(), victims.end(), [](auto& a, auto& b) { return a.second > b.second; });
+				html << "  <h3>Top Victims by " << escapedPlayerName << "</h3>"
+					<< "  <table><tr><th>Player</th><th>Kills</th></tr>";
+				for (size_t i = 0; i < std::min<size_t>(10, victims.size()); ++i) {
+					const std::string escapedVictim = HtmlEscape(victims[i].first);
+					html << "    <tr><td>" << escapedVictim
+						<< "</td><td>" << victims[i].second << "</td></tr>";
+				}
+				html << "  </table>";
 			}
-			std::vector<std::pair<std::string, int>> victims(victimCounts.begin(), victimCounts.end());
-			std::sort(victims.begin(), victims.end(), [](auto& a, auto& b) { return a.second > b.second; });
-			html << "  <h3>Top Victims by " << escapedPlayerName << "</h3>"
-				<< "  <table><tr><th>Player</th><th>Kills</th></tr>";
-			for (size_t i = 0; i < std::min<size_t>(10, victims.size()); ++i) {
-				const std::string escapedVictim = HtmlEscape(victims[i].first);
-				html << "    <tr><td>" << escapedVictim
-					<< "</td><td>" << victims[i].second << "</td></tr>";
-			}
-			html << "  </table>";
-		}
 
-		// Top Killers of this player
-		{
-			std::unordered_map<std::string, int> killerCounts;
-			for (const auto& e : matchStats.deathLog) {
-				if (e.victim.id == p->socialID) {
-					killerCounts[e.attacker.name]++;
+			// Top Killers of this player
+			{
+				std::unordered_map<std::string, int> killerCounts;
+				for (const auto& e : matchDeathLog) {
+					if (e.victim.id == p->socialID) {
+						killerCounts[e.attacker.name]++;
+					}
 				}
+				std::vector<std::pair<std::string, int>> killers(killerCounts.begin(), killerCounts.end());
+				std::sort(killers.begin(), killers.end(), [](auto& a, auto& b) { return a.second > b.second; });
+				html << "  <h3>Top Killers of " << escapedPlayerName << "</h3>"
+					<< "  <table><tr><th>Player</th><th>Deaths</th></tr>";
+				for (size_t i = 0; i < std::min<size_t>(10, killers.size()); ++i) {
+					const std::string escapedKiller = HtmlEscape(killers[i].first);
+					html << "    <tr><td>" << escapedKiller
+						<< "</td><td>" << killers[i].second << "</td></tr>";
+				}
+				html << "  </table>";
 			}
-			std::vector<std::pair<std::string, int>> killers(killerCounts.begin(), killerCounts.end());
-			std::sort(killers.begin(), killers.end(), [](auto& a, auto& b) { return a.second > b.second; });
-			html << "  <h3>Top Killers of " << escapedPlayerName << "</h3>"
-				<< "  <table><tr><th>Player</th><th>Deaths</th></tr>";
-			for (size_t i = 0; i < std::min<size_t>(10, killers.size()); ++i) {
-				const std::string escapedKiller = HtmlEscape(killers[i].first);
-				html << "    <tr><td>" << escapedKiller
-					<< "</td><td>" << killers[i].second << "</td></tr>";
-			}
-			html << "  </table>";
 		}
 
 		// Weapon Stats (only used weapons, sorted by accuracy desc)
