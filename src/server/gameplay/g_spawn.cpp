@@ -342,13 +342,13 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "info_null", SP_info_null },
 	{ "info_notnull", SP_info_notnull },
 	{ "info_landmark", SP_info_landmark },
-        { "info_world_text", SP_info_world_text },
-        { "info_nav_lock", SP_info_nav_lock },
-        { "domination_point", SP_domination_point },
-        { "headhunters_receptacle", HeadHunters::SP_headhunters_receptacle },
-        { "team_redobelisk", SP_team_redobelisk },
-        { "team_blueobelisk", SP_team_blueobelisk },
-        { "team_neutralobelisk", SP_team_neutralobelisk },
+	{ "info_world_text", SP_info_world_text },
+	{ "info_nav_lock", SP_info_nav_lock },
+	{ "domination_point", SP_domination_point },
+	{ "headhunters_receptacle", HeadHunters::SP_headhunters_receptacle },
+	{ "team_redobelisk", SP_team_redobelisk },
+	{ "team_blueobelisk", SP_team_blueobelisk },
+	{ "team_neutralobelisk", SP_team_neutralobelisk },
 
 	{ "func_plat", SP_func_plat },
 	{ "func_plat2", SP_func_plat2 },
@@ -390,18 +390,18 @@ static const std::initializer_list<spawn_t> spawns = {
 	{ "trigger_elevator", SP_trigger_elevator },
 	{ "trigger_gravity", SP_trigger_gravity },
 	{ "trigger_monsterjump", SP_trigger_monsterjump },
-        { "trigger_flashlight", SP_trigger_flashlight },
-        { "trigger_fog", SP_trigger_fog },
-        { "trigger_coop_relay", SP_trigger_coop_relay },
-        { "trigger_health_relay", SP_trigger_health_relay },
-        { "trigger_teleport", SP_trigger_teleport },
-        { "trigger_ctf_teleport", SP_trigger_ctf_teleport },
-        { "trigger_disguise", SP_trigger_disguise },
-        { "trigger_safe_fall", SP_trigger_safe_fall },
-        { "trigger_setskill", SP_target_setskill },
-        { "trigger_misc_camera", SP_trigger_misc_camera },
-        { "trigger_proball_goal", SP_trigger_proball_goal },
-        { "trigger_proball_oob", SP_trigger_proball_oob },
+	{ "trigger_flashlight", SP_trigger_flashlight },
+	{ "trigger_fog", SP_trigger_fog },
+	{ "trigger_coop_relay", SP_trigger_coop_relay },
+	{ "trigger_health_relay", SP_trigger_health_relay },
+	{ "trigger_teleport", SP_trigger_teleport },
+	{ "trigger_ctf_teleport", SP_trigger_ctf_teleport },
+	{ "trigger_disguise", SP_trigger_disguise },
+	{ "trigger_safe_fall", SP_trigger_safe_fall },
+	{ "trigger_setskill", SP_target_setskill },
+	{ "trigger_misc_camera", SP_trigger_misc_camera },
+	{ "trigger_proball_goal", SP_trigger_proball_goal },
+	{ "trigger_proball_oob", SP_trigger_proball_oob },
 
 	{ "trigger_secret", SP_target_secret },
 
@@ -1848,13 +1848,13 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	cached_imageIndex::clear_all();
 
 	// Reset all persistent game state
-        SaveClientData();
-        gi.FreeTags(TAG_LEVEL);
-        level = LevelLocals{};
-        Domination_ClearState();
-        HeadHunters::ClearState();
-        ProBall::ClearState();
-        ProBall::ClearState();
+	SaveClientData();
+	gi.FreeTags(TAG_LEVEL);
+	level = LevelLocals{};
+	Domination_ClearState();
+	HeadHunters::ClearState();
+	ProBall::ClearState();
+	ProBall::ClearState();
 	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 
@@ -1943,14 +1943,14 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		InitHintPaths();
 	}
 
-        G_LocateSpawnSpots();
-        setup_shadow_lights();
+	G_LocateSpawnSpots();
+	setup_shadow_lights();
 
-        Domination_InitLevel();
-        HeadHunters::InitLevel();
-        ProBall::InitLevel();
+	Domination_InitLevel();
+	HeadHunters::InitLevel();
+	ProBall::InitLevel();
 
-        level.init = true;
+	level.init = true;
 
 	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 }

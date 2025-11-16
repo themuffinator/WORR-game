@@ -112,11 +112,11 @@ struct PlayerStats {
 	int totalDeaths = 0;
 	int totalSuicides = 0;
 	double totalKDR = 0.0;
-        int totalScore = 0;
-        int proBallGoals = 0;
-        int proBallAssists = 0;
-        int totalShots = 0;
-        int totalHits = 0;
+	int totalScore = 0;
+	int proBallGoals = 0;
+	int proBallAssists = 0;
+	int totalShots = 0;
+	int totalHits = 0;
 	double totalAccuracy = 0.0;
 	int totalDmgDealt = 0;
 	int totalDmgReceived = 0;
@@ -136,9 +136,9 @@ struct PlayerStats {
 	std::map<std::string, double> accuracyPerWeapon;
 
 	// MOD-based stats
-        std::map<ModID, int> modTotalKills;
-        std::map<ModID, int> modTotalDeaths;
-        std::map<ModID, double> modTotalKDR;
+	std::map<ModID, int> modTotalKills;
+	std::map<ModID, int> modTotalDeaths;
+	std::map<ModID, double> modTotalKDR;
 	std::map<ModID, int> modTotalDmgD;
 	std::map<ModID, int> modTotalDmgR;
 
@@ -151,11 +151,11 @@ struct PlayerStats {
 			accuracyPerWeapon[weapon] = 0.0;
 		}
 		for (const auto& mod : modr) {
-                        modTotalKills[mod.mod] = 0;
-                        modTotalDeaths[mod.mod] = 0;
-                        modTotalKDR[mod.mod] = 0.0;
-                        modTotalDmgD[mod.mod] = 0;
-                        modTotalDmgR[mod.mod] = 0;
+			modTotalKills[mod.mod] = 0;
+			modTotalDeaths[mod.mod] = 0;
+			modTotalKDR[mod.mod] = 0.0;
+			modTotalDmgD[mod.mod] = 0;
+			modTotalDmgR[mod.mod] = 0;
 		}
 	}
 
@@ -188,12 +188,12 @@ struct PlayerStats {
 	json toJson() const {
 		json result;
 		result["socialID"] = socialID;
-                result["playerName"] = playerName;
-                result["totalScore"] = totalScore;
-                if (proBallGoals > 0)    result["proBallGoals"] = proBallGoals;
-                if (proBallAssists > 0) result["proBallAssists"] = proBallAssists;
+		result["playerName"] = playerName;
+		result["totalScore"] = totalScore;
+		if (proBallGoals > 0)      result["proBallGoals"] = proBallGoals;
+		if (proBallAssists > 0)    result["proBallAssists"] = proBallAssists;
 
-                if (totalKills > 0)        result["totalKills"] = totalKills;
+		if (totalKills > 0)        result["totalKills"] = totalKills;
 		if (totalSpawnKills > 0)   result["totalSpawnKills"] = totalSpawnKills;
 		if (totalTeamKills > 0)    result["totalTeamKills"] = totalTeamKills; // fixed
 		if (totalDeaths > 0)       result["totalDeaths"] = totalDeaths;
@@ -230,11 +230,11 @@ struct PlayerStats {
 
 		json modKillsJson, modDeathsJson, modKDRJson, modDmgDJson, modDmgRJson;
 		for (const auto& mod : modr) {
-                        if (modTotalKills.at(mod.mod) > 0) modKillsJson[mod.name] = modTotalKills.at(mod.mod);
-                        if (modTotalDeaths.at(mod.mod) > 0) modDeathsJson[mod.name] = modTotalDeaths.at(mod.mod);
-                        if (modTotalKDR.at(mod.mod) > 0.0) modKDRJson[mod.name] = modTotalKDR.at(mod.mod);
-                        if (modTotalDmgD.at(mod.mod) > 0)  modDmgDJson[mod.name] = modTotalDmgD.at(mod.mod);
-                        if (modTotalDmgR.at(mod.mod) > 0)  modDmgRJson[mod.name] = modTotalDmgR.at(mod.mod);
+			if (modTotalKills.at(mod.mod) > 0) modKillsJson[mod.name] = modTotalKills.at(mod.mod);
+			if (modTotalDeaths.at(mod.mod) > 0) modDeathsJson[mod.name] = modTotalDeaths.at(mod.mod);
+			if (modTotalKDR.at(mod.mod) > 0.0) modKDRJson[mod.name] = modTotalKDR.at(mod.mod);
+			if (modTotalDmgD.at(mod.mod) > 0)  modDmgDJson[mod.name] = modTotalDmgD.at(mod.mod);
+			if (modTotalDmgR.at(mod.mod) > 0)  modDmgRJson[mod.name] = modTotalDmgR.at(mod.mod);
 		}
 		if (!modKillsJson.empty()) result["totalKillsByMOD"] = modKillsJson;
 		if (!modDeathsJson.empty()) result["totalDeathsByMOD"] = modDeathsJson;
@@ -297,20 +297,20 @@ struct TeamStats {
 
 struct MatchStats {
 	std::string matchID;           // Unique match identifier
-        std::string serverName;          // Server name
-        std::string serverHostName;    // Name of the server host
-        std::string gameType;          // Game type (e.g., "FFA", "TDM")
-        std::string ruleSet;
-        std::string mapName;           // Name of the map
-        bool ranked = false;
+	std::string serverName;          // Server name
+	std::string serverHostName;    // Name of the server host
+	std::string gameType;          // Game type (e.g., "FFA", "TDM")
+	std::string ruleSet;
+	std::string mapName;           // Name of the map
+	bool ranked = false;
 	int totalKills = 0;            // Total kills in the match
-        int totalSpawnKills = 0;        // Total spawn kills in the match
-        int totalTeamKills = 0;        // Total team kills in the match
-        int totalDeaths = 0;            // Total deaths in the match
-        int totalSuicides = 0;            // Total suicides in the match
-        int proBall_totalGoals = 0;
-        int proBall_totalAssists = 0;
-        double avKillsPerMinute = 0;
+	int totalSpawnKills = 0;        // Total spawn kills in the match
+	int totalTeamKills = 0;        // Total team kills in the match
+	int totalDeaths = 0;            // Total deaths in the match
+	int totalSuicides = 0;            // Total suicides in the match
+	int proBall_totalGoals = 0;
+	int proBall_totalAssists = 0;
+	double avKillsPerMinute = 0;
 	int ctf_totalFlagsCaptured = 0;    // Flags captured (for CTF)
 	int ctf_totalFlagAssists = 0;    // Flag assists (for CTF)
 	int ctf_totalFlagDefends = 0;    // Flag defends (for CTF)
@@ -351,26 +351,26 @@ struct MatchStats {
 
 	// Generate JSON object for the match stats
 	json toJson() const {
-                json matchJson;
-                matchJson["matchID"] = matchID;
-                matchJson["serverName"] = serverName;
-                if (!serverHostName.empty()) {
-                        matchJson["serverHostName"] = serverHostName;
-                }
-                matchJson["gameType"] = gameType;
-                matchJson["ruleSet"] = ruleSet;
-                matchJson["mapName"] = mapName;
-                matchJson["matchRanked"] = ranked;
-                matchJson["totalKills"] = totalKills;
-                matchJson["totalSpawnKills"] = totalSpawnKills;
-                matchJson["totalTeamKills"] = totalTeamKills;
-                matchJson["totalDeaths"] = totalDeaths;
-                matchJson["totalSuicides"] = totalSuicides;
-                if (proBall_totalGoals > 0)
-                        matchJson["totalGoals"] = proBall_totalGoals;
-                if (proBall_totalAssists > 0)
-                        matchJson["totalGoalAssists"] = proBall_totalAssists;
-                matchJson["avKillsPerMinute"] = avKillsPerMinute;
+		json matchJson;
+		matchJson["matchID"] = matchID;
+		matchJson["serverName"] = serverName;
+		if (!serverHostName.empty()) {
+			matchJson["serverHostName"] = serverHostName;
+		}
+		matchJson["gameType"] = gameType;
+		matchJson["ruleSet"] = ruleSet;
+		matchJson["mapName"] = mapName;
+		matchJson["matchRanked"] = ranked;
+		matchJson["totalKills"] = totalKills;
+		matchJson["totalSpawnKills"] = totalSpawnKills;
+		matchJson["totalTeamKills"] = totalTeamKills;
+		matchJson["totalDeaths"] = totalDeaths;
+		matchJson["totalSuicides"] = totalSuicides;
+		if (proBall_totalGoals > 0)
+			matchJson["totalGoals"] = proBall_totalGoals;
+		if (proBall_totalAssists > 0)
+			matchJson["totalGoalAssists"] = proBall_totalAssists;
+		matchJson["avKillsPerMinute"] = avKillsPerMinute;
 		matchJson["totalFlagsCaptured"] = ctf_totalFlagsCaptured;
 		matchJson["totalFlagAssists"] = ctf_totalFlagAssists;
 		matchJson["totalFlagDefends"] = ctf_totalFlagDefends;
@@ -428,117 +428,117 @@ Html_WriteHeader
 static inline void Html_WriteHeader(std::ofstream& html, const MatchStats& matchStats) {
 	const std::string escapedMatchId = HtmlEscape(matchStats.matchID);
 	html << R"(<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8">
-<title>Match Summary - )" << escapedMatchId << R"(</title>
-<style>
-  body { font-family:Arial,sans-serif; background:#f4f4f4; margin:0; padding:20px; }
-  .top-info {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 10px;
-    background:#fff;
-    padding:20px;
-    border-radius:8px;
-    box-shadow:0 2px 4px rgba(0,0,0,0.1);
-    margin-bottom:20px;
-  }
-  .top-info h1 {
-    grid-column:1 / -1;
-    font-size:1.8em;
-    margin:0 0 10px;
-  }
-  .top-info p {
-    margin:0;
-    font-size:0.9em;
-    color:#555;
-  }
-.progress-cell {
-  position: relative;
-  background: #eee;
-//  border-radius: 4px;
-  overflow: hidden;
-}
-.progress-cell .bar {
-  position: absolute;
-  top: 0; left: 0; bottom: 0;
-  background: rgba(0,100,0,0.2);
-}
-.progress-cell.red .bar { background: rgba(200,0,0,0.3); }
-.progress-cell.blue .bar { background: rgba(0,0,200,0.3); }
-.progress-cell.green .bar { background: rgba(0,100,0,0.3); }
-.player-cell {
-  border-left: 6px solid transparent;
-  padding-left: 6px;
-}
-.player-cell.red { border-color: #c00; }
-.player-cell.blue { border-color: #00c; }
-.player-cell.green { border-color: #060; }
+	<html lang="en"><head><meta charset="UTF-8">
+	<title>Match Summary - )" << escapedMatchId << R"(</title>
+	<style>
+	  body { font-family:Arial,sans-serif; background:#f4f4f4; margin:0; padding:20px; }
+	  .top-info {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+		gap: 10px;
+		background:#fff;
+		padding:20px;
+		border-radius:8px;
+		box-shadow:0 2px 4px rgba(0,0,0,0.1);
+		margin-bottom:20px;
+	  }
+	  .top-info h1 {
+		grid-column:1 / -1;
+		font-size:1.8em;
+		margin:0 0 10px;
+	  }
+	  .top-info p {
+		margin:0;
+		font-size:0.9em;
+		color:#555;
+	  }
+	.progress-cell {
+	  position: relative;
+	  background: #eee;
+	//  border-radius: 4px;
+	  overflow: hidden;
+	}
+	.progress-cell .bar {
+	  position: absolute;
+	  top: 0; left: 0; bottom: 0;
+	  background: rgba(0,100,0,0.2);
+	}
+	.progress-cell.red .bar { background: rgba(200,0,0,0.3); }
+	.progress-cell.blue .bar { background: rgba(0,0,200,0.3); }
+	.progress-cell.green .bar { background: rgba(0,100,0,0.3); }
+	.player-cell {
+	  border-left: 6px solid transparent;
+	  padding-left: 6px;
+	}
+	.player-cell.red { border-color: #c00; }
+	.player-cell.blue { border-color: #00c; }
+	.player-cell.green { border-color: #060; }
 
-.section.team-red {
-  border: 2px solid #c00;
-}
-.section.team-blue {
-  border: 2px solid #00c;
-}
-.team-score-header {
-  font-size: 1.8em;
-  font-weight: bold;
-  text-align: center;
-  margin: 20px 0;
-}
-.team-score-header span {
-  padding: 4px 10px;
-  border-radius: 8px;
-  color: #fff;
-}
-.team-score-header .red {
-  background: #c00;
-}
-.team-score-header .blue {
-  background: #00c;
-}
-.player-name.red { color: #c00; font-weight: bold; }
-.player-name.blue { color: #00c; font-weight: bold; }
-.player-name.green { color: #060; font-weight: bold; }
-.player-cell.red { border-left: 6px solid #c00; padding-left: 6px; }
-.player-cell.blue { border-left: 6px solid #00c; padding-left: 6px; }
-.player-cell.green { border-left: 6px solid #060; padding-left: 6px; }
-.player-section.red { border-left: 6px solid #c00; padding-left: 8px; margin-bottom: 16px; }
-.player-section.blue { border-left: 6px solid #00c; padding-left: 8px; margin-bottom: 16px; }
-.player-section.green { border-left: 6px solid #060; padding-left: 8px; margin-bottom: 16px; }
+	.section.team-red {
+	  border: 2px solid #c00;
+	}
+	.section.team-blue {
+	  border: 2px solid #00c;
+	}
+	.team-score-header {
+	  font-size: 1.8em;
+	  font-weight: bold;
+	  text-align: center;
+	  margin: 20px 0;
+	}
+	.team-score-header span {
+	  padding: 4px 10px;
+	  border-radius: 8px;
+	  color: #fff;
+	}
+	.team-score-header .red {
+	  background: #c00;
+	}
+	.team-score-header .blue {
+	  background: #00c;
+	}
+	.player-name.red { color: #c00; font-weight: bold; }
+	.player-name.blue { color: #00c; font-weight: bold; }
+	.player-name.green { color: #060; font-weight: bold; }
+	.player-cell.red { border-left: 6px solid #c00; padding-left: 6px; }
+	.player-cell.blue { border-left: 6px solid #00c; padding-left: 6px; }
+	.player-cell.green { border-left: 6px solid #060; padding-left: 6px; }
+	.player-section.red { border-left: 6px solid #c00; padding-left: 8px; margin-bottom: 16px; }
+	.player-section.blue { border-left: 6px solid #00c; padding-left: 8px; margin-bottom: 16px; }
+	.player-section.green { border-left: 6px solid #060; padding-left: 8px; margin-bottom: 16px; }
 
-.winner.red {
-  color: #c00;
-}
-.winner.blue {
-  color: #00c;
-}
-.progress-cell span {
-  position: relative;
-  padding: 0 4px;
-  z-index: 1;
-}
-.flex-container {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 24px;
-	margin-top: 12px;
-}
+	.winner.red {
+	  color: #c00;
+	}
+	.winner.blue {
+	  color: #00c;
+	}
+	.progress-cell span {
+	  position: relative;
+	  padding: 0 4px;
+	  z-index: 1;
+	}
+	.flex-container {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 24px;
+		margin-top: 12px;
+	}
 
-.flex-item {
-	flex: 1;
-	min-width: 320px;
-}
-  .section { background:#fff; padding:15px; margin-bottom:20px; border-radius:5px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
-  .overall { border:2px solid #006400; }
-  table { width:100%; border-collapse:collapse; margin-top:10px; }
-  th,td { border:1px solid #ccc; padding:8px; text-align:left; }
-  th { background:#eee; }
-  .winner { font-size:1.5em; font-weight:bold; color:#006400; text-align:center; margin-bottom:10px; }
-  .footer { font-size:0.8em; color:#666; text-align:right; }
-</style>
-</head><body>
-)";
+	.flex-item {
+		flex: 1;
+		min-width: 320px;
+	}
+	  .section { background:#fff; padding:15px; margin-bottom:20px; border-radius:5px; box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+	  .overall { border:2px solid #006400; }
+	  table { width:100%; border-collapse:collapse; margin-top:10px; }
+	  th,td { border:1px solid #ccc; padding:8px; text-align:left; }
+	  th { background:#eee; }
+	  .winner { font-size:1.5em; font-weight:bold; color:#006400; text-align:center; margin-bottom:10px; }
+	  .footer { font-size:0.8em; color:#666; text-align:right; }
+	</style>
+	</head><body>
+	)";
 }
 
 /*
@@ -583,7 +583,7 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 		else if (m > 0) html << m << "m " << s << "s";
 		else            html << s << "s";
 	}
-		html << "</p>\n";
+	html << "</p>\n";
 	if (proBall) {
 		html << "  <p><strong>Total Goals:</strong> " << matchStats.proBall_totalGoals << "</p>\n"
 			<< "  <p><strong>Total Assists:</strong> " << matchStats.proBall_totalAssists << "</p>\n";
@@ -621,10 +621,10 @@ static inline void Html_WriteWinnerSummary(std::ofstream& html, const MatchStats
 	}
 
 	const std::string escapedWinner = HtmlEscape(winner);
-	html << "<div class=\\"winner";
-	if (!winnerClass.empty()) {
-		html << ' ' << winnerClass;
-	}
+	html << "<div class=\"winner";
+		if (!winnerClass.empty()) {
+			html << ' ' << winnerClass;
+		}
 	html << "\">Winner: " << escapedWinner << "</div>\\n";
 }
 
@@ -635,44 +635,44 @@ Html_WriteOverallScores
 =============
 */
 static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats& matchStats, std::vector<const PlayerStats*> allPlayers) {
-        const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
-        html << "<div class=\"section overall\">\n"
-                << "  <h2>Overall Scores</h2>\n"
-                << "  <table>\n"
-                << "    <tr>"
-                "<th title=\"Player's in-game name (click to jump)\">Player</th>"
-                "<th title=\"Percentage of match time played\">%TIME</th>"
-                "<th title=\"Skill Rating (and change from match)\">SR</th>"
-                "<th title=\"Kill-Death Ratio (Kills / Deaths)\">KDR</th>"
-                "<th title=\"Kills Per Minute (Kills / Minutes Played)\">KPM</th>"
-                "<th title=\"Damage Ratio (Damage Dealt / Damage Received)\">DMR</th>"
-                "<th>Score</th>";
-        if (proBall) {
-                html << "<th title=\"Goals scored\">GO</th>"
-                        << "<th title=\"Goal assists credited\">AS</th>";
-        }
-        html << "</tr>\n";
+	const bool proBall = Q_strcasecmp(matchStats.gameType.c_str(), "PROBALL") == 0;
+	html << "<div class=\"section overall\">\n"
+		<< "  <h2>Overall Scores</h2>\n"
+		<< "  <table>\n"
+		<< "    <tr>"
+		"<th title=\"Player's in-game name (click to jump)\">Player</th>"
+		"<th title=\"Percentage of match time played\">%TIME</th>"
+		"<th title=\"Skill Rating (and change from match)\">SR</th>"
+		"<th title=\"Kill-Death Ratio (Kills / Deaths)\">KDR</th>"
+		"<th title=\"Kills Per Minute (Kills / Minutes Played)\">KPM</th>"
+		"<th title=\"Damage Ratio (Damage Dealt / Damage Received)\">DMR</th>"
+		"<th>Score</th>";
+	if (proBall) {
+		html << "<th title=\"Goals scored\">GO</th>"
+			<< "<th title=\"Goal assists credited\">AS</th>";
+	}
+	html << "</tr>\n";
 
-        int maxSR = 0, maxScore = 0;
-        double maxKDR = 0.0, maxKPM = 0.0, maxDMR = 0.0;
-        int maxGoals = 0, maxAssists = 0;
+	int maxSR = 0, maxScore = 0;
+	double maxKDR = 0.0, maxKPM = 0.0, maxDMR = 0.0;
+	int maxGoals = 0, maxAssists = 0;
 
-        for (auto* p : allPlayers) {
-                maxSR = std::max(maxSR, p->skillRating);
-                maxScore = std::max(maxScore, p->totalScore);
+	for (auto* p : allPlayers) {
+		maxSR = std::max(maxSR, p->skillRating);
+		maxScore = std::max(maxScore, p->totalScore);
 
-                const double kdr = p->totalDeaths ? double(p->totalKills) / p->totalDeaths : double(p->totalKills);
-                const double kpm = (p->playTimeMsec > 0) ? (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0) : 0.0;
-                const double dmr = p->totalDmgReceived ? double(p->totalDmgDealt) / p->totalDmgReceived : double(p->totalDmgDealt);
+		const double kdr = p->totalDeaths ? double(p->totalKills) / p->totalDeaths : double(p->totalKills);
+		const double kpm = (p->playTimeMsec > 0) ? (p->totalKills * 60.0) / (p->playTimeMsec / 1000.0) : 0.0;
+		const double dmr = p->totalDmgReceived ? double(p->totalDmgDealt) / p->totalDmgReceived : double(p->totalDmgDealt);
 
-                maxKDR = std::max(maxKDR, kdr);
-                maxKPM = std::max(maxKPM, kpm);
-                maxDMR = std::max(maxDMR, dmr);
-                if (proBall) {
-                        maxGoals = std::max(maxGoals, p->proBallGoals);
-                        maxAssists = std::max(maxAssists, p->proBallAssists);
-                }
-        }
+		maxKDR = std::max(maxKDR, kdr);
+		maxKPM = std::max(maxKPM, kpm);
+		maxDMR = std::max(maxDMR, dmr);
+		if (proBall) {
+			maxGoals = std::max(maxGoals, p->proBallGoals);
+			maxAssists = std::max(maxAssists, p->proBallAssists);
+		}
+	}
 
 	const double durationMin = matchStats.durationMS / 60000.0;
 
@@ -684,10 +684,10 @@ static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats
 			: (p->totalDmgDealt ? double(p->totalDmgDealt) : 0.0);
 		const int tp = (p->playTimeMsec > 0) ? p->playTimeMsec : matchStats.durationMS;
 
-			const std::string escapedSocialId = HtmlEscape(p->socialID);
-			const std::string escapedPlayerName = HtmlEscape(p->playerName);
-			html << "    <tr><td title=\"" << escapedSocialId << "\">"
-				<< "<a href=\"#player-" << escapedSocialId << "\">" << escapedPlayerName << "</a></td>";
+		const std::string escapedSocialId = HtmlEscape(p->socialID);
+		const std::string escapedPlayerName = HtmlEscape(p->playerName);
+		html << "    <tr><td title=\"" << escapedSocialId << "\">"
+			<< "<a href=\"#player-" << escapedSocialId << "\">" << escapedPlayerName << "</a></td>";
 
 		const double pctTime = (tp > 0) ? (tp / matchStats.durationMS) * 100.0 : 0.0;
 		html << "<td class=\"progress-cell\" title=\"% of match time\">"
@@ -720,25 +720,25 @@ static inline void Html_WriteOverallScores(std::ofstream& html, const MatchStats
 			<< "<div class=\"bar\" style=\"width:" << pctDMR << "%\"></div>"
 			<< "<span>" << std::fixed << std::setprecision(2) << dmr << "</span></td>";
 
-                const double pctScore = (maxScore > 0) ? (double(p->totalScore) / maxScore) * 100.0 : 0.0;
-                html << "<td class=\"progress-cell\" title=\"Score relative to top (" << maxScore << ")\">"
-                        << "<div class=\"bar\" style=\"width:" << pctScore << "%\"></div>"
-                        << "<span>" << p->totalScore << "</span></td>";
+		const double pctScore = (maxScore > 0) ? (double(p->totalScore) / maxScore) * 100.0 : 0.0;
+		html << "<td class=\"progress-cell\" title=\"Score relative to top (" << maxScore << ")\">"
+			<< "<div class=\"bar\" style=\"width:" << pctScore << "%\"></div>"
+			<< "<span>" << p->totalScore << "</span></td>";
 
-                if (proBall) {
-                        const double pctGoals = (maxGoals > 0) ? (double(p->proBallGoals) / maxGoals) * 100.0 : 0.0;
-                        html << "<td class=\"progress-cell\" title=\"Goals scored\">"
-                                << "<div class=\"bar\" style=\"width:" << pctGoals << "%\"></div>"
-                                << "<span>" << p->proBallGoals << "</span></td>";
+		if (proBall) {
+			const double pctGoals = (maxGoals > 0) ? (double(p->proBallGoals) / maxGoals) * 100.0 : 0.0;
+			html << "<td class=\"progress-cell\" title=\"Goals scored\">"
+				<< "<div class=\"bar\" style=\"width:" << pctGoals << "%\"></div>"
+				<< "<span>" << p->proBallGoals << "</span></td>";
 
-                        const double pctAssists = (maxAssists > 0) ? (double(p->proBallAssists) / maxAssists) * 100.0 : 0.0;
-                        html << "<td class=\"progress-cell\" title=\"Goal assists credited\">"
-                                << "<div class=\"bar\" style=\"width:" << pctAssists << "%\"></div>"
-                                << "<span>" << p->proBallAssists << "</span></td>";
-                }
+			const double pctAssists = (maxAssists > 0) ? (double(p->proBallAssists) / maxAssists) * 100.0 : 0.0;
+			html << "<td class=\"progress-cell\" title=\"Goal assists credited\">"
+				<< "<div class=\"bar\" style=\"width:" << pctAssists << "%\"></div>"
+				<< "<span>" << p->proBallAssists << "</span></td>";
+		}
 
-                html << "</tr>\n";
-        }
+		html << "</tr>\n";
+	}
 
 	html << "  </table>\n</div>\n";
 }
@@ -835,9 +835,9 @@ Html_WriteTeamsComparison
 =============
 */
 static inline void Html_WriteTeamsComparison(std::ofstream& html,
-        const std::vector<const PlayerStats*>& redPlayers,
-        const std::vector<const PlayerStats*>& bluePlayers,
-        double matchDurationMs) {
+	const std::vector<const PlayerStats*>& redPlayers,
+	const std::vector<const PlayerStats*>& bluePlayers,
+	double matchDurationMs) {
 	html << "<div class=\"section\">\n<h2>Team Comparison</h2>\n<table>\n";
 
 	html << "<tr>"
@@ -1013,29 +1013,29 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 	}
 	html << "</tr>\n";
 
-        bool wrotePlayerRow = false;
+	bool wrotePlayerRow = false;
 
-        for (auto* p : allPlayers) {
-                bool hasPickup = false;
-                for (const auto& name : sortedItems) {
-                        for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
-                                if (HighValueItemNames[i] == name && getPickup(p, static_cast<HighValueItems>(i)) > 0) {
-                                        hasPickup = true;
+	for (auto* p : allPlayers) {
+		bool hasPickup = false;
+		for (const auto& name : sortedItems) {
+			for (int i = static_cast<int>(HighValueItems::None) + 1; i < static_cast<int>(HighValueItems::Total); ++i) {
+				if (HighValueItemNames[i] == name && getPickup(p, static_cast<HighValueItems>(i)) > 0) {
+					hasPickup = true;
 					break;
 				}
 			}
 			if (hasPickup) break;
-                }
-                if (!hasPickup)
-                        continue;
+		}
+		if (!hasPickup)
+			continue;
 
-                wrotePlayerRow = true;
+		wrotePlayerRow = true;
 
-                std::string color = "green";
-                if (Teams()) {
-                        for (const auto& rp : matchStats.teams[0].players)
-                                if (&rp == p) { color = "red"; break; }
-                        for (const auto& bp : matchStats.teams[1].players)
+		std::string color = "green";
+		if (Teams()) {
+			for (const auto& rp : matchStats.teams[0].players)
+				if (&rp == p) { color = "red"; break; }
+			for (const auto& bp : matchStats.teams[1].players)
 				if (&bp == p) { color = "blue"; break; }
 		}
 
@@ -1062,33 +1062,33 @@ static inline void Html_WriteItemPickups(std::ofstream& html, const MatchStats& 
 				int avgSecs = static_cast<int>((delay / pickups) + 0.5);
 				html << "<td>" << pickups << " (" << FormatDuration(avgSecs) << ")</td>";
 			}
-                        else {
-                                html << "<td>-</td>";
-                        }
-                }
+			else {
+				html << "<td>-</td>";
+			}
+		}
 
-                html << "</tr>\n";
-        }
+		html << "</tr>\n";
+	}
 
-        if (wrotePlayerRow) {
-                html << "<tr><td><b>Totals</b></td>";
+	if (wrotePlayerRow) {
+		html << "<tr><td><b>Totals</b></td>";
 
-                for (const auto& name : sortedItems) {
-                        auto total = itemTotals[name];
-                        auto totalDelay = itemDelays[name];
-                        if (total > 0) {
-                                int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
-                                html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
-                        }
-                        else {
-                                html << "<td>-</td>";
-                        }
-                }
+		for (const auto& name : sortedItems) {
+			auto total = itemTotals[name];
+			auto totalDelay = itemDelays[name];
+			if (total > 0) {
+				int avgSecs = static_cast<int>((totalDelay / total) + 0.5);
+				html << "<td>" << total << " (" << FormatDuration(avgSecs) << ")</td>";
+			}
+			else {
+				html << "<td>-</td>";
+			}
+		}
 
-                html << "</tr>\n";
-        }
+		html << "</tr>\n";
+	}
 
-        html << "</table>\n</div>\n"; // flex-item (players)
+	html << "</table>\n</div>\n"; // flex-item (players)
 
 	// --- Team Totals Table ---
 	if (Teams()) {
@@ -1440,8 +1440,8 @@ Html_WriteFooter
 =============
 */
 static inline void Html_WriteFooter(std::ofstream& html, const std::string& htmlPath) {
-        html << "<div class=\"footer\">Compiled by " << worr::version::kGameTitle << " "
-             << worr::version::kGameVersion << "</div>\n";
+	html << "<div class=\"footer\">Compiled by " << worr::version::kGameTitle << " "
+		<< worr::version::kGameVersion << "</div>\n";
 	html << "</body></html>\n";
 	html.close();
 }
@@ -1529,14 +1529,14 @@ static void SendIndividualMiniStats(const MatchStats& matchStats) {
 		if (!ec || !ec->client)
 			continue;
 
-                const char* rawName = ec->client->sess.netName;
+		const char* rawName = ec->client->sess.netName;
 
-                if (!rawName[0]) {
-                        gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
-                        continue;
-                }
+		if (!rawName[0]) {
+			gi.Com_PrintFmt("SendIndividualMiniStats: skipping client {} due to empty netName\n", ec->s.number);
+			continue;
+		}
 
-                std::string_view name(rawName);
+		std::string_view name(rawName);
 
 		const PlayerStats* matchedStats = nullptr;
 
@@ -1647,28 +1647,28 @@ void MatchStats_End() {
 
 	try {
 		matchStats.matchID = level.matchID;
-                matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
-                matchStats.ruleSet = rs_long_name[game.ruleset];
-                matchStats.serverName = hostname->string ? hostname->string : "";
-                matchStats.serverHostName.clear();
-                if (host && host->client) {
-                        char hostNameValue[MAX_INFO_VALUE] = { 0 };
-                        gi.Info_ValueForKey(host->client->pers.userInfo, "name", hostNameValue, sizeof(hostNameValue));
-                        if (hostNameValue[0] != '\0') {
-                                matchStats.serverHostName = hostNameValue;
-                        }
-                }
-                matchStats.mapName.assign(CharArrayToStringView(level.mapName));
-                matchStats.ranked = false;
-                matchStats.totalKills = level.match.totalKills;
-                matchStats.totalSpawnKills = level.match.totalSpawnKills;
-                matchStats.totalTeamKills = level.match.totalTeamKills;
-                matchStats.totalDeaths = level.match.totalDeaths;
-                matchStats.totalSuicides = level.match.totalSuicides;
-                matchStats.proBall_totalGoals = level.match.proBallGoals;
-                matchStats.proBall_totalAssists = level.match.proBallAssists;
+		matchStats.gameType = std::string(Game::GetCurrentInfo().short_name_upper);
+		matchStats.ruleSet = rs_long_name[game.ruleset];
+		matchStats.serverName = hostname->string ? hostname->string : "";
+		matchStats.serverHostName.clear();
+		if (host && host->client) {
+			char hostNameValue[MAX_INFO_VALUE] = { 0 };
+			gi.Info_ValueForKey(host->client->pers.userInfo, "name", hostNameValue, sizeof(hostNameValue));
+			if (hostNameValue[0] != '\0') {
+				matchStats.serverHostName = hostNameValue;
+			}
+		}
+		matchStats.mapName.assign(CharArrayToStringView(level.mapName));
+		matchStats.ranked = false;
+		matchStats.totalKills = level.match.totalKills;
+		matchStats.totalSpawnKills = level.match.totalSpawnKills;
+		matchStats.totalTeamKills = level.match.totalTeamKills;
+		matchStats.totalDeaths = level.match.totalDeaths;
+		matchStats.totalSuicides = level.match.totalSuicides;
+		matchStats.proBall_totalGoals = level.match.proBallGoals;
+		matchStats.proBall_totalAssists = level.match.proBallAssists;
 
-                matchStats.calculateDuration();
+		matchStats.calculateDuration();
 		matchStats.avKillsPerMinute = matchStats.durationMS > 0
 			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
 			: 0.0;
@@ -1685,12 +1685,12 @@ void MatchStats_End() {
 			p.totalSpawnKills = cl->pers.match.totalSpawnKills;
 			p.totalTeamKills = cl->pers.match.totalTeamKills;
 			p.totalDeaths = cl->pers.match.totalDeaths;
-                        p.totalSuicides = cl->pers.match.totalSuicides;
-                        p.calculateKDR();
-                        p.totalScore = cl->resp.score;
-                        p.proBallGoals = cl->pers.match.proBallGoals;
-                        p.proBallAssists = cl->pers.match.proBallAssists;
-                        p.totalShots = cl->pers.match.totalShots;
+			p.totalSuicides = cl->pers.match.totalSuicides;
+			p.calculateKDR();
+			p.totalScore = cl->resp.score;
+			p.proBallGoals = cl->pers.match.proBallGoals;
+			p.proBallAssists = cl->pers.match.proBallAssists;
+			p.totalShots = cl->pers.match.totalShots;
 			p.totalHits = cl->pers.match.totalHits;
 			p.totalDmgDealt = cl->pers.match.totalDmgDealt;
 			p.totalDmgReceived = cl->pers.match.totalDmgReceived;

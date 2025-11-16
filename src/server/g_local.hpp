@@ -2032,10 +2032,10 @@ struct MapSystem {
 	bool IsClientInQueue(const std::string& socialID) const;
 
 	void EnqueueMyMapRequest(const MapEntry& map,
-	std::string_view socialID,
-	uint16_t enableFlags,
-	uint16_t disableFlags,
-	GameTime queuedTime);
+		std::string_view socialID,
+		uint16_t enableFlags,
+		uint16_t disableFlags,
+		GameTime queuedTime);
 
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
@@ -2483,16 +2483,16 @@ struct LevelLocals {
 		static constexpr size_t MAX_POINTS = 8;
 
 		struct Point {
-		gentity_t* ent = nullptr;
-		gentity_t* beam = nullptr;
-		Team owner = Team::None;
-		Team capturingTeam = Team::None;
-		float captureProgress = 0.0f;
-		GameTime lastProgressTime = 0_ms;
-		std::array<int, static_cast<size_t>(Team::Total)> occupantCounts{};
-		std::array<GameTime, MAX_CLIENTS_KEX> occupantExpiry{};
-		size_t index = 0;
-		int32_t spawnCount = 0;
+			gentity_t* ent = nullptr;
+			gentity_t* beam = nullptr;
+			Team owner = Team::None;
+			Team capturingTeam = Team::None;
+			float captureProgress = 0.0f;
+			GameTime lastProgressTime = 0_ms;
+			std::array<int, static_cast<size_t>(Team::Total)> occupantCounts{};
+			std::array<GameTime, MAX_CLIENTS_KEX> occupantExpiry{};
+			size_t index = 0;
+			int32_t spawnCount = 0;
 		};
 
 		std::array<Point, MAX_POINTS> points{};

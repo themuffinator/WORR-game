@@ -760,7 +760,7 @@ void Duel_RemoveLoser() {
 		return;
 
 	if (g_verbose->integer)
-            gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
+		gi.Com_PrintFmt("Duel: Moving the loser, {} to spectator queue.\n", loser->client->sess.netName);
 
 	SetTeam(loser, Team::None, false, true, false);
 
@@ -778,7 +778,7 @@ void Gauntlet_RemoveLoser() {
 		return;
 
 	if (g_verbose->integer)
-            gi.Com_PrintFmt("Gauntlet: Moving the loser, {} to end of queue.\n", loser->client->sess.netName);
+		gi.Com_PrintFmt("Gauntlet: Moving the loser, {} to end of queue.\n", loser->client->sess.netName);
 
 	SetTeam(loser, Team::None, false, true, false);
 }
@@ -1475,7 +1475,7 @@ void Match_Reset() {
 				std::optional<WarmupState>{WarmupState::Default},
 				std::optional<GameTime>{0_sec},
 				std::optional<bool>{false}
-		});
+			});
 		CalculateRanks();
 		gi.Broadcast_Print(PRINT_CENTER, ".The match has been reset.\n");
 		return;
@@ -1491,7 +1491,7 @@ void Match_Reset() {
 			std::optional<WarmupState>{WarmupState::Default},
 			std::optional<GameTime>{0_sec},
 			std::optional<bool>{false}
-	});
+		});
 
 	CalculateRanks();
 
@@ -1939,18 +1939,18 @@ void CheckDMEndFrame() {
 	CheckDMExitRules();       // Handles intermission and map end
 
 	if (g_verbose->integer) {
-                static constexpr std::array<const char*, 7> MatchStateNames{ {
-                        "None",
-                        "Initial_Delay",
-                        "Warmup_Default",
-                        "Warmup_ReadyUp",
-                        "Countdown",
-                        "In_Progress",
-                        "Ended"
-                } };
+		static constexpr std::array<const char*, 7> MatchStateNames{ {
+				"None",
+				"Initial_Delay",
+				"Warmup_Default",
+				"Warmup_ReadyUp",
+				"Countdown",
+				"In_Progress",
+				"Ended"
+		} };
 
-                const char* stateName = (static_cast<size_t>(level.matchState) < MatchStateNames.size())
-                        ? MatchStateNames[static_cast<size_t>(level.matchState)]
+		const char* stateName = (static_cast<size_t>(level.matchState) < MatchStateNames.size())
+			? MatchStateNames[static_cast<size_t>(level.matchState)]
 			: "UNKNOWN";
 
 		gi.Com_PrintFmt("MatchState: {}, NumPlayers: {}\n", stateName, level.pop.num_playing_clients);

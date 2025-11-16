@@ -348,7 +348,7 @@ void LoadMotd() {
 
 		outPath = candidate;
 		return true;
-	};
+		};
 
 	if (!validateAndResolve(configuredName, resolvedPath)) {
 		gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: {}\n", __FUNCTION__, configuredName);
@@ -392,7 +392,8 @@ void LoadMotd() {
 		if (length > 0x40000) {
 			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: {}\n", __FUNCTION__, motdPath);
 			valid = false;
-		} else {
+		}
+		else {
 			contents.resize(length);
 
 			if (length > 0) {
@@ -415,7 +416,8 @@ void LoadMotd() {
 		if (g_verbose->integer) {
 			gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, motdPath);
 		}
-	} else {
+	}
+	else {
 		gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, motdPath);
 	}
 }
@@ -731,7 +733,8 @@ bool RemoveIDFromFile(const char* filename, const std::string& id) {
 		const std::size_t firstNonWhitespace = trimmed.find_first_not_of(" \t\r\n");
 		if (firstNonWhitespace == std::string::npos) {
 			trimmed.clear();
-		} else {
+		}
+		else {
 			const std::size_t lastNonWhitespace = trimmed.find_last_not_of(" \t\r\n");
 			trimmed = trimmed.substr(firstNonWhitespace, lastNonWhitespace - firstNonWhitespace + 1);
 		}

@@ -139,5 +139,5 @@ void Teamplay_ForEachTeamMember(Team team, const std::function<void(gentity_t*)>
 		}
 
 		fn(entity);
-	});
+		});
 }

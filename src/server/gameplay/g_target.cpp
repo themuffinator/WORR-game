@@ -656,15 +656,15 @@ static USE(use_target_changelevel)(gentity_t* self, gentity_t* other, gentity_t*
 		}
 	}
 
-        BeginIntermission(self);
+	BeginIntermission(self);
 }
 
 void SP_target_changelevel(gentity_t* ent) {
-        if (CharArrayIsBlank(ent->map)) {
-                gi.Com_PrintFmt("{}: no map\n", *ent);
-                FreeEntity(ent);
-                return;
-        }
+	if (CharArrayIsBlank(ent->map)) {
+		gi.Com_PrintFmt("{}: no map\n", *ent);
+		FreeEntity(ent);
+		return;
+	}
 
 	ent->use = use_target_changelevel;
 	ent->svFlags = SVF_NOCLIENT;
@@ -2571,7 +2571,7 @@ static USE(target_remove_powerups_use) (gentity_t* ent, gentity_t* other, gentit
 	if (!activator->client)
 		return;
 
-        activator->client->ResetPowerups();
+	activator->client->ResetPowerups();
 
 	activator->client->pers.ammoMax.fill(50);
 

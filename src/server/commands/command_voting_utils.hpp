@@ -20,13 +20,13 @@ namespace Commands {
 	/*
 	=============
 	ParseMapVoteArguments
-	
+
 	Parses map vote arguments, reusing MyMap flag parsing to support
 	optional +flag/-flag tokens for overrides. Returns an error message
 	if validation fails.
 	=============
 	*/
-inline std::optional<MapVoteParseResult> ParseMapVoteArguments(
+	inline std::optional<MapVoteParseResult> ParseMapVoteArguments(
 		const std::vector<std::string>& args,
 		std::string& errorMessage)
 	{

@@ -98,23 +98,23 @@ std::string GetPlayerNameForSocialID(const std::string& socialID) {
 	if (!root.isMember("playerName") || !root["playerName"].isString())
 		return {};
 
-        return root["playerName"].asString();
+	return root["playerName"].asString();
 }
 
 static bool EnsurePlayerConfigDirectory() {
-        std::error_code ec;
-        std::filesystem::create_directories(PLAYER_CONFIG_PATH, ec);
-        if (ec) {
-                gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
-                        PLAYER_CONFIG_PATH.c_str(), ec.message().c_str());
-        }
+	std::error_code ec;
+	std::filesystem::create_directories(PLAYER_CONFIG_PATH, ec);
+	if (ec) {
+		gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
+			PLAYER_CONFIG_PATH.c_str(), ec.message().c_str());
+	}
 
-        if (!std::filesystem::exists(PLAYER_CONFIG_PATH)) {
-                gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", PLAYER_CONFIG_PATH.c_str());
-                return false;
-        }
+	if (!std::filesystem::exists(PLAYER_CONFIG_PATH)) {
+		gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", PLAYER_CONFIG_PATH.c_str());
+		return false;
+	}
 
-        return true;
+	return true;
 }
 
 int ClientConfig_DefaultSkillRating() {
@@ -137,17 +137,17 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	newFile["originalPlayerName"] = playerName;
 	newFile["playerAliases"] = Json::Value(Json::arrayValue);
 
-        // Visual & audio settings
-        Json::Value config(Json::objectValue);
-        config["drawCrosshairID"] = 1;
-        config["drawFragMessages"] = 1;
-        config["drawTimer"] = 1;
-        config["eyeCam"] = 1;
-        config["killBeep"] = 1;
-        config["followKiller"] = cl ? cl->sess.pc.follow_killer : false;
-        config["followLeader"] = cl ? cl->sess.pc.follow_leader : false;
-        config["followPowerup"] = cl ? cl->sess.pc.follow_powerup : false;
-        config["weaponPrefs"] = Json::Value(Json::arrayValue);
+	// Visual & audio settings
+	Json::Value config(Json::objectValue);
+	config["drawCrosshairID"] = 1;
+	config["drawFragMessages"] = 1;
+	config["drawTimer"] = 1;
+	config["eyeCam"] = 1;
+	config["killBeep"] = 1;
+	config["followKiller"] = cl ? cl->sess.pc.follow_killer : false;
+	config["followLeader"] = cl ? cl->sess.pc.follow_leader : false;
+	config["followPowerup"] = cl ? cl->sess.pc.follow_powerup : false;
+	config["weaponPrefs"] = Json::Value(Json::arrayValue);
 	newFile["config"] = config;
 
 	// Per-game-type ratings
@@ -175,18 +175,18 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	newFile["lastSeen"] = TimeStamp();
 	newFile["firstSeen"] = TimeStamp();
 
-        try {
+	try {
 		const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
 		if (!pathOpt)
-                        return;
+			return;
 
 		if (!EnsurePlayerConfigDirectory())
-                        return;
+			return;
 
 		const std::string path = *pathOpt;
 
 		std::ofstream file(path);
-                if (file.is_open()) {
+		if (file.is_open()) {
 			Json::StreamWriterBuilder builder;
 			builder["indentation"] = "    "; // 4 spaces
 			std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
@@ -269,40 +269,40 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		modified = true;
 	}
 
-        // Ensure config block exists
-        if (!playerData.isMember("config") || !playerData["config"].isObject()) {
-                Json::Value config(Json::objectValue);
-                config["drawCrosshairID"] = 1;
-                config["drawFragMessages"] = 1;
-                config["drawTimer"] = 1;
-                config["eyeCam"] = 1;
-                config["killBeep"] = 1;
-                config["followKiller"] = cl->sess.pc.follow_killer;
-                config["followLeader"] = cl->sess.pc.follow_leader;
-                config["followPowerup"] = cl->sess.pc.follow_powerup;
-                config["weaponPrefs"] = Json::Value(Json::arrayValue);
-                playerData["config"] = config;
-                modified = true;
-        }
-        else {
-                auto& cfg = playerData["config"];
+	// Ensure config block exists
+	if (!playerData.isMember("config") || !playerData["config"].isObject()) {
+		Json::Value config(Json::objectValue);
+		config["drawCrosshairID"] = 1;
+		config["drawFragMessages"] = 1;
+		config["drawTimer"] = 1;
+		config["eyeCam"] = 1;
+		config["killBeep"] = 1;
+		config["followKiller"] = cl->sess.pc.follow_killer;
+		config["followLeader"] = cl->sess.pc.follow_leader;
+		config["followPowerup"] = cl->sess.pc.follow_powerup;
+		config["weaponPrefs"] = Json::Value(Json::arrayValue);
+		playerData["config"] = config;
+		modified = true;
+	}
+	else {
+		auto& cfg = playerData["config"];
 
-                auto ensure_config_bool = [&](const char* key, bool value) {
-                        if (!cfg.isMember(key) || !cfg[key].isBool()) {
-                                cfg[key] = value;
-                                modified = true;
-                        }
-                };
+		auto ensure_config_bool = [&](const char* key, bool value) {
+			if (!cfg.isMember(key) || !cfg[key].isBool()) {
+				cfg[key] = value;
+				modified = true;
+			}
+			};
 
-                ensure_config_bool("followKiller", cl->sess.pc.follow_killer);
-                ensure_config_bool("followLeader", cl->sess.pc.follow_leader);
-                ensure_config_bool("followPowerup", cl->sess.pc.follow_powerup);
+		ensure_config_bool("followKiller", cl->sess.pc.follow_killer);
+		ensure_config_bool("followLeader", cl->sess.pc.follow_leader);
+		ensure_config_bool("followPowerup", cl->sess.pc.follow_powerup);
 
-                if (!cfg.isMember("weaponPrefs") || !cfg["weaponPrefs"].isArray()) {
-                        cfg["weaponPrefs"] = Json::Value(Json::arrayValue);
-                        modified = true;
-                }
-        }
+		if (!cfg.isMember("weaponPrefs") || !cfg["weaponPrefs"].isArray()) {
+			cfg["weaponPrefs"] = Json::Value(Json::arrayValue);
+			modified = true;
+		}
+	}
 
 	// Ensure stats block exists
 	if (!playerData.isMember("stats") || !playerData["stats"].isObject()) {
@@ -366,81 +366,81 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		}
 	}
 
-        cl->sess.weaponPrefs.clear();
+	cl->sess.weaponPrefs.clear();
 
-        // Apply weapon prefs if present
-        if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
-                const auto& prefs = playerData["config"]["weaponPrefs"];
-                if (prefs.isArray()) {
-                        std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-                        std::vector<Weapon> parsed;
-                        parsed.reserve(static_cast<size_t>(prefs.size()));
-                        std::vector<std::string> invalidTokens;
-                        bool capacityExceeded = false;
+	// Apply weapon prefs if present
+	if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
+		const auto& prefs = playerData["config"]["weaponPrefs"];
+		if (prefs.isArray()) {
+			std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+			std::vector<Weapon> parsed;
+			parsed.reserve(static_cast<size_t>(prefs.size()));
+			std::vector<std::string> invalidTokens;
+			bool capacityExceeded = false;
 
-                        for (const auto& p : prefs) {
-                                if (!p.isString())
-                                        continue;
+			for (const auto& p : prefs) {
+				if (!p.isString())
+					continue;
 
-                                const std::string token = p.asString();
-                                std::string normalized;
-                                switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
-                                case WeaponPrefAppendResult::Added:
-                                        break;
-                                case WeaponPrefAppendResult::Duplicate:
-                                        break;
-                                case WeaponPrefAppendResult::Invalid:
-                                        if (!normalized.empty())
-                                                invalidTokens.emplace_back(std::move(normalized));
-                                        break;
-                                case WeaponPrefAppendResult::CapacityExceeded:
-                                        capacityExceeded = true;
-                                        break;
-                                }
-                        }
+				const std::string token = p.asString();
+				std::string normalized;
+				switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
+				case WeaponPrefAppendResult::Added:
+					break;
+				case WeaponPrefAppendResult::Duplicate:
+					break;
+				case WeaponPrefAppendResult::Invalid:
+					if (!normalized.empty())
+						invalidTokens.emplace_back(std::move(normalized));
+					break;
+				case WeaponPrefAppendResult::CapacityExceeded:
+					capacityExceeded = true;
+					break;
+				}
+			}
 
-                        cl->sess.weaponPrefs.swap(parsed);
+			cl->sess.weaponPrefs.swap(parsed);
 
-                        if (!invalidTokens.empty()) {
-                                std::ostringstream joined;
-                                for (size_t i = 0; i < invalidTokens.size(); ++i) {
-                                        if (i)
-                                                joined << ", ";
-                                        joined << invalidTokens[i];
-                                }
-                                gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
-                                        __FUNCTION__, playerName.c_str(), joined.str().c_str());
-                        }
+			if (!invalidTokens.empty()) {
+				std::ostringstream joined;
+				for (size_t i = 0; i < invalidTokens.size(); ++i) {
+					if (i)
+						joined << ", ";
+					joined << invalidTokens[i];
+				}
+				gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
+					__FUNCTION__, playerName.c_str(), joined.str().c_str());
+			}
 
-                        if (capacityExceeded) {
-                                gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
-                                        __FUNCTION__, playerName.c_str(), cl->sess.weaponPrefs.size());
-                        }
-                }
-        }
+			if (capacityExceeded) {
+				gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
+					__FUNCTION__, playerName.c_str(), cl->sess.weaponPrefs.size());
+			}
+		}
+	}
 
-        Client_RebuildWeaponPreferenceOrder(*cl);
+	Client_RebuildWeaponPreferenceOrder(*cl);
 
-        // Apply visual/audio config settings
-        if (playerData.isMember("config")) {
-                const auto& cfg = playerData["config"];
+	// Apply visual/audio config settings
+	if (playerData.isMember("config")) {
+		const auto& cfg = playerData["config"];
 
-                auto get_bool = [&](const std::string& key, bool def) {
-                        return cfg.isMember(key) && cfg[key].isBool() ? cfg[key].asBool() : def;
-                        };
-                auto get_int = [&](const std::string& key, int def) {
-                        return cfg.isMember(key) && cfg[key].isInt() ? cfg[key].asInt() : def;
-                        };
+		auto get_bool = [&](const std::string& key, bool def) {
+			return cfg.isMember(key) && cfg[key].isBool() ? cfg[key].asBool() : def;
+			};
+		auto get_int = [&](const std::string& key, int def) {
+			return cfg.isMember(key) && cfg[key].isInt() ? cfg[key].asInt() : def;
+			};
 
-                cl->sess.pc.show_id = get_bool("drawCrosshairID", true);
-                cl->sess.pc.show_timer = get_bool("drawTimer", true);
-                cl->sess.pc.show_fragmessages = get_bool("drawFragMessages", true);
-                cl->sess.pc.use_eyecam = get_bool("eyeCam", true);
-                cl->sess.pc.killbeep_num = get_int("killBeep", 1);
-                cl->sess.pc.follow_killer = get_bool("followKiller", cl->sess.pc.follow_killer);
-                cl->sess.pc.follow_leader = get_bool("followLeader", cl->sess.pc.follow_leader);
-                cl->sess.pc.follow_powerup = get_bool("followPowerup", cl->sess.pc.follow_powerup);
-        }
+		cl->sess.pc.show_id = get_bool("drawCrosshairID", true);
+		cl->sess.pc.show_timer = get_bool("drawTimer", true);
+		cl->sess.pc.show_fragmessages = get_bool("drawFragMessages", true);
+		cl->sess.pc.use_eyecam = get_bool("eyeCam", true);
+		cl->sess.pc.killbeep_num = get_int("killBeep", 1);
+		cl->sess.pc.follow_killer = get_bool("followKiller", cl->sess.pc.follow_killer);
+		cl->sess.pc.follow_leader = get_bool("followLeader", cl->sess.pc.follow_leader);
+		cl->sess.pc.follow_powerup = get_bool("followPowerup", cl->sess.pc.follow_powerup);
+	}
 
 	// Apply to session
 	cl->sess.skillRating = playerData["ratings"][gameType].asInt();
@@ -463,15 +463,15 @@ ClientConfig_SaveInternal
 ==========================
 */
 static void ClientConfig_SaveInternal(
-const std::string& playerID,
-int skillRating,
-int skillChange,
-int64_t timePlayedSeconds,
-bool won,
-bool isGhost,
-bool updateStats,
-const client_config_t* pc = nullptr,
-const std::vector<Weapon>* weaponPrefs = nullptr
+	const std::string& playerID,
+	int skillRating,
+	int skillChange,
+	int64_t timePlayedSeconds,
+	bool won,
+	bool isGhost,
+	bool updateStats,
+	const client_config_t* pc = nullptr,
+	const std::vector<Weapon>* weaponPrefs = nullptr
 ) {
 	if (playerID.empty())
 		return;
@@ -572,45 +572,45 @@ const std::vector<Weapon>* weaponPrefs = nullptr
 	}
 	playerData["ratings"][Game::GetCurrentInfo().short_name_upper.data()] = skillRating;
 
-        // Save visual/audio config from session
-        if (pc || weaponPrefs) {
-                if (!playerData.isMember("config") || !playerData["config"].isObject()) {
-                        playerData["config"] = Json::Value(Json::objectValue);
-                }
-        }
+	// Save visual/audio config from session
+	if (pc || weaponPrefs) {
+		if (!playerData.isMember("config") || !playerData["config"].isObject()) {
+			playerData["config"] = Json::Value(Json::objectValue);
+		}
+	}
 
-        if (pc) {
-                auto& config = playerData["config"];
-                config["drawCrosshairID"] = pc->show_id;
-                config["drawTimer"] = pc->show_timer;
-                config["drawFragMessages"] = pc->show_fragmessages;
-                config["eyeCam"] = pc->use_eyecam;
-                config["killBeep"] = pc->killbeep_num;
-                config["followKiller"] = pc->follow_killer;
-                config["followLeader"] = pc->follow_leader;
-                config["followPowerup"] = pc->follow_powerup;
-        }
+	if (pc) {
+		auto& config = playerData["config"];
+		config["drawCrosshairID"] = pc->show_id;
+		config["drawTimer"] = pc->show_timer;
+		config["drawFragMessages"] = pc->show_fragmessages;
+		config["eyeCam"] = pc->use_eyecam;
+		config["killBeep"] = pc->killbeep_num;
+		config["followKiller"] = pc->follow_killer;
+		config["followLeader"] = pc->follow_leader;
+		config["followPowerup"] = pc->follow_powerup;
+	}
 
-        if (weaponPrefs) {
-                Json::Value prefs(Json::arrayValue);
-                for (Weapon weapon : *weaponPrefs) {
-                        const std::string_view abbreviation = WeaponToAbbreviation(weapon);
-                        if (!abbreviation.empty()) {
-                                prefs.append(std::string(abbreviation));
-                        }
-                }
-                playerData["config"]["weaponPrefs"] = prefs;
-        }
+	if (weaponPrefs) {
+		Json::Value prefs(Json::arrayValue);
+		for (Weapon weapon : *weaponPrefs) {
+			const std::string_view abbreviation = WeaponToAbbreviation(weapon);
+			if (!abbreviation.empty()) {
+				prefs.append(std::string(abbreviation));
+			}
+		}
+		playerData["config"]["weaponPrefs"] = prefs;
+	}
 
-        playerData["lastUpdated"] = now;
+	playerData["lastUpdated"] = now;
 
-        // Write updated file
-        try {
+	// Write updated file
+	try {
 		if (!EnsurePlayerConfigDirectory())
-                        return;
+			return;
 
-                std::ofstream outFile(path);
-                if (outFile.is_open()) {
+		std::ofstream outFile(path);
+		if (outFile.is_open()) {
 			Json::StreamWriterBuilder writerBuilder;
 			writerBuilder["indentation"] = "    ";
 			std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
@@ -729,12 +729,12 @@ static bool ClientConfig_Update(
 	cfg["lastUpdated"] = TimeStamp();
 
 	// 6) write back
-        try {
+	try {
 		if (!EnsurePlayerConfigDirectory())
-                        return false;
+			return false;
 
-                std::ofstream out(path);
-                if (!out.is_open()) {
+		std::ofstream out(path);
+		if (!out.is_open()) {
 			gi.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
 			return false;
 		}
@@ -755,20 +755,20 @@ static bool ClientConfig_Update(
 }
 
 void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
-        if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
-                return;
+	if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
+		return;
 
-        Client_RebuildWeaponPreferenceOrder(*cl);
-        std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
+	Client_RebuildWeaponPreferenceOrder(*cl);
+	std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
 
-        ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {
-                if (!cfg.isMember("config") || !cfg["config"].isObject())
-                        cfg["config"] = Json::Value(Json::objectValue);
+	ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {
+		if (!cfg.isMember("config") || !cfg["config"].isObject())
+			cfg["config"] = Json::Value(Json::objectValue);
 
-                Json::Value prefs(Json::arrayValue);
-                for (const auto& pref : sanitized)
-                        prefs.append(pref);
+		Json::Value prefs(Json::arrayValue);
+		for (const auto& pref : sanitized)
+			prefs.append(pref);
 
-                cfg["config"]["weaponPrefs"] = prefs;
-        });
+		cfg["config"]["weaponPrefs"] = prefs;
+		});
 }

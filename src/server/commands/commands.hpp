@@ -7,11 +7,11 @@
 
 namespace server::commands {
 
-using ::CommandArgs;
-using ::CommandFlag;
-using ::RegisterCommand;
+	using ::CommandArgs;
+	using ::CommandFlag;
+	using ::RegisterCommand;
 
-using namespace ::Commands;
+	using namespace ::Commands;
 
 } // namespace server::commands
 

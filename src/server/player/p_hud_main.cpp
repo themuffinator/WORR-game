@@ -142,9 +142,11 @@ static void BuildEOUTableRow(std::stringstream& layout, int y, const LevelEntry&
 	const char* displayName = nullptr;
 	if (entry.longMapName[0]) {
 		displayName = entry.longMapName.data();
-	} else if (entry.mapName[0]) {
+	}
+	else if (entry.mapName[0]) {
 		displayName = entry.mapName.data();
-	} else {
+	}
+	else {
 		displayName = "???";
 	}
 
@@ -1452,7 +1454,7 @@ void SetStats(gentity_t* ent) {
 		else {
 			ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 		}
-}
+	}
 	else {
 		ent->client->ps.stats[STAT_TEAMPLAY_INFO] = 0;
 	}

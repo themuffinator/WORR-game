@@ -41,376 +41,376 @@ gentity_t* neutralObelisk = nullptr;
 
 namespace {
 
-class FlagStateManager {
-public:
-	FlagStateManager();
+	class FlagStateManager {
+	public:
+		FlagStateManager();
 
-	[[nodiscard]] static FlagStateManager& Instance();
+		[[nodiscard]] static FlagStateManager& Instance();
 
-	void Reset();
-	[[nodiscard]] bool SetStatus(Team team, FlagStatus status);
-	[[nodiscard]] FlagStatus GetStatus(Team team) const;
-	void SetTakenTime(Team team, GameTime time);
-	[[nodiscard]] GameTime GetTakenTime(Team team) const;
-	void RecordCapture(GameTime time, Team team);
-	[[nodiscard]] GameTime LastCaptureTime() const;
-	[[nodiscard]] Team LastCaptureTeam() const;
-	void UpdateConfigString() const;
+		void Reset();
+		[[nodiscard]] bool SetStatus(Team team, FlagStatus status);
+		[[nodiscard]] FlagStatus GetStatus(Team team) const;
+		void SetTakenTime(Team team, GameTime time);
+		[[nodiscard]] GameTime GetTakenTime(Team team) const;
+		void RecordCapture(GameTime time, Team team);
+		[[nodiscard]] GameTime LastCaptureTime() const;
+		[[nodiscard]] Team LastCaptureTeam() const;
+		void UpdateConfigString() const;
 
-private:
-	struct FlagData {
-		FlagStatus status = FlagStatus::AtBase;
-		GameTime lastTaken = 0_sec;
+	private:
+		struct FlagData {
+			FlagStatus status = FlagStatus::AtBase;
+			GameTime lastTaken = 0_sec;
+		};
+
+		[[nodiscard]] static std::optional<size_t> IndexForTeam(Team team);
+		[[nodiscard]] FlagData& DataFor(Team team);
+		[[nodiscard]] const FlagData& DataFor(Team team) const;
+		[[nodiscard]] std::string BuildConfigString() const;
+
+		std::array<FlagData, 3> data_{};
+		GameTime lastCaptureTime_ = 0_sec;
+		Team lastCaptureTeam_ = Team::None;
+		std::array<GameTime, 2> obeliskAttackTime_{ 0_sec, 0_sec };
 	};
 
-	[[nodiscard]] static std::optional<size_t> IndexForTeam(Team team);
-	[[nodiscard]] FlagData& DataFor(Team team);
-	[[nodiscard]] const FlagData& DataFor(Team team) const;
-	[[nodiscard]] std::string BuildConfigString() const;
+	/*
+	=============
+	FlagStateManager::FlagStateManager
 
-	std::array<FlagData, 3> data_{};
-	GameTime lastCaptureTime_ = 0_sec;
-	Team lastCaptureTeam_ = Team::None;
-	std::array<GameTime, 2> obeliskAttackTime_{ 0_sec, 0_sec };
-};
-
-/*
-=============
-FlagStateManager::FlagStateManager
-
-Constructs the flag state manager with default values.
-=============
-*/
-FlagStateManager::FlagStateManager() {
-	Reset();
-}
-
-/*
-=============
-FlagStateManager::Instance
-
-Returns the singleton flag state manager.
-=============
-*/
-FlagStateManager& FlagStateManager::Instance() {
-	static FlagStateManager instance;
-	return instance;
-}
-
-/*
-=============
-FlagStateManager::Reset
-
-Restores all tracked flag state to defaults.
-=============
-*/
-void FlagStateManager::Reset() {
-	for (auto& entry : data_) {
-		entry.status = FlagStatus::AtBase;
-		entry.lastTaken = 0_sec;
-	}
-	lastCaptureTime_ = 0_sec;
-	lastCaptureTeam_ = Team::None;
-	obeliskAttackTime_ = { 0_sec, 0_sec };
-	UpdateConfigString();
-}
-
-/*
-=============
-FlagStateManager::SetStatus
-
-Updates the stored flag status for the provided team.
-=============
-*/
-bool FlagStateManager::SetStatus(Team team, FlagStatus status) {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-		return false;
+	Constructs the flag state manager with default values.
+	=============
+	*/
+	FlagStateManager::FlagStateManager() {
+		Reset();
 	}
 
-	FlagData& data = data_.at(*index);
-	if (data.status == status) {
-		return false;
+	/*
+	=============
+	FlagStateManager::Instance
+
+	Returns the singleton flag state manager.
+	=============
+	*/
+	FlagStateManager& FlagStateManager::Instance() {
+		static FlagStateManager instance;
+		return instance;
 	}
 
-	data.status = status;
-	UpdateConfigString();
-	return true;
-}
+	/*
+	=============
+	FlagStateManager::Reset
 
-/*
-=============
-FlagStateManager::GetStatus
-
-Returns the stored flag status for the provided team.
-=============
-*/
-FlagStatus FlagStateManager::GetStatus(Team team) const {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-		return FlagStatus::Invalid;
+	Restores all tracked flag state to defaults.
+	=============
+	*/
+	void FlagStateManager::Reset() {
+		for (auto& entry : data_) {
+			entry.status = FlagStatus::AtBase;
+			entry.lastTaken = 0_sec;
+		}
+		lastCaptureTime_ = 0_sec;
+		lastCaptureTeam_ = Team::None;
+		obeliskAttackTime_ = { 0_sec, 0_sec };
+		UpdateConfigString();
 	}
 
-	return data_.at(*index).status;
-}
+	/*
+	=============
+	FlagStateManager::SetStatus
 
-/*
-=============
-FlagStateManager::SetTakenTime
+	Updates the stored flag status for the provided team.
+	=============
+	*/
+	bool FlagStateManager::SetStatus(Team team, FlagStatus status) {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			return false;
+		}
 
-Records the time at which the specified team's flag was last taken.
-=============
-*/
-void FlagStateManager::SetTakenTime(Team team, GameTime time) {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-						return;
+		FlagData& data = data_.at(*index);
+		if (data.status == status) {
+			return false;
+		}
+
+		data.status = status;
+		UpdateConfigString();
+		return true;
 	}
 
-	data_.at(*index).lastTaken = time;
-}
+	/*
+	=============
+	FlagStateManager::GetStatus
 
-/*
-=============
-FlagStateManager::GetTakenTime
+	Returns the stored flag status for the provided team.
+	=============
+	*/
+	FlagStatus FlagStateManager::GetStatus(Team team) const {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			return FlagStatus::Invalid;
+		}
 
-Fetches the last recorded time a team's flag was taken.
-=============
-*/
-GameTime FlagStateManager::GetTakenTime(Team team) const {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-		return 0_sec;
+		return data_.at(*index).status;
 	}
 
-	return data_.at(*index).lastTaken;
-}
+	/*
+	=============
+	FlagStateManager::SetTakenTime
 
-/*
-=============
-FlagStateManager::RecordCapture
+	Records the time at which the specified team's flag was last taken.
+	=============
+	*/
+	void FlagStateManager::SetTakenTime(Team team, GameTime time) {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			return;
+		}
 
-Stores the most recent flag capture information.
-=============
-*/
-void FlagStateManager::RecordCapture(GameTime time, Team team) {
-	lastCaptureTime_ = time;
-	lastCaptureTeam_ = team;
-}
-
-/*
-=============
-FlagStateManager::LastCaptureTime
-
-Returns the time at which the last capture occurred.
-=============
-*/
-GameTime FlagStateManager::LastCaptureTime() const {
-	return lastCaptureTime_;
-}
-
-/*
-=============
-FlagStateManager::LastCaptureTeam
-
-Returns the team that last captured a flag.
-=============
-*/
-Team FlagStateManager::LastCaptureTeam() const {
-	return lastCaptureTeam_;
-}
-
-/*
-=============
-FlagStateManager::IndexForTeam
-
-Provides the array index backing a team's flag data.
-=============
-*/
-std::optional<size_t> FlagStateManager::IndexForTeam(Team team) {
-	switch (team) {
-	case Team::Red:
-		return 0;
-	case Team::Blue:
-		return 1;
-	case Team::Free:
-		return 2;
-	default:
-		return std::nullopt;
-	}
-}
-
-/*
-=============
-FlagStateManager::DataFor
-
-Fetches mutable flag data for the specified team.
-=============
-*/
-FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-		static FlagData dummy{};
-		return dummy;
+		data_.at(*index).lastTaken = time;
 	}
 
-	return data_.at(*index);
-}
+	/*
+	=============
+	FlagStateManager::GetTakenTime
 
-/*
-=============
-FlagStateManager::DataFor
+	Fetches the last recorded time a team's flag was taken.
+	=============
+	*/
+	GameTime FlagStateManager::GetTakenTime(Team team) const {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			return 0_sec;
+		}
 
-Fetches immutable flag data for the specified team.
-=============
-*/
-const FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) const {
-	const auto index = IndexForTeam(team);
-	if (!index) {
-		static FlagData dummy{};
-		return dummy;
+		return data_.at(*index).lastTaken;
 	}
 
-	return data_.at(*index);
-}
+	/*
+	=============
+	FlagStateManager::RecordCapture
 
-/*
-=============
-BuildFlagStatusPayload
-
-Constructs the configstring payload for the current flag states.
-=============
-*/
-std::string BuildFlagStatusPayload(bool captureTheFlagMode, const std::array<FlagStatus, 3>& statuses) {
-	std::string flagStatusStr;
-	flagStatusStr.reserve(captureTheFlagMode ? 2 : 3);
-
-	static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
-	static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
-
-	if (captureTheFlagMode) {
-		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
-		flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
-	}
-	else {
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
-		flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(2))));
+	Stores the most recent flag capture information.
+	=============
+	*/
+	void FlagStateManager::RecordCapture(GameTime time, Team team) {
+		lastCaptureTime_ = time;
+		lastCaptureTeam_ = team;
 	}
 
-	return flagStatusStr;
-}
+	/*
+	=============
+	FlagStateManager::LastCaptureTime
 
-/*
-=============
-FlagStateManager::BuildConfigString
-
-Constructs the configstring payload for clients.
-=============
-*/
-std::string FlagStateManager::BuildConfigString() const {
-	const std::array<FlagStatus, 3> statuses{
-		DataFor(Team::Red).status,
-		DataFor(Team::Blue).status,
-		DataFor(Team::Free).status
-	};
-	return BuildFlagStatusPayload(Game::Is(GameType::CaptureTheFlag), statuses);
-}
-
-/*
-=============
-FlagStateManager::UpdateConfigString
-
-Sends updated flag state to connected clients.
-=============
-*/
-void FlagStateManager::UpdateConfigString() const {
-	const std::string payload = BuildConfigString();
-	gi.configString(CS_FLAGSTATUS, payload.c_str());
-}
-
-/*
-=============
-Flags
-
-Returns the shared flag state manager instance.
-=============
-*/
-FlagStateManager& Flags() {
-	return FlagStateManager::Instance();
-}
-
-
-/*
-=============
-SupportsCTF
-
-Returns true when the current gametype supports CTF features.
-=============
-*/
-[[nodiscard]] bool SupportsCTF() {
-	return Game::Has(GameFlags::CTF);
-}
-
-/*
-=============
-TeamFlagClassName
-
-Maps a team to its corresponding flag classname.
-=============
-*/
-[[nodiscard]] const char* TeamFlagClassName(Team team) {
-	switch (team) {
-	case Team::Red:
-		return ITEM_CTF_FLAG_RED;
-	case Team::Blue:
-		return ITEM_CTF_FLAG_BLUE;
-	case Team::Free:
-		return ITEM_CTF_FLAG_NEUTRAL;
-	default:
-		return nullptr;
+	Returns the time at which the last capture occurred.
+	=============
+	*/
+	GameTime FlagStateManager::LastCaptureTime() const {
+		return lastCaptureTime_;
 	}
-}
 
-/*
-=============
-TeamFlagItem
+	/*
+	=============
+	FlagStateManager::LastCaptureTeam
 
-Maps a team to its inventory identifier.
-=============
-*/
-[[nodiscard]] item_id_t TeamFlagItem(Team team) {
-	switch (team) {
-	case Team::Red:
-		return IT_FLAG_RED;
-	case Team::Blue:
-		return IT_FLAG_BLUE;
-	case Team::Free:
-		return IT_FLAG_NEUTRAL;
-	default:
-		return IT_NULL;
+	Returns the team that last captured a flag.
+	=============
+	*/
+	Team FlagStateManager::LastCaptureTeam() const {
+		return lastCaptureTeam_;
 	}
-}
 
-/*
-=============
-TeamFromFlagItem
+	/*
+	=============
+	FlagStateManager::IndexForTeam
 
-Maps a flag item identifier back to its owning team.
-=============
-*/
-[[nodiscard]] std::optional<Team> TeamFromFlagItem(item_id_t item) {
-	switch (item) {
-	case IT_FLAG_RED:
-		return Team::Red;
-	case IT_FLAG_BLUE:
-		return Team::Blue;
-	case IT_FLAG_NEUTRAL:
-		return Team::Free;
-	default:
-		return std::nullopt;
+	Provides the array index backing a team's flag data.
+	=============
+	*/
+	std::optional<size_t> FlagStateManager::IndexForTeam(Team team) {
+		switch (team) {
+		case Team::Red:
+			return 0;
+		case Team::Blue:
+			return 1;
+		case Team::Free:
+			return 2;
+		default:
+			return std::nullopt;
+		}
 	}
-}
+
+	/*
+	=============
+	FlagStateManager::DataFor
+
+	Fetches mutable flag data for the specified team.
+	=============
+	*/
+	FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			static FlagData dummy{};
+			return dummy;
+		}
+
+		return data_.at(*index);
+	}
+
+	/*
+	=============
+	FlagStateManager::DataFor
+
+	Fetches immutable flag data for the specified team.
+	=============
+	*/
+	const FlagStateManager::FlagData& FlagStateManager::DataFor(Team team) const {
+		const auto index = IndexForTeam(team);
+		if (!index) {
+			static FlagData dummy{};
+			return dummy;
+		}
+
+		return data_.at(*index);
+	}
+
+	/*
+	=============
+	BuildFlagStatusPayload
+
+	Constructs the configstring payload for the current flag states.
+	=============
+	*/
+	std::string BuildFlagStatusPayload(bool captureTheFlagMode, const std::array<FlagStatus, 3>& statuses) {
+		std::string flagStatusStr;
+		flagStatusStr.reserve(captureTheFlagMode ? 2 : 3);
+
+		static constexpr std::array<char, 5> ctfFlagStatusRemap{ '0', '1', '*', '*', '2' };
+		static constexpr std::array<char, 5> oneFlagStatusRemap{ '0', '1', '2', '3', '4' };
+
+		if (captureTheFlagMode) {
+			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
+			flagStatusStr.push_back(ctfFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
+		}
+		else {
+			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(0))));
+			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(1))));
+			flagStatusStr.push_back(oneFlagStatusRemap.at(static_cast<int>(statuses.at(2))));
+		}
+
+		return flagStatusStr;
+	}
+
+	/*
+	=============
+	FlagStateManager::BuildConfigString
+
+	Constructs the configstring payload for clients.
+	=============
+	*/
+	std::string FlagStateManager::BuildConfigString() const {
+		const std::array<FlagStatus, 3> statuses{
+			DataFor(Team::Red).status,
+			DataFor(Team::Blue).status,
+			DataFor(Team::Free).status
+		};
+		return BuildFlagStatusPayload(Game::Is(GameType::CaptureTheFlag), statuses);
+	}
+
+	/*
+	=============
+	FlagStateManager::UpdateConfigString
+
+	Sends updated flag state to connected clients.
+	=============
+	*/
+	void FlagStateManager::UpdateConfigString() const {
+		const std::string payload = BuildConfigString();
+		gi.configString(CS_FLAGSTATUS, payload.c_str());
+	}
+
+	/*
+	=============
+	Flags
+
+	Returns the shared flag state manager instance.
+	=============
+	*/
+	FlagStateManager& Flags() {
+		return FlagStateManager::Instance();
+	}
+
+
+	/*
+	=============
+	SupportsCTF
+
+	Returns true when the current gametype supports CTF features.
+	=============
+	*/
+	[[nodiscard]] bool SupportsCTF() {
+		return Game::Has(GameFlags::CTF);
+	}
+
+	/*
+	=============
+	TeamFlagClassName
+
+	Maps a team to its corresponding flag classname.
+	=============
+	*/
+	[[nodiscard]] const char* TeamFlagClassName(Team team) {
+		switch (team) {
+		case Team::Red:
+			return ITEM_CTF_FLAG_RED;
+		case Team::Blue:
+			return ITEM_CTF_FLAG_BLUE;
+		case Team::Free:
+			return ITEM_CTF_FLAG_NEUTRAL;
+		default:
+			return nullptr;
+		}
+	}
+
+	/*
+	=============
+	TeamFlagItem
+
+	Maps a team to its inventory identifier.
+	=============
+	*/
+	[[nodiscard]] item_id_t TeamFlagItem(Team team) {
+		switch (team) {
+		case Team::Red:
+			return IT_FLAG_RED;
+		case Team::Blue:
+			return IT_FLAG_BLUE;
+		case Team::Free:
+			return IT_FLAG_NEUTRAL;
+		default:
+			return IT_NULL;
+		}
+	}
+
+	/*
+	=============
+	TeamFromFlagItem
+
+	Maps a flag item identifier back to its owning team.
+	=============
+	*/
+	[[nodiscard]] std::optional<Team> TeamFromFlagItem(item_id_t item) {
+		switch (item) {
+		case IT_FLAG_RED:
+			return Team::Red;
+		case IT_FLAG_BLUE:
+			return Team::Blue;
+		case IT_FLAG_NEUTRAL:
+			return Team::Free;
+		default:
+			return std::nullopt;
+		}
+	}
 
 	template <typename Flags>
 	[[nodiscard]] bool HasSpawnFlagImpl(const Flags& flags, SpawnFlags flag) {
@@ -442,17 +442,17 @@ Maps a flag item identifier back to its owning team.
 	}
 
 	void ResetCarrierHurtTimers(Team team) {
-	Teamplay_ForEachTeamMember(team, [](gentity_t* entity) {
-		entity->client->resp.ctf_lasthurtcarrier = 0_ms;
-	});
-}
+		Teamplay_ForEachTeamMember(team, [](gentity_t* entity) {
+			entity->client->resp.ctf_lasthurtcarrier = 0_ms;
+			});
+	}
 
 	void AwardAssistBonuses(gentity_t* scorer) {
 		Teamplay_ForEachClient([scorer](gentity_t* teammate) {
 			if (teammate->client->sess.team != scorer->client->sess.team) {
 				teammate->client->resp.ctf_lasthurtcarrier = -5_sec;
 				return;
-		}
+			}
 
 			if (teammate == scorer) {
 				return;
@@ -557,7 +557,7 @@ Maps a flag item identifier back to its owning team.
 			if (!carrier && entity->client->pers.inventory[flagItem]) {
 				carrier = entity;
 			}
-		});
+			});
 		return carrier;
 	}
 
@@ -610,7 +610,7 @@ Maps a flag item identifier back to its owning team.
 	/*
 	=============
 	ReturnSoundIndex
-	
+
 	Maps a team to its throttling slot for flag return audio.
 	=============
 	*/
@@ -634,7 +634,7 @@ Maps a flag item identifier back to its owning team.
 	/*
 	=============
 	ReturnSoundState
-	
+
 	Provides access to the shared flag return sound throttle state.
 	=============
 	*/
@@ -646,7 +646,7 @@ Maps a flag item identifier back to its owning team.
 	/*
 	=============
 	PlayTeamAnnouncer
-	
+
 	Dispatches a localized announcer cue to every member of a team.
 	=============
 	*/
@@ -657,7 +657,7 @@ Maps a flag item identifier back to its owning team.
 
 		Teamplay_ForEachTeamMember(team, [soundKey](gentity_t* entity) {
 			AnnouncerSound(entity, soundKey);
-		});
+			});
 	}
 
 	/*
@@ -722,7 +722,7 @@ Maps a flag item identifier back to its owning team.
 		switch (team) {
 		case Team::Red:
 			if (Flags().GetStatus(Team::Blue) != FlagStatus::AtBase &&
-					Flags().GetTakenTime(Team::Blue) > level.time - 5_sec) {
+				Flags().GetTakenTime(Team::Blue) > level.time - 5_sec) {
 				return;
 			}
 			Flags().SetTakenTime(Team::Blue, level.time);
@@ -731,7 +731,7 @@ Maps a flag item identifier back to its owning team.
 			break;
 		case Team::Blue:
 			if (Flags().GetStatus(Team::Red) != FlagStatus::AtBase &&
-					Flags().GetTakenTime(Team::Red) > level.time - 5_sec) {
+				Flags().GetTakenTime(Team::Red) > level.time - 5_sec) {
 				return;
 			}
 			Flags().SetTakenTime(Team::Red, level.time);

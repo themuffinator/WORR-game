@@ -45,45 +45,45 @@ namespace Commands {
 		return (g_vote_flags->integer & cmd.flag) != 0;
 	}
 
-		/*
-		=============
-		RegisterVoteCommand
+	/*
+	=============
+	RegisterVoteCommand
 
-		Helper to store vote command metadata and expose menu definitions with stable ownership.
-		=============
-		*/
-		static void RegisterVoteCommand(
-				std::string_view name,
-				bool (*validateFn)(gentity_t*, const CommandArgs&),
-				void (*executeFn)(),
-				int32_t flag,
-				int8_t minArgs,
-				std::string_view argsUsage,
-				std::string_view helpText,
-				bool visibleInMenu = true)
-		{
-			VoteCommand command{ name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
-			auto [iter, inserted] = s_voteCommands.emplace(std::string(name), command);
-			if (!inserted) {
-				iter->second = std::move(command);
-			}
-
-			auto definitionIt = std::find_if(
-				s_voteDefinitions.begin(),
-				s_voteDefinitions.end(),
-				[&](const VoteDefinitionView& view) {
-					return view.name == iter->first;
-				});
-
-			if (definitionIt == s_voteDefinitions.end()) {
-				s_voteDefinitions.push_back({ std::string(iter->first), flag, visibleInMenu });
-			}
-			else {
-				definitionIt->name = iter->first;
-				definitionIt->flag = flag;
-				definitionIt->visibleInMenu = visibleInMenu;
-			}
+	Helper to store vote command metadata and expose menu definitions with stable ownership.
+	=============
+	*/
+	static void RegisterVoteCommand(
+		std::string_view name,
+		bool (*validateFn)(gentity_t*, const CommandArgs&),
+		void (*executeFn)(),
+		int32_t flag,
+		int8_t minArgs,
+		std::string_view argsUsage,
+		std::string_view helpText,
+		bool visibleInMenu = true)
+	{
+		VoteCommand command{ name, validateFn, executeFn, flag, minArgs, argsUsage, helpText };
+		auto [iter, inserted] = s_voteCommands.emplace(std::string(name), command);
+		if (!inserted) {
+			iter->second = std::move(command);
 		}
+
+		auto definitionIt = std::find_if(
+			s_voteDefinitions.begin(),
+			s_voteDefinitions.end(),
+			[&](const VoteDefinitionView& view) {
+				return view.name == iter->first;
+			});
+
+		if (definitionIt == s_voteDefinitions.end()) {
+			s_voteDefinitions.push_back({ std::string(iter->first), flag, visibleInMenu });
+		}
+		else {
+			definitionIt->name = iter->first;
+			definitionIt->flag = flag;
+			definitionIt->visibleInMenu = visibleInMenu;
+		}
+	}
 
 
 	// --- Vote Execution Functions ("Pass_*") ---
@@ -210,19 +210,19 @@ namespace Commands {
 			gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' not found in map pool.\n", mapName.data());
 			return false;
 		}
-                if (map->lastPlayed) {
-                        const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
-                        const int64_t delta = secondsSinceStart - map->lastPlayed;
-                        const int cooldownSeconds = 1800;
-                        if (delta < 0 || delta < cooldownSeconds) {
-                                const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
-                                const int remaining = std::max(0, cooldownSeconds - elapsed);
-                                gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' was played recently, please wait {}.\n", mapName.data(), FormatDuration(remaining).c_str());
-                                return false;
-                        }
-                }
-                return true;
-        }
+		if (map->lastPlayed) {
+			const int64_t secondsSinceStart = std::max<int64_t>(0, static_cast<int64_t>(time(nullptr) - game.serverStartTime));
+			const int64_t delta = secondsSinceStart - map->lastPlayed;
+			const int cooldownSeconds = 1800;
+			if (delta < 0 || delta < cooldownSeconds) {
+				const int elapsed = delta > 0 ? static_cast<int>(delta) : 0;
+				const int remaining = std::max(0, cooldownSeconds - elapsed);
+				gi.LocClient_Print(ent, PRINT_HIGH, "Map '{}' was played recently, please wait {}.\n", mapName.data(), FormatDuration(remaining).c_str());
+				return false;
+			}
+		}
+		return true;
+	}
 
 	static bool Validate_Gametype(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::FromString(args.getString(2))) {
@@ -378,10 +378,10 @@ namespace Commands {
 			argSuffix = std::format(" {}", effectiveArg);
 		}
 
-                gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
-                        level.vote.client->sess.netName,
-                        vote_cmd->name.data(),
-                        argSuffix.empty() ? "" : argSuffix.c_str());
+		gi.LocBroadcast_Print(PRINT_CENTER, "{} called a vote:\n{}{}\n",
+			level.vote.client->sess.netName,
+			vote_cmd->name.data(),
+			argSuffix.empty() ? "" : argSuffix.c_str());
 
 		for (auto ec : active_clients()) {
 			ec->client->pers.voted = (ec == ent) ? 1 : 0;

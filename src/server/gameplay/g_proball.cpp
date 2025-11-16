@@ -384,7 +384,7 @@ namespace ProBall {
 		}
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} drops the ball!\n",
-				carrier->client->sess.netName);
+			carrier->client->sess.netName);
 		return true;
 	}
 
@@ -399,7 +399,7 @@ namespace ProBall {
 			return false;
 
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} throws the ball!\n",
-				carrier->client->sess.netName);
+			carrier->client->sess.netName);
 		return true;
 	}
 

@@ -524,7 +524,7 @@ static bool PCfg_ParseBool(std::string_view text, bool& outValue) {
 	std::string lowered(text);
 	std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) {
 		return static_cast<char>(std::tolower(c));
-	});
+		});
 
 	if (lowered == "1" || lowered == "true" || lowered == "yes" || lowered == "on") {
 		outValue = true;

@@ -178,14 +178,14 @@ OpenSetupGametypeMenu
 static void OpenSetupGametypeMenu(gentity_t* ent, MatchSetupState* state) {
 	MenuBuilder b;
 	b.add("Gametype", MenuAlign::Center).spacer();
-        for (auto& [label, value] : std::vector<std::pair<const char*, const char*>>{
-                {"Practice", "practice"},
-                {"Free For All", "ffa"},
-                {"Duel", "duel"},
-                {"Team Deathmatch", "tdm"},
-                {"Domination", "dom"},
-                {"Capture the Flag", "ctf"},
-                }) {
+	for (auto& [label, value] : std::vector<std::pair<const char*, const char*>>{
+			{"Practice", "practice"},
+			{"Free For All", "ffa"},
+			{"Duel", "duel"},
+			{"Team Deathmatch", "tdm"},
+			{"Domination", "dom"},
+			{"Capture the Flag", "ctf"},
+		}) {
 		b.add(label, MenuAlign::Left, [=](gentity_t* e, Menu& m) {
 			state->gametype = value;
 			OpenSetupModifierMenu(e, state);

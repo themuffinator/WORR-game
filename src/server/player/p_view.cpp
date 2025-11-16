@@ -646,18 +646,18 @@ static void G_CalcBlend(gentity_t* ent) {
 		};
 
 	// Powerups
-        if (ent->client->PowerupTimer(PowerupTimer::SpawnProtection) > level.time) {
-                G_AddBlend(1, 0, 0, 0.05f, ent->client->ps.screenBlend);
-        }
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::QuadDamage), 0, 0, 1, 0.08f, "items/damage2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Haste), 1, 0.2f, 0.5f, 0.08f, "items/quadfire2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::DoubleDamage), 0, 0, 1, 0.08f, "misc/ddamage2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::EmpathyShield), 0.9f, 0.1f, 0.1f, 0.08f, "items/suit2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::AntiGravBelt), 0.1f, 0.1f, 0.1f, 0.04f, "items/suit2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::BattleSuit), 0.9f, 0.7f, 0, 0.08f, "items/protect2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Invisibility), 0.8f, 0.8f, 0.8f, 0.08f, "items/protect2.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::EnviroSuit), 0, 1, 0, 0.08f, "items/airout.wav");
-        BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Rebreather), 0.4f, 1, 0.4f, 0.04f, "items/airout.wav");
+	if (ent->client->PowerupTimer(PowerupTimer::SpawnProtection) > level.time) {
+		G_AddBlend(1, 0, 0, 0.05f, ent->client->ps.screenBlend);
+	}
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::QuadDamage), 0, 0, 1, 0.08f, "items/damage2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Haste), 1, 0.2f, 0.5f, 0.08f, "items/quadfire2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::DoubleDamage), 0, 0, 1, 0.08f, "misc/ddamage2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::EmpathyShield), 0.9f, 0.1f, 0.1f, 0.08f, "items/suit2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::AntiGravBelt), 0.1f, 0.1f, 0.1f, 0.04f, "items/suit2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::BattleSuit), 0.9f, 0.7f, 0, 0.08f, "items/protect2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Invisibility), 0.8f, 0.8f, 0.8f, 0.08f, "items/protect2.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::EnviroSuit), 0, 1, 0, 0.08f, "items/airout.wav");
+	BlendIfExpiring(ent->client->PowerupTimer(PowerupTimer::Rebreather), 0.4f, 1, 0.4f, 0.04f, "items/airout.wav");
 
 	// Freeze effect
 	if (Game::Is(GameType::FreezeTag) && ent->client->eliminated && !ent->client->follow.target) {
@@ -671,8 +671,8 @@ static void G_CalcBlend(gentity_t* ent) {
 	}
 
 	// IR goggles
-        if (ent->client->PowerupTimer(PowerupTimer::IrGoggles) > level.time) {
-                remaining = ent->client->PowerupTimer(PowerupTimer::IrGoggles) - level.time;
+	if (ent->client->PowerupTimer(PowerupTimer::IrGoggles) > level.time) {
+		remaining = ent->client->PowerupTimer(PowerupTimer::IrGoggles) - level.time;
 		if (G_PowerUpExpiringRelative(remaining)) {
 			ent->client->ps.rdFlags |= RDF_IRGOGGLES;
 			G_AddBlend(1, 0, 0, 0.2f, ent->client->ps.screenBlend);
@@ -722,10 +722,10 @@ static void P_WorldEffects() {
 	const auto oldWaterLevel = currentClient->oldWaterLevel;
 	currentClient->oldWaterLevel = waterLevel;
 
-        const bool breather = currentClient->PowerupTimer(PowerupTimer::Rebreather) > level.time;
-        const bool enviroSuit = currentClient->PowerupTimer(PowerupTimer::EnviroSuit) > level.time;
-        const bool battleSuit = currentClient->PowerupTimer(PowerupTimer::BattleSuit) > level.time;
-        const bool spawnProtection = currentClient->PowerupTimer(PowerupTimer::SpawnProtection) > level.time;
+	const bool breather = currentClient->PowerupTimer(PowerupTimer::Rebreather) > level.time;
+	const bool enviroSuit = currentClient->PowerupTimer(PowerupTimer::EnviroSuit) > level.time;
+	const bool battleSuit = currentClient->PowerupTimer(PowerupTimer::BattleSuit) > level.time;
+	const bool spawnProtection = currentClient->PowerupTimer(PowerupTimer::SpawnProtection) > level.time;
 	const bool anyProtection = breather || enviroSuit || battleSuit || spawnProtection;
 
 	auto PlaySound = [](gentity_t* ent, soundchan_t chan, const char* sfx) {
@@ -775,7 +775,7 @@ static void P_WorldEffects() {
 	if (waterLevel == WATER_UNDER) {
 		if (anyProtection) {
 			currentPlayer->airFinished = level.time + 10_sec;
-                        if (((currentClient->PowerupTimer(PowerupTimer::Rebreather) - level.time).milliseconds() % 2500) == 0) {
+			if (((currentClient->PowerupTimer(PowerupTimer::Rebreather) - level.time).milliseconds() % 2500) == 0) {
 				const char* breathSound = currentClient->breatherSound ? "player/u_breath2.wav" : "player/u_breath1.wav";
 				PlaySound(currentPlayer, CHAN_AUTO, breathSound);
 				currentClient->breatherSound ^= 1;
@@ -908,26 +908,26 @@ static void ClientSetEffects(gentity_t* ent) {
 		ent->s.renderFX |= RF_SHELL_RED | RF_SHELL_GREEN;
 	}
 
-        if (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time)
-                if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::QuadDamage)))
-                        ent->s.effects |= EF_QUAD;
-        if (ent->client->PowerupTimer(PowerupTimer::BattleSuit) > level.time)
-                if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::BattleSuit)))
-                        ent->s.effects |= EF_PENT;
-        if (ent->client->PowerupTimer(PowerupTimer::Haste) > level.time)
-                if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::Haste)))
-                        ent->s.effects |= EF_DUALFIRE;
-        if (ent->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time)
-                if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::DoubleDamage)))
-                        ent->s.effects |= EF_QUAD;
-        if (ent->client->PowerupTimer(PowerupTimer::EmpathyShield) > level.time)
-                if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::EmpathyShield)))
-                        ent->s.effects |= EF_EMPATHY;
+	if (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time)
+		if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::QuadDamage)))
+			ent->s.effects |= EF_QUAD;
+	if (ent->client->PowerupTimer(PowerupTimer::BattleSuit) > level.time)
+		if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::BattleSuit)))
+			ent->s.effects |= EF_PENT;
+	if (ent->client->PowerupTimer(PowerupTimer::Haste) > level.time)
+		if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::Haste)))
+			ent->s.effects |= EF_DUALFIRE;
+	if (ent->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time)
+		if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::DoubleDamage)))
+			ent->s.effects |= EF_QUAD;
+	if (ent->client->PowerupTimer(PowerupTimer::EmpathyShield) > level.time)
+		if (G_PowerUpExpiring(ent->client->PowerupTimer(PowerupTimer::EmpathyShield)))
+			ent->s.effects |= EF_EMPATHY;
 	if ((ent->client->ownedSphere) && (ent->client->ownedSphere->spawnFlags == SF_SPHERE_DEFENDER))
 		ent->s.effects |= EF_HALF_DAMAGE;
 	if (ent->client->trackerPainTime > level.time)
 		ent->s.effects |= EF_TRACKERTRAIL;
-        if (ent->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
+	if (ent->client->PowerupTimer(PowerupTimer::Invisibility) > level.time) {
 		if (ent->client->invisibility_fade_time <= level.time)
 			ent->s.alpha = 0.05f;
 		else {

@@ -85,7 +85,7 @@ namespace Commands {
 			}
 			if (admin_password->string && *admin_password->string && args.getString(1) == admin_password->string) {
 				ent->client->sess.admin = true;
-                                gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName);
+				gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName);
 			}
 		}
 		else {
@@ -144,19 +144,19 @@ namespace Commands {
 				});
 			break;
 		case Sort::Name:
-                        std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
-                                const gclient_t* A = &game.clients[a.clientIndex];
-                                const gclient_t* B = &game.clients[b.clientIndex];
-                                const char* an = A->sess.netName;
-                                const char* bn = B->sess.netName;
-                                auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
-                                for (size_t i = 0; ; ++i) {
-                                        char ca = lower(an[i]);
-                                        char cb = lower(bn[i]);
-                                        if (ca != cb) return ca < cb;
-                                        if (ca == '\0') return false; // equal
-                                }
-                                });
+			std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
+				const gclient_t* A = &game.clients[a.clientIndex];
+				const gclient_t* B = &game.clients[b.clientIndex];
+				const char* an = A->sess.netName;
+				const char* bn = B->sess.netName;
+				auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
+				for (size_t i = 0; ; ++i) {
+					char ca = lower(an[i]);
+					char cb = lower(bn[i]);
+					if (ca != cb) return ca < cb;
+					if (ca == '\0') return false; // equal
+				}
+				});
 			break;
 		}
 
@@ -222,7 +222,7 @@ namespace Commands {
 			const int ss = dt.seconds<int>() % 60;
 
 			std::string num = std::to_string(displayNum);
-                    std::string name = trunc_to(cl->sess.netName, W_NAME);
+			std::string name = trunc_to(cl->sess.netName, W_NAME);
 			std::string sid = trunc_to(cl->sess.socialID, W_ID);
 			std::string s_sr = std::to_string(sr);
 			char time_buf[8];
@@ -368,7 +368,7 @@ namespace Commands {
 					gi.WriteByte(POI_FLAG_NONE);
 					gi.unicast(ec, false);
 					gi.localSound(ec, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
-                                    gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName);
+					gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName);
 				}
 			}
 		}
@@ -743,7 +743,7 @@ namespace Commands {
 			gi.Client_Print(ent, PRINT_HIGH, "No Message of the Day set.\n");
 		}
 	}
-	
+
 	/*
 	=============
 	MyMap
@@ -813,7 +813,7 @@ namespace Commands {
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} queued {} for MyMap.\n",
 			ent->client->sess.netName,
 			display.c_str());
-        }
+	}
 
 	void MySkill(gentity_t* ent, const CommandArgs& args) {
 		int totalSkill = 0, numPlayers = 0;
@@ -875,59 +875,59 @@ namespace Commands {
 		}
 	}
 
-        void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
-                if (!ent || !ent->client)
-                        return;
+	void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
+		if (!ent || !ent->client)
+			return;
 
-                auto* cl = ent->client;
-                std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-                std::vector<Weapon> parsed;
-                parsed.reserve(static_cast<size_t>(std::max(args.count() - 1, 0)));
-                std::vector<std::string> invalidTokens;
-                bool capacityExceeded = false;
+		auto* cl = ent->client;
+		std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+		std::vector<Weapon> parsed;
+		parsed.reserve(static_cast<size_t>(std::max(args.count() - 1, 0)));
+		std::vector<std::string> invalidTokens;
+		bool capacityExceeded = false;
 
-                for (int i = 1; i < args.count(); ++i) {
-                        std::string_view token = args.getString(i);
-                        if (token.empty())
-                                continue;
+		for (int i = 1; i < args.count(); ++i) {
+			std::string_view token = args.getString(i);
+			if (token.empty())
+				continue;
 
-                        std::string normalized;
-                        switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
-                        case WeaponPrefAppendResult::Added:
-                                break;
-                        case WeaponPrefAppendResult::Duplicate:
-                                break;
-                        case WeaponPrefAppendResult::Invalid:
-                                if (!normalized.empty())
-                                        invalidTokens.emplace_back(std::move(normalized));
-                                break;
-                        case WeaponPrefAppendResult::CapacityExceeded:
-                                capacityExceeded = true;
-                                break;
-                        }
-                }
+			std::string normalized;
+			switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
+			case WeaponPrefAppendResult::Added:
+				break;
+			case WeaponPrefAppendResult::Duplicate:
+				break;
+			case WeaponPrefAppendResult::Invalid:
+				if (!normalized.empty())
+					invalidTokens.emplace_back(std::move(normalized));
+				break;
+			case WeaponPrefAppendResult::CapacityExceeded:
+				capacityExceeded = true;
+				break;
+			}
+		}
 
-                cl->sess.weaponPrefs.swap(parsed);
-                Client_RebuildWeaponPreferenceOrder(*cl);
-                ClientConfig_SaveWeaponPreferences(cl);
+		cl->sess.weaponPrefs.swap(parsed);
+		Client_RebuildWeaponPreferenceOrder(*cl);
+		ClientConfig_SaveWeaponPreferences(cl);
 
-                if (!invalidTokens.empty()) {
-                        std::ostringstream joined;
-                        for (size_t i = 0; i < invalidTokens.size(); ++i) {
-                                if (i)
-                                        joined << ", ";
-                                joined << invalidTokens[i];
-                        }
-                        gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation(s): {}\n", joined.str().c_str());
-                }
+		if (!invalidTokens.empty()) {
+			std::ostringstream joined;
+			for (size_t i = 0; i < invalidTokens.size(); ++i) {
+				if (i)
+					joined << ", ";
+				joined << invalidTokens[i];
+			}
+			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation(s): {}\n", joined.str().c_str());
+		}
 
-                if (capacityExceeded) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "Only the first {} unique weapon preferences were kept.\n",
-                                static_cast<int>(WeaponPreferenceCapacity));
-                }
+		if (capacityExceeded) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "Only the first {} unique weapon preferences were kept.\n",
+				static_cast<int>(WeaponPreferenceCapacity));
+		}
 
-                gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
-        }
+		gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
+	}
 
 	void Stats(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::Has(GameFlags::CTF)) {
@@ -969,7 +969,7 @@ namespace Commands {
 			gi.Client_Print(ent, PRINT_HIGH, "The timeout can only be ended by the timeout caller or an admin.\n");
 			return;
 		}
-            gi.LocBroadcast_Print(PRINT_HIGH, "{} is resuming the match.\n", ent->client->sess.netName);
+		gi.LocBroadcast_Print(PRINT_HIGH, "{} is resuming the match.\n", ent->client->sess.netName);
 		level.timeoutActive = 3_sec;
 	}
 
@@ -992,7 +992,7 @@ namespace Commands {
 		}
 		level.timeoutOwner = ent;
 		level.timeoutActive = GameTime::from_sec(match_timeoutLength->integer);
-            gi.LocBroadcast_Print(PRINT_CENTER, "{} called a timeout!\n{} has been granted.", ent->client->sess.netName, TimeString(match_timeoutLength->integer * 1000, false, false));
+		gi.LocBroadcast_Print(PRINT_CENTER, "{} called a timeout!\n{} has been granted.", ent->client->sess.netName, TimeString(match_timeoutLength->integer * 1000, false, false));
 		ent->client->pers.timeout_used = true;
 		G_LogEvent("MATCH TIMEOUT STARTED");
 	}
@@ -1199,9 +1199,9 @@ namespace Commands {
 
 					gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
 					if (pointTargetName)
-                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
+						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
 					else
-                                           gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
+						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
 				}
 			}
 		}
@@ -1219,15 +1219,15 @@ namespace Commands {
 					continue;
 
 				if (pointTargetName && otherNotifyMsg)
-                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 				else if (otherNotifyNoneMsg)
-                                   gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 			}
 
 			if (pointTargetName && otherNotifyMsg)
-                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 			else if (otherNotifyNoneMsg)
-                           gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 		}
 
 		ent->client->anim.time = 0_ms;

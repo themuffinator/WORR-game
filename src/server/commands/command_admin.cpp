@@ -419,17 +419,17 @@ namespace Commands {
 			return;
 		}
 
-                if (targ->client->sess.team == team) {
-                        gi.LocClient_Print(ent, PRINT_HIGH, "{} is already on the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
-                        return;
-                }
+		if (targ->client->sess.team == team) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "{} is already on the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
+			return;
+		}
 
 		if ((Teams() && team == Team::Free) || (!Teams() && team != Team::Spectator && team != Team::Free)) {
 			gi.Client_Print(ent, PRINT_HIGH, "Cannot set this team in the current gametype.\n");
 			return;
 		}
 
-                gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Moved {} to the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
+		gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Moved {} to the {} team.\n", targ->client->sess.netName, Teams_TeamName(team));
 		::SetTeam(targ, team, false, true, false);
 	}
 

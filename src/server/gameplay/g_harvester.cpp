@@ -59,7 +59,7 @@ namespace {
 		if (harvester) {
 			const int tokens = other->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 			if (tokens <= 0) {
-			return;
+				return;
 			}
 
 			other->client->ps.stats[STAT_GAMEPLAY_CARRIED] = 0;
