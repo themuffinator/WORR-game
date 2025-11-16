@@ -4099,6 +4099,7 @@ void P_SendLevelPOI(gentity_t* ent);
 unsigned int P_GetLobbyUserNum(const gentity_t* player);
 void EndOfUnitMessage();
 bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool force_spawn, bool& landmark);
+void PCfg_WriteConfig(gentity_t* ent);
 
 
 enum class SelectSpawnFlags {
