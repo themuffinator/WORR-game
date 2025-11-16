@@ -2001,12 +2001,17 @@ void MatchStats_End() {
 		return;
 	}
 
-try {
-		const auto& currentGameInfo = Game::GetCurrentInfo();
-		matchStats.recordedFlags = currentGameInfo.flags;
-		matchStats.wasTeamMode = HasFlag(matchStats.recordedFlags, GameFlags::Teams);
-		matchStats.matchStartMS = level.matchStartRealTime;
-		matchStats.matchEndMS = level.matchEndRealTime;
+		try {
+			const auto& currentGameInfo = Game::GetCurrentInfo();
+			matchStats.matchStartMS = level.matchStartRealTime;
+			matchStats.matchEndMS = level.matchEndRealTime;
+			matchStats.recordedFlags = currentGameInfo.flags;
+			bool wasTeamMode = HasFlag(matchStats.recordedFlags, GameFlags::Teams);
+			if (!wasTeamMode && Teams()) {
+				matchStats.recordedFlags = matchStats.recordedFlags | GameFlags::Teams;
+				wasTeamMode = true;
+			}
+			matchStats.wasTeamMode = wasTeamMode;
 		matchStats.matchID = level.matchID;
 		matchStats.gameType = std::string(currentGameInfo.short_name_upper);
 		matchStats.ruleSet = rs_long_name[game.ruleset];
@@ -2075,10 +2080,6 @@ try {
 			blueJson["flagHoldTimeLongestMsec"] = Json::Int64(level.match.ctfBlueFlagLongestHoldTimeMsec);
 		}
 
-		matchStats.calculateDuration();
-		matchStats.avKillsPerMinute = matchStats.durationMS > 0
-			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
-			: 0.0;
 		const bool hasTeamData = matchStats.wasTeamMode;
 
 		auto process_player = [&](gentity_t* ec) {
@@ -2241,6 +2242,11 @@ try {
 				matchStats.players.push_back(process_player(ec));
 			}
 		}
+
+		matchStats.calculateDuration();
+		matchStats.avKillsPerMinute = matchStats.durationMS > 0
+			? level.match.totalKills / (matchStats.durationMS / 60000.0f)
+			: 0.0f;
 
 		if (HasFlag(matchStats.recordedFlags, GameFlags::CTF)) {
 			json& ctfPlayersJson = matchStats.gametypeStats["ctf"]["players"];
