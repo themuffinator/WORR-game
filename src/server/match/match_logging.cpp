@@ -20,6 +20,7 @@
 #include "../gameplay/client_config.hpp"
 #include "../../shared/char_array_utils.hpp"
 #include <algorithm>
+#include <array>
 #include <filesystem>
 #include <functional>
 #include <fstream>
@@ -156,24 +157,6 @@ static inline std::string Html_FormatMilliseconds(int64_t milliseconds) {
 	return stream.str();
 }
 
-// Precomputed map for fast abbreviation-to-index lookup
-const std::unordered_map<std::string, Weapon> weaponAbbreviationMap = []() {
-	std::unordered_map<std::string, Weapon> map;
-	for (int i = 0; i < static_cast<uint8_t>(Weapon::Total); i++) {
-		map[weaponAbbreviations[i]] = static_cast<Weapon>(i);
-	}
-	return map;
-	}();
-
-// Function to get the weapon index from an abbreviation
-static Weapon getWeaponIndex(const std::string& abbreviation) {
-	auto it = weaponAbbreviationMap.find(abbreviation);
-	if (it != weaponAbbreviationMap.end()) {
-		return it->second; // Found abbreviation, return the Weapon
-	}
-	return Weapon::None; // Default for unknown abbreviations
-}
-
 static inline double GetAveragePickupDelay(uint32_t pickupCount, double totalDelay) {
 	if (pickupCount == 0)
 		return 0.0;
@@ -228,44 +211,37 @@ struct PlayerStats {
 	int ctfFlagCarrierTimeLongestMsec = 0;
 
 	// Weapon-based stats
-	std::map<std::string, int> totalShotsPerWeapon;
-	std::map<std::string, int> totalHitsPerWeapon;
-	std::map<std::string, double> accuracyPerWeapon;
+	std::array<int, static_cast<size_t>(Weapon::Total)> totalShotsPerWeapon = {};
+	std::array<int, static_cast<size_t>(Weapon::Total)> totalHitsPerWeapon = {};
+	std::array<double, static_cast<size_t>(Weapon::Total)> accuracyPerWeapon = {};
 
 	// MOD-based stats
-	std::map<ModID, int> modTotalKills;
-	std::map<ModID, int> modTotalDeaths;
-	std::map<ModID, double> modTotalKDR;
-	std::map<ModID, int> modTotalDmgD;
-	std::map<ModID, int> modTotalDmgR;
+	std::array<int, static_cast<size_t>(ModID::Total)> modTotalKills = {};
+	std::array<int, static_cast<size_t>(ModID::Total)> modTotalDeaths = {};
+	std::array<double, static_cast<size_t>(ModID::Total)> modTotalKDR = {};
+	std::array<int, static_cast<size_t>(ModID::Total)> modTotalDmgD = {};
+	std::array<int, static_cast<size_t>(ModID::Total)> modTotalDmgR = {};
 
 	std::array<uint32_t, static_cast<size_t>(PlayerMedal::Total)> awards = {};
 	json gametypeStats;
 
-	PlayerStats() {
-		for (const auto& weapon : weaponAbbreviations) {
-			totalShotsPerWeapon[weapon] = 0;
-			totalHitsPerWeapon[weapon] = 0;
-			accuracyPerWeapon[weapon] = 0.0;
-		}
-		for (const auto& mod : modr) {
-			modTotalKills[mod.mod] = 0;
-			modTotalDeaths[mod.mod] = 0;
-			modTotalKDR[mod.mod] = 0.0;
-			modTotalDmgD[mod.mod] = 0;
-			modTotalDmgR[mod.mod] = 0;
-		}
-	}
+	PlayerStats() = default;
 
-	// Method to calculate weapon accuracy
+	/*
+	=============
+	PlayerStats::calculateWeaponAccuracy
+
+	Calculates accuracy for each weapon slot based on hit and shot counts.
+	=============
+	*/
 	void calculateWeaponAccuracy() {
-		for (const auto& weapon : weaponAbbreviations) {
-			if (totalShotsPerWeapon[weapon] > 0) {
-				accuracyPerWeapon[weapon] =
-					(static_cast<double>(totalHitsPerWeapon[weapon]) / totalShotsPerWeapon[weapon]) * 100.0;
+		for (size_t i = 0; i < weaponAbbreviations.size(); ++i) {
+			if (totalShotsPerWeapon[i] > 0) {
+				accuracyPerWeapon[i] =
+					(static_cast<double>(totalHitsPerWeapon[i]) / totalShotsPerWeapon[i]) * 100.0;
 			}
 			else {
-				accuracyPerWeapon[weapon] = 0.0;
+				accuracyPerWeapon[i] = 0.0;
 			}
 		}
 	}
@@ -324,18 +300,14 @@ struct PlayerStats {
 		if (skillRatingChange != 0) result["skillRatingChange"] = skillRatingChange;
 
 		json shotsJson, hitsJson, accuracyJson;
-		for (const auto& weaponName : weaponAbbreviations) {
-			auto shotsIt = totalShotsPerWeapon.find(weaponName);
-			if (shotsIt != totalShotsPerWeapon.end() && shotsIt->second > 0)
-				shotsJson[weaponName] = shotsIt->second;
-
-			auto hitsIt = totalHitsPerWeapon.find(weaponName);
-			if (hitsIt != totalHitsPerWeapon.end() && hitsIt->second > 0)
-				hitsJson[weaponName] = hitsIt->second;
-
-			auto accIt = accuracyPerWeapon.find(weaponName);
-			if (accIt != accuracyPerWeapon.end() && accIt->second > 0.0)
-				accuracyJson[weaponName] = accIt->second;
+		for (size_t i = 0; i < weaponAbbreviations.size(); ++i) {
+			const auto& weaponName = weaponAbbreviations[i];
+			if (totalShotsPerWeapon[i] > 0)
+				shotsJson[weaponName] = totalShotsPerWeapon[i];
+			if (totalHitsPerWeapon[i] > 0)
+				hitsJson[weaponName] = totalHitsPerWeapon[i];
+			if (accuracyPerWeapon[i] > 0.0)
+				accuracyJson[weaponName] = accuracyPerWeapon[i];
 		}
 		if (!shotsJson.empty())    result["totalShotsPerWeapon"] = shotsJson;
 		if (!hitsJson.empty())     result["totalHitsPerWeapon"] = hitsJson;
@@ -343,11 +315,12 @@ struct PlayerStats {
 
 		json modKillsJson, modDeathsJson, modKDRJson, modDmgDJson, modDmgRJson;
 		for (const auto& mod : modr) {
-			if (modTotalKills.at(mod.mod) > 0) modKillsJson[mod.name] = modTotalKills.at(mod.mod);
-			if (modTotalDeaths.at(mod.mod) > 0) modDeathsJson[mod.name] = modTotalDeaths.at(mod.mod);
-			if (modTotalKDR.at(mod.mod) > 0.0) modKDRJson[mod.name] = modTotalKDR.at(mod.mod);
-			if (modTotalDmgD.at(mod.mod) > 0)  modDmgDJson[mod.name] = modTotalDmgD.at(mod.mod);
-			if (modTotalDmgR.at(mod.mod) > 0)  modDmgRJson[mod.name] = modTotalDmgR.at(mod.mod);
+			const size_t idx = static_cast<size_t>(mod.mod);
+			if (modTotalKills[idx] > 0) modKillsJson[mod.name] = modTotalKills[idx];
+			if (modTotalDeaths[idx] > 0) modDeathsJson[mod.name] = modTotalDeaths[idx];
+			if (modTotalKDR[idx] > 0.0) modKDRJson[mod.name] = modTotalKDR[idx];
+			if (modTotalDmgD[idx] > 0)  modDmgDJson[mod.name] = modTotalDmgD[idx];
+			if (modTotalDmgR[idx] > 0)  modDmgRJson[mod.name] = modTotalDmgR[idx];
 		}
 		if (!modKillsJson.empty()) result["totalKillsByMOD"] = modKillsJson;
 		if (!modDeathsJson.empty()) result["totalDeathsByMOD"] = modDeathsJson;
@@ -1366,15 +1339,12 @@ static inline void Html_WriteTopMeansOfDeath(std::ofstream& html, const MatchSta
 			// Team mode: split
 			int redDeaths = 0, blueDeaths = 0;
 
+			const size_t modIdx = static_cast<size_t>(getModIdByName(modName));
 			for (auto* p : redPlayers) {
-				auto it = p->modTotalDeaths.find(getModIdByName(modName));
-				if (it != p->modTotalDeaths.end())
-					redDeaths += it->second;
+				redDeaths += p->modTotalDeaths[modIdx];
 			}
 			for (auto* p : bluePlayers) {
-				auto it = p->modTotalDeaths.find(getModIdByName(modName));
-				if (it != p->modTotalDeaths.end())
-					blueDeaths += it->second;
+				blueDeaths += p->modTotalDeaths[modIdx];
 			}
 
 			html << "<tr><td>" << escapedModName << "</td><td>" << redDeaths << "</td><td>" << blueDeaths << "</td><td>" << (redDeaths + blueDeaths) << "</td></tr>\n";
@@ -1805,22 +1775,23 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 		html << "  <h3>Weapon Stats</h3>"
 			<< "  <table><tr><th>Weapon</th><th>Shots</th><th>Hits</th><th>Acc (%)</th></tr>";
 		{
-			std::vector<std::string> used;
-			for (auto& kv : p->totalShotsPerWeapon) {
-				if (kv.second > 0 || p->totalHitsPerWeapon.at(kv.first) > 0) {
-					used.push_back(kv.first);
+			std::vector<size_t> used;
+			for (size_t i = 0; i < weaponAbbreviations.size(); ++i) {
+				if (p->totalShotsPerWeapon[i] > 0 || p->totalHitsPerWeapon[i] > 0) {
+					used.push_back(i);
 				}
 			}
-			std::sort(used.begin(), used.end(), [&](const std::string& a, const std::string& b) {
-				return p->accuracyPerWeapon.at(a) > p->accuracyPerWeapon.at(b);
-				});
-			for (auto& w : used) {
+			std::sort(used.begin(), used.end(), [&](size_t a, size_t b) {
+				return p->accuracyPerWeapon[a] > p->accuracyPerWeapon[b];
+			});
+			for (size_t idx : used) {
+				const auto& weaponName = weaponAbbreviations[idx];
 				html << "    <tr>"
-					<< "<td>" << w << "</td>"
-					<< "<td>" << p->totalShotsPerWeapon.at(w) << "</td>"
-					<< "<td>" << p->totalHitsPerWeapon.at(w) << "</td>"
+					<< "<td>" << weaponName << "</td>"
+					<< "<td>" << p->totalShotsPerWeapon[idx] << "</td>"
+					<< "<td>" << p->totalHitsPerWeapon[idx] << "</td>"
 					<< std::fixed << std::setprecision(1)
-					<< "<td>" << p->accuracyPerWeapon.at(w) << "</td></tr>";
+					<< "<td>" << p->accuracyPerWeapon[idx] << "</td></tr>";
 			}
 		}
 		html << "  </table>";
@@ -1832,11 +1803,12 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 			struct Row { std::string mod; int k, d; double kdr; int dd, dr; };
 			std::vector<Row> rows;
 			for (auto& mr : modr) {
-				int kills = p->modTotalKills.at(mr.mod);
-				int deaths = p->modTotalDeaths.at(mr.mod);
+				const size_t idx = static_cast<size_t>(mr.mod);
+				int kills = p->modTotalKills[idx];
+				int deaths = p->modTotalDeaths[idx];
 				if (!kills && !deaths) continue;
 				double ratio = deaths > 0 ? double(kills) / deaths : (kills > 0 ? double(kills) : 0.0);
-				rows.push_back({ mr.name,kills,deaths,ratio,p->modTotalDmgD.at(mr.mod),p->modTotalDmgR.at(mr.mod) });
+				rows.push_back({ mr.name,kills,deaths,ratio,p->modTotalDmgD[idx],p->modTotalDmgR[idx] });
 			}
 			std::sort(rows.begin(), rows.end(), [](auto& a, auto& b) { return a.kdr > b.kdr; });
 			for (auto& r : rows) {
@@ -2238,17 +2210,13 @@ void MatchStats_End() {
 				p.killsPerMinute = (p.totalKills * 60.0) / (p.playTimeMsec / 1000.0f);
 
 			// Weapon stats
-			for (const auto& weapon : weaponAbbreviations) {
-				Weapon index = getWeaponIndex(weapon);
-				if (index < Weapon::None || index >= Weapon::Total)
-					continue;
-
-				int shots = cl->pers.match.totalShotsPerWeapon[static_cast<uint8_t>(index)];
-				int hits = cl->pers.match.totalHitsPerWeapon[static_cast<uint8_t>(index)];
+			for (size_t i = 0; i < weaponAbbreviations.size(); ++i) {
+				int shots = cl->pers.match.totalShotsPerWeapon[i];
+				int hits = cl->pers.match.totalHitsPerWeapon[i];
 				if (shots > 0) {
-					p.totalShotsPerWeapon[weapon] = shots;
-					p.totalHitsPerWeapon[weapon] = hits;
-					p.accuracyPerWeapon[weapon] = (double)hits / shots * 100.0;
+					p.totalShotsPerWeapon[i] = shots;
+					p.totalHitsPerWeapon[i] = hits;
+					p.accuracyPerWeapon[i] = (double)hits / shots * 100.0;
 				}
 			}
 
@@ -2265,23 +2233,25 @@ void MatchStats_End() {
 
 			// MOD stats
 			for (const auto& mod : modr) {
-				int kills = cl->pers.match.modTotalKills[static_cast<int>(mod.mod)];
-				int deaths = cl->pers.match.modTotalDeaths[static_cast<int>(mod.mod)];
-				int dmgDealt = cl->pers.match.modTotalDmgD[static_cast<int>(mod.mod)];
-				int dmgReceived = cl->pers.match.modTotalDmgR[static_cast<int>(mod.mod)];
+				const size_t idx = static_cast<size_t>(mod.mod);
+				int kills = cl->pers.match.modTotalKills[idx];
+				int deaths = cl->pers.match.modTotalDeaths[idx];
+				int dmgDealt = cl->pers.match.modTotalDmgD[idx];
+				int dmgReceived = cl->pers.match.modTotalDmgR[idx];
 
-				if (dmgDealt > 0)
-					p.modTotalDmgD[mod.mod] = dmgDealt;
-				if (dmgReceived > 0)
-					p.modTotalDmgR[mod.mod] = dmgReceived;
+				p.modTotalKills[idx] = kills;
+				p.modTotalDeaths[idx] = deaths;
+				p.modTotalDmgD[idx] = dmgDealt;
+				p.modTotalDmgR[idx] = dmgReceived;
 
 				if (kills > 0 || deaths > 0) {
-					p.modTotalKills[mod.mod] = kills;
-					p.modTotalDeaths[mod.mod] = deaths;
 					double kdr = (deaths > 0)
-						? (double)kills / deaths
-						: (kills > 0 ? (double)kills : 0.0);
-					p.modTotalKDR[mod.mod] = kdr;
+					? (double)kills / deaths
+					: (kills > 0 ? (double)kills : 0.0);
+					p.modTotalKDR[idx] = kdr;
+				}
+				else {
+					p.modTotalKDR[idx] = 0.0;
 				}
 			}
 
@@ -2386,20 +2356,18 @@ void MatchStats_End() {
 			for (const auto& p : playersVec) {
 				accountedPlayerIDs.insert(p.socialID);
 
-				for (const auto& [modId, kills] : p.modTotalKills) {
-					if (kills <= 0)
-						continue;
+				for (size_t idx = 0; idx < modr.size(); ++idx) {
+					int kills = p.modTotalKills[idx];
+					if (kills > 0) {
+						const auto& modName = modr[idx].name;
+						matchStats.totalKillsByMOD[modName] += kills;
+					}
 
-					const auto& modName = modr[static_cast<int>(modId)].name;
-					matchStats.totalKillsByMOD[modName] += kills;
-				}
-
-				for (const auto& [modId, deaths] : p.modTotalDeaths) {
-					if (deaths <= 0)
-						continue;
-
-					const auto& modName = modr[static_cast<int>(modId)].name;
-					matchStats.totalDeathsByMOD[modName] += deaths;
+					int deaths = p.modTotalDeaths[idx];
+					if (deaths > 0) {
+						const auto& modName = modr[idx].name;
+						matchStats.totalDeathsByMOD[modName] += deaths;
+					}
 				}
 			}
 			};
