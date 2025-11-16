@@ -2213,8 +2213,8 @@ struct MatchOverallStats {
 	uint32_t proBallGoals{ 0 };
 	uint32_t proBallAssists{ 0 };
 
-	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modKills{};
-	std::array<uint8_t, static_cast<uint8_t>(ModID::Total)>    modDeaths{};
+	std::array<uint32_t, static_cast<size_t>(ModID::Total)>    modKills{};
+	std::array<uint32_t, static_cast<size_t>(ModID::Total)>    modDeaths{};
 
 	std::array<uint32_t, static_cast<size_t>(PlayerMedal::Total)> medalCount{};
 

@@ -507,6 +507,42 @@ struct MatchStats {
 };
 MatchStats matchStats;
 
+/*
+=============
+ValidateModTotals
+
+Ensures aggregated MOD totals line up with the recorded match totals.
+=============
+*/
+static void ValidateModTotals(const MatchStats& matchStats) {
+	uint32_t aggregatedKillSum = 0;
+	for (const auto& [modName, kills] : matchStats.totalKillsByMOD) {
+		if (kills <= 0)
+			continue;
+
+		aggregatedKillSum += static_cast<uint32_t>(kills);
+	}
+
+	uint32_t aggregatedDeathSum = 0;
+	for (const auto& [modName, deaths] : matchStats.totalDeathsByMOD) {
+		if (deaths <= 0)
+			continue;
+
+		aggregatedDeathSum += static_cast<uint32_t>(deaths);
+	}
+
+	const uint32_t declaredKills = static_cast<uint32_t>(std::max(0, matchStats.totalKills));
+	const uint32_t declaredDeaths = static_cast<uint32_t>(std::max(0, matchStats.totalDeaths));
+
+	if (aggregatedKillSum != declaredKills) {
+		gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, declaredKills);
+	}
+
+	if (aggregatedDeathSum != declaredDeaths) {
+		gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, declaredDeaths);
+	}
+}
+
 static bool MatchStats_WriteJson(const MatchStats& matchStats, const std::string& fileName) {
 	try {
 		std::ofstream file(fileName);
@@ -2349,24 +2385,7 @@ void MatchStats_End() {
 				: (double)kills;
 		}
 
-		int aggregatedKillSum = 0;
-		for (const auto& [modName, kills] : matchStats.totalKillsByMOD) {
-			aggregatedKillSum += kills;
-		}
-
-		int aggregatedDeathSum = 0;
-		for (const auto& [modName, deaths] : matchStats.totalDeathsByMOD) {
-			aggregatedDeathSum += deaths;
-		}
-
-		if (aggregatedKillSum != level.match.totalKills) {
-			gi.Com_PrintFmt("{}: totalKillsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedKillSum, level.match.totalKills);
-		}
-
-		if (aggregatedDeathSum != level.match.totalDeaths) {
-			gi.Com_PrintFmt("{}: totalDeathsByMOD mismatch ({} != {})\n", __FUNCTION__, aggregatedDeathSum, level.match.totalDeaths);
-		}
-
+		ValidateModTotals(matchStats);
 		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
 	}
 	catch (const std::exception& e) {
