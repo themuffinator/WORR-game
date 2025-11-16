@@ -383,6 +383,10 @@ struct MatchStats {
 	std::vector<PlayerStats> players; // Individual player stats (for FFA/Duel)
 	std::vector<TeamStats> teams;  // Team stats (for TDM/CTF)
 	json gametypeStats;
+	int timeLimitSeconds = 0;
+	int scoreLimit = 0;
+	std::vector<MatchEvent> eventLog;
+	std::vector<MatchDeathEvent> deathLog;
 #if 0
 	// Convert time_t to ISO 8601 string
 	std::string formatTime(std::time_t time) const {
@@ -440,6 +444,8 @@ struct MatchStats {
 		matchJson["matchTimeStart"] = level.matchStartRealTime;
 		matchJson["matchTimeEnd"] = level.matchEndRealTime;
 		matchJson["matchTimeDuration"] = durationMS;
+		matchJson["timeLimitSeconds"] = timeLimitSeconds;
+		matchJson["scoreLimit"] = scoreLimit;
 		matchJson["players"] = json(Json::arrayValue);
 		matchJson["teams"] = json(Json::arrayValue);
 
@@ -457,6 +463,32 @@ struct MatchStats {
 
 		if (JsonHasData(gametypeStats))
 			matchJson["gametype"] = gametypeStats;
+
+		if (!eventLog.empty()) {
+			json eventArray = json(Json::arrayValue);
+			for (const auto& entry : eventLog) {
+				json eventJson;
+				eventJson["time"] = Json::Int64(entry.time.seconds<int64_t>());
+				eventJson["event"] = entry.eventStr;
+				eventArray.append(eventJson);
+			}
+			matchJson["eventLog"] = std::move(eventArray);
+		}
+
+		if (!deathLog.empty()) {
+			json dlog = json(Json::arrayValue);
+			for (const auto& e : deathLog) {
+				json entry;
+				entry["time"] = Json::Int64(e.time.seconds<int64_t>());
+				entry["victim"]["name"] = e.victim.name;
+				entry["victim"]["id"] = e.victim.id;
+				entry["attacker"]["name"] = e.attacker.name;
+				entry["attacker"]["id"] = e.attacker.id;
+				entry["mod"] = modr[static_cast<int>(e.mod.id)].name;
+				dlog.append(entry);
+			}
+			matchJson["deathLog"] = std::move(dlog);
+		}
 
 		return matchJson;
 }
@@ -625,10 +657,10 @@ static inline void Html_WriteTopInfo(std::ofstream& html, const MatchStats& matc
 		<< "  <p><strong>Start:</strong> " << matchStats.formatTime(level.matchStartRealTime) << " UTC</p>\n"
 		<< "  <p><strong>End:</strong>   " << matchStats.formatTime(level.matchEndRealTime) << " UTC</p>\n"
 		<< "  <p><strong>Map:</strong>  " << escapedMapName << "</p>\n"
-		<< "  <p><strong>Score Limit:</strong> " << GT_ScoreLimit() << "</p>\n";
+		<< "  <p><strong>Score Limit:</strong> " << matchStats.scoreLimit << "</p>\n";
 	// Time Limit
 	{
-		int t_secs = timeLimit->integer * 60;
+		int t_secs = matchStats.timeLimitSeconds;
 		int h = t_secs / 3600;
 		int m = (t_secs % 3600) / 60;
 		int s = t_secs % 60;
@@ -1446,7 +1478,7 @@ Html_WriteEventLog
 =============
 */
 static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& matchStats, const std::vector<const PlayerStats*>& allPlayers) {
-	if (level.match.eventLog.empty())
+	if (matchStats.eventLog.empty())
 		return;
 
 	int matchDuration = matchStats.durationMS;
@@ -1477,7 +1509,7 @@ static inline void Html_WriteEventLog(std::ofstream& html, const MatchStats& mat
 	// === Render event log ===
 	html << "<div class=\"section\">\n<h2>Event Log</h2>\n<table>\n<tr><th>Time</th><th>Event</th></tr>\n";
 
-	for (auto& e : level.match.eventLog) {
+	for (auto& e : matchStats.eventLog) {
 		int secs = static_cast<int>(e.time.seconds());
 		double pctTime = (matchDuration > 0.0) ? (double(secs) / matchDuration) * 100.0 : 0.0;
 		if (pctTime < 1.0) pctTime = 1.0;
@@ -1619,7 +1651,7 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 		// Top Victims by this player
 		{
 			std::unordered_map<std::string, int> victimCounts;
-			for (const auto& e : level.match.deathLog) {
+			for (const auto& e : matchStats.deathLog) {
 				if (e.attacker.id == p->socialID) {
 					victimCounts[e.victim.name]++;
 				}
@@ -1639,7 +1671,7 @@ static inline void Html_WriteIndividualPlayerSections(std::ofstream& html, const
 		// Top Killers of this player
 		{
 			std::unordered_map<std::string, int> killerCounts;
-			for (const auto& e : level.match.deathLog) {
+			for (const auto& e : matchStats.deathLog) {
 				if (e.victim.id == p->socialID) {
 					killerCounts[e.attacker.name]++;
 				}
@@ -1919,6 +1951,8 @@ static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseF
 	level.match.eventLog.clear();
 	matchStats.players.clear();
 	matchStats.teams.clear();
+	matchStats.eventLog.clear();
+	matchStats.deathLog.clear();
 }
 
 /*
@@ -1965,6 +1999,10 @@ void MatchStats_End() {
 		matchStats.totalSuicides = level.match.totalSuicides;
 		matchStats.proBall_totalGoals = level.match.proBallGoals;
 		matchStats.proBall_totalAssists = level.match.proBallAssists;
+		matchStats.timeLimitSeconds = timeLimit ? timeLimit->integer * 60 : 0;
+		matchStats.scoreLimit = GT_ScoreLimit();
+		matchStats.eventLog = level.match.eventLog;
+		matchStats.deathLog = level.match.deathLog;
 
 		if (HasFlag(currentGameInfo.flags, GameFlags::CTF)) {
 			const int64_t ctfTotalCaptures = level.match.ctfRedTeamTotalCaptures + level.match.ctfBlueTeamTotalCaptures;
@@ -2238,7 +2276,7 @@ void MatchStats_End() {
 			return !id.empty() && accountedPlayerIDs.find(id) != accountedPlayerIDs.end();
 			};
 
-		for (const auto& e : level.match.deathLog) {
+		for (const auto& e : matchStats.deathLog) {
 			const auto& modName = modr[static_cast<int>(e.mod.id)].name;
 			const bool attackerAccounted = isAccounted(e.attacker.id);
 			const bool victimAccounted = isAccounted(e.victim.id);
