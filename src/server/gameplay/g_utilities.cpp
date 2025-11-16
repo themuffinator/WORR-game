@@ -1507,13 +1507,13 @@ void G_LogEvent(std::string str) {
 		gi.Com_ErrorFmt("{}: empty event string.", __FUNCTION__);
 		return;
 	}
-	if (!level.match.eventLog.capacity()) {
-		level.match.eventLog.reserve(2048);
-	}
-
 	ev.time = level.time - level.levelStartTime;
 	ev.eventStr = str;
 	try {
+		std::lock_guard<std::mutex> logGuard(level.matchLogMutex);
+		if (!level.match.eventLog.capacity()) {
+			level.match.eventLog.reserve(2048);
+		}
 		level.match.eventLog.push_back(std::move(ev));
 	}
 	catch (const std::exception& e) {

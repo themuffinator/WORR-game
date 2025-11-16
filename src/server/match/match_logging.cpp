@@ -21,14 +21,20 @@
 #include "../../shared/char_array_utils.hpp"
 #include <algorithm>
 #include <array>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <functional>
 #include <fstream>
 #include <iomanip>
 #include <json/json.h>
+#include <mutex>
+#include <queue>
 #include <sstream>
 #include <string_view>
 #include <system_error>
+#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <cerrno>
@@ -526,6 +532,26 @@ struct MatchStats {
 }
 };
 MatchStats matchStats;
+
+static std::atomic<uint64_t> g_matchStatsNextJobID{ 1 };
+static std::atomic<uint32_t> g_matchStatsPendingJobs{ 0 };
+static std::atomic<uint32_t> g_matchStatsCompletedJobs{ 0 };
+static std::atomic<uint32_t> g_matchStatsFailedJobs{ 0 };
+
+struct MatchStatsWorkerJob {
+	uint64_t	jobId = 0;
+	MatchStats	stats;
+	std::string	baseFilePath;
+};
+
+static std::mutex			g_matchStatsWorkerMutex;
+static std::condition_variable	g_matchStatsWorkerCondition;
+static std::queue<MatchStatsWorkerJob>	g_matchStatsWorkerQueue;
+static std::once_flag		g_matchStatsWorkerOnceFlag;
+
+static void MatchStatsWorker_ThreadMain();
+static void MatchStatsWorker_EnsureStarted();
+static uint64_t MatchStatsWorker_Enqueue(MatchStats&& stats, std::string baseFilePath);
 
 /*
 =============
@@ -2016,10 +2042,11 @@ static void SendIndividualMiniStats(const MatchStats& matchStats) {
 MatchStats_WriteAll
 
 Ensures the destination directory exists, then writes JSON and HTML exports for the
-current match while reporting any errors that occur during the process.
+provided match data while reporting any errors that occur during the process.
+Returns true when both exports succeed.
 =============
 */
-static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseFilePath) {
+static bool MatchStats_WriteAll(const MatchStats& matchStats, const std::string& baseFilePath) {
 	const std::filesystem::path basePath(baseFilePath);
 	const std::filesystem::path directory = basePath.parent_path();
 
@@ -2028,7 +2055,7 @@ static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseF
 		std::filesystem::create_directories(directory, dirError);
 		if (dirError) {
 			gi.Com_PrintFmt("{}: Failed to create directory '{}': {}\n", __FUNCTION__, directory.string().c_str(), dirError.message().c_str());
-			return;
+			return false;
 		}
 	}
 
@@ -2036,23 +2063,113 @@ static void MatchStats_WriteAll(MatchStats& matchStats, const std::string& baseF
 	bool htmlWritten = true;
 	if (g_statex_export_html->integer) {
 		htmlWritten = MatchStats_WriteHtml(matchStats, baseFilePath + ".html");
-	} else {
+	}
+	else {
 		gi.Com_PrintFmt("{}: HTML export disabled via g_statex_export_html.\n", __FUNCTION__);
 	}
 	if (!jsonWritten || !htmlWritten) {
 		gi.Com_PrintFmt("{}: Export completed with errors (JSON: {}, HTML: {})\n", __FUNCTION__, jsonWritten ? "ok" : "failed", htmlWritten ? "ok" : "failed");
 	}
 
-	SendIndividualMiniStats(matchStats);
-
-	level.match.deathLog.clear();
-	level.match.eventLog.clear();
-	matchStats.players.clear();
-	matchStats.teams.clear();
-	matchStats.eventLog.clear();
-	matchStats.deathLog.clear();
+	return jsonWritten && htmlWritten;
 }
 
+/*
+=============
+MatchStatsWorker_ThreadMain
+
+Processes queued match stats export jobs on a detached worker thread.
+=============
+*/
+static void MatchStatsWorker_ThreadMain() {
+	while (true) {
+		MatchStatsWorkerJob job;
+		{
+			std::unique_lock<std::mutex> lock(g_matchStatsWorkerMutex);
+			g_matchStatsWorkerCondition.wait(lock, [] {
+				return !g_matchStatsWorkerQueue.empty();
+			});
+			job = std::move(g_matchStatsWorkerQueue.front());
+			g_matchStatsWorkerQueue.pop();
+		}
+
+		const auto startTime = std::chrono::steady_clock::now();
+		bool success = true;
+		try {
+			success = MatchStats_WriteAll(job.stats, job.baseFilePath);
+		}
+		catch (const std::exception& e) {
+			success = false;
+			gi.Com_PrintFmt("Match stats job {} threw exception: {}\n", job.jobId, e.what());
+		}
+		catch (...) {
+			success = false;
+			gi.Com_PrintFmt("Match stats job {} threw unknown exception.\n", job.jobId);
+		}
+
+		const auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+			std::chrono::steady_clock::now() - startTime).count();
+		const uint32_t pending = g_matchStatsPendingJobs.fetch_sub(1) - 1;
+
+		if (success) {
+			const uint32_t completed = ++g_matchStatsCompletedJobs;
+			gi.Com_PrintFmt("Match stats job {} succeeded in {} ms (pending: {}, completed: {}, failed: {})\n",
+				job.jobId,
+				elapsedMs,
+				pending,
+				completed,
+				g_matchStatsFailedJobs.load());
+		}
+		else {
+			const uint32_t failed = ++g_matchStatsFailedJobs;
+			gi.Com_PrintFmt("Match stats job {} failed in {} ms (pending: {}, completed: {}, failed: {})\n",
+				job.jobId,
+				elapsedMs,
+				pending,
+				g_matchStatsCompletedJobs.load(),
+				failed);
+		}
+	}
+}
+
+/*
+=============
+MatchStatsWorker_EnsureStarted
+
+Creates the detached worker thread on first use.
+=============
+*/
+static void MatchStatsWorker_EnsureStarted() {
+	std::call_once(g_matchStatsWorkerOnceFlag, []() {
+		std::thread worker(MatchStatsWorker_ThreadMain);
+		worker.detach();
+	});
+}
+
+/*
+=============
+MatchStatsWorker_Enqueue
+
+Enqueues a finalized MatchStats snapshot for asynchronous export and returns the job ID.
+=============
+*/
+static uint64_t MatchStatsWorker_Enqueue(MatchStats&& stats, std::string baseFilePath) {
+	MatchStatsWorker_EnsureStarted();
+
+	const uint64_t jobId = g_matchStatsNextJobID.fetch_add(1);
+	{
+		std::lock_guard<std::mutex> lock(g_matchStatsWorkerMutex);
+		g_matchStatsWorkerQueue.push(MatchStatsWorkerJob{
+			jobId,
+			std::move(stats),
+			std::move(baseFilePath)
+		});
+	}
+
+	g_matchStatsPendingJobs.fetch_add(1);
+	g_matchStatsWorkerCondition.notify_one();
+	return jobId;
+}
 /*
 =============
 MatchStats_End
@@ -2108,8 +2225,13 @@ void MatchStats_End() {
 		matchStats.proBall_totalAssists = level.match.proBallAssists;
 		matchStats.timeLimitSeconds = timeLimit ? timeLimit->integer * 60 : 0;
 		matchStats.scoreLimit = GT_ScoreLimit();
-		matchStats.eventLog = level.match.eventLog;
-		matchStats.deathLog = level.match.deathLog;
+		{
+			std::lock_guard<std::mutex> logGuard(level.matchLogMutex);
+			matchStats.eventLog.swap(level.match.eventLog);
+			matchStats.deathLog.swap(level.match.deathLog);
+			level.match.eventLog.clear();
+			level.match.deathLog.clear();
+		}
 
 		if (HasFlag(matchStats.recordedFlags, GameFlags::CTF)) {
 			const int64_t ctfTotalCaptures = level.match.ctfRedTeamTotalCaptures + level.match.ctfBlueTeamTotalCaptures;
@@ -2405,7 +2527,19 @@ void MatchStats_End() {
 		}
 
 		ValidateModTotals(matchStats);
-		MatchStats_WriteAll(matchStats, MATCH_STATS_PATH + "/" + level.matchID);
+		SendIndividualMiniStats(matchStats);
+
+		MatchStats jobSnapshot = std::move(matchStats);
+		std::string jobBasePath = MATCH_STATS_PATH + "/" + jobSnapshot.matchID;
+		const uint64_t jobId = MatchStatsWorker_Enqueue(std::move(jobSnapshot), std::move(jobBasePath));
+		const uint32_t pendingJobs = g_matchStatsPendingJobs.load();
+		gi.Com_PrintFmt("{}: queued match stats job {} (pending: {}, completed: {}, failed: {})\n",
+			__FUNCTION__,
+			jobId,
+			pendingJobs,
+			g_matchStatsCompletedJobs.load(),
+			g_matchStatsFailedJobs.load());
+		matchStats = MatchStats{};
 	}
 	catch (const std::exception& e) {
 		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());

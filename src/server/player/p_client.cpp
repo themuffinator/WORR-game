@@ -1487,9 +1487,6 @@ static void G_LogDeathEvent(gentity_t* victim, gentity_t* attacker, MeansOfDeath
 	if (level.matchState != MatchState::In_Progress) {
 		return;
 	}
-	if (!level.match.deathLog.capacity()) {
-		level.match.deathLog.reserve(2048);
-	}
 	if (!victim || !victim->client) {
 		gi.Com_PrintFmt("{}: Invalid victim for death log\n", __FUNCTION__);
 		return;
@@ -1509,6 +1506,10 @@ static void G_LogDeathEvent(gentity_t* victim, gentity_t* attacker, MeansOfDeath
 	ev.mod = mod;
 
 	try {
+		std::lock_guard<std::mutex> logGuard(level.matchLogMutex);
+		if (!level.match.deathLog.capacity()) {
+			level.match.deathLog.reserve(2048);
+		}
 		level.match.deathLog.push_back(std::move(ev));
 	}
 	catch (const std::exception& e) {
