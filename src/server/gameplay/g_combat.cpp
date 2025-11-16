@@ -30,7 +30,7 @@ struct FreezeTagDamageQuery {
 	bool modIsThaw = false;
 };
 
-inline bool FreezeTag_ShouldSuppressDamage(const FreezeTagDamageQuery& query) {
+static inline bool FreezeTag_ShouldSuppressDamage(const FreezeTagDamageQuery& query) {
 	if (!query.freezeTagActive)
 		return false;
 	if (!query.targetEliminated)
@@ -44,12 +44,11 @@ inline bool FreezeTag_ShouldSuppressDamage(const FreezeTagDamageQuery& query) {
 	return true;
 }
 
-inline int FreezeTag_ClampDamage(const FreezeTagDamageQuery& query, int take) {
+static inline int FreezeTag_ClampDamage(const FreezeTagDamageQuery& query, int take) {
 	if (take <= 0)
 		return 0;
 	return FreezeTag_ShouldSuppressDamage(query) ? 0 : take;
 }
-
 
 
 /*

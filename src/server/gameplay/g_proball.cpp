@@ -1097,7 +1097,7 @@ void HandleCarrierDisconnect(gentity_t* carrier) {
 HandleCarrierHit
 =============
 */
-bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
+static bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
 		      const MeansOfDeath& mod) {
 	if (Game::IsNot(GameType::ProBall))
 		return false;
@@ -1123,7 +1123,7 @@ bool HandleCarrierHit(gentity_t* carrier, gentity_t* attacker,
 RegisterGoalVolume
 =============
 */
-void RegisterGoalVolume(gentity_t* ent) {
+static void RegisterGoalVolume(gentity_t* ent) {
 	if (!ent)
 		return;
 
@@ -1154,7 +1154,7 @@ void RegisterGoalVolume(gentity_t* ent) {
 RegisterOutOfBoundsVolume
 =============
 */
-void RegisterOutOfBoundsVolume(gentity_t* ent) {
+static void RegisterOutOfBoundsVolume(gentity_t* ent) {
 	if (!ent)
 		return;
 
@@ -1222,7 +1222,7 @@ static TOUCH(OutOfBoundsTouch)(gentity_t* self, gentity_t* other,
 SpawnGoalTrigger
 =============
 */
-void SpawnGoalTrigger(gentity_t* ent) {
+static void SpawnGoalTrigger(gentity_t* ent) {
 	if (!ent)
 		return;
 
@@ -1244,7 +1244,7 @@ void SpawnGoalTrigger(gentity_t* ent) {
 SpawnOutOfBoundsTrigger
 =============
 */
-void SpawnOutOfBoundsTrigger(gentity_t* ent) {
+static void SpawnOutOfBoundsTrigger(gentity_t* ent) {
 	if (!ent)
 		return;
 
