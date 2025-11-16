@@ -2283,6 +2283,15 @@ struct ClientMatchStats {
 
 	std::array <uint32_t, static_cast<size_t>(HighValueItems::Total)>	pickupCounts;
 	std::array <GameTime, static_cast<size_t>(HighValueItems::Total)>	pickupDelay;
+
+	uint32_t	ctfFlagPickups = 0;
+	uint32_t	ctfFlagDrops = 0;
+	uint32_t	ctfFlagReturns = 0;
+	uint32_t	ctfFlagAssists = 0;
+	uint32_t	ctfFlagCaptures = 0;
+	uint64_t	ctfFlagCarrierTimeTotalMsec = 0;
+	uint32_t	ctfFlagCarrierTimeShortestMsec = 0;
+	uint32_t	ctfFlagCarrierTimeLongestMsec = 0;
 };
 
 struct Ghosts {

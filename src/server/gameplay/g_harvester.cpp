@@ -85,10 +85,13 @@ namespace {
 			return;
 		}
 
-		const GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
-		other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
-		other->client->pers.teamState.flag_pickup_time = 0_ms;
-		other->client->resp.ctf_flagsince = 0_ms;
+			GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+			if (!pickupTime) {
+				pickupTime = other->client->resp.ctf_flagsince;
+			}
+			other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
+			other->client->pers.teamState.flag_pickup_time = 0_ms;
+			other->client->resp.ctf_flagsince = 0_ms;
 
 		AwardFlagCapture(ent, other, baseTeam, pickupTime);
 		SetFlagStatus(Team::Free, FlagStatus::AtBase);
