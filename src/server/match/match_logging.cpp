@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <json/json.h>
 #include <sstream>
@@ -86,6 +87,48 @@ static std::string HtmlEscape(std::string_view input) {
 }
 
 const std::string MATCH_STATS_PATH = GAMEVERSION + "/matches";
+
+/*
+=============
+MatchStats_WriteFileAtomically
+
+Writes match exports by first emitting the contents into a temporary file and
+then renaming it into place. This ensures the final file is only replaced once
+all bytes are flushed successfully.
+=============
+*/
+static bool MatchStats_WriteFileAtomically(const std::string& finalPath, const std::function<void(std::ofstream&)>& writer) {
+	const std::filesystem::path destination(finalPath);
+	std::filesystem::path tempPath = destination;
+	tempPath += ".tmp";
+
+	try {
+		std::ofstream file(tempPath, std::ios::binary);
+		file.exceptions(std::ofstream::failbit | std::ofstream::badbit);
+
+		writer(file);
+
+		file.flush();
+		file.close();
+	}
+	catch (const std::exception& e) {
+		gi.Com_PrintFmt("%s: Failed to write temporary file '%s': %s\n", __FUNCTION__, tempPath.string().c_str(), e.what());
+		std::error_code removeError;
+		std::filesystem::remove(tempPath, removeError);
+		return false;
+	}
+
+	std::error_code renameError;
+	std::filesystem::rename(tempPath, destination, renameError);
+	if (renameError) {
+		gi.Com_PrintFmt("%s: Failed to rename '%s' -> '%s': %s\n", __FUNCTION__, tempPath.string().c_str(), destination.string().c_str(), renameError.message().c_str());
+		std::error_code removeError;
+		std::filesystem::remove(tempPath, removeError);
+		return false;
+	}
+
+	return true;
+}
 
 /*
 =============
@@ -507,27 +550,28 @@ struct MatchStats {
 };
 MatchStats matchStats;
 
+/*
+=============
+MatchStats_WriteJson
+
+Serializes the collected match statistics into JSON with an atomic write to the
+target path.
+=============
+*/
 static bool MatchStats_WriteJson(const MatchStats& matchStats, const std::string& fileName) {
-	try {
-		std::ofstream file(fileName);
-		if (file.is_open()) {
+	const bool wrote = MatchStats_WriteFileAtomically(fileName, [&](std::ofstream& file) {
 		Json::StreamWriterBuilder writer;
-		writer["indentation"] = "    "; // match original .dump(4)
+		writer["indentation"] = "    ";
 		std::string output = Json::writeString(writer, matchStats.toJson());
-			file << output;
-			file.close();
-			gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
-			return true;
-		}
+		file << output;
+	});
 
-		const std::error_code ec(errno, std::system_category());
-		gi.Com_PrintFmt("Failed to open JSON file: {} ({})\n", fileName.c_str(), ec.message().c_str());
+	if (wrote) {
+		gi.Com_PrintFmt("Match JSON written to {}\n", fileName.c_str());
+	} else {
+		gi.Com_PrintFmt("%s: Failed to write JSON file '%s'\n", __FUNCTION__, fileName.c_str());
 	}
-	catch (const std::exception& e) {
-		gi.Com_PrintFmt("Exception while writing JSON ({}): {}\n", fileName.c_str(), e.what());
-	}
-
-	return false;
+	return wrote;
 }
 
 /*
@@ -1801,7 +1845,6 @@ static inline void Html_WriteFooter(std::ofstream& html, const std::string& html
 	html << "<div class=\"footer\">Compiled by " << worr::version::kGameTitle << " "
 		<< worr::version::kGameVersion << "</div>\n";
 	html << "</body></html>\n";
-	html.close();
 }
 
 /*
@@ -1810,76 +1853,76 @@ MatchStats_WriteHtml
 =============
 */
 static bool MatchStats_WriteHtml(const MatchStats& matchStats, const std::string& htmlPath) {
-	std::ofstream html(htmlPath);
-	if (!html.is_open()) {
-		const std::error_code ec(errno, std::system_category());
-		gi.Com_PrintFmt("Failed to open HTML file: {} ({})\n", htmlPath.c_str(), ec.message().c_str());
-		return false;
-	}
+	const bool wrote = MatchStats_WriteFileAtomically(htmlPath, [&](std::ofstream& html) {
+		// Gather players
+		std::vector<const PlayerStats*> allPlayers;
+		std::vector<const PlayerStats*> redPlayers;
+		std::vector<const PlayerStats*> bluePlayers;
 
-	// Gather players
-	std::vector<const PlayerStats*> allPlayers;
-	std::vector<const PlayerStats*> redPlayers;
-	std::vector<const PlayerStats*> bluePlayers;
+		int redScore = 0, blueScore = 0;
+		int maxGlobalScore = 0;
 
-	int redScore = 0, blueScore = 0;
-	int maxGlobalScore = 0;
-
-	// solo players
-	for (const auto& p : matchStats.players) {
-		allPlayers.push_back(&p);
-		maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
-	}
-
-	// team players
-	for (size_t i = 0; i < matchStats.teams.size(); ++i) {
-		const auto& team = matchStats.teams[i];
-		if (i == 0) redScore = team.score;
-		if (i == 1) blueScore = team.score;
-
-		for (const auto& p : team.players) {
+		// solo players
+		for (const auto& p : matchStats.players) {
 			allPlayers.push_back(&p);
 			maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
-			if (i == 0)
-				redPlayers.push_back(&p);
-			else if (i == 1)
-				bluePlayers.push_back(&p);
 		}
-	}
 
-	const bool hadTeams = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
-	const bool hadCtf = HasFlag(matchStats.recordedFlags, GameFlags::CTF);
-	// Sort by totalScore descending
-	std::sort(allPlayers.begin(), allPlayers.end(), [](auto a, auto b) {
-		return a->totalScore > b->totalScore;
+		// team players
+		for (size_t i = 0; i < matchStats.teams.size(); ++i) {
+			const auto& team = matchStats.teams[i];
+			if (i == 0) redScore = team.score;
+			if (i == 1) blueScore = team.score;
+
+			for (const auto& p : team.players) {
+				allPlayers.push_back(&p);
+				maxGlobalScore = std::max(maxGlobalScore, p.totalScore);
+				if (i == 0) {
+					redPlayers.push_back(&p);
+				}
+				else if (i == 1) {
+					bluePlayers.push_back(&p);
+				}
+			}
+		}
+
+		const bool hadTeams = matchStats.wasTeamMode && matchStats.teams.size() >= 2;
+		const bool hadCtf = HasFlag(matchStats.recordedFlags, GameFlags::CTF);
+		// Sort by totalScore descending
+		std::sort(allPlayers.begin(), allPlayers.end(), [](auto a, auto b) {
+			return a->totalScore > b->totalScore;
 		});
 
-	Html_WriteHeader(html, matchStats);
-	Html_WriteTopInfo(html, matchStats);
-	Html_WriteWinnerSummary(html, matchStats);
+		Html_WriteHeader(html, matchStats);
+		Html_WriteTopInfo(html, matchStats);
+		Html_WriteWinnerSummary(html, matchStats);
 
-	if (hadTeams) {
-		Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
-		const double matchDurationMs = static_cast<double>(matchStats.durationMS);
-		Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
-	}
-	else {
-		Html_WriteOverallScores(html, matchStats, allPlayers);
-	}
+		if (hadTeams) {
+			Html_WriteTeamScores(html, redPlayers, bluePlayers, redScore, blueScore, matchStats.durationMS, maxGlobalScore);
+			const double matchDurationMs = static_cast<double>(matchStats.durationMS);
+			Html_WriteTeamsComparison(html, redPlayers, bluePlayers, matchDurationMs);
+		}
+		else {
+			Html_WriteOverallScores(html, matchStats, allPlayers);
+		}
 
-	Html_WriteTopPlayers(html, matchStats, allPlayers);
-	Html_WriteItemPickups(html, matchStats, allPlayers);
-	Html_WriteTopMeansOfDeath(html, matchStats, redPlayers, bluePlayers);
-	if (hadCtf) {
-		Html_WriteGametypeStats(html, matchStats, allPlayers);
-	}
-	Html_WriteEventLog(html, matchStats, allPlayers);
-	Html_WriteIndividualPlayerSections(html, matchStats, allPlayers);
-	Html_WriteFooter(html, htmlPath);
+		Html_WriteTopPlayers(html, matchStats, allPlayers);
+		Html_WriteItemPickups(html, matchStats, allPlayers);
+		Html_WriteTopMeansOfDeath(html, matchStats, redPlayers, bluePlayers);
+		if (hadCtf) {
+			Html_WriteGametypeStats(html, matchStats, allPlayers);
+		}
+		Html_WriteEventLog(html, matchStats, allPlayers);
+		Html_WriteIndividualPlayerSections(html, matchStats, allPlayers);
+		Html_WriteFooter(html, htmlPath);
+	});
 
-	html.close();
-	gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
-	return true;
+	if (wrote) {
+		gi.Com_PrintFmt("Match HTML report written to {}\n", htmlPath.c_str());
+	} else {
+		gi.Com_PrintFmt("%s: Failed to write HTML report '%s'\n", __FUNCTION__, htmlPath.c_str());
+	}
+	return wrote;
 }
 
 /*
