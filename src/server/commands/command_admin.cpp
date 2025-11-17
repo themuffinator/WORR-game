@@ -4,6 +4,7 @@
 // commands_admin.cpp - Implementations for admin-level commands.
 
 #include "../g_local.hpp"
+#include "../gameplay/client_config.hpp"
 #include "command_registration.hpp"
 #include <string>
 #include <format>
@@ -61,7 +62,7 @@ namespace Commands {
 
 		if (AppendIDToFile("admin.txt", resolvedID)) {
 			LoadAdminList();
-			std::string playerName = GetPlayerNameForSocialID(resolvedID);
+			std::string playerName = GetClientConfigStore().PlayerNameForSocialID(resolvedID);
 			if (!playerName.empty()) {
 				gi.LocBroadcast_Print(PRINT_CHAT, "{} has been granted admin rights.\n", playerName.c_str());
 			}
@@ -315,7 +316,7 @@ namespace Commands {
 
 		if (RemoveIDFromFile("admin.txt", resolvedID)) {
 			LoadAdminList();
-			std::string playerName = GetPlayerNameForSocialID(resolvedID);
+			std::string playerName = GetClientConfigStore().PlayerNameForSocialID(resolvedID);
 			if (!playerName.empty()) {
 				gi.LocBroadcast_Print(PRINT_CHAT, "{} has lost admin rights.\n", playerName.c_str());
 			}

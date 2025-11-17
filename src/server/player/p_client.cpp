@@ -49,8 +49,7 @@ service so legacy entry points can delegate to the shared implementation.
 =============
 */
 ClientSessionServiceImpl& GetClientSessionService() {
-	static LegacyClientConfigStore configStore;
-	static ClientSessionServiceImpl service(gi, game, level, configStore);
+	static ClientSessionServiceImpl service(gi, game, level);
 	return service;
 }
 

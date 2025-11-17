@@ -909,7 +909,7 @@ namespace Commands {
 
 		cl->sess.weaponPrefs.swap(parsed);
 		Client_RebuildWeaponPreferenceOrder(*cl);
-		ClientConfig_SaveWeaponPreferences(cl);
+		GetClientConfigStore().SaveWeaponPreferences(cl);
 
 		if (!invalidTokens.empty()) {
 			std::ostringstream joined;

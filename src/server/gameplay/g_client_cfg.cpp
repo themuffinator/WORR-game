@@ -1,59 +1,61 @@
-﻿// g_client_cfg.cpp (Game Client Configuration)
-// This file manages the persistence of player data by reading and writing
-// individual JSON configuration files for each unique player (identified by
-// their social ID). This allows for tracking stats and settings across
-// multiple game sessions.
-//
-// Key Responsibilities:
-// - Configuration Loading: `ClientConfig_Init` loads a player's JSON file upon
-//   connection, creating a new one with default values if it doesn't exist.
-// - Data Persistence: `ClientConfig_SaveStats` and related functions write
-//   updated information back to the JSON file at the end of a match, including
-//   skill rating changes, match history, and total playtime.
-// - Data Integrity: Ensures that the JSON files have the necessary structure,
-//   adding missing fields (like "stats" or "ratings") if they were created
-//   with an older version of the mod.
-// - Player Identity: Manages player name changes by tracking aliases.
-
 #include "client_config.hpp"
-#include "../client/client_config_store.hpp"
+
 #include "../g_local.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
-#include <array>
-#include <sstream>
-#include <vector>
-#include <filesystem>
-#include <system_error>
 #include <algorithm>
-#include <limits>
+#include <array>
+#include <filesystem>
+#include <fstream>
 #include <json/json.h>
-
+#include <memory>
+#include <limits>
 #include <optional>
-#include <set>
+#include <sstream>
 #include <string_view>
+#include <system_error>
+#include <vector>
 
-using json = Json::Value;
+namespace {
 
-const int DEFAULT_RATING = 1500;
-const std::string PLAYER_CONFIG_PATH = GAMEVERSION + "/pcfg";
+constexpr int kDefaultSkillRating = 1500;
+const std::string kPlayerConfigDirectory = GAMEVERSION + "/pcfg";
+
+} // namespace
 
 /*
 =============
-PlayerConfigPathFromID
+ClientConfigStore::EnsurePlayerConfigDirectory
 
-Sanitizes the supplied player ID and returns the filesystem path for the
-associated JSON config file. Returns std::nullopt if the sanitized value is
-empty.
+Creates the player configuration directory if it does not yet exist.
+Returns true when the directory exists and can be written to.
 =============
 */
-static std::optional<std::string> PlayerConfigPathFromID(const std::string& playerID, const char* functionName)
-{
+bool ClientConfigStore::EnsurePlayerConfigDirectory() const {
+	std::error_code ec;
+	std::filesystem::create_directories(kPlayerConfigDirectory, ec);
+	if (ec) {
+		gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
+			kPlayerConfigDirectory.c_str(), ec.message().c_str());
+	}
+
+	if (!std::filesystem::exists(kPlayerConfigDirectory)) {
+		gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", kPlayerConfigDirectory.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+/*
+=============
+ClientConfigStore::PlayerConfigPathFromID
+
+Sanitizes the supplied player ID and resolves it to an on-disk JSON path.
+Returns std::nullopt when the ID cannot be mapped to a safe filename.
+=============
+*/
+std::optional<std::string> ClientConfigStore::PlayerConfigPathFromID(const std::string& playerID, const char* functionName) const {
 	const std::string sanitized = SanitizeSocialID(playerID);
 	if (sanitized.empty()) {
 		if (!playerID.empty() && gi.Com_Print) {
@@ -66,68 +68,18 @@ static std::optional<std::string> PlayerConfigPathFromID(const std::string& play
 		gi.Com_PrintFmt("WARNING: {}: sanitized social ID '{}' to '{}' for config filename\n", functionName, playerID.c_str(), sanitized.c_str());
 	}
 
-	return std::optional<std::string>(G_Fmt("{}/{}.json", PLAYER_CONFIG_PATH, sanitized).data());
+	return std::optional<std::string>(G_Fmt("{}/{}.json", kPlayerConfigDirectory, sanitized).data());
 }
 
 /*
-================
-GetPlayerNameForSocialID
-================
+=============
+ClientConfigStore::CreateProfile
+
+Creates a new configuration JSON file on disk populated with the default
+schema for the supplied player identity.
+=============
 */
-std::string GetPlayerNameForSocialID(const std::string& socialID) {
-	if (socialID.empty())
-		return {};
-
-	const auto pathOpt = PlayerConfigPathFromID(socialID, __FUNCTION__);
-	if (!pathOpt)
-		return {};
-
-	const std::string path = *pathOpt;
-
-	std::ifstream file(path);
-	if (!file.is_open())
-		return {};
-
-	Json::Value root;
-	Json::CharReaderBuilder builder;
-	std::string errs;
-
-	if (!Json::parseFromStream(builder, file, &root, &errs)) {
-		return {};
-	}
-
-	if (!root.isMember("playerName") || !root["playerName"].isString())
-		return {};
-
-	return root["playerName"].asString();
-}
-
-static bool EnsurePlayerConfigDirectory() {
-	std::error_code ec;
-	std::filesystem::create_directories(PLAYER_CONFIG_PATH, ec);
-	if (ec) {
-		gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
-			PLAYER_CONFIG_PATH.c_str(), ec.message().c_str());
-	}
-
-	if (!std::filesystem::exists(PLAYER_CONFIG_PATH)) {
-		gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", PLAYER_CONFIG_PATH.c_str());
-		return false;
-	}
-
-	return true;
-}
-
-int ClientConfig_DefaultSkillRating() {
-	return DEFAULT_RATING;
-}
-
-/*
-===============
-ClientConfig_Create
-===============
-*/
-static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
+void ClientConfigStore::CreateProfile(gclient_t* client, const std::string& playerID, const std::string& playerName, const std::string& gameType) const {
 	if (playerID.empty())
 		return;
 
@@ -138,40 +90,34 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	newFile["originalPlayerName"] = playerName;
 	newFile["playerAliases"] = Json::Value(Json::arrayValue);
 
-	// Visual & audio settings
 	Json::Value config(Json::objectValue);
 	config["drawCrosshairID"] = 1;
 	config["drawFragMessages"] = 1;
 	config["drawTimer"] = 1;
 	config["eyeCam"] = 1;
 	config["killBeep"] = 1;
-	config["followKiller"] = cl ? cl->sess.pc.follow_killer : false;
-	config["followLeader"] = cl ? cl->sess.pc.follow_leader : false;
-	config["followPowerup"] = cl ? cl->sess.pc.follow_powerup : false;
+	config["followKiller"] = client ? client->sess.pc.follow_killer : false;
+	config["followLeader"] = client ? client->sess.pc.follow_leader : false;
+	config["followPowerup"] = client ? client->sess.pc.follow_powerup : false;
 	config["weaponPrefs"] = Json::Value(Json::arrayValue);
 	newFile["config"] = config;
 
-	// Per-game-type ratings
 	Json::Value ratings(Json::objectValue);
-	ratings[gameType] = DEFAULT_RATING;
+	ratings[gameType] = kDefaultSkillRating;
 	newFile["ratings"] = ratings;
 
-	// Match-level stats
 	Json::Value stats(Json::objectValue);
 	stats["totalMatches"] = 0;
 	stats["totalWins"] = 0;
 	stats["totalLosses"] = 0;
 	stats["totalTimePlayed"] = Json::Value::Int64(0);
 	stats["bestSkillRating"] = 0;
-	stats["lastSkillRating"] = DEFAULT_RATING;
+	stats["lastSkillRating"] = kDefaultSkillRating;
 	stats["lastSkillChange"] = 0;
 	newFile["stats"] = stats;
 
-	// Permissions
 	newFile["admin"] = false;
 	newFile["banned"] = false;
-
-	// Tracking
 	newFile["lastUpdated"] = TimeStamp();
 	newFile["lastSeen"] = TimeStamp();
 	newFile["firstSeen"] = TimeStamp();
@@ -185,11 +131,10 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 			return;
 
 		const std::string path = *pathOpt;
-
 		std::ofstream file(path);
 		if (file.is_open()) {
 			Json::StreamWriterBuilder builder;
-			builder["indentation"] = "    "; // 4 spaces
+			builder["indentation"] = "\t";
 			std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
 			writer->write(newFile, &file);
 			file.close();
@@ -204,41 +149,144 @@ static void ClientConfig_Create(gclient_t* cl, const std::string& playerID, cons
 	}
 }
 
+/*
+=============
+ClientConfigStore::ApplyWeaponPreferencesFromJson
+
+Hydrates the in-memory weapon preference order from the JSON configuration.
+=============
+*/
+void ClientConfigStore::ApplyWeaponPreferencesFromJson(gclient_t* client, const Json::Value& playerData) const {
+	if (!client)
+		return;
+
+	client->sess.weaponPrefs.clear();
+
+	if (!playerData.isMember("config"))
+		return;
+
+	const auto& cfg = playerData["config"];
+	if (!cfg.isMember("weaponPrefs") || !cfg["weaponPrefs"].isArray())
+		return;
+
+	const auto& prefs = cfg["weaponPrefs"];
+	std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+	std::vector<Weapon> parsed;
+	parsed.reserve(static_cast<size_t>(prefs.size()));
+	std::vector<std::string> invalidTokens;
+	bool capacityExceeded = false;
+
+	for (const auto& pref : prefs) {
+		if (!pref.isString())
+			continue;
+
+		std::string normalized;
+		switch (TryAppendWeaponPreference(pref.asString(), parsed, seen, &normalized)) {
+		case WeaponPrefAppendResult::Added:
+			break;
+		case WeaponPrefAppendResult::Duplicate:
+			break;
+		case WeaponPrefAppendResult::Invalid:
+			if (!normalized.empty())
+				invalidTokens.emplace_back(std::move(normalized));
+			break;
+		case WeaponPrefAppendResult::CapacityExceeded:
+			capacityExceeded = true;
+			break;
+		}
+	}
+
+	client->sess.weaponPrefs.swap(parsed);
+
+	if (!invalidTokens.empty()) {
+		std::ostringstream joined;
+		for (size_t i = 0; i < invalidTokens.size(); ++i) {
+			if (i)
+				joined << ", ";
+			joined << invalidTokens[i];
+		}
+		gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
+			__FUNCTION__, client->sess.netName, joined.str().c_str());
+	}
+
+	if (capacityExceeded) {
+		gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
+			__FUNCTION__, client->sess.netName, client->sess.weaponPrefs.size());
+	}
+
+	Client_RebuildWeaponPreferenceOrder(*client);
+}
 
 /*
 =============
-ClientConfig_Init
+ClientConfigStore::ApplyVisualConfigFromJson
+
+Applies persisted HUD/audio settings to the client's persistant config block.
 =============
 */
-void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
+void ClientConfigStore::ApplyVisualConfigFromJson(gclient_t* client, const Json::Value& playerData) const {
+	if (!client)
+		return;
+
+	if (!playerData.isMember("config"))
+		return;
+
+	const auto& cfg = playerData["config"];
+	auto get_bool = [&](const std::string& key, bool def) {
+		return cfg.isMember(key) && cfg[key].isBool() ? cfg[key].asBool() : def;
+	};
+	auto get_int = [&](const std::string& key, int def) {
+		return cfg.isMember(key) && cfg[key].isInt() ? cfg[key].asInt() : def;
+	};
+
+	client->sess.pc.show_id = get_bool("drawCrosshairID", true);
+	client->sess.pc.show_timer = get_bool("drawTimer", true);
+	client->sess.pc.show_fragmessages = get_bool("drawFragMessages", true);
+	client->sess.pc.use_eyecam = get_bool("eyeCam", true);
+	client->sess.pc.killbeep_num = get_int("killBeep", 1);
+	client->sess.pc.follow_killer = get_bool("followKiller", client->sess.pc.follow_killer);
+	client->sess.pc.follow_leader = get_bool("followLeader", client->sess.pc.follow_leader);
+	client->sess.pc.follow_powerup = get_bool("followPowerup", client->sess.pc.follow_powerup);
+}
+
+/*
+=============
+ClientConfigStore::LoadProfile
+
+Initializes the gclient_t session data from the player's persisted profile.
+Returns true when the profile was loaded from disk, false when defaults were used.
+=============
+*/
+bool ClientConfigStore::LoadProfile(gclient_t* client, const std::string& playerID, const std::string& playerName, const std::string& gameType) {
+	if (!client)
+		return false;
+
 	Json::Value playerData;
 	bool modified = false;
 
-	cl->sess.skillRating = 0;
-	cl->sess.skillRatingChange = 0;
+	client->sess.skillRating = 0;
+	client->sess.skillRatingChange = 0;
 
 	if (playerID.empty()) {
-		cl->sess.skillRating = DEFAULT_RATING;
-		return;
+		client->sess.skillRating = kDefaultSkillRating;
+		return false;
 	}
 
 	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
 	if (!pathOpt) {
-		cl->sess.skillRating = DEFAULT_RATING;
-		return;
+		client->sess.skillRating = kDefaultSkillRating;
+		return false;
 	}
 
 	const std::string path = *pathOpt;
 	std::ifstream file(path);
 
-	// If file doesn't exist, create a new default config
 	if (!file.is_open()) {
-		ClientConfig_Create(cl, playerID, playerName, gameType);
-		cl->sess.skillRating = DEFAULT_RATING;
-		return;
+		CreateProfile(client, playerID, playerName, gameType);
+		client->sess.skillRating = kDefaultSkillRating;
+		return false;
 	}
 
-	// Attempt to parse existing config
 	Json::CharReaderBuilder builder;
 	std::string errs;
 	if (!Json::parseFromStream(builder, file, &playerData, &errs)) {
@@ -247,17 +295,16 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 			playerName.c_str(), path.c_str(), errs.c_str());
 		gi.Com_PrintFmt("Resetting {} to default configuration and recreating the client config.\n",
 			playerName.c_str());
-		cl->sess.skillRating = DEFAULT_RATING;
-		cl->sess.skillRatingChange = 0;
-		cl->sess.admin = false;
-		cl->sess.banned = false;
-		cl->sess.weaponPrefs.clear();
-		ClientConfig_Create(cl, playerID, playerName, gameType);
-		return;
+		client->sess.skillRating = kDefaultSkillRating;
+		client->sess.skillRatingChange = 0;
+		client->sess.admin = false;
+		client->sess.banned = false;
+		client->sess.weaponPrefs.clear();
+		CreateProfile(client, playerID, playerName, gameType);
+		return false;
 	}
 	file.close();
 
-	// Handle player name changes
 	if (playerData.isMember("playerName") && playerData["playerName"].asString() != playerName) {
 		if (!playerData.isMember("originalPlayerName"))
 			playerData["originalPlayerName"] = playerData["playerName"];
@@ -272,15 +319,13 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 				break;
 			}
 		}
-		if (!alreadyPresent) {
+		if (!alreadyPresent)
 			playerData["playerAliases"].append(playerName);
-		}
 
 		playerData["playerName"] = playerName;
 		modified = true;
 	}
 
-	// Ensure config block exists
 	if (!playerData.isMember("config") || !playerData["config"].isObject()) {
 		Json::Value config(Json::objectValue);
 		config["drawCrosshairID"] = 1;
@@ -288,26 +333,25 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		config["drawTimer"] = 1;
 		config["eyeCam"] = 1;
 		config["killBeep"] = 1;
-		config["followKiller"] = cl->sess.pc.follow_killer;
-		config["followLeader"] = cl->sess.pc.follow_leader;
-		config["followPowerup"] = cl->sess.pc.follow_powerup;
+		config["followKiller"] = client->sess.pc.follow_killer;
+		config["followLeader"] = client->sess.pc.follow_leader;
+		config["followPowerup"] = client->sess.pc.follow_powerup;
 		config["weaponPrefs"] = Json::Value(Json::arrayValue);
 		playerData["config"] = config;
 		modified = true;
 	}
 	else {
 		auto& cfg = playerData["config"];
-
 		auto ensure_config_bool = [&](const char* key, bool value) {
 			if (!cfg.isMember(key) || !cfg[key].isBool()) {
 				cfg[key] = value;
 				modified = true;
 			}
-			};
+		};
 
-		ensure_config_bool("followKiller", cl->sess.pc.follow_killer);
-		ensure_config_bool("followLeader", cl->sess.pc.follow_leader);
-		ensure_config_bool("followPowerup", cl->sess.pc.follow_powerup);
+		ensure_config_bool("followKiller", client->sess.pc.follow_killer);
+		ensure_config_bool("followLeader", client->sess.pc.follow_leader);
+		ensure_config_bool("followPowerup", client->sess.pc.follow_powerup);
 
 		if (!cfg.isMember("weaponPrefs") || !cfg["weaponPrefs"].isArray()) {
 			cfg["weaponPrefs"] = Json::Value(Json::arrayValue);
@@ -315,7 +359,6 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		}
 	}
 
-	// Ensure stats block exists
 	if (!playerData.isMember("stats") || !playerData["stats"].isObject()) {
 		Json::Value stats(Json::objectValue);
 		stats["totalMatches"] = 0;
@@ -323,32 +366,30 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		stats["totalLosses"] = 0;
 		stats["totalTimePlayed"] = Json::Value::Int64(0);
 		stats["bestSkillRating"] = 0;
-		stats["lastSkillRating"] = DEFAULT_RATING;
+		stats["lastSkillRating"] = kDefaultSkillRating;
 		stats["lastSkillChange"] = 0;
 		playerData["stats"] = stats;
 		modified = true;
 	}
 
-	// Ensure ratings block exists
 	if (!playerData.isMember("ratings") || !playerData["ratings"].isObject()) {
 		Json::Value ratings(Json::objectValue);
-		ratings[gameType] = DEFAULT_RATING;
+		ratings[gameType] = kDefaultSkillRating;
 		playerData["ratings"] = ratings;
-		playerData["stats"]["lastSkillRating"] = DEFAULT_RATING;
+		playerData["stats"]["lastSkillRating"] = kDefaultSkillRating;
 		modified = true;
 	}
 	else if (!playerData["ratings"].isMember(gameType)) {
-		int maxRating = DEFAULT_RATING;
+		int maxRating = kDefaultSkillRating;
 		const Json::Value& ratings = playerData["ratings"];
-		for (const auto& key : ratings.getMemberNames()) {
+		for (const auto& key : ratings.getMemberNames())
 			maxRating = std::max(maxRating, ratings[key].asInt());
-		}
+
 		playerData["ratings"][gameType] = maxRating;
 		playerData["stats"]["lastSkillRating"] = maxRating;
 		modified = true;
 	}
 
-	// Update timestamps
 	const std::string now = TimeStamp();
 	if (!playerData.isMember("firstSeen")) {
 		playerData["firstSeen"] = now;
@@ -357,13 +398,12 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 	playerData["lastSeen"] = now;
 	playerData["lastUpdated"] = now;
 
-	// Save file if changes occurred
 	if (modified) {
 		try {
 			std::ofstream outFile(path);
 			if (outFile.is_open()) {
 				Json::StreamWriterBuilder writerBuilder;
-				writerBuilder["indentation"] = "    ";
+				writerBuilder["indentation"] = "\t";
 				std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
 				writer->write(playerData, &outFile);
 				outFile.close();
@@ -377,330 +417,57 @@ void ClientConfig_Init(gclient_t* cl, const std::string& playerID, const std::st
 		}
 	}
 
-	cl->sess.weaponPrefs.clear();
+	ApplyWeaponPreferencesFromJson(client, playerData);
+	ApplyVisualConfigFromJson(client, playerData);
 
-	// Apply weapon prefs if present
-	if (playerData.isMember("config") && playerData["config"].isMember("weaponPrefs")) {
-		const auto& prefs = playerData["config"]["weaponPrefs"];
-		if (prefs.isArray()) {
-			std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-			std::vector<Weapon> parsed;
-			parsed.reserve(static_cast<size_t>(prefs.size()));
-			std::vector<std::string> invalidTokens;
-			bool capacityExceeded = false;
+	client->sess.skillRating = playerData["ratings"][gameType].asInt();
+	client->sess.skillRatingChange = playerData["stats"].get("lastSkillChange", 0).asInt();
+	client->sess.admin = playerData.isMember("admin") && playerData["admin"].isBool() ? playerData["admin"].asBool() : false;
+	client->sess.banned = playerData.isMember("banned") && playerData["banned"].isBool() ? playerData["banned"].asBool() : false;
 
-			for (const auto& p : prefs) {
-				if (!p.isString())
-					continue;
-
-				const std::string token = p.asString();
-				std::string normalized;
-				switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
-				case WeaponPrefAppendResult::Added:
-					break;
-				case WeaponPrefAppendResult::Duplicate:
-					break;
-				case WeaponPrefAppendResult::Invalid:
-					if (!normalized.empty())
-						invalidTokens.emplace_back(std::move(normalized));
-					break;
-				case WeaponPrefAppendResult::CapacityExceeded:
-					capacityExceeded = true;
-					break;
-				}
-			}
-
-			cl->sess.weaponPrefs.swap(parsed);
-
-			if (!invalidTokens.empty()) {
-				std::ostringstream joined;
-				for (size_t i = 0; i < invalidTokens.size(); ++i) {
-					if (i)
-						joined << ", ";
-					joined << invalidTokens[i];
-				}
-				gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
-					__FUNCTION__, playerName.c_str(), joined.str().c_str());
-			}
-
-			if (capacityExceeded) {
-				gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
-					__FUNCTION__, playerName.c_str(), cl->sess.weaponPrefs.size());
-			}
-		}
-	}
-
-	Client_RebuildWeaponPreferenceOrder(*cl);
-
-	// Apply visual/audio config settings
-	if (playerData.isMember("config")) {
-		const auto& cfg = playerData["config"];
-
-		auto get_bool = [&](const std::string& key, bool def) {
-			return cfg.isMember(key) && cfg[key].isBool() ? cfg[key].asBool() : def;
-			};
-		auto get_int = [&](const std::string& key, int def) {
-			return cfg.isMember(key) && cfg[key].isInt() ? cfg[key].asInt() : def;
-			};
-
-		cl->sess.pc.show_id = get_bool("drawCrosshairID", true);
-		cl->sess.pc.show_timer = get_bool("drawTimer", true);
-		cl->sess.pc.show_fragmessages = get_bool("drawFragMessages", true);
-		cl->sess.pc.use_eyecam = get_bool("eyeCam", true);
-		cl->sess.pc.killbeep_num = get_int("killBeep", 1);
-		cl->sess.pc.follow_killer = get_bool("followKiller", cl->sess.pc.follow_killer);
-		cl->sess.pc.follow_leader = get_bool("followLeader", cl->sess.pc.follow_leader);
-		cl->sess.pc.follow_powerup = get_bool("followPowerup", cl->sess.pc.follow_powerup);
-	}
-
-	// Apply to session
-	cl->sess.skillRating = playerData["ratings"][gameType].asInt();
-	cl->sess.skillRatingChange = playerData["stats"].get("lastSkillChange", 0).asInt();
-
-	cl->sess.admin = playerData.isMember("admin") && playerData["admin"].isBool() ? playerData["admin"].asBool() : false;
-	cl->sess.banned = playerData.isMember("banned") && playerData["banned"].isBool() ? playerData["banned"].asBool() : false;
+	return true;
 }
 
-
 /*
-============================
-ClientConfig_SaveInternal
-Internal helper to mutate and save client config JSON.
-============================
+=============
+ClientConfigStore::SaveStats
+
+Persists the real player's session statistics and HUD settings.
+=============
 */
-/*
-==========================
-ClientConfig_SaveInternal
-==========================
-*/
-static void ClientConfig_SaveInternal(
-	const std::string& playerID,
-	int skillRating,
-	int skillChange,
-	int64_t timePlayedSeconds,
-	bool won,
-	bool isGhost,
-	bool updateStats,
-	const client_config_t* pc = nullptr,
-	const std::vector<Weapon>* weaponPrefs = nullptr
-) {
-	if (playerID.empty())
+void ClientConfigStore::SaveStats(gclient_t* client, bool wonMatch) {
+	if (!client || client->sess.is_a_bot || !client->sess.socialID[0])
 		return;
 
-	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
-	if (!pathOpt)
-		return;
-
-	const std::string path = *pathOpt;
-	std::ifstream file(path);
-	if (!file.is_open()) {
-		gi.Com_PrintFmt("{}: could not open file for {}\n", __FUNCTION__, playerID);
-		return;
-	}
-
-	Json::Value playerData;
-	Json::CharReaderBuilder builder;
-	std::string errs;
-	if (!Json::parseFromStream(builder, file, &playerData, &errs)) {
-		gi.Com_PrintFmt("{}: parse error in {}\n", __FUNCTION__, path);
-		return;
-	}
-	file.close();
-
-	bool modified = false;
-	const std::string now = TimeStamp();
-
-	// Normalize old fields
-	if (playerData.isMember("admin") && playerData["admin"].isNull()) {
-		playerData["admin"] = false;
-		modified = true;
-	}
-	if (playerData.isMember("banned") && playerData["banned"].isNull()) {
-		playerData["banned"] = false;
-		modified = true;
-	}
-
-	// Ensure stats block
-	if (!playerData.isMember("stats") || !playerData["stats"].isObject()) {
-		playerData["stats"] = Json::Value(Json::objectValue);
-		modified = true;
-	}
-	Json::Value& stats = playerData["stats"];
-
-	auto ensureInt = [&](const char* key, int def) -> int {
-		if (!stats.isMember(key) || !stats[key].isInt()) {
-			stats[key] = def;
-			modified = true;
-		}
-		return stats[key].asInt();
-		};
-	auto ensureInt64 = [&](const char* key, Json::Value::Int64 def) -> Json::Value::Int64 {
-		if (!stats.isMember(key) || !stats[key].isIntegral()) {
-			stats[key] = Json::Value::Int64(def);
-			modified = true;
-		}
-		return stats[key].asInt64();
-		};
-
-	int totalMatches = ensureInt("totalMatches", 0);
-	int totalWins = ensureInt("totalWins", 0);
-	int totalLosses = ensureInt("totalLosses", 0);
-	Json::Value::Int64 totalTimePlayed = ensureInt64("totalTimePlayed", 0);
-	int bestSkillRating = std::max(skillRating, ensureInt("bestSkillRating", skillRating));
-
-	if (updateStats) {
-		stats["totalMatches"] = totalMatches + 1;
-		stats["totalWins"] = won ? totalWins + 1 : totalWins;
-		stats["totalLosses"] = !won ? totalLosses + 1 : totalLosses;
-
-		if (timePlayedSeconds > 0) {
-			const Json::Value::Int64 maxTime = std::numeric_limits<Json::Value::Int64>::max();
-			Json::Value::Int64 clampedInput = timePlayedSeconds > maxTime ? maxTime : static_cast<Json::Value::Int64>(timePlayedSeconds);
-			Json::Value::Int64 cappedTotal = totalTimePlayed > maxTime ? maxTime : totalTimePlayed;
-			if (cappedTotal < 0)
-				cappedTotal = 0;
-			if (cappedTotal > maxTime - clampedInput)
-				cappedTotal = maxTime;
-			else
-				cappedTotal += clampedInput;
-			stats["totalTimePlayed"] = Json::Value::Int64(cappedTotal);
-		}
-
-		if (isGhost) {
-			int abandons = ensureInt("totalAbandons", 0);
-			stats["totalAbandons"] = abandons + 1;
-		}
-	}
-
-	stats["bestSkillRating"] = bestSkillRating;
-	stats["lastSkillRating"] = skillRating;
-	stats["lastSkillChange"] = skillChange;
-
-	// Ensure ratings block
-	if (!playerData.isMember("ratings") || !playerData["ratings"].isObject()) {
-		playerData["ratings"] = Json::Value(Json::objectValue);
-		modified = true;
-	}
-	playerData["ratings"][Game::GetCurrentInfo().short_name_upper.data()] = skillRating;
-
-	// Save visual/audio config from session
-	if (pc || weaponPrefs) {
-		if (!playerData.isMember("config") || !playerData["config"].isObject()) {
-			playerData["config"] = Json::Value(Json::objectValue);
-		}
-	}
-
-	if (pc) {
-		auto& config = playerData["config"];
-		config["drawCrosshairID"] = pc->show_id;
-		config["drawTimer"] = pc->show_timer;
-		config["drawFragMessages"] = pc->show_fragmessages;
-		config["eyeCam"] = pc->use_eyecam;
-		config["killBeep"] = pc->killbeep_num;
-		config["followKiller"] = pc->follow_killer;
-		config["followLeader"] = pc->follow_leader;
-		config["followPowerup"] = pc->follow_powerup;
-	}
-
-	if (weaponPrefs) {
-		Json::Value prefs(Json::arrayValue);
-		for (Weapon weapon : *weaponPrefs) {
-			const std::string_view abbreviation = WeaponToAbbreviation(weapon);
-			if (!abbreviation.empty()) {
-				prefs.append(std::string(abbreviation));
-			}
-		}
-		playerData["config"]["weaponPrefs"] = prefs;
-	}
-
-	playerData["lastUpdated"] = now;
-
-	// Write updated file
-	try {
-		if (!EnsurePlayerConfigDirectory())
-			return;
-
-		std::ofstream outFile(path);
-		if (outFile.is_open()) {
-			Json::StreamWriterBuilder writerBuilder;
-			writerBuilder["indentation"] = "    ";
-			std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
-			writer->write(playerData, &outFile);
-			outFile.close();
-		}
-		else {
-			gi.Com_PrintFmt("{}: failed to write file for {}\n", __FUNCTION__, playerID);
-		}
-	}
-	catch (const std::exception& e) {
-		gi.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, playerID, e.what());
-	}
-}
-
-
-/*
-================
-ClientConfig_SaveStats
-Saves real player's config and updates stats.
-================
-*/
-void ClientConfig_SaveStats(gclient_t* cl, bool wonMatch) {
-	if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
-		return;
-
-	const int64_t rawTimePlayed = cl->sess.playEndRealTime - cl->sess.playStartRealTime;
+	const int64_t rawTimePlayed = client->sess.playEndRealTime - client->sess.playStartRealTime;
 	const int64_t timePlayed = rawTimePlayed > 0 ? rawTimePlayed : 0;
-	ClientConfig_SaveInternal(
-		cl->sess.socialID,
-		cl->sess.skillRating,
-		cl->sess.skillRatingChange,
-		timePlayed,
-		wonMatch,
-		false,  // isGhost
-		true,   // updateStats
-		&cl->sess.pc,
-		&cl->sess.weaponPrefs
-	);
+	SaveInternal(client->sess.socialID, client->sess.skillRating, client->sess.skillRatingChange, timePlayed, wonMatch, false, true, &client->sess.pc, &client->sess.weaponPrefs);
 }
 
 /*
-===========================
-ClientConfig_SaveStatsForGhost
-Saves ghost player's config and updates stats.
-===========================
+=============
+ClientConfigStore::SaveStatsForGhost
+
+Persists statistics for ghost (disconnected) players.
+=============
 */
-void ClientConfig_SaveStatsForGhost(const Ghosts& ghost, bool won) {
+void ClientConfigStore::SaveStatsForGhost(const Ghosts& ghost, bool wonMatch) {
 	if (!*ghost.socialID)
 		return;
 
 	const int64_t timePlayed = ghost.totalMatchPlayRealTime > 0 ? ghost.totalMatchPlayRealTime : 0;
-	ClientConfig_SaveInternal(
-		ghost.socialID,
-		ghost.skillRating,
-		ghost.skillRatingChange,
-		timePlayed,
-		won,
-		true,   // isGhost
-		true,   // updateStats
-		nullptr, // no pc settings
-		nullptr
-	);
+	SaveInternal(ghost.socialID, ghost.skillRating, ghost.skillRatingChange, timePlayed, wonMatch, true, true, nullptr, nullptr);
 }
 
-
 /*
-====================
-ClientConfig_Update
+=============
+ClientConfigStore::UpdateConfig
 
-Loads PLAYER_CONFIG_PATH/<playerID>.json, runs your updater,
-and if anything changed, stamps lastUpdated and saves.
-Returns true if modified and written, false otherwise.
-====================
+Loads a player's JSON config, applies the provided updater, and writes it back
+if any changes occurred.
+=============
 */
-static bool ClientConfig_Update(
-	const std::string& playerID,
-	const std::function<void(Json::Value&)>& updater
-) {
+bool ClientConfigStore::UpdateConfig(const std::string& playerID, const std::function<void(Json::Value&)>& updater) const {
 	if (playerID.empty())
 		return false;
 
@@ -709,8 +476,6 @@ static bool ClientConfig_Update(
 		return false;
 
 	const std::string path = *pathOpt;
-
-	// 1) load
 	std::ifstream in(path);
 	if (!in.is_open()) {
 		gi.Com_PrintFmt("{}: failed to open {}\n", __FUNCTION__, path.c_str());
@@ -726,20 +491,14 @@ static bool ClientConfig_Update(
 	}
 	in.close();
 
-	// 2) snapshot before (deep copy)
 	Json::Value before = cfg;
-
-	// 3) let caller mutate
 	updater(cfg);
 
-	// 4) if nothing changed, do nothing
 	if (cfg == before)
 		return false;
 
-	// 5) stamp update time
 	cfg["lastUpdated"] = TimeStamp();
 
-	// 6) write back
 	try {
 		if (!EnsurePlayerConfigDirectory())
 			return false;
@@ -751,7 +510,7 @@ static bool ClientConfig_Update(
 		}
 
 		Json::StreamWriterBuilder writerBuilder;
-		writerBuilder["indentation"] = "    ";
+		writerBuilder["indentation"] = "\t";
 		std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
 		writer->write(cfg, &out);
 		out.close();
@@ -765,14 +524,21 @@ static bool ClientConfig_Update(
 	}
 }
 
-void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
-	if (!cl || cl->sess.is_a_bot || !cl->sess.socialID[0])
+/*
+=============
+ClientConfigStore::SaveWeaponPreferences
+
+Serializes the client's sanitized weapon preference ordering to disk.
+=============
+*/
+void ClientConfigStore::SaveWeaponPreferences(gclient_t* client) {
+	if (!client || client->sess.is_a_bot || !client->sess.socialID[0])
 		return;
 
-	Client_RebuildWeaponPreferenceOrder(*cl);
-	std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*cl);
+	Client_RebuildWeaponPreferenceOrder(*client);
+	std::vector<std::string> sanitized = GetSanitizedWeaponPrefStrings(*client);
 
-	ClientConfig_Update(cl->sess.socialID, [sanitized](Json::Value& cfg) {
+	UpdateConfig(client->sess.socialID, [sanitized](Json::Value& cfg) {
 		if (!cfg.isMember("config") || !cfg["config"].isObject())
 			cfg["config"] = Json::Value(Json::objectValue);
 
@@ -781,5 +547,60 @@ void ClientConfig_SaveWeaponPreferences(gclient_t* cl) {
 			prefs.append(pref);
 
 		cfg["config"]["weaponPrefs"] = prefs;
-		});
+	});
+}
+
+/*
+=============
+ClientConfigStore::DefaultSkillRating
+
+Provides the default rating assigned to new or untracked players.
+=============
+*/
+int ClientConfigStore::DefaultSkillRating() const {
+	return kDefaultSkillRating;
+}
+
+/*
+=============
+ClientConfigStore::PlayerNameForSocialID
+
+Returns the persisted player name for the provided social ID, if available.
+=============
+*/
+std::string ClientConfigStore::PlayerNameForSocialID(const std::string& socialID) const {
+	if (socialID.empty())
+		return {};
+
+	const auto pathOpt = PlayerConfigPathFromID(socialID, __FUNCTION__);
+	if (!pathOpt)
+		return {};
+
+	std::ifstream file(*pathOpt);
+	if (!file.is_open())
+		return {};
+
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	std::string errs;
+
+	if (!Json::parseFromStream(builder, file, &root, &errs))
+		return {};
+
+	if (!root.isMember("playerName") || !root["playerName"].isString())
+		return {};
+
+	return root["playerName"].asString();
+}
+
+/*
+=============
+GetClientConfigStore
+
+Provides access to the global ClientConfigStore instance.
+=============
+*/
+ClientConfigStore& GetClientConfigStore() {
+	static ClientConfigStore store;
+	return store;
 }

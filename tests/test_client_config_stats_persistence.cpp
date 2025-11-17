@@ -76,7 +76,7 @@ int main() {
 	std::strncpy(client.sess.socialID, playerID.c_str(), sizeof(client.sess.socialID));
 	client.sess.socialID[sizeof(client.sess.socialID) - 1] = '\0';
 
-	ClientConfig_Init(&client, playerID, playerName, gameType);
+	GetClientConfigStore().LoadProfile(&client, playerID, playerName, gameType);
 
 	Json::Value initial = LoadJson(playerPath);
 	const Json::Value::Int64 nearMax = std::numeric_limits<Json::Value::Int64>::max() - 5;
@@ -88,7 +88,7 @@ int main() {
 	client.sess.playStartRealTime = 0;
 	client.sess.playEndRealTime = 20;
 
-	ClientConfig_SaveStats(&client, true);
+	GetClientConfigStore().SaveStats(&client, true);
 
 	Json::Value updated = LoadJson(playerPath);
 	const Json::Value::Int64 cappedMax = std::numeric_limits<Json::Value::Int64>::max();
@@ -97,7 +97,7 @@ int main() {
 
 	client.sess.playStartRealTime = 100;
 	client.sess.playEndRealTime = 50;
-	ClientConfig_SaveStats(&client, true);
+	GetClientConfigStore().SaveStats(&client, true);
 
 	Json::Value afterNegative = LoadJson(playerPath);
 	assert(afterNegative["stats"]["totalTimePlayed"].asInt64() == cappedMax);
@@ -105,7 +105,7 @@ int main() {
 	gclient_t ghostInitializer{};
 	std::strncpy(ghostInitializer.sess.socialID, ghostID.c_str(), sizeof(ghostInitializer.sess.socialID));
 	ghostInitializer.sess.socialID[sizeof(ghostInitializer.sess.socialID) - 1] = '\0';
-	ClientConfig_Init(&ghostInitializer, ghostID, ghostName, gameType);
+	GetClientConfigStore().LoadProfile(&ghostInitializer, ghostID, ghostName, gameType);
 
 	Ghosts ghost{};
 	std::strncpy(ghost.socialID, ghostID.c_str(), sizeof(ghost.socialID));
@@ -114,7 +114,7 @@ int main() {
 	ghost.skillRatingChange = -10;
 	ghost.totalMatchPlayRealTime = std::numeric_limits<int64_t>::max();
 
-	ClientConfig_SaveStatsForGhost(ghost, false);
+	GetClientConfigStore().SaveStatsForGhost(ghost, false);
 
 	Json::Value ghostData = LoadJson(ghostPath);
 	assert(ghostData["stats"]["totalTimePlayed"].isInt64());
@@ -129,8 +129,8 @@ int main() {
 
 	client.sess.skillRating = 0;
 	client.sess.skillRatingChange = 42;
-	ClientConfig_Init(&client, playerID, playerName, gameType);
-	assert(client.sess.skillRating == ClientConfig_DefaultSkillRating());
+	GetClientConfigStore().LoadProfile(&client, playerID, playerName, gameType);
+	assert(client.sess.skillRating == GetClientConfigStore().DefaultSkillRating());
 	assert(client.sess.skillRatingChange == 0);
 
 	std::filesystem::remove(playerPath, ec);
