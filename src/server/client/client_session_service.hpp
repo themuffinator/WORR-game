@@ -2,6 +2,8 @@
 
 #include <string>
 
+#include "client_session_results.hpp"
+
 struct game_import_t;
 struct gentity_t;
 struct gclient_t;
@@ -30,7 +32,7 @@ class ClientSessionService {
 		gentity_t* ent) = 0;
 	virtual void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, const char* userInfo) = 0;
-	virtual bool ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	virtual DisconnectResult ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent) = 0;
 	virtual void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, usercmd_t* cmd) = 0;

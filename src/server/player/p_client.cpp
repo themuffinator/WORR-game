@@ -72,7 +72,15 @@ gradually migrate out of this translation unit.
 =============
 */
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
-	worr::server::client::GetClientSessionService().OnReadyToggled(ent, state, toggle);
+	if (!ent) {
+		return;
+	}
+
+	const auto result = worr::server::client::GetClientSessionService().OnReadyToggled(ent, state, toggle);
+
+	if (result == worr::server::client::ReadyResult::AlreadySet) {
+		gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT " );
+	}
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -3854,7 +3862,8 @@ Will not be called between levels.
 */
 void ClientDisconnect(gentity_t* ent) {
 	auto& service = worr::server::client::GetClientSessionService();
-	if (!service.ClientDisconnect(gi, game, level, ent))
+	const auto result = service.ClientDisconnect(gi, game, level, ent);
+	if (result == worr::server::client::DisconnectResult::InvalidEntity)
 		return;
 }
 

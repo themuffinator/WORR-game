@@ -357,16 +357,17 @@ void ClientSessionServiceImpl::ClientUserinfoChanged(game_import_t& gi, GameLoca
 ClientSessionServiceImpl::ClientDisconnect
 
 Handles the disconnect workflow previously implemented procedurally, ensuring
-the player's state is torn down and other systems are notified appropriately.
+the player's state is torn down and other systems are notified appropriately
+while reporting status via DisconnectResult.
 =============
 */
-bool ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
-(void)gi;
-(void)game;
-(void)level;
+DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
+		(void)gi;
+		(void)game;
+		(void)level;
 
 		if (!ent || !ent->client) {
-			return false;
+			return DisconnectResult::InvalidEntity;
 		}
 
 		gclient_t* cl = ent->client;
@@ -445,8 +446,9 @@ bool ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& g
 			}
 		}
 
-return true;
+		return DisconnectResult::Success;
 }
+
 
 /*
 =============
@@ -601,7 +603,6 @@ ReadyResult ClientSessionServiceImpl::OnReadyToggled(gentity_t* ent, bool state,
 		}
 		else {
 			if (pers->readyStatus == state) {
-				gi_.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT " );
 				return ReadyResult::AlreadySet;
 			}
 
