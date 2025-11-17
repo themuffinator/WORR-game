@@ -159,12 +159,10 @@ Stores references to the game state objects that were previously accessed via
 globals so the service can eventually operate without that implicit coupling.
 =============
 */
-ClientSessionServiceImpl::ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		ClientConfigStore& configStore)
+ClientSessionServiceImpl::ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level)
 		: gi_(gi)
 		, game_(game)
-		, level_(level)
-		, configStore_(configStore) {}
+		, level_(level) {}
 
 /*
 =============
@@ -180,6 +178,7 @@ bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelL
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
+	auto& configStore = GetClientConfigStore();
 
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
@@ -247,12 +246,12 @@ bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelL
 
 	if (!isBot) {
 		if (ent->client->sess.socialID[0]) {
-			ClientConfig_Init(ent->client, ent->client->sess.socialID, value.data(),
+			configStore.LoadProfile(ent->client, ent->client->sess.socialID, value.data(),
 				Game::GetCurrentInfo().short_name_upper.data());
 			PCfg_ClientInitPConfig(ent);
 		}
 		else {
-			ent->client->sess.skillRating = ClientConfig_DefaultSkillRating();
+			ent->client->sess.skillRating = configStore.DefaultSkillRating();
 		}
 
 		if (ent->client->sess.banned) {
@@ -424,7 +423,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, G
 		ent->timeStamp = level_.time + 1_sec;
 
 		if (wasSpawned) {
-			ClientConfig_SaveStats(cl, false);
+			GetClientConfigStore().SaveStats(cl, false);
 		}
 
 		if (deathmatch->integer) {
@@ -551,80 +550,6 @@ gentity_t* ent) {
 (void)game;
 (void)level;
 legacy::client::ClientBeginServerFrame(ent);
-}
-
-/*
-=============
-LegacyClientConfigStore::Initialize
-
-Bridges the service's configuration initialization call to the existing
-ClientConfig_Init helper.
-=============
-*/
-void LegacyClientConfigStore::Initialize(game_import_t& gi, gclient_t* client, const std::string& playerID,
-		const std::string& playerName, const std::string& gameType) {
-		(void)gi;
-		ClientConfig_Init(client, playerID, playerName, gameType);
-}
-
-/*
-=============
-LegacyClientConfigStore::SaveStats
-
-Persists the player's stats using the legacy ClientConfig_SaveStats function.
-=============
-*/
-void LegacyClientConfigStore::SaveStats(game_import_t& gi, gclient_t* client, bool wonMatch) {
-		(void)gi;
-		ClientConfig_SaveStats(client, wonMatch);
-}
-
-/*
-=============
-LegacyClientConfigStore::SaveStatsForGhost
-
-Persists ghost player stats by deferring to ClientConfig_SaveStatsForGhost.
-=============
-*/
-void LegacyClientConfigStore::SaveStatsForGhost(game_import_t& gi, const Ghosts& ghost, bool wonMatch) {
-		(void)gi;
-		ClientConfig_SaveStatsForGhost(ghost, wonMatch);
-}
-
-/*
-=============
-LegacyClientConfigStore::SaveWeaponPreferences
-
-Writes the player's weapon preferences via ClientConfig_SaveWeaponPreferences.
-=============
-*/
-void LegacyClientConfigStore::SaveWeaponPreferences(game_import_t& gi, gclient_t* client) {
-		(void)gi;
-		ClientConfig_SaveWeaponPreferences(client);
-}
-
-/*
-=============
-LegacyClientConfigStore::DefaultSkillRating
-
-Retrieves the default skill rating through the ClientConfig_DefaultSkillRating helper.
-=============
-*/
-int LegacyClientConfigStore::DefaultSkillRating(game_import_t& gi) const {
-		(void)gi;
-		return ClientConfig_DefaultSkillRating();
-}
-
-/*
-=============
-LegacyClientConfigStore::PlayerNameForSocialID
-
-Resolves a player's name by delegating to GetPlayerNameForSocialID.
-=============
-*/
-std::string LegacyClientConfigStore::PlayerNameForSocialID(game_import_t& gi, const std::string& socialID) {
-		(void)gi;
-		return GetPlayerNameForSocialID(socialID);
 }
 
 /*

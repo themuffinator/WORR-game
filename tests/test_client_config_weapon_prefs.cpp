@@ -25,7 +25,7 @@ int main() {
         std::strncpy(client.sess.socialID, playerID.c_str(), sizeof(client.sess.socialID));
         client.sess.socialID[sizeof(client.sess.socialID) - 1] = '\0';
 
-        ClientConfig_Init(&client, playerID, playerName, gameType);
+        GetClientConfigStore().LoadProfile(&client, playerID, playerName, gameType);
 
         client.sess.weaponPrefs = {
                 Weapon::Blaster,
@@ -40,14 +40,14 @@ int main() {
         assert(sanitized[1] == "RG");
         assert(sanitized[2] == "TB");
 
-        ClientConfig_SaveWeaponPreferences(&client);
+        GetClientConfigStore().SaveWeaponPreferences(&client);
 
         gclient_t reloaded{};
         std::strncpy(reloaded.sess.socialID, playerID.c_str(), sizeof(reloaded.sess.socialID));
         reloaded.sess.socialID[sizeof(reloaded.sess.socialID) - 1] = '\0';
         reloaded.sess.weaponPrefs.push_back(Weapon::BFG10K);
 
-        ClientConfig_Init(&reloaded, playerID, playerName, gameType);
+        GetClientConfigStore().LoadProfile(&reloaded, playerID, playerName, gameType);
         Client_RebuildWeaponPreferenceOrder(reloaded);
         auto roundTripped = GetSanitizedWeaponPrefStrings(reloaded);
 

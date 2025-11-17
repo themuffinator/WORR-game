@@ -1124,7 +1124,7 @@ static void AdjustSkillRatings() {
 		// Update all player config files regardless
 		for (auto ec : active_players()) {
 			// Save stats for all players
-			ClientConfig_SaveStats(ec->client, false);
+			GetClientConfigStore().SaveStats(ec->client, false);
 		}
 		return;
 	}
@@ -1164,8 +1164,8 @@ static void AdjustSkillRatings() {
 		a->client->sess.skillRatingChange = static_cast<int>(dA);
 		b->client->sess.skillRatingChange = static_cast<int>(dB);
 
-		ClientConfig_SaveStats(a->client, aWon);
-		ClientConfig_SaveStats(b->client, !aWon);
+		GetClientConfigStore().SaveStats(a->client, aWon);
+		GetClientConfigStore().SaveStats(b->client, !aWon);
 
 		// Ghosts
 		for (auto& g : level.ghosts) {
@@ -1174,12 +1174,12 @@ static void AdjustSkillRatings() {
 			if (Q_strcasecmp(g.socialID, a->client->sess.socialID) == 0) {
 				g.skillRating += dA;
 				g.skillRatingChange = static_cast<int>(dA);
-				ClientConfig_SaveStatsForGhost(g, aWon);
+				GetClientConfigStore().SaveStatsForGhost(g, aWon);
 			}
 			else if (Q_strcasecmp(g.socialID, b->client->sess.socialID) == 0) {
 				g.skillRating += dB;
 				g.skillRatingChange = static_cast<int>(dB);
-				ClientConfig_SaveStatsForGhost(g, !aWon);
+				GetClientConfigStore().SaveStatsForGhost(g, !aWon);
 			}
 		}
 		return;
@@ -1217,14 +1217,14 @@ static void AdjustSkillRatings() {
 			float d = SKILL_K * (S - Er);
 			e->client->sess.skillRating += d;
 			e->client->sess.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStats(e->client, redWin);
+			GetClientConfigStore().SaveStats(e->client, redWin);
 		}
 		for (auto* e : blue) {
 			float S = redWin ? 0.0f : 1.0f;
 			float d = SKILL_K * (S - Eb);
 			e->client->sess.skillRating += d;
 			e->client->sess.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStats(e->client, !redWin);
+			GetClientConfigStore().SaveStats(e->client, !redWin);
 		}
 
 		// Ghosts
@@ -1239,7 +1239,7 @@ static void AdjustSkillRatings() {
 
 			g.skillRating += d;
 			g.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStatsForGhost(g, (g.team == Team::Red) ? redWin : (g.team == Team::Blue ? !redWin : false));
+			GetClientConfigStore().SaveStatsForGhost(g, (g.team == Team::Red) ? redWin : (g.team == Team::Blue ? !redWin : false));
 		}
 		return;
 	}
@@ -1272,7 +1272,7 @@ static void AdjustSkillRatings() {
 			auto* cl = players[i]->client;
 			cl->sess.skillRating += delta;
 			cl->sess.skillRatingChange = static_cast<int>(delta);
-			ClientConfig_SaveStats(cl, i == 0);
+			GetClientConfigStore().SaveStats(cl, i == 0);
 		}
 
 		// Ghosts
@@ -1302,7 +1302,7 @@ static void AdjustSkillRatings() {
 				float delta = SKILL_K * (Si - Ei);
 				sortedGhosts[i]->skillRating += delta;
 				sortedGhosts[i]->skillRatingChange = static_cast<int>(delta);
-				ClientConfig_SaveStatsForGhost(*sortedGhosts[i], i == 0);
+				GetClientConfigStore().SaveStatsForGhost(*sortedGhosts[i], i == 0);
 			}
 		}
 	}

@@ -2420,7 +2420,7 @@ void MatchStats_End() {
 			}
 
 			// Save persistent stats
-			ClientConfig_SaveStats(cl, won);
+			GetClientConfigStore().SaveStats(cl, won);
 
 			return p;
 			};
