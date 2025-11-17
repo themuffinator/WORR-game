@@ -391,7 +391,7 @@ void LoadMotd() {
 		const std::size_t length = static_cast<std::size_t>(endPosition);
 
 		if (length > 0x40000) {
-			gi.Com_PrintFmt("{}: MoTD file length exceeds maximum: {}\n", __FUNCTION__, motdPath);
+			gi.Com_PrintFmt("{}: MotD file length exceeds maximum: {}\n", __FUNCTION__, motdPath);
 			valid = false;
 		}
 		else {
@@ -401,7 +401,7 @@ void LoadMotd() {
 				const std::size_t readLength = fread(contents.data(), 1, length, f);
 
 				if (readLength != length) {
-					gi.Com_PrintFmt("{}: MoTD file read error: {}\n", __FUNCTION__, motdPath);
+					gi.Com_PrintFmt("{}: MotD file read error: {}\n", __FUNCTION__, motdPath);
 					valid = false;
 				}
 			}
@@ -987,9 +987,9 @@ static void InitGame() {
 	g_maps_allow_custom_textures = gi.cvar("g_maps_allow_custom_textures", "1", CVAR_NOFLAGS);
 	g_maps_allow_custom_sounds = gi.cvar("g_maps_allow_custom_sounds", "1", CVAR_NOFLAGS);
 
-g_statex_enabled = gi.cvar("g_statex_enabled", "1", CVAR_NOFLAGS);
-g_statex_humans_present = gi.cvar("g_statex_humans_present", "1", CVAR_NOFLAGS);
-g_statex_export_html = gi.cvar("g_statex_export_html", "1", CVAR_NOFLAGS);
+	g_statex_enabled = gi.cvar("g_statex_enabled", "1", CVAR_NOFLAGS);
+	g_statex_humans_present = gi.cvar("g_statex_humans_present", "1", CVAR_NOFLAGS);
+	g_statex_export_html = gi.cvar("g_statex_export_html", "1", CVAR_NOFLAGS);
 
 	g_blueTeamName = gi.cvar("g_blue_team_name", "Team BLUE", CVAR_NOFLAGS);
 	g_redTeamName = gi.cvar("g_red_team_name", "Team RED", CVAR_NOFLAGS);

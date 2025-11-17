@@ -302,7 +302,7 @@ namespace Commands {
 		}
 
 		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
+			gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", arg1.data());
 			return;
 		}
 
