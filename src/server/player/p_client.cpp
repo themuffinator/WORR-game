@@ -27,6 +27,7 @@
 #include "../gameplay/g_headhunters.hpp"
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
+#include "../client/client_session_service_impl.hpp"
 
 #include <algorithm>
 #include <array>
@@ -62,28 +63,16 @@ static inline void deathmatch_spawn_flags(gentity_t* self) {
 		self->arena = st.arena;
 }
 
-static void BroadcastReadyStatus(gentity_t* ent) {
-	gi.LocBroadcast_Print(PRINT_CENTER, "%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.", ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT ");
-}
+/*
+=============
+ClientSetReadyStatus
 
+Defers the ready state updates to the session service so the legacy logic can
+gradually migrate out of this translation unit.
+=============
+*/
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
-	if (!ReadyConditions(ent, false)) return;
-
-	client_persistant_t* pers = &ent->client->pers;
-
-	if (toggle) {
-		pers->readyStatus = !pers->readyStatus;
-	}
-	else {
-		if (pers->readyStatus == state) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT ");
-			return;
-		}
-		else {
-			pers->readyStatus = state;
-		}
-	}
-	BroadcastReadyStatus(ent);
+	worr::server::client::GetClientSessionService().OnReadyToggled(ent, state, toggle);
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP

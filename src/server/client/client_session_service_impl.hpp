@@ -5,23 +5,30 @@
 
 namespace worr::server::client {
 
+enum class ReadyResult {
+	Success,
+	NoConditions,
+	AlreadySet,
+};
+
 class ClientSessionServiceImpl : public ClientSessionService {
 	public:
 	ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        ClientConfigStore& configStore);
+		ClientConfigStore& configStore);
 
 	bool ClientConnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
+		gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
 	void ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent) override;
+		gentity_t* ent) override;
 	void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent, const char* userInfo) override;
+		gentity_t* ent, const char* userInfo) override;
 	void ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent) override;
+		gentity_t* ent) override;
 	void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent, usercmd_t* cmd) override;
+		gentity_t* ent, usercmd_t* cmd) override;
 	void ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
-	        gentity_t* ent) override;
+		gentity_t* ent) override;
+	ReadyResult OnReadyToggled(gentity_t* ent, bool state, bool toggle);
 
 	private:
 	game_import_t& gi_;
@@ -29,5 +36,7 @@ class ClientSessionServiceImpl : public ClientSessionService {
 	LevelLocals& level_;
 	ClientConfigStore& configStore_;
 };
+
+ClientSessionServiceImpl& GetClientSessionService();
 
 } // namespace worr::server::client
