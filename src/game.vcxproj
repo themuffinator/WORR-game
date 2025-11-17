@@ -125,9 +125,10 @@
     <ClInclude Include="server\bots\bot_exports.hpp" />
     <ClInclude Include="server\bots\bot_includes.hpp" />
     <ClInclude Include="server\bots\bot_think.hpp" />
-    <ClInclude Include="server\bots\bot_utils.hpp" />
-    <ClInclude Include="client\cg_local.hpp" />
-    <ClInclude Include="server\client\client_session_service_impl.hpp" />
+<ClInclude Include="server\bots\bot_utils.hpp" />
+<ClInclude Include="client\cg_local.hpp" />
+<ClInclude Include="server\client\client_stats_service.hpp" />
+<ClInclude Include="server\client\client_session_service_impl.hpp" />
     <ClInclude Include="server\commands\command_registration.hpp" />
     <ClInclude Include="server\commands\commands.hpp" />
     <ClInclude Include="server\commands\command_system.hpp" />
@@ -206,11 +207,12 @@
   <ItemGroup>
     <ClCompile Include="server\bots\bot_debug.cpp" />
     <ClCompile Include="server\bots\bot_exports.cpp" />
-    <ClCompile Include="server\bots\bot_think.cpp" />
-    <ClCompile Include="server\bots\bot_utils.cpp" />
-    <ClCompile Include="client\cg_main.cpp" />
-    <ClCompile Include="client\cg_screen.cpp" />
-    <ClCompile Include="server\client\client_session_service_impl.cpp" />
+<ClCompile Include="server\bots\bot_think.cpp" />
+<ClCompile Include="server\bots\bot_utils.cpp" />
+<ClCompile Include="client\cg_main.cpp" />
+<ClCompile Include="client\cg_screen.cpp" />
+<ClCompile Include="server\client\client_stats_service.cpp" />
+<ClCompile Include="server\client\client_session_service_impl.cpp" />
     <ClCompile Include="server\commands\command_admin.cpp" />
     <ClCompile Include="server\commands\command_cheats.cpp" />
     <ClCompile Include="server\commands\command_client.cpp" />
