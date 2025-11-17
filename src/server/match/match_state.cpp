@@ -28,6 +28,7 @@
 #include "match_state_helper.hpp"
 
 #include <array>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -2265,8 +2266,8 @@ void GT_Init() {
 }
 
 void ChangeGametype(GameType gt) {
-	switch (gt) {
-	case GameType::CaptureTheFlag:
+switch (gt) {
+case GameType::CaptureTheFlag:
 		if (!ctf->integer)
 			gi.cvarForceSet("ctf", "1");
 		break;
@@ -2293,6 +2294,173 @@ void ChangeGametype(GameType gt) {
 		gi.cvarForceSet("deathmatch", "1");
 	}
 
-	if ((int)gt != g_gametype->integer)
-		gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
+if ((int)gt != g_gametype->integer)
+gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
 }
+
+namespace worr::server::client {
+
+	namespace {
+	struct ClientStatsServiceDependencies {
+	game_import_t* gi;
+	GameLocals* game;
+	LevelLocals* level;
+	};
+
+	ClientStatsServiceDependencies g_clientStatsServiceDependencies{ &gi, &game, &level };
+	std::unique_ptr<ClientStatsService> g_clientStatsServiceInstance;
+	}
+
+	class ClientStatsServiceImpl final : public ClientStatsService {
+	public:
+	ClientStatsServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level);
+
+	void MatchStart(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MatchReset(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MatchEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void RoundEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MarathonRegisterClientBaseline(game_import_t& gi, GameLocals& game,
+	LevelLocals& level, gclient_t* client) override;
+	void UpdateDuelRecords(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void ChangeGametype(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	GameType gameType) override;
+	void CheckDMExitRules(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	int ScoreLimit(game_import_t& gi, const GameLocals& game, const LevelLocals& level) const override;
+	std::string ScoreLimitString(game_import_t& gi, const GameLocals& game,
+	const LevelLocals& level) const override;
+
+	private:
+	[[maybe_unused]] game_import_t& gi_;
+	[[maybe_unused]] GameLocals& game_;
+	[[maybe_unused]] LevelLocals& level_;
+	};
+
+	/*
+	=============
+	ClientStatsServiceImpl::ClientStatsServiceImpl
+	=============
+	*/
+	ClientStatsServiceImpl::ClientStatsServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level)
+	: gi_(gi)
+	, game_(game)
+	, level_(level) {}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchStart
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchStart(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_Start();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchReset
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchReset(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_Reset();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchEnd
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchEnd(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_End();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::RoundEnd
+	=============
+	*/
+	void ClientStatsServiceImpl::RoundEnd(game_import_t&, GameLocals&, LevelLocals&) {
+	Round_End();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MarathonRegisterClientBaseline
+	=============
+	*/
+	void ClientStatsServiceImpl::MarathonRegisterClientBaseline(game_import_t&, GameLocals&,
+	LevelLocals&, gclient_t* client) {
+	Marathon_RegisterClientBaseline(client);
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::UpdateDuelRecords
+	=============
+	*/
+	void ClientStatsServiceImpl::UpdateDuelRecords(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_UpdateDuelRecords();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ChangeGametype
+	=============
+	*/
+	void ClientStatsServiceImpl::ChangeGametype(game_import_t&, GameLocals&, LevelLocals&, GameType gameType) {
+	::ChangeGametype(gameType);
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::CheckDMExitRules
+	=============
+	*/
+	void ClientStatsServiceImpl::CheckDMExitRules(game_import_t&, GameLocals&, LevelLocals&) {
+	::CheckDMExitRules();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ScoreLimit
+	=============
+	*/
+	int ClientStatsServiceImpl::ScoreLimit(game_import_t&, const GameLocals&, const LevelLocals&) const {
+	return GT_ScoreLimit();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ScoreLimitString
+	=============
+	*/
+	std::string ClientStatsServiceImpl::ScoreLimitString(game_import_t&, const GameLocals&, const LevelLocals&) const {
+	return GT_ScoreLimitString();
+	}
+
+	/*
+	=============
+	InitializeClientStatsService
+	=============
+	*/
+	void InitializeClientStatsService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+	g_clientStatsServiceDependencies.gi = &giRef;
+	g_clientStatsServiceDependencies.game = &gameRef;
+	g_clientStatsServiceDependencies.level = &levelRef;
+	g_clientStatsServiceInstance.reset();
+	}
+
+	/*
+	=============
+	GetClientStatsService
+	=============
+	*/
+	ClientStatsService& GetClientStatsService() {
+	if (!g_clientStatsServiceInstance) {
+	g_clientStatsServiceInstance = std::make_unique<ClientStatsServiceImpl>(
+	*g_clientStatsServiceDependencies.gi,
+	*g_clientStatsServiceDependencies.game,
+	*g_clientStatsServiceDependencies.level);
+	}
+	return *g_clientStatsServiceInstance;
+	}
+
+} // namespace worr::server::client

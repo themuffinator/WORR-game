@@ -34,13 +34,26 @@ match-ending flows and disconnect flows share a single orchestration point.
 */
 class ClientStatsService {
 public:
-	virtual ~ClientStatsService() = default;
+virtual ~ClientStatsService() = default;
 
+	virtual void MatchStart(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual void MatchReset(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual void MatchEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual void RoundEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual void MarathonRegisterClientBaseline(game_import_t& gi, GameLocals& game,
+		LevelLocals& level, gclient_t* client) = 0;
+	virtual void UpdateDuelRecords(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual void ChangeGametype(game_import_t& gi, GameLocals& game, LevelLocals& level,
+		GameType gameType) = 0;
+	virtual void CheckDMExitRules(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
+	virtual int ScoreLimit(game_import_t& gi, const GameLocals& game, const LevelLocals& level) const = 0;
+virtual std::string ScoreLimitString(game_import_t& gi, const GameLocals& game,
+const LevelLocals& level) const = 0;
 	virtual void PersistMatchResults(const MatchStatsContext& context) = 0;
 	virtual void SaveStatsForDisconnect(const MatchStatsContext& context, gentity_t* ent) = 0;
 };
 
-MatchStatsContext BuildMatchStatsContext(LevelLocals& level);
+void InitializeClientStatsService(game_import_t& gi, GameLocals& game, LevelLocals& level);
 ClientStatsService& GetClientStatsService();
 
 } // namespace worr::server::client

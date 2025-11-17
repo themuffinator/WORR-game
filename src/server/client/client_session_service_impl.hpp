@@ -33,6 +33,7 @@ ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level
 void OnDisconnect(gentity_t* ent);
 };
 
+void InitializeClientSessionService(game_import_t& gi, GameLocals& game, LevelLocals& level);
 ClientSessionServiceImpl& GetClientSessionService();
 
 } // namespace worr::server::client
