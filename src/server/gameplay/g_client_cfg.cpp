@@ -16,6 +16,7 @@
 // - Player Identity: Manages player name changes by tracking aliases.
 
 #include "client_config.hpp"
+#include "../client/client_config_store.hpp"
 #include "../g_local.hpp"
 #include "../../shared/weapon_pref_utils.hpp"
 
