@@ -17,10 +17,12 @@
 #include <string_view>
 #include <vector>
 
+namespace legacy::client {
 void ClientBegin(gentity_t* ent);
 void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
 void ClientThink(gentity_t* ent, usercmd_t* cmd);
 void ClientBeginServerFrame(gentity_t* ent);
+}
 
 namespace {
 
@@ -148,17 +150,6 @@ static void ClientCheckPermissions(GameLocals& game, gentity_t* ent, const char*
 } // namespace
 
 namespace worr::server::client {
-
-class LegacyClientConfigStore final : public ClientConfigStore {
-	public:
-	void Initialize(game_import_t& gi, gclient_t* client, const std::string& playerID,
-		const std::string& playerName, const std::string& gameType) override;
-	void SaveStats(game_import_t& gi, gclient_t* client, bool wonMatch) override;
-	void SaveStatsForGhost(game_import_t& gi, const Ghosts& ghost, bool wonMatch) override;
-	void SaveWeaponPreferences(game_import_t& gi, gclient_t* client) override;
-	int DefaultSkillRating(game_import_t& gi) const override;
-	std::string PlayerNameForSocialID(game_import_t& gi, const std::string& socialID) override;
-};
 
 /*
 =============
@@ -331,10 +322,10 @@ Delegates to the legacy ClientBegin implementation until the logic migrates.
 =============
 */
 void ClientSessionServiceImpl::ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
-		(void)gi;
-		(void)game;
-		(void)level;
-		::ClientBegin(ent);
+(void)gi;
+(void)game;
+(void)level;
+legacy::client::ClientBegin(ent);
 }
 
 /*
@@ -345,11 +336,11 @@ Routes userinfo updates to the existing ClientUserinfoChanged handler.
 =============
 */
 void ClientSessionServiceImpl::ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, const char* userInfo) {
-		(void)gi;
-		(void)game;
-		(void)level;
-		::ClientUserinfoChanged(ent, userInfo);
+gentity_t* ent, const char* userInfo) {
+(void)gi;
+(void)game;
+(void)level;
+legacy::client::ClientUserinfoChanged(ent, userInfo);
 }
 
 /*
@@ -540,11 +531,11 @@ Passes the per-frame ClientThink logic through to the legacy code path.
 =============
 */
 void ClientSessionServiceImpl::ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, usercmd_t* cmd) {
-		(void)gi;
-		(void)game;
-		(void)level;
-		::ClientThink(ent, cmd);
+gentity_t* ent, usercmd_t* cmd) {
+(void)gi;
+(void)game;
+(void)level;
+legacy::client::ClientThink(ent, cmd);
 }
 
 /*
@@ -555,11 +546,11 @@ Defers to the existing ClientBeginServerFrame function until it is migrated.
 =============
 */
 void ClientSessionServiceImpl::ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) {
-		(void)gi;
-		(void)game;
-		(void)level;
-		::ClientBeginServerFrame(ent);
+gentity_t* ent) {
+(void)gi;
+(void)game;
+(void)level;
+legacy::client::ClientBeginServerFrame(ent);
 }
 
 /*
@@ -667,20 +658,6 @@ ReadyResult ClientSessionServiceImpl::OnReadyToggled(gentity_t* ent, bool state,
 			ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT " );
 
 		return ReadyResult::Success;
-}
-
-/*
-=============
-GetClientSessionService
-
-Provides access to the translation-unit singleton used to service client
-session requests.
-=============
-*/
-ClientSessionServiceImpl& GetClientSessionService() {
-		static LegacyClientConfigStore configStore;
-		static ClientSessionServiceImpl service(gi, game, level, configStore);
-		return service;
 }
 
 } // namespace worr::server::client

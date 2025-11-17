@@ -38,6 +38,24 @@
 #include <string_view>
 #include <vector>
 
+namespace worr::server::client {
+
+/*
+=============
+GetClientSessionService
+
+Provides p_client.cpp with access to the lazily constructed client session
+service so legacy entry points can delegate to the shared implementation.
+=============
+*/
+ClientSessionServiceImpl& GetClientSessionService() {
+	static LegacyClientConfigStore configStore;
+	static ClientSessionServiceImpl service(gi, game, level, configStore);
+	return service;
+}
+
+} // namespace worr::server::client
+
 namespace {
 	uint64_t NextDuelQueueTicket() {
 		static uint64_t counter = 1;
@@ -3468,8 +3486,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 
 	return true;
 }
-
-
+namespace legacy::client {
 
 /*
 ===========
@@ -3564,6 +3581,21 @@ void ClientBegin(gentity_t* ent) {
 	cl->sess.inGame = true;
 }
 
+} // namespace legacy::client
+
+/*
+=============
+ClientBegin
+
+Routes ClientBegin through the ClientSessionServiceImpl so all entry points
+share the same lifecycle management.
+=============
+*/
+void ClientBegin(gentity_t* ent) {
+	auto& service = worr::server::client::GetClientSessionService();
+	service.ClientBegin(gi, game, level, ent);
+}
+
 /*
 ================
 P_GetLobbyUserNum
@@ -3591,6 +3623,8 @@ static std::string G_EncodedPlayerName(gentity_t* player) {
 	unsigned int playernum = P_GetLobbyUserNum(player);
 	return std::string("##P") + std::to_string(playernum);
 }
+
+namespace legacy::client {
 
 /*
 ===========
@@ -3678,7 +3712,22 @@ void ClientUserinfoChanged(gentity_t* ent, const char* userInfo) {
 	}
 
 	// save off the userInfo in case we want to check something later
-	Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
+Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
+}
+
+} // namespace legacy::client
+
+/*
+================
+ClientUserinfoChanged
+
+Routes userinfo updates through the ClientSessionServiceImpl to keep legacy
+state transitions centralized.
+================
+*/
+void ClientUserinfoChanged(gentity_t* ent, const char* userInfo) {
+	auto& service = worr::server::client::GetClientSessionService();
+	service.ClientUserinfoChanged(gi, game, level, ent, userInfo);
 }
 
 static inline bool IsSlotIgnored(gentity_t* slot, gentity_t** ignore, size_t num_ignore) {
@@ -4169,6 +4218,17 @@ usually be a couple times for each server frame.
 ==============
 */
 void OpenJoinMenu(gentity_t* ent);
+
+namespace legacy::client {
+
+/*
+==============
+ClientThink
+
+This will be called once for each client frame, which will
+usually be a couple times for each server frame.
+==============
+*/
 void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	gclient_t* cl;
 	gentity_t* other;
@@ -4508,6 +4568,10 @@ void ClientThink(gentity_t* ent, usercmd_t* ucmd) {
 	ClientTimerActions(ent);
 }
 
+} // namespace legacy::client
+
+
+
 // active monsters
 struct active_monsters_filter_t {
 	inline bool operator()(gentity_t* ent) const {
@@ -4775,6 +4839,17 @@ any other entities in the world.
 ==============
 */
 inline void ActivateSelectedMenuItem(gentity_t* ent);
+
+namespace legacy::client {
+
+/*
+==============
+ClientBeginServerFrame
+
+This will be called once for each server frame, before running
+any other entities in the world.
+==============
+*/
 void ClientBeginServerFrame(gentity_t* ent) {
 	gclient_t* client;
 
@@ -4848,6 +4923,22 @@ void ClientBeginServerFrame(gentity_t* ent) {
 
 	client->latchedButtons = BUTTON_NONE;
 }
+
+} // namespace legacy::client
+
+/*
+==============
+ClientBeginServerFrame
+
+Relays per-frame setup through ClientSessionServiceImpl to maintain consistent
+state handling.
+==============
+*/
+void ClientBeginServerFrame(gentity_t* ent) {
+	auto& service = worr::server::client::GetClientSessionService();
+	service.ClientBeginServerFrame(gi, game, level, ent);
+}
+
 /*
 ==============
 RemoveAttackingPainDaemons
