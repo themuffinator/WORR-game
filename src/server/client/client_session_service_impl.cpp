@@ -18,14 +18,252 @@
 #include <string_view>
 #include <vector>
 
-namespace legacy::client {
-void ClientBegin(gentity_t* ent);
-void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
-void ClientThink(gentity_t* ent, usercmd_t* cmd);
-void ClientBeginServerFrame(gentity_t* ent);
-}
+void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bool silent);
 
 namespace {
+
+/*
+=============
+ClientSkinOverride
+
+Restricts players to the stock Quake 2 skin sets when the server disallows
+custom skins, falling back to sensible defaults when needed.
+=============
+*/
+static const char* ClientSkinOverride(const char* s) {
+	// 1) If we allow custom skins, just pass it through
+	if (g_allowCustomSkins->integer)
+		return s;
+
+	static const std::array<std::pair<std::string_view,
+		std::vector<std::string_view>>,
+		3> stockSkins = { {
+	{ "male",   { "grunt",
+				  "cipher","claymore","ctf_b","ctf_r","deaddude","disguise",
+				  "flak","howitzer","insane1","insane2","insane3","major",
+				  "nightops","pointman","psycho","rampage","razor","recon",
+				  "rogue_b","rogue_r","scout","sniper","viper" } },
+	{ "female", { "athena",
+				  "brianna","cobalt","ctf_b","ctf_r","disguise","ensign",
+				  "jezebel","jungle","lotus","rogue_b","rogue_r","stiletto",
+				  "venus","voodoo" } },
+	{ "cyborg", { "oni911",
+				  "ctf_b","ctf_r","disguise","ps9000","tyr574" } }
+	} };
+
+	std::string_view req{ s };
+	// 2) Split "model/skin"
+	auto slash = req.find('/');
+	std::string_view model = (slash != std::string_view::npos)
+		? req.substr(0, slash)
+		: std::string_view{};
+	std::string_view skin = (slash != std::string_view::npos)
+		? req.substr(slash + 1)
+		: std::string_view{};
+
+	// 3) Default to "male/grunt" if nothing sensible
+	if (model.empty()) {
+		model = "male";
+		skin = "grunt";
+	}
+
+	// 4) Look up in our stock-skins table
+	for (auto& [m, skins] : stockSkins) {
+		if (m == model) {
+			// 4a) If the skin is known, no change
+			if (std::find(skins.begin(), skins.end(), skin) != skins.end()) {
+				return s;
+			}
+			// 4b) Otherwise revert to this model's default skin
+			auto& defaultSkin = skins.front();
+			gi.Com_PrintFmt("{}: reverting to default skin: \"{}\" -> \"{}/{}\"\n", __FUNCTION__, s, m, defaultSkin);
+			return G_Fmt("{}/{}", m, defaultSkin).data();
+		}
+	}
+
+	// 5) Model not found at all -> global default
+	gi.Com_PrintFmt("{}: model not recognized, reverting to \"male/grunt\" for \"{}\"\n", __FUNCTION__, s);
+	return "male/grunt";
+}
+
+inline void PreviousMenuItem(gentity_t* ent);
+inline void NextMenuItem(gentity_t* ent);
+inline void ActivateSelectedMenuItem(gentity_t* ent);
+
+/*
+=================
+HandleMenuMovement
+
+Processes menu navigation and activation input for clients currently in a menu.
+=================
+*/
+static bool HandleMenuMovement(gentity_t* ent, usercmd_t* ucmd) {
+	if (!ent->client->menu.current)
+		return false;
+
+	// [Paril-KEX] handle menu movement
+	int32_t menu_sign = ucmd->forwardMove > 0 ? 1 : ucmd->forwardMove < 0 ? -1 : 0;
+
+	if (ent->client->menu_sign != menu_sign) {
+		ent->client->menu_sign = menu_sign;
+
+		if (menu_sign > 0) {
+			PreviousMenuItem(ent);
+			return true;
+		}
+		else if (menu_sign < 0) {
+			NextMenuItem(ent);
+			return true;
+		}
+	}
+
+	if (ent->client->latchedButtons & (BUTTON_ATTACK | BUTTON_JUMP)) {
+			ActivateSelectedMenuItem(ent);
+			return true;
+	}
+
+	return false;
+}
+
+/*
+=================
+ClientInactivityTimer
+
+Returns false if the client is dropped due to inactivity.
+=================
+*/
+static bool ClientInactivityTimer(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return true;
+
+	auto* cl = ent->client;
+
+	// Check if inactivity is enabled
+	GameTime timeout = GameTime::from_sec(g_inactivity->integer);
+	if (timeout && timeout < 15_sec)
+		timeout = 15_sec;
+
+	// First-time setup
+	if (!cl->sess.inactivityTime) {
+		cl->sess.inactivityTime = level.time + timeout;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inactiveStatus = false;
+		return true;
+	}
+
+	// Reset conditions (ineligible for inactivity logic)
+	if (!deathmatch->integer || !timeout || !ClientIsPlaying(cl) || cl->eliminated || cl->sess.is_a_bot || ent->s.number == 0) {
+		cl->sess.inactivityTime = level.time + 1_min;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inactiveStatus = false;
+		return true;
+	}
+
+	// Input activity detected, reset timer
+	if (cl->latchedButtons & BUTTON_ANY) {
+		cl->sess.inactivityTime = level.time + timeout;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inactiveStatus = false;
+		return true;
+	}
+
+	// Timeout reached, remove player
+	if (level.time > cl->sess.inactivityTime) {
+		gi.LocClient_Print(ent, PRINT_CENTER, "You have been removed from the match\ndue to inactivity.\n");
+		SetTeam(ent, Team::Spectator, true, true, false);
+		return false;
+	}
+
+	// Warning 10 seconds before timeout
+	if (!cl->sess.inactivityWarning && level.time > cl->sess.inactivityTime - 10_sec) {
+		cl->sess.inactivityWarning = true;
+		gi.LocClient_Print(ent, PRINT_CENTER, "Ten seconds until inactivity trigger!\n");
+		gi.localSound(ent, CHAN_AUTO, gi.soundIndex("world/fish.wav"), 1, ATTN_NONE, 0);
+	}
+
+	return true;
+}
+
+/*
+=================
+ClientTimerActions_ApplyRegeneration
+
+Applies the regeneration powerup's periodic health ticks.
+=================
+*/
+static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
+	gclient_t* cl = ent->client;
+	if (!cl)
+		return;
+
+	if (ent->health <= 0 || ent->client->eliminated)
+		return;
+
+	if (cl->PowerupTimer(PowerupTimer::Regeneration) <= level.time)
+		return;
+
+	if (g_vampiric_damage->integer || !game.map.spawnHealth)
+		return;
+
+	if (CombatIsDisabled())
+		return;
+
+	bool    noise = false;
+	float   volume = cl->PowerupCount(PowerupCount::SilencerShots) ? 0.2f : 1.0;
+	int             max = cl->pers.maxHealth;
+	int             bonus = 0;
+
+	if (ent->health < max) {
+		bonus = 15;
+	}
+	else if (ent->health < max * 2) {
+		bonus = 5;
+	}
+
+	if (!bonus)
+		return;
+
+	ent->health += bonus;
+	if (ent->health > max)
+		ent->health = max;
+	gi.sound(ent, CHAN_AUX, gi.soundIndex("items/regen.wav"), volume, ATTN_NORM, 0);
+	cl->pu_regen_time_blip = level.time + 100_ms;
+}
+
+/*
+==================
+ClientTimerActions
+
+Actions that happen once a second for player maintenance tasks.
+==================
+*/
+static void ClientTimerActions(gentity_t* ent) {
+	if (ent->client->timeResidual > level.time)
+		return;
+
+	if (RS(Quake3Arena)) {
+		// count down health when over max
+		if (ent->health > ent->client->pers.maxHealth)
+			ent->health--;
+
+		// count down armor when over max
+		if (ent->client->pers.inventory[IT_ARMOR_COMBAT] > ent->client->pers.maxHealth)
+			ent->client->pers.inventory[IT_ARMOR_COMBAT]--;
+	}
+	else {
+		if (ent->client->pers.healthBonus > 0) {
+			if (ent->health <= 0 || ent->health <= ent->client->pers.maxHealth) {
+				ent->client->pers.healthBonus = 0;
+			}
+			else {
+				ent->health--;
+				ent->client->pers.healthBonus--;
+			}
+		}
+	}
+	ClientTimerActions_ApplyRegeneration(ent);
+	ent->client->timeResidual = level.time + 1_sec;
+}
 
 /*
 =============
@@ -318,29 +556,186 @@ bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelL
 =============
 ClientSessionServiceImpl::ClientBegin
 
-Delegates to the legacy ClientBegin implementation until the logic migrates.
+Fully manages the transition from connection to active play, including
+initialization, spawn handling, and intermission placement.
 =============
 */
 void ClientSessionServiceImpl::ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
-(void)gi;
-(void)game;
-(void)level;
-legacy::client::ClientBegin(ent);
+	gclient_t* cl = game.clients + (ent - g_entities - 1);
+	cl->awaitingRespawn = false;
+	cl->respawn_timeout = 0_ms;
+
+	// set inactivity timer
+	GameTime cv = GameTime::from_sec(g_inactivity->integer);
+	if (cv) {
+		if (cv < 15_sec) cv = 15_sec;
+		cl->sess.inactivityTime = level.time + cv;
+		cl->sess.inactivityWarning = false;
+	}
+
+	// [Paril-KEX] we're always connected by this point...
+	cl->pers.connected = true;
+
+	if (deathmatch->integer) {
+		ClientBeginDeathmatch(ent);
+
+		if (game.marathon.active && level.matchState >= MatchState::In_Progress)
+			Marathon_RegisterClientBaseline(ent->client);
+
+		// count current clients and rank for scoreboard
+		CalculateRanks();
+		return;
+	}
+
+	// [Paril-KEX] set enter time now, so we can send messages slightly
+	// after somebody first joins
+	cl->resp.enterTime = level.time;
+	cl->pers.spawned = true;
+
+	// if there is already a body waiting for us (a loadgame), just
+	// take it, otherwise spawn one from scratch
+	if (ent->inUse) {
+		// the client has cleared the client side viewAngles upon
+		// connecting to the server, which is different than the
+		// state when the game is saved, so we need to compensate
+		// with deltaangles
+		cl->ps.pmove.deltaAngles = cl->ps.viewAngles;
+	}
+	else {
+		// a spawn point will completely reinitialize the entity
+		// except for the persistant data that was initialized at
+		// ClientConnect() time
+		InitGEntity(ent);
+		ent->className = "player";
+		InitClientResp(cl);
+		cl->coopRespawn.spawnBegin = true;
+		ClientCompleteSpawn(ent);
+		cl->coopRespawn.spawnBegin = false;
+
+		if (!cl->sess.inGame)
+		BroadcastTeamChange(ent, Team::None, false, false);
+	}
+
+	// make sure we have a known default
+	ent->svFlags |= SVF_PLAYER;
+
+	if (level.intermission.time) {
+		MoveClientToIntermission(ent);
+	}
+	else {
+		// send effect if in a multiplayer game
+		if (game.maxClients > 1 && !(ent->svFlags & SVF_NOCLIENT))
+			gi.LocBroadcast_Print(PRINT_HIGH, "$g_entered_game", cl->sess.netName);
+	}
+
+	level.campaign.coopScalePlayers++;
+	G_Monster_CheckCoopHealthScaling();
+
+	// make sure all view stuff is valid
+	ClientEndServerFrame(ent);
+
+	// [Paril-KEX] send them goal, if needed
+	G_PlayerNotifyGoal(ent);
+
+	// [Paril-KEX] we're going to set this here just to be certain
+	// that the level entry timer only starts when a player is actually
+	// *in* the level
+	G_SetLevelEntry();
+
+	cl->sess.inGame = true;
 }
 
 /*
 =============
 ClientSessionServiceImpl::ClientUserinfoChanged
 
-Routes userinfo updates to the existing ClientUserinfoChanged handler.
+Parses and applies userinfo updates, keeping both gameplay and presentation
+state (skins, FOV, handedness) synchronized.
 =============
 */
 void ClientSessionServiceImpl::ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, const char* userInfo) {
-(void)gi;
-(void)game;
-(void)level;
-legacy::client::ClientUserinfoChanged(ent, userInfo);
+	if (!userInfo)
+		userInfo = "";
+
+	std::array<char, MAX_INFO_VALUE> value{};
+	std::array<char, MAX_INFO_VALUE> nameBuffer{};
+
+	// set name
+	if (!gi.Info_ValueForKey(userInfo, "name", nameBuffer.data(), nameBuffer.size()))
+		Q_strlcpy(nameBuffer.data(), "badinfo", nameBuffer.size());
+	Q_strlcpy(ent->client->sess.netName, nameBuffer.data(), sizeof(ent->client->sess.netName));
+
+	// set skin
+	if (!gi.Info_ValueForKey(userInfo, "skin", value.data(), value.size()))
+		Q_strlcpy(value.data(), "male/grunt", value.size());
+
+	const char* sanitizedSkin = ClientSkinOverride(value.data());
+	std::string_view sanitizedSkinView{ sanitizedSkin };
+	if (ent->client->sess.skinName != sanitizedSkinView)
+		ent->client->sess.skinName.assign(sanitizedSkinView);
+
+	std::string iconPath = G_Fmt("/players/{}_i", ent->client->sess.skinName).data();
+	ent->client->sess.skinIconIndex = gi.imageIndex(iconPath.c_str());
+
+	int playernum = ent - g_entities - 1;
+
+	// combine name and skin into a configstring
+	const std::string& sessionSkin = ent->client->sess.skinName;
+	if (Teams())
+		AssignPlayerSkin(ent, sessionSkin);
+	else {
+		gi.configString(CS_PLAYERSKINS + playernum, G_Fmt("{}\\{}", ent->client->sess.netName, sessionSkin).data());
+	}
+
+	//  set player name field (used in id_state view)
+	gi.configString(CONFIG_CHASE_PLAYER_NAME + playernum, ent->client->sess.netName);
+
+	// [Kex] netName is used for a couple of other things, so we update this after those.
+	if (!(ent->svFlags & SVF_BOT)) {
+		const auto encodedName = G_EncodedPlayerName(ent);
+		Q_strlcpy(ent->client->pers.netName, encodedName.c_str(), sizeof(ent->client->pers.netName));
+	}
+
+	// fov
+	gi.Info_ValueForKey(userInfo, "fov", value.data(), value.size());
+	ent->client->ps.fov = std::clamp(static_cast<float>(strtoul(value.data(), nullptr, 10)), 1.f, 160.f);
+
+	// handedness
+	if (gi.Info_ValueForKey(userInfo, "hand", value.data(), value.size())) {
+		ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(value.data()), static_cast<int>(Handedness::Rig
+ht), static_cast<int>(Handedness::Center)));
+	}
+	else {
+		ent->client->pers.hand = Handedness::Right;
+	}
+
+	// [Paril-KEX] auto-switch
+	if (gi.Info_ValueForKey(userInfo, "autoswitch", value.data(), value.size())) {
+		ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(value.data()), static_cast<int>(Wea
+ponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
+	}
+	else {
+		ent->client->pers.autoswitch = WeaponAutoSwitch::Smart;
+	}
+
+	if (gi.Info_ValueForKey(userInfo, "autoshield", value.data(), value.size())) {
+		ent->client->pers.autoshield = atoi(value.data());
+	}
+	else {
+		ent->client->pers.autoshield = -1;
+	}
+
+	// [Paril-KEX] wants bob
+	if (gi.Info_ValueForKey(userInfo, "bobskip", value.data(), value.size())) {
+		ent->client->pers.bob_skip = value[0] == '1';
+	}
+	else {
+		ent->client->pers.bob_skip = false;
+	}
+
+	// save off the userInfo in case we want to check something later
+	Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
 }
 
 /*
@@ -528,30 +923,532 @@ void ClientSessionServiceImpl::PrepareSpawnPoint(gentity_t* ent, bool allowEleva
 =============
 ClientSessionServiceImpl::ClientThink
 
-Passes the per-frame ClientThink logic through to the legacy code path.
+Executes the per-frame simulation for a client, handling input processing,
+movement, inactivity timers, and weapon logic.
 =============
 */
 void ClientSessionServiceImpl::ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
-gentity_t* ent, usercmd_t* cmd) {
-(void)gi;
-(void)game;
-(void)level;
-legacy::client::ClientThink(ent, cmd);
+gentity_t* ent, usercmd_t* ucmd) {
+	gclient_t* cl;
+	gentity_t* other;
+	PMove           pm;
+
+	level.currentEntity = ent;
+	cl = ent->client;
+
+	//no movement during map or match intermission
+	if (level.timeoutActive > 0_ms) {
+		cl->resp.cmdAngles[PITCH] = ucmd->angles[PITCH];
+		cl->resp.cmdAngles[YAW] = ucmd->angles[YAW];
+		cl->resp.cmdAngles[ROLL] = ucmd->angles[ROLL];
+		cl->ps.pmove.pmType = PM_FREEZE;
+		return;
+	}
+
+	// [Paril-KEX] pass buttons through even if we are in intermission or
+	// chasing.
+	cl->oldButtons = cl->buttons;
+	cl->buttons = ucmd->buttons;
+	cl->latchedButtons |= cl->buttons & ~cl->oldButtons;
+	cl->cmd = *ucmd;
+
+	if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
+		if (gentity_t* target = FreezeTag_FindFrozenTarget(ent)) {
+			gclient_t* targetCl = target->client;
+
+			if (targetCl && !targetCl->resp.thawer && FreezeTag_IsValidThawHelper(ent, target)) {
+				FreezeTag_StartThawHold(ent, target);
+			}
+		}
+
+		cl->latchedButtons &= ~BUTTON_USE;
+	}
+
+	if (!cl->initialMenu.shown && cl->initialMenu.delay && level.time > cl->initialMenu.delay) {
+		if (!ClientIsPlaying(cl) && (!cl->sess.initialised || cl->sess.inactiveStatus)) {
+			if (ent == host) {
+				if (!g_autoScreenshotTool->integer) {
+					if (g_owner_push_scores->integer)
+						Commands::Score(ent, CommandArgs{});
+					else OpenJoinMenu(ent);
+				}
+			}
+			else
+				OpenJoinMenu(ent);
+			//if (!cl->initialMenu.shown)
+			//      gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", worr::version::kGameTitle, worr::ver
+sion::kGameVersion);
+			cl->initialMenu.delay = 0_sec;
+			cl->initialMenu.shown = true;
+		}
+	}
+
+	// check for queued follow targets
+	if (!ClientIsPlaying(cl)) {
+		if (cl->follow.queuedTarget && level.time > cl->follow.queuedTime + 500_ms) {
+			cl->follow.target = cl->follow.queuedTarget;
+			cl->follow.update = true;
+			cl->follow.queuedTarget = nullptr;
+			cl->follow.queuedTime = 0_sec;
+			ClientUpdateFollowers(ent);
+		}
+	}
+
+	// check for inactivity timer
+	if (!ClientInactivityTimer(ent))
+		return;
+
+	if (g_quadhog->integer)
+		if (cl->PowerupTimer(PowerupTimer::QuadDamage) > 0_sec && level.time >= cl->PowerupTimer(PowerupTimer::QuadDamag
+e))
+			QuadHog_SetupSpawn(0_ms);
+
+	if (cl->sess.teamJoinTime) {
+		GameTime delay = 5_sec;
+		if (cl->sess.motdModificationCount != game.motdModificationCount) {
+			if (level.time >= cl->sess.teamJoinTime + delay) {
+				if (g_showmotd->integer && game.motd.size()) {
+					gi.LocCenter_Print(ent, "{}", game.motd.c_str());
+					delay += 5_sec;
+					cl->sess.motdModificationCount = game.motdModificationCount;
+				}
+			}
+		}
+		if (!cl->sess.showed_help && g_showhelp->integer) {
+			if (level.time >= cl->sess.teamJoinTime + delay) {
+				PrintModifierIntro(ent);
+
+				cl->sess.showed_help = true;
+			}
+		}
+	}
+
+	if ((ucmd->buttons & BUTTON_CROUCH) && pm_config.n64Physics) {
+		if (cl->pers.n64_crouch_warn_times < 12 &&
+			cl->pers.n64_crouch_warning < level.time &&
+			(++cl->pers.n64_crouch_warn_times % 3) == 0) {
+			cl->pers.n64_crouch_warning = level.time + 10_sec;
+			gi.LocClient_Print(ent, PRINT_CENTER, "$g_n64_crouching");
+		}
+	}
+
+	if (level.intermission.time || cl->awaitingRespawn) {
+		cl->ps.pmove.pmType = PM_FREEZE;
+
+		bool n64_sp = false;
+
+		if (level.intermission.time) {
+			n64_sp = !deathmatch->integer && level.isN64;
+
+			// can exit intermission after five seconds
+			// Paril: except in N64. the camera handles it.
+			// Paril again: except on unit exits, we can leave immediately after camera finishes
+			if (!level.changeMap.empty() && (!n64_sp || level.intermission.set) && level.time > level.intermission.t
+ime + 5_sec && (ucmd->buttons & BUTTON_ANY))
+				level.intermission.postIntermission = true;
+		}
+
+		if (!n64_sp)
+			cl->ps.pmove.viewHeight = ent->viewHeight = DEFAULT_VIEWHEIGHT;
+		else
+			cl->ps.pmove.viewHeight = ent->viewHeight = 0;
+		ent->moveType = MoveType::FreeCam;
+		return;
+	}
+
+	if (cl->follow.target) {
+		cl->resp.cmdAngles = ucmd->angles;
+		ent->moveType = MoveType::FreeCam;
+	}
+	else {
+
+		// set up for pmove
+		memset(&pm, 0, sizeof(pm));
+
+		if (ent->moveType == MoveType::FreeCam) {
+			if (cl->menu.current) {
+				cl->ps.pmove.pmType = PM_FREEZE;
+
+				// [Paril-KEX] handle menu movement
+				HandleMenuMovement(ent, ucmd);
+			}
+			else if (cl->awaitingRespawn)
+				cl->ps.pmove.pmType = PM_FREEZE;
+			else if (!ClientIsPlaying(ent->client) || cl->eliminated)
+				cl->ps.pmove.pmType = PM_SPECTATOR;
+			else
+				cl->ps.pmove.pmType = PM_NOCLIP;
+		}
+		else if (ent->moveType == MoveType::NoClip) {
+			cl->ps.pmove.pmType = PM_NOCLIP;
+		}
+		else if (ent->s.modelIndex != MODELINDEX_PLAYER)
+			cl->ps.pmove.pmType = PM_GIB;
+		else if (ent->deadFlag)
+			cl->ps.pmove.pmType = PM_DEAD;
+		else if (cl->grapple.state >= GrappleState::Pull)
+			cl->ps.pmove.pmType = PM_GRAPPLE;
+		else
+			cl->ps.pmove.pmType = PM_NORMAL;
+
+		// [Paril-KEX]
+		if (!G_ShouldPlayersCollide(false) ||
+			(CooperativeModeOn() && !(ent->clipMask & CONTENTS_PLAYER)) // if player collision is on and we're tempo
+rarily ghostly...
+			)
+			cl->ps.pmove.pmFlags |= PMF_IGNORE_PLAYER_COLLISION;
+		else
+			cl->ps.pmove.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
+
+		// haste support
+		if (cl->PowerupTimer(PowerupTimer::Haste) > level.time && !cl->PowerupCount(PowerupCount::HasteShots))
+			cl->ps.pmove.pmFlags |= PMF_RAIL_JUMP;
+		else
+			cl->ps.pmove.pmFlags &= ~PMF_RAIL_JUMP;
+
+		cl->ps.pmove.pmFlags |= PMF_JUMP_HELD;
+
+		if (G_SpawnHasGravity(ent)) {
+			cl->ps.pmove.gravity = ent->gravity;
+			if (!cl->ps.pmove.gravity)
+				cl->ps.pmove.gravity = 1.0f;
+		}
+		else
+			cl->ps.pmove.gravity = 0.0f;
+
+		cl->ps.pmove.trace = G_PM_Clip;
+		cl->ps.pmove.pointContents = gi.pointContents;
+		cl->ps.pmove.bounds = PM_BOUNDS;
+		cl->ps.pmove.viewHeight = ent->viewHeight;
+
+		pm.groundTrace = cl->groundTrace;
+		pm.stepTrace = cl->stepTrace;
+
+		pm.s = cl->ps.pmove;
+		pm.cmd = *ucmd;
+
+		pm.trace_mask = CONTENTS_MASK_PLAYERSOLID;
+
+		pm.hookPull = cl->grapple.pull;
+
+		if (game.cheatsFlag & GameCheatFlags::Fly)
+			pm.s.pmFlags |= PMF_NO_PREDICTION;
+
+		if (cl->PowerupTimer(PowerupTimer::Invisibility) > level.time)
+			pm.s.pmFlags |= PMF_NO_PLAYER_COLLISION;
+
+		if (cl->resp.cmdAngles[YAW] < -180.f)
+			cl->resp.cmdAngles[YAW] += 360.f;
+		else if (cl->resp.cmdAngles[YAW] > 180.f)
+			cl->resp.cmdAngles[YAW] -= 360.f;
+
+		// N64: apply friction so we don't skate
+		pm.apply_friction = !(level.isN64 && CooperativeModeOn());
+
+		bool old_teleported = (cl->ps.pmove.pmFlags & PMF_TIME_TELEPORT) != 0;
+
+		pm.Config().Apply(pm_config);
+		pm.Calc();
+
+		cl->groundTrace = pm.groundTrace;
+		cl->stepTrace = pm.stepTrace;
+
+		const Vector3 oldOrigin = ent->s.origin;
+
+		// This handles lagged clients that are behind the server when they respawn. Without this check,
+		// their ClientThink might attempt to respawn them before they start a pmove and cause bad behavior,
+		// so we wait for their first pmove and fall through to ClientBegin.
+		if (cl->awaitingRespawn && pm.s.pmFlags & PMF_RESPAWNED)
+			cl->awaitingRespawn = false;
+
+		if ((pm.s.pmFlags & PMF_TIME_TELEPORT) && !old_teleported) {
+			cl->ps.pmove.pmFlags &= ~(PMF_JUMPED | PMF_JUMPED_SHORT);
+			cl->ps.pmove.pmTime = 0;
+
+			Vector3 delta = pm.s.origin - ent->s.origin;
+			const float delta_2d = delta.Length2D();
+			const float delta_3d = delta.Length();
+
+			if ((pm.s.pmFlags & PMF_NOCLIP) == 0) {
+				if ((pm.s.pmFlags & PMF_ON_LADDER) != 0)
+					ent->moveType = MoveType::Ladder;
+				else if ((pm.s.pmFlags & PMF_GRAPPLE_PULL) != 0)
+					ent->moveType = MoveType::Fly;
+				else if ((pm.s.pmFlags & PMF_FREECAM) != 0)
+					ent->moveType = MoveType::FreeCam;
+				else if ((pm.s.pmFlags & PMF_SPECTATOR) != 0)
+					ent->moveType = MoveType::FreeCam;
+				else if ((pm.s.pmFlags & PMF_DEAD) != 0)
+					ent->moveType = MoveType::Toss;
+				else
+					ent->moveType = MoveType::Normal;
+			}
+
+			if (cl->PowerupTimer(PowerupTimer::Invisibility) <= level.time) {
+				ent->s.effects &= ~FX_PLAYER_HIDE;
+				ent->svFlags &= ~SVF_NOCLIENT;
+			}
+
+			Vector3 originDelta = pm.s.origin - ent->s.origin;
+			const bool wasSolid = pm.groundTrace.startSolid || pm.groundTrace.allSolid;
+
+			if (wasSolid || originDelta.Length2D() >= 32.0f || originDelta[2] >= 16.0f) {
+				ent->s.event = EV_TELEPORT;
+				ent->s.renderFX |= RF_BEAM;
+			}
+
+			ent->s.origin = pm.s.origin;
+			ent->s.oldOrigin = ent->s.origin;
+			ent->velocity = pm.s.velocity;
+			ent->s.angles = pm.s.viewAngles;
+			ent->s.angles[PITCH] = 0;
+			ent->s.angles[ROLL] = 0;
+			ent->s.angles[YAW] = pm.s.viewAngles[YAW];
+			VectorCopy(ent->s.angles, cl->ps.viewAngles);
+
+			ent->clipMask = pm.trace_mask;
+
+			if (pm.s.pmFlags & PMF_FREECAM) {
+				ent->moveType = MoveType::FreeCam;
+				ent->clipMask &= ~(CONTENTS_SOLID | CONTENTS_PLAYER);
+			}
+
+			gi.linkEntity(ent);
+
+			return;
+		}
+
+		ent->s.origin = pm.s.origin;
+		ent->velocity = pm.s.velocity;
+		ent->clipMask = pm.trace_mask;
+		ent->s.event = pm.s.event;
+		ent->s.renderFX &= ~RF_BEAM;
+
+		if (pm.s.pmFlags & PMF_FREECAM)
+			ent->moveType = MoveType::FreeCam;
+		else if (pm.s.pmFlags & PMF_DEAD)
+			ent->moveType = MoveType::Toss;
+		else if (pm.s.pmFlags & PMF_ON_LADDER)
+			ent->moveType = MoveType::Ladder;
+		else if (pm.s.pmFlags & PMF_GRAPPLE_PULL)
+			ent->moveType = MoveType::Fly;
+		else
+			ent->moveType = MoveType::Normal;
+
+		cl->ps.pmove.pmFlags = pm.s.pmFlags;
+		cl->ps.pmove.pmType = pm.s.pmType;
+		cl->ps.pmove.pmTime = pm.s.pmTime;
+
+		if (pm.s.pmFlags & PMF_RESPAWNED)
+			cl->ps.pmove.pmFlags &= ~PMF_RESPAWNED;
+
+		if (pm.s.pmFlags & PMF_ON_LADDER)
+			ent->moveType = MoveType::Ladder;
+
+		if ((pm.s.pmFlags & PMF_ON_LADDER) != (cl->ps.pmove.pmFlags & PMF_ON_LADDER)) {
+			cl->last_ladder_pos = ent->s.origin;
+
+			if (pm.s.pmFlags & PMF_ON_LADDER) {
+				if (!deathmatch->integer &&
+					cl->last_ladder_sound < level.time) {
+					ent->s.event = EV_LADDER_STEP;
+					cl->last_ladder_sound = level.time + LADDER_SOUND_TIME;
+				}
+			}
+		}
+
+		// save results of pmove
+		cl->ps.pmove = pm.s;
+		cl->old_pmove = pm.s;
+
+		ent->mins = pm.mins;
+		ent->maxs = pm.maxs;
+
+		if (!cl->menu.current)
+			cl->resp.cmdAngles = ucmd->angles;
+
+		if (pm.jumpSound && !(pm.s.pmFlags & PMF_ON_LADDER)) {
+			gi.sound(ent, CHAN_VOICE, gi.soundIndex("*jump1.wav"), 1, ATTN_NORM, 0);
+		}
+
+		// sam raimi cam support
+		if (ent->flags & FL_SAM_RAIMI)
+			ent->viewHeight = 8;
+		else
+			ent->viewHeight = (int)pm.s.viewHeight;
+
+		ent->waterLevel = pm.waterLevel;
+		ent->waterType = pm.waterType;
+		ent->groundEntity = pm.groundEntity;
+		if (pm.groundEntity)
+			ent->groundEntity_linkCount = pm.groundEntity->linkCount;
+
+		if (ent->deadFlag) {
+			cl->ps.viewAngles[ROLL] = 40;
+			cl->ps.viewAngles[PITCH] = -15;
+			cl->ps.viewAngles[YAW] = cl->killerYaw;
+		}
+		else if (!cl->menu.current) {
+			cl->vAngle = pm.viewAngles;
+			cl->ps.viewAngles = pm.viewAngles;
+			AngleVectors(cl->vAngle, cl->vForward, nullptr, nullptr);
+		}
+
+		if (cl->grapple.entity)
+			Weapon_Grapple_Pull(cl->grapple.entity);
+
+		gi.linkEntity(ent);
+
+		ent->gravity = 1.0;
+
+		if (ent->moveType != MoveType::NoClip) {
+			TouchTriggers(ent);
+			if (ent->moveType != MoveType::FreeCam)
+				G_TouchProjectiles(ent, oldOrigin);
+		}
+
+		// touch other objects
+		for (size_t i = 0; i < pm.touch.num; i++) {
+			trace_t& tr = pm.touch.traces[i];
+			other = tr.ent;
+
+			if (other->touch)
+				other->touch(other, ent, tr, true);
+		}
+	}
+
+	// fire weapon from final position if needed
+	if (cl->latchedButtons & BUTTON_ATTACK) {
+		if (!ClientIsPlaying(cl) || (cl->eliminated && !cl->sess.is_a_bot)) {
+			cl->latchedButtons = BUTTON_NONE;
+
+			if (cl->follow.target) {
+				FreeFollower(ent);
+			}
+			else
+				GetFollowTarget(ent);
+		}
+		else if (!cl->weapon.thunk) {
+			// we can only do this during a ready state and
+			// if enough time has passed from last fire
+			if (cl->weaponState == WeaponState::Ready && !CombatIsDisabled()) {
+				cl->weapon.fireBuffered = true;
+
+				if (cl->weapon.fireFinished <= level.time) {
+					cl->weapon.thunk = true;
+					Think_Weapon(ent);
+				}
+			}
+		}
+	}
+
+	if (!ClientIsPlaying(cl) || (cl->eliminated && !cl->sess.is_a_bot)) {
+		if (!HandleMenuMovement(ent, ucmd)) {
+			if (ucmd->buttons & BUTTON_JUMP) {
+				if (!(cl->ps.pmove.pmFlags & PMF_JUMP_HELD)) {
+					cl->ps.pmove.pmFlags |= PMF_JUMP_HELD;
+					if (cl->follow.target)
+						FollowNext(ent);
+					else
+						GetFollowTarget(ent);
+				}
+			}
+			else
+				cl->ps.pmove.pmFlags &= ~PMF_JUMP_HELD;
+		}
+	}
+
+	// update followers if being followed
+	for (auto ec : active_clients())
+		if (ec->client->follow.target == ent)
+			ClientUpdateFollowers(ec);
+
+	// perform once-a-second actions
+	ClientTimerActions(ent);
 }
 
 /*
 =============
 ClientSessionServiceImpl::ClientBeginServerFrame
 
-Defers to the existing ClientBeginServerFrame function until it is migrated.
+Runs pre-entity server frame logic for a client, including respawn checks,
+weapon think, and bot updates.
 =============
 */
 void ClientSessionServiceImpl::ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent) {
-(void)gi;
-(void)game;
-(void)level;
-legacy::client::ClientBeginServerFrame(ent);
+	gclient_t* client;
+
+	if (gi.ServerFrame() != ent->client->stepFrame)
+		ent->s.renderFX &= ~RF_STAIR_STEP;
+
+	if (level.intermission.time)
+		return;
+
+	client = ent->client;
+
+	if (FreezeTag_IsActive() && client->eliminated) {
+		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+			FreezeTag_ThawPlayer(nullptr, ent, false, true);
+			return;
+		}
+
+		if (FreezeTag_UpdateThawHold(ent))
+			return;
+	}
+
+	if (client->awaitingRespawn) {
+		if ((level.time.milliseconds() % 500) == 0)
+			ClientSpawn(ent);
+		return;
+	}
+
+	if ((ent->svFlags & SVF_BOT) != 0) {
+		Bot_BeginFrame(ent);
+	}
+
+	// run weapon animations if it hasn't been done by a ucmd_t
+	if (!client->weapon.thunk && ClientIsPlaying(client) && !client->eliminated)
+		Think_Weapon(ent);
+	else
+		client->weapon.thunk = false;
+
+	if (ent->client->menu.current) {
+		if ((client->latchedButtons & BUTTON_ATTACK)) {
+			ActivateSelectedMenuItem(ent);
+			client->latchedButtons = BUTTON_NONE;
+		}
+		return;
+	}
+	else if (ent->deadFlag) {
+		//wor: add minimum delay in dm
+		if (deathmatch->integer && client->respawnMinTime && level.time > client->respawnMinTime && level.time <= client
+->respawnMaxTime && !level.intermission.queued) {
+			if ((client->latchedButtons & BUTTON_ATTACK)) {
+				ClientRespawn(ent);
+				client->latchedButtons = BUTTON_NONE;
+			}
+		}
+		else if (level.time > client->respawnMaxTime && !level.campaign.coopLevelRestartTime) {
+			// don't respawn if level is waiting to restart
+			// check for coop handling
+			if (!G_LimitedLivesRespawn(ent)) {
+				// in deathmatch, only wait for attack button
+				if ((client->latchedButtons & (deathmatch->integer ? BUTTON_ATTACK : -1)) ||
+					(deathmatch->integer && match_doForceRespawn->integer)) {
+					ClientRespawn(ent);
+					client->latchedButtons = BUTTON_NONE;
+				}
+			}
+		}
+		return;
+	}
+
+	// add player trail so monsters can follow
+	if (!deathmatch->integer)
+		PlayerTrail_Add(ent);
+
+	client->latchedButtons = BUTTON_NONE;
 }
 
 /*
