@@ -394,14 +394,18 @@ namespace worr::server::client {
 =============
 ClientSessionServiceImpl::ClientSessionServiceImpl
 
-Stores references to the game state objects that were previously accessed via
-globals so the service can eventually operate without that implicit coupling.
+Stores references to the game state objects and persistence services that were
+previously accessed via globals so the service can eventually operate without
+that implicit coupling.
 =============
 */
-ClientSessionServiceImpl::ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level)
-		: gi_(gi)
-		, game_(game)
-		, level_(level) {}
+ClientSessionServiceImpl::ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
+ClientConfigStore& configStore, ClientStatsService& statsService)
+: gi_(gi)
+, game_(game)
+, level_(level)
+, configStore_(configStore)
+, statsService_(statsService) {}
 
 /*
 =============
@@ -417,7 +421,7 @@ bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelL
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
-	auto& configStore = GetClientConfigStore();
+	auto& configStore = configStore_;
 
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
@@ -820,7 +824,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, G
 
 		if (wasSpawned) {
 			const auto statsContext = BuildMatchStatsContext(level_);
-			GetClientStatsService().SaveStatsForDisconnect(statsContext, ent);
+			statsService_.SaveStatsForDisconnect(statsContext, ent);
 		}
 
 		if (deathmatch->integer) {
