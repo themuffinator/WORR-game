@@ -83,12 +83,7 @@ static const char* ClientSkinOverride(const char* s) {
 
 	// 5) Model not found at all -> global default
 	gi.Com_PrintFmt("{}: model not recognized, reverting to \"male/grunt\" for \"{}\"\n", __FUNCTION__, s);
-	return "male/grunt";
-}
-
-inline void PreviousMenuItem(gentity_t* ent);
-inline void NextMenuItem(gentity_t* ent);
-inline void ActivateSelectedMenuItem(gentity_t* ent);
+	return "male/grunt";}
 
 /*
 =================
@@ -122,8 +117,7 @@ static bool HandleMenuMovement(gentity_t* ent, usercmd_t* ucmd) {
 			return true;
 	}
 
-	return false;
-}
+	return false;}
 
 /*
 =================
@@ -181,8 +175,7 @@ static bool ClientInactivityTimer(gentity_t* ent) {
 		gi.localSound(ent, CHAN_AUTO, gi.soundIndex("world/fish.wav"), 1, ATTN_NONE, 0);
 	}
 
-	return true;
-}
+	return true;}
 
 /*
 =================
@@ -227,8 +220,7 @@ static void ClientTimerActions_ApplyRegeneration(gentity_t* ent) {
 	if (ent->health > max)
 		ent->health = max;
 	gi.sound(ent, CHAN_AUX, gi.soundIndex("items/regen.wav"), volume, ATTN_NORM, 0);
-	cl->pu_regen_time_blip = level.time + 100_ms;
-}
+	cl->pu_regen_time_blip = level.time + 100_ms;}
 
 /*
 ==================
@@ -262,8 +254,7 @@ static void ClientTimerActions(gentity_t* ent) {
 		}
 	}
 	ClientTimerActions_ApplyRegeneration(ent);
-	ent->client->timeResidual = level.time + 1_sec;
-}
+	ent->client->timeResidual = level.time + 1_sec;}
 
 /*
 =============
@@ -274,7 +265,7 @@ hard-coded ban list. When tripped, the function plays local feedback and
 requests that the server kick the player immediately.
 =============
 */
-static bool CheckBanned(game_import_t& gi, LevelLocals& level, gentity_t* ent, char* userInfo,
+static bool CheckBanned(local_game_import_t& gi, LevelLocals& level, gentity_t* ent, char* userInfo,
 		const char* socialID) {
 	if (!socialID || !*socialID)
 		return false;
@@ -365,8 +356,7 @@ static bool CheckBanned(game_import_t& gi, LevelLocals& level, gentity_t* ent, c
 		return true;
 	}
 
-	return false;
-}
+	return false;}
 
 /*
 ================
@@ -383,8 +373,7 @@ static void ClientCheckPermissions(GameLocals& game, gentity_t* ent, const char*
 	std::string id(socialID);
 
 	ent->client->sess.banned = game.bannedIDs.contains(id);
-	ent->client->sess.admin = game.adminIDs.contains(id);
-}
+	ent->client->sess.admin = game.adminIDs.contains(id);}
 
 } // namespace
 
@@ -399,7 +388,7 @@ previously accessed via globals so the service can eventually operate without
 that implicit coupling.
 =============
 */
-ClientSessionServiceImpl::ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
+ClientSessionServiceImpl::ClientSessionServiceImpl(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 ClientConfigStore& configStore, ClientStatsService& statsService)
 : gi_(gi)
 , game_(game)
@@ -415,9 +404,9 @@ Implements the legacy ClientConnect logic behind the service seam so future
 callers can transition away from the procedural entry point.
 =============
 */
-bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelLocals&,
-	gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-	game_import_t& gi = gi_;
+bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
+gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
+local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
@@ -554,17 +543,13 @@ bool ClientSessionServiceImpl::ClientConnect(game_import_t&, GameLocals&, LevelL
 	// [Paril-KEX] force a state update
 	ent->sv.init = false;
 
-	return true;
-}
-/*
-=============
-ClientSessionServiceImpl::ClientBegin
+	return true;}/*=============ClientSessionServiceImpl::ClientBegin
 
 Fully manages the transition from connection to active play, including
 initialization, spawn handling, and intermission placement.
 =============
 */
-void ClientSessionServiceImpl::ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
+void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
 	gclient_t* cl = game.clients + (ent - g_entities - 1);
 	cl->awaitingRespawn = false;
 	cl->respawn_timeout = 0_ms;
@@ -646,8 +631,7 @@ void ClientSessionServiceImpl::ClientBegin(game_import_t& gi, GameLocals& game, 
 	// *in* the level
 	G_SetLevelEntry();
 
-	cl->sess.inGame = true;
-}
+	cl->sess.inGame = true;}
 
 /*
 =============
@@ -657,7 +641,7 @@ Parses and applies userinfo updates, keeping both gameplay and presentation
 state (skins, FOV, handedness) synchronized.
 =============
 */
-void ClientSessionServiceImpl::ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
+void ClientSessionServiceImpl::ClientUserinfoChanged(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, const char* userInfo) {
 	if (!userInfo)
 		userInfo = "";
@@ -707,8 +691,7 @@ gentity_t* ent, const char* userInfo) {
 
 	// handedness
 	if (gi.Info_ValueForKey(userInfo, "hand", value.data(), value.size())) {
-		ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(value.data()), static_cast<int>(Handedness::Rig
-ht), static_cast<int>(Handedness::Center)));
+		ent->client->pers.hand = static_cast<Handedness>(std::clamp(atoi(value.data()), static_cast<int>(Handedness::Right), static_cast<int>(Handedness::Center)));
 	}
 	else {
 		ent->client->pers.hand = Handedness::Right;
@@ -716,8 +699,7 @@ ht), static_cast<int>(Handedness::Center)));
 
 	// [Paril-KEX] auto-switch
 	if (gi.Info_ValueForKey(userInfo, "autoswitch", value.data(), value.size())) {
-		ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(value.data()), static_cast<int>(Wea
-ponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
+		ent->client->pers.autoswitch = static_cast<WeaponAutoSwitch>(std::clamp(atoi(value.data()), static_cast<int>(WeaponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
 	}
 	else {
 		ent->client->pers.autoswitch = WeaponAutoSwitch::Smart;
@@ -739,8 +721,7 @@ ponAutoSwitch::Smart), static_cast<int>(WeaponAutoSwitch::Never)));
 	}
 
 	// save off the userInfo in case we want to check something later
-	Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));
-}
+	Q_strlcpy(ent->client->pers.userInfo, userInfo, sizeof(ent->client->pers.userInfo));}
 
 /*
 =============
@@ -751,7 +732,7 @@ the player's state is torn down and other systems are notified appropriately
 while reporting status via DisconnectResult.
 =============
 */
-DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
+DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
 		(void)gi;
 		(void)game;
 		(void)level;
@@ -837,8 +818,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, G
 			}
 		}
 
-		return DisconnectResult::Success;
-}
+		return DisconnectResult::Success;}
 
 
 /*
@@ -867,8 +847,7 @@ void ClientSessionServiceImpl::OnDisconnect(gentity_t* ent) {
 		gi_.LocBroadcast_Print(PRINT_CENTER,
 			"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is NOT ready.",
 			cl->sess.netName);
-	}
-}
+	}}
 
 /*
 =============
@@ -893,8 +872,7 @@ void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 
 	if (st.arena) {
 		ent->arena = st.arena;
-	}
-}
+	}}
 
 /*
 =============
@@ -920,8 +898,7 @@ void ClientSessionServiceImpl::PrepareSpawnPoint(gentity_t* ent, bool allowEleva
 	if (allowElevatorDrop && level_.isN64 && dropThink) {
 		ent->think = dropThink;
 		ent->nextThink = level_.time + FRAME_TIME_S;
-	}
-}
+	}}
 
 /*
 =============
@@ -931,7 +908,7 @@ Executes the per-frame simulation for a client, handling input processing,
 movement, inactivity timers, and weapon logic.
 =============
 */
-void ClientSessionServiceImpl::ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
+void ClientSessionServiceImpl::ClientThink(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, usercmd_t* ucmd) {
 	gclient_t* cl;
 	gentity_t* other;
@@ -980,8 +957,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 			else
 				OpenJoinMenu(ent);
 			//if (!cl->initialMenu.shown)
-			//      gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", worr::version::kGameTitle, worr::ver
-sion::kGameVersion);
+			//      gi.LocClient_Print(ent, PRINT_CHAT, "Welcome to {} v{}.\n", worr::version::kGameTitle, worr::version::kGameVersion);
 			cl->initialMenu.delay = 0_sec;
 			cl->initialMenu.shown = true;
 		}
@@ -1003,8 +979,7 @@ sion::kGameVersion);
 		return;
 
 	if (g_quadhog->integer)
-		if (cl->PowerupTimer(PowerupTimer::QuadDamage) > 0_sec && level.time >= cl->PowerupTimer(PowerupTimer::QuadDamag
-e))
+		if (cl->PowerupTimer(PowerupTimer::QuadDamage) > 0_sec && level.time >= cl->PowerupTimer(PowerupTimer::QuadDamage))
 			QuadHog_SetupSpawn(0_ms);
 
 	if (cl->sess.teamJoinTime) {
@@ -1047,8 +1022,7 @@ e))
 			// can exit intermission after five seconds
 			// Paril: except in N64. the camera handles it.
 			// Paril again: except on unit exits, we can leave immediately after camera finishes
-			if (!level.changeMap.empty() && (!n64_sp || level.intermission.set) && level.time > level.intermission.t
-ime + 5_sec && (ucmd->buttons & BUTTON_ANY))
+			if (!level.changeMap.empty() && (!n64_sp || level.intermission.set) && level.time > level.intermission.time + 5_sec && (ucmd->buttons & BUTTON_ANY))
 				level.intermission.postIntermission = true;
 		}
 
@@ -1097,8 +1071,7 @@ ime + 5_sec && (ucmd->buttons & BUTTON_ANY))
 
 		// [Paril-KEX]
 		if (!G_ShouldPlayersCollide(false) ||
-			(CooperativeModeOn() && !(ent->clipMask & CONTENTS_PLAYER)) // if player collision is on and we're tempo
-rarily ghostly...
+			(CooperativeModeOn() && !(ent->clipMask & CONTENTS_PLAYER)) // if player collision is on and we're temporarily ghostly...
 			)
 			cl->ps.pmove.pmFlags |= PMF_IGNORE_PLAYER_COLLISION;
 		else
@@ -1368,8 +1341,7 @@ rarily ghostly...
 			ClientUpdateFollowers(ec);
 
 	// perform once-a-second actions
-	ClientTimerActions(ent);
-}
+	ClientTimerActions(ent);}
 
 /*
 =============
@@ -1379,7 +1351,7 @@ Runs pre-entity server frame logic for a client, including respawn checks,
 weapon think, and bot updates.
 =============
 */
-void ClientSessionServiceImpl::ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
+void ClientSessionServiceImpl::ClientBeginServerFrame(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent) {
 	gclient_t* client;
 
@@ -1426,8 +1398,7 @@ gentity_t* ent) {
 	}
 	else if (ent->deadFlag) {
 		//wor: add minimum delay in dm
-		if (deathmatch->integer && client->respawnMinTime && level.time > client->respawnMinTime && level.time <= client
-->respawnMaxTime && !level.intermission.queued) {
+		if (deathmatch->integer && client->respawnMinTime && level.time > client->respawnMinTime && level.time <= client->respawnMaxTime && !level.intermission.queued) {
 			if ((client->latchedButtons & BUTTON_ATTACK)) {
 				ClientRespawn(ent);
 				client->latchedButtons = BUTTON_NONE;
@@ -1452,8 +1423,7 @@ gentity_t* ent) {
 	if (!deathmatch->integer)
 		PlayerTrail_Add(ent);
 
-	client->latchedButtons = BUTTON_NONE;
-}
+	client->latchedButtons = BUTTON_NONE;}
 
 /*
 =============
@@ -1485,7 +1455,6 @@ ReadyResult ClientSessionServiceImpl::OnReadyToggled(gentity_t* ent, bool state,
 			"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is {}ready.",
 			ent->client->sess.netName, ent->client->pers.readyStatus ? "" : "NOT " );
 
-		return ReadyResult::Success;
-}
+		return ReadyResult::Success;}
 
 } // namespace worr::server::client

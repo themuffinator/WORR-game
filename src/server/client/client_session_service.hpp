@@ -4,7 +4,7 @@
 
 #include "client_session_results.hpp"
 
-struct game_import_t;
+struct local_game_import_t;
 struct gentity_t;
 struct gclient_t;
 struct usercmd_t;
@@ -26,18 +26,18 @@ class ClientSessionService {
 	public:
 	virtual ~ClientSessionService() = default;
 
-	virtual bool ClientConnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, char* userInfo, const char* socialID, bool isBot) = 0;
-	virtual void ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) = 0;
-	virtual void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, const char* userInfo) = 0;
-	virtual DisconnectResult ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) = 0;
-	virtual void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, usercmd_t* cmd) = 0;
-	virtual void ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) = 0;
+virtual bool ClientConnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, char* userInfo, const char* socialID, bool isBot) = 0;
+virtual void ClientBegin(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) = 0;
+virtual void ClientUserinfoChanged(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, const char* userInfo) = 0;
+virtual DisconnectResult ClientDisconnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) = 0;
+virtual void ClientThink(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, usercmd_t* cmd) = 0;
+virtual void ClientBeginServerFrame(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) = 0;
 };
 
 } // namespace worr::server::client

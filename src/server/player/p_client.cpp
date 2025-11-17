@@ -51,8 +51,8 @@ service so legacy entry points can delegate to the shared implementation.
 =============
 */
 namespace {
-	struct ClientSessionServiceDependencies {
-		game_import_t* gi;
+struct ClientSessionServiceDependencies {
+local_game_import_t* gi;
 		GameLocals* game;
 		LevelLocals* level;
 		ClientConfigStore* configStore;
@@ -72,7 +72,7 @@ service. Tests can replace the references prior to invoking any legacy entry
 points.
 =============
 */
-void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef,
+void InitializeClientSessionService(local_game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef,
 		ClientConfigStore& configStoreRef, ClientStatsService& statsServiceRef) {
 	g_clientSessionServiceDependencies.gi = &giRef;
 	g_clientSessionServiceDependencies.game = &gameRef;
@@ -90,7 +90,7 @@ Convenience overload that wires the service up to the default client config and
 stats services when tests or bootstrapping code don't need to supply mocks.
 =============
 */
-void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+void InitializeClientSessionService(local_game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
 	InitializeClientSessionService(giRef, gameRef, levelRef,
 			GetClientConfigStore(), GetClientStatsService());
 }

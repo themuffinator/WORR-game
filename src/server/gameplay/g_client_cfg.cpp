@@ -32,7 +32,7 @@ namespace {
 	the store can be exercised without implicit globals.
 	=============
 	*/
-	ClientConfigStore::ClientConfigStore(game_import_t& gi, std::string playerConfigDirectory)
+ClientConfigStore::ClientConfigStore(local_game_import_t& gi, std::string playerConfigDirectory)
 	: gi_(gi)
 	, playerConfigDirectory_(std::move(playerConfigDirectory)) {}
 
@@ -616,8 +616,8 @@ store singleton.
 =============
 */
 namespace {
-	struct ClientConfigStoreDependencies {
-	game_import_t* gi;
+struct ClientConfigStoreDependencies {
+local_game_import_t* gi;
 	std::string playerConfigDirectory;
 	};
 
@@ -625,7 +625,7 @@ namespace {
 	std::unique_ptr<ClientConfigStore> g_clientConfigStoreInstance;
 }
 
-void InitializeClientConfigStore(game_import_t& giRef, std::string playerConfigDirectory) {
+void InitializeClientConfigStore(local_game_import_t& giRef, std::string playerConfigDirectory) {
 	g_clientConfigStoreDependencies.gi = &giRef;
 	g_clientConfigStoreDependencies.playerConfigDirectory = std::move(playerConfigDirectory);
 	g_clientConfigStoreInstance.reset();

@@ -10,29 +10,29 @@ namespace worr::server::client {
 class ClientStatsService;
 
 class ClientSessionServiceImpl : public ClientSessionService {
-	public:
-		ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		ClientConfigStore& configStore, ClientStatsService& statsService);
+public:
+ClientSessionServiceImpl(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+ClientConfigStore& configStore, ClientStatsService& statsService);
 
-	bool ClientConnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
-	void ClientBegin(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) override;
-	void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, const char* userInfo) override;
-	DisconnectResult ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) override;
-	void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent, usercmd_t* cmd) override;
-	void ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		gentity_t* ent) override;
+bool ClientConnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
+void ClientBegin(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) override;
+void ClientUserinfoChanged(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, const char* userInfo) override;
+DisconnectResult ClientDisconnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) override;
+void ClientThink(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent, usercmd_t* cmd) override;
+void ClientBeginServerFrame(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+gentity_t* ent) override;
 	ReadyResult OnReadyToggled(gentity_t* ent, bool state, bool toggle);
 	void ApplySpawnFlags(gentity_t* ent) const;
 	void PrepareSpawnPoint(gentity_t* ent, bool allowElevatorDrop = false,
 		void (*dropThink)(gentity_t*) = nullptr) const;
 
 	private:
-		game_import_t& gi_;
+local_game_import_t& gi_;
 		GameLocals& game_;
 		LevelLocals& level_;
 		ClientConfigStore& configStore_;
@@ -40,9 +40,10 @@ class ClientSessionServiceImpl : public ClientSessionService {
 		void OnDisconnect(gentity_t* ent);
 };
 
-void InitializeClientSessionService(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		ClientConfigStore& configStore, ClientStatsService& statsService);
-void InitializeClientSessionService(game_import_t& gi, GameLocals& game, LevelLocals& level);
+
+void InitializeClientSessionService(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
+ClientConfigStore& configStore, ClientStatsService& statsService);
+void InitializeClientSessionService(local_game_import_t& gi, GameLocals& game, LevelLocals& level);
 ClientSessionServiceImpl& GetClientSessionService();
 
 } // namespace worr::server::client

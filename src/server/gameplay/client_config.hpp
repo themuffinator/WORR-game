@@ -9,7 +9,7 @@
 struct gclient_t;
 struct Ghosts;
 struct client_config_t;
-struct game_import_t;
+struct local_game_import_t;
 
 enum class Weapon : uint8_t;
 
@@ -19,7 +19,7 @@ class Value;
 
 class ClientConfigStore {
 	public:
-		ClientConfigStore(game_import_t& gi, std::string playerConfigDirectory);
+ClientConfigStore(local_game_import_t& gi, std::string playerConfigDirectory);
 
 		bool LoadProfile(gclient_t* client, const std::string& playerID, const std::string& playerName, const std::string& gameType);
 		void SaveStats(gclient_t* client, bool wonMatch);
@@ -29,7 +29,7 @@ class ClientConfigStore {
 		std::string PlayerNameForSocialID(const std::string& socialID) const;
 
 	private:
-		game_import_t& gi_;
+local_game_import_t& gi_;
 		std::string playerConfigDirectory_;
 
 		bool EnsurePlayerConfigDirectory() const;
@@ -42,6 +42,6 @@ class ClientConfigStore {
 		void ApplyVisualConfigFromJson(gclient_t* client, const Json::Value& playerData) const;
 };
 
-void InitializeClientConfigStore(game_import_t& gi, std::string playerConfigDirectory);
+void InitializeClientConfigStore(local_game_import_t& gi, std::string playerConfigDirectory);
 ClientConfigStore& GetClientConfigStore();
 
