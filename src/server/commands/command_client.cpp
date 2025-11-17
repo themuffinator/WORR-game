@@ -261,17 +261,17 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 			handled = true;
 			break;
 
-			// 10: next weapon
-			case 10:
-			WeapNext(ent, args);
-			handled = true;
-			break;
+				// 10: next weapon
+				case 10:
+					inventory::WeapNext(ent, args);
+					handled = true;
+					break;
 
-			// 12: previous weapon
-			case 12:
-			WeapPrev(ent, args);
-			handled = true;
-			break;
+				// 12: previous weapon
+				case 12:
+					inventory::WeapPrev(ent, args);
+					handled = true;
+					break;
 
 			// 255: give + activate Quad (cheat)
 			case 255:
@@ -719,15 +719,17 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 			void HandleReadyResult(gentity_t* ent, worr::server::client::ReadyResult result, bool state, bool toggle) {
 				const char* readyState = state ? "ready" : "not ready";
 				switch (result) {
-					case worr::server::client::ReadyResult::Success:
+				case worr::server::client::ReadyResult::Success:
 					return;
-					case worr::server::client::ReadyResult::AlreadySet:
-					gi.Client_Print(ent, PRINT_HIGH, "You are already %s.\n", readyState);
-					return;
-					case worr::server::client::ReadyResult::NoConditions:
-					gi.Client_Print(ent, PRINT_HIGH, toggle ? "You cannot toggle readiness right now.\n" : "You cannot change readiness right now.\n");
+				case worr::server::client::ReadyResult::AlreadySet: {
+					const auto message = G_Fmt("You are already {}.\n", readyState);
+					gi.Client_Print(ent, PRINT_HIGH, message.c_str());
 					return;
 				}
+				case worr::server::client::ReadyResult::NoConditions:
+					gi.Client_Print(ent, PRINT_HIGH, toggle ? "You cannot toggle readiness right now.\n" : "You cannot change readiness right now.\n");
+					return;
+}
 			}
 		}
 

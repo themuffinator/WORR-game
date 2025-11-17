@@ -254,12 +254,12 @@ Persists the player's current match stats when they disconnect.
 =============
 */
 void DefaultClientStatsService::SaveStatsForDisconnect(const MatchStatsContext& context, gentity_t* ent) {
-if (!ent || !ent->client)
-return;
+	if (!ent || !ent->client)
+		return;
 
-(void)context;
+	(void)context;
 
-GetClientConfigStore().SaveStats(ent->client, false);
+	GetClientConfigStore().SaveStats(ent->client, false);
 }
 
 /*
