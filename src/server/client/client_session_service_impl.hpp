@@ -7,9 +7,9 @@
 namespace worr::server::client {
 
 class ClientSessionServiceImpl : public ClientSessionService {
-	public:
-	ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
-		ClientConfigStore& configStore);
+public:
+ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
+ClientConfigStore& configStore);
 
 	bool ClientConnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
@@ -32,8 +32,19 @@ class ClientSessionServiceImpl : public ClientSessionService {
 	game_import_t& gi_;
 	GameLocals& game_;
 	LevelLocals& level_;
-	ClientConfigStore& configStore_;
-	void OnDisconnect(gentity_t* ent);
+ClientConfigStore& configStore_;
+void OnDisconnect(gentity_t* ent);
+};
+
+class LegacyClientConfigStore final : public ClientConfigStore {
+public:
+void Initialize(game_import_t& gi, gclient_t* client, const std::string& playerID,
+const std::string& playerName, const std::string& gameType) override;
+void SaveStats(game_import_t& gi, gclient_t* client, bool wonMatch) override;
+void SaveStatsForGhost(game_import_t& gi, const Ghosts& ghost, bool wonMatch) override;
+void SaveWeaponPreferences(game_import_t& gi, gclient_t* client) override;
+int DefaultSkillRating(game_import_t& gi) const override;
+std::string PlayerNameForSocialID(game_import_t& gi, const std::string& socialID) override;
 };
 
 ClientSessionServiceImpl& GetClientSessionService();
