@@ -14,34 +14,48 @@
 #include <sstream>
 #include <string_view>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 namespace {
 
-constexpr int kDefaultSkillRating = 1500;
-const std::string kPlayerConfigDirectory = GAMEVERSION + "/pcfg";
+	constexpr int kDefaultSkillRating = 1500;
+	const std::string kDefaultPlayerConfigDirectory = GAMEVERSION + "/pcfg";
 
-} // namespace
+	} // namespace
 
-/*
-=============
-ClientConfigStore::EnsurePlayerConfigDirectory
+	/*
+	=============
+	ClientConfigStore::ClientConfigStore
 
-Creates the player configuration directory if it does not yet exist.
-Returns true when the directory exists and can be written to.
-=============
-*/
-bool ClientConfigStore::EnsurePlayerConfigDirectory() const {
+	Captures the global interfaces needed to access cvars and filesystem state so
+	the store can be exercised without implicit globals.
+	=============
+	*/
+	ClientConfigStore::ClientConfigStore(game_import_t& gi, std::string playerConfigDirectory)
+	: gi_(gi)
+	, playerConfigDirectory_(std::move(playerConfigDirectory)) {}
+
+	/*
+	=============
+	ClientConfigStore::EnsurePlayerConfigDirectory
+
+	Creates the player configuration directory if it does not yet exist.
+	Returns true when the directory exists and can be written to.
+	=============
+	*/
+
+	bool ClientConfigStore::EnsurePlayerConfigDirectory() const {
 	std::error_code ec;
-	std::filesystem::create_directories(kPlayerConfigDirectory, ec);
+	std::filesystem::create_directories(playerConfigDirectory_, ec);
 	if (ec) {
-		gi.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
-			kPlayerConfigDirectory.c_str(), ec.message().c_str());
+	gi_.Com_PrintFmt("WARNING: failed to create player config directory {}: {}\n",
+	playerConfigDirectory_.c_str(), ec.message().c_str());
 	}
 
-	if (!std::filesystem::exists(kPlayerConfigDirectory)) {
-		gi.Com_PrintFmt("WARNING: player config directory missing: {}\n", kPlayerConfigDirectory.c_str());
-		return false;
+	if (!std::filesystem::exists(playerConfigDirectory_)) {
+	gi_.Com_PrintFmt("WARNING: player config directory missing: {}\n", playerConfigDirectory_.c_str());
+	return false;
 	}
 
 	return true;
@@ -56,19 +70,19 @@ Returns std::nullopt when the ID cannot be mapped to a safe filename.
 =============
 */
 std::optional<std::string> ClientConfigStore::PlayerConfigPathFromID(const std::string& playerID, const char* functionName) const {
-	const std::string sanitized = SanitizeSocialID(playerID);
-	if (sanitized.empty()) {
-		if (!playerID.empty() && gi.Com_Print) {
-			gi.Com_PrintFmt("WARNING: {}: refusing to use invalid social ID '{}' for config filename\n", functionName, playerID.c_str());
-		}
-		return std::nullopt;
-	}
+const std::string sanitized = SanitizeSocialID(playerID);
+if (sanitized.empty()) {
+if (!playerID.empty() && gi_.Com_Print) {
+gi_.Com_PrintFmt("WARNING: {}: refusing to use invalid social ID '{}' for config filename\n", functionName, playerID.c_str());
+}
+return std::nullopt;
+}
 
-	if (sanitized != playerID && gi.Com_Print) {
-		gi.Com_PrintFmt("WARNING: {}: sanitized social ID '{}' to '{}' for config filename\n", functionName, playerID.c_str(), sanitized.c_str());
-	}
+if (sanitized != playerID && gi_.Com_Print) {
+gi_.Com_PrintFmt("WARNING: {}: sanitized social ID '{}' to '{}' for config filename\n", functionName, playerID.c_str(), sanitized.c_str());
+}
 
-	return std::optional<std::string>(G_Fmt("{}/{}.json", kPlayerConfigDirectory, sanitized).data());
+return std::optional<std::string>(G_Fmt("{}/{}.json", playerConfigDirectory_, sanitized).data());
 }
 
 /*
@@ -132,21 +146,21 @@ void ClientConfigStore::CreateProfile(gclient_t* client, const std::string& play
 
 		const std::string path = *pathOpt;
 		std::ofstream file(path);
-		if (file.is_open()) {
-			Json::StreamWriterBuilder builder;
-			builder["indentation"] = "\t";
-			std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-			writer->write(newFile, &file);
-			file.close();
-			gi.Com_PrintFmt("Created new client config file: {}\n", path);
-		}
-		else {
-			gi.Com_PrintFmt("Failed to create client config file: {}\n", path);
-		}
-	}
-	catch (const std::exception& e) {
-		gi.Com_PrintFmt("{}: exception while creating client config: {}\n", __FUNCTION__, e.what());
-	}
+if (file.is_open()) {
+Json::StreamWriterBuilder builder;
+builder["indentation"] = "\t";
+std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+writer->write(newFile, &file);
+file.close();
+gi_.Com_PrintFmt("Created new client config file: {}\n", path);
+}
+else {
+gi_.Com_PrintFmt("Failed to create client config file: {}\n", path);
+}
+}
+catch (const std::exception& e) {
+gi_.Com_PrintFmt("{}: exception while creating client config: {}\n", __FUNCTION__, e.what());
+}
 }
 
 /*
@@ -198,21 +212,21 @@ void ClientConfigStore::ApplyWeaponPreferencesFromJson(gclient_t* client, const 
 
 	client->sess.weaponPrefs.swap(parsed);
 
-	if (!invalidTokens.empty()) {
-		std::ostringstream joined;
-		for (size_t i = 0; i < invalidTokens.size(); ++i) {
-			if (i)
-				joined << ", ";
-			joined << invalidTokens[i];
-		}
-		gi.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
-			__FUNCTION__, client->sess.netName, joined.str().c_str());
-	}
+if (!invalidTokens.empty()) {
+std::ostringstream joined;
+for (size_t i = 0; i < invalidTokens.size(); ++i) {
+if (i)
+joined << ", ";
+joined << invalidTokens[i];
+}
+gi_.Com_PrintFmt("{}: ignored invalid weapon preference tokens for {}: {}\n",
+__FUNCTION__, client->sess.netName, joined.str().c_str());
+}
 
-	if (capacityExceeded) {
-		gi.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
-			__FUNCTION__, client->sess.netName, client->sess.weaponPrefs.size());
-	}
+if (capacityExceeded) {
+gi_.Com_PrintFmt("{}: weapon preferences for {} truncated to {} entries\n",
+__FUNCTION__, client->sess.netName, client->sess.weaponPrefs.size());
+}
 
 	Client_RebuildWeaponPreferenceOrder(*client);
 }
@@ -289,12 +303,12 @@ bool ClientConfigStore::LoadProfile(gclient_t* client, const std::string& player
 
 	Json::CharReaderBuilder builder;
 	std::string errs;
-	if (!Json::parseFromStream(builder, file, &playerData, &errs)) {
-		file.close();
-		gi.Com_PrintFmt("Failed to parse client config for {}: {} ({})\n",
-			playerName.c_str(), path.c_str(), errs.c_str());
-		gi.Com_PrintFmt("Resetting {} to default configuration and recreating the client config.\n",
-			playerName.c_str());
+if (!Json::parseFromStream(builder, file, &playerData, &errs)) {
+file.close();
+gi_.Com_PrintFmt("Failed to parse client config for {}: {} ({})\n",
+playerName.c_str(), path.c_str(), errs.c_str());
+gi_.Com_PrintFmt("Resetting {} to default configuration and recreating the client config.\n",
+playerName.c_str());
 		client->sess.skillRating = kDefaultSkillRating;
 		client->sess.skillRatingChange = 0;
 		client->sess.admin = false;
@@ -398,10 +412,10 @@ bool ClientConfigStore::LoadProfile(gclient_t* client, const std::string& player
 	playerData["lastSeen"] = now;
 	playerData["lastUpdated"] = now;
 
-	if (modified) {
-		try {
-			std::ofstream outFile(path);
-			if (outFile.is_open()) {
+if (modified) {
+try {
+std::ofstream outFile(path);
+if (outFile.is_open()) {
 				Json::StreamWriterBuilder writerBuilder;
 				writerBuilder["indentation"] = "\t";
 				std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
@@ -409,13 +423,13 @@ bool ClientConfigStore::LoadProfile(gclient_t* client, const std::string& player
 				outFile.close();
 			}
 			else {
-				gi.Com_PrintFmt("Failed to write updated config for {}: {}\n", playerName.c_str(), path.c_str());
-			}
-		}
-		catch (const std::exception& e) {
-			gi.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, playerName.c_str(), e.what());
-		}
-	}
+gi_.Com_PrintFmt("Failed to write updated config for {}: {}\n", playerName.c_str(), path.c_str());
+}
+}
+catch (const std::exception& e) {
+gi_.Com_PrintFmt("{}: exception writing {}: {}\n", __FUNCTION__, playerName.c_str(), e.what());
+}
+}
 
 	ApplyWeaponPreferencesFromJson(client, playerData);
 	ApplyVisualConfigFromJson(client, playerData);
@@ -477,18 +491,18 @@ bool ClientConfigStore::UpdateConfig(const std::string& playerID, const std::fun
 
 	const std::string path = *pathOpt;
 	std::ifstream in(path);
-	if (!in.is_open()) {
-		gi.Com_PrintFmt("{}: failed to open {}\n", __FUNCTION__, path.c_str());
-		return false;
-	}
+if (!in.is_open()) {
+gi_.Com_PrintFmt("{}: failed to open {}\n", __FUNCTION__, path.c_str());
+return false;
+}
 
 	Json::Value cfg;
 	Json::CharReaderBuilder builder;
 	std::string errs;
-	if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
-		gi.Com_PrintFmt("{}: parse error in {}: {}\n", __FUNCTION__, path.c_str(), errs.c_str());
-		return false;
-	}
+if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
+gi_.Com_PrintFmt("{}: parse error in {}: {}\n", __FUNCTION__, path.c_str(), errs.c_str());
+return false;
+}
 	in.close();
 
 	Json::Value before = cfg;
@@ -500,14 +514,14 @@ bool ClientConfigStore::UpdateConfig(const std::string& playerID, const std::fun
 	cfg["lastUpdated"] = TimeStamp();
 
 	try {
-		if (!EnsurePlayerConfigDirectory())
-			return false;
+if (!EnsurePlayerConfigDirectory())
+return false;
 
-		std::ofstream out(path);
-		if (!out.is_open()) {
-			gi.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
-			return false;
-		}
+std::ofstream out(path);
+if (!out.is_open()) {
+gi_.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
+return false;
+}
 
 		Json::StreamWriterBuilder writerBuilder;
 		writerBuilder["indentation"] = "\t";
@@ -515,13 +529,13 @@ bool ClientConfigStore::UpdateConfig(const std::string& playerID, const std::fun
 		writer->write(cfg, &out);
 		out.close();
 
-		gi.Com_PrintFmt("{}: saved updates for {}\n", __FUNCTION__, playerID.c_str());
-		return true;
-	}
-	catch (const std::exception& e) {
-		gi.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
-		return false;
-	}
+gi_.Com_PrintFmt("{}: saved updates for {}\n", __FUNCTION__, playerID.c_str());
+return true;
+}
+catch (const std::exception& e) {
+gi_.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+return false;
+}
 }
 
 /*
@@ -578,7 +592,7 @@ std::string ClientConfigStore::PlayerNameForSocialID(const std::string& socialID
 
 	std::ifstream file(*pathOpt);
 	if (!file.is_open())
-		return {};
+	return {};
 
 	Json::Value root;
 	Json::CharReaderBuilder builder;
@@ -595,12 +609,39 @@ std::string ClientConfigStore::PlayerNameForSocialID(const std::string& socialID
 
 /*
 =============
+InitializeClientConfigStore
+
+Configures the dependencies used when lazily instantiating the client config
+store singleton.
+=============
+*/
+namespace {
+	struct ClientConfigStoreDependencies {
+	game_import_t* gi;
+	std::string playerConfigDirectory;
+	};
+
+	ClientConfigStoreDependencies g_clientConfigStoreDependencies{ &gi, kDefaultPlayerConfigDirectory };
+	std::unique_ptr<ClientConfigStore> g_clientConfigStoreInstance;
+}
+
+void InitializeClientConfigStore(game_import_t& giRef, std::string playerConfigDirectory) {
+	g_clientConfigStoreDependencies.gi = &giRef;
+	g_clientConfigStoreDependencies.playerConfigDirectory = std::move(playerConfigDirectory);
+	g_clientConfigStoreInstance.reset();
+}
+
+/*
+=============
 GetClientConfigStore
 
 Provides access to the global ClientConfigStore instance.
 =============
 */
 ClientConfigStore& GetClientConfigStore() {
-	static ClientConfigStore store;
-	return store;
+	if (!g_clientConfigStoreInstance) {
+	g_clientConfigStoreInstance = std::make_unique<ClientConfigStore>(
+	*g_clientConfigStoreDependencies.gi, g_clientConfigStoreDependencies.playerConfigDirectory);
+}
+	return *g_clientConfigStoreInstance;
 }

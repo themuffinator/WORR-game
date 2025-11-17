@@ -23,8 +23,8 @@ transitions, warmup/round handling, and scoreboard calculations.
 =================
 */
 class ClientStatsService {
-	public:
-	virtual ~ClientStatsService() = default;
+public:
+virtual ~ClientStatsService() = default;
 
 	virtual void MatchStart(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
 	virtual void MatchReset(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
@@ -37,8 +37,11 @@ class ClientStatsService {
 		GameType gameType) = 0;
 	virtual void CheckDMExitRules(game_import_t& gi, GameLocals& game, LevelLocals& level) = 0;
 	virtual int ScoreLimit(game_import_t& gi, const GameLocals& game, const LevelLocals& level) const = 0;
-	virtual std::string ScoreLimitString(game_import_t& gi, const GameLocals& game,
-		const LevelLocals& level) const = 0;
+virtual std::string ScoreLimitString(game_import_t& gi, const GameLocals& game,
+const LevelLocals& level) const = 0;
 };
+
+void InitializeClientStatsService(game_import_t& gi, GameLocals& game, LevelLocals& level);
+ClientStatsService& GetClientStatsService();
 
 } // namespace worr::server::client

@@ -34,6 +34,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,9 +49,49 @@ Provides p_client.cpp with access to the lazily constructed client session
 service so legacy entry points can delegate to the shared implementation.
 =============
 */
+namespace {
+	struct ClientSessionServiceDependencies {
+	game_import_t* gi;
+	GameLocals* game;
+	LevelLocals* level;
+	};
+
+	ClientSessionServiceDependencies g_clientSessionServiceDependencies{ &gi, &game, &level };
+	std::unique_ptr<ClientSessionServiceImpl> g_clientSessionServiceInstance;
+}
+
+/*
+=============
+InitializeClientSessionService
+
+Sets the dependencies used when lazily constructing the client session
+service. Tests can replace the references prior to invoking any legacy entry
+points.
+=============
+*/
+void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+	g_clientSessionServiceDependencies.gi = &giRef;
+	g_clientSessionServiceDependencies.game = &gameRef;
+	g_clientSessionServiceDependencies.level = &levelRef;
+	g_clientSessionServiceInstance.reset();
+}
+
+/*
+=============
+GetClientSessionService
+
+Provides p_client.cpp with access to the lazily constructed client session
+service so legacy entry points can delegate to the shared implementation.
+=============
+*/
 ClientSessionServiceImpl& GetClientSessionService() {
-	static ClientSessionServiceImpl service(gi, game, level);
-	return service;
+	if (!g_clientSessionServiceInstance) {
+	g_clientSessionServiceInstance = std::make_unique<ClientSessionServiceImpl>(
+	*g_clientSessionServiceDependencies.gi,
+	*g_clientSessionServiceDependencies.game,
+	*g_clientSessionServiceDependencies.level);
+}
+	return *g_clientSessionServiceInstance;
 }
 
 } // namespace worr::server::client
