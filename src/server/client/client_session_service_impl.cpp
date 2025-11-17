@@ -19,7 +19,6 @@
 
 void ClientBegin(gentity_t* ent);
 void ClientUserinfoChanged(gentity_t* ent, const char* userInfo);
-void ClientDisconnect(gentity_t* ent);
 void ClientThink(gentity_t* ent, usercmd_t* cmd);
 void ClientBeginServerFrame(gentity_t* ent);
 
@@ -357,14 +356,125 @@ void ClientSessionServiceImpl::ClientUserinfoChanged(game_import_t& gi, GameLoca
 =============
 ClientSessionServiceImpl::ClientDisconnect
 
-Forwards disconnect handling to the procedural ClientDisconnect implementation.
+Handles the disconnect workflow previously implemented procedurally, ensuring
+the player's state is torn down and other systems are notified appropriately.
 =============
 */
-void ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
-		(void)gi;
-		(void)game;
-		(void)level;
-		::ClientDisconnect(ent);
+bool ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
+(void)gi;
+(void)game;
+(void)level;
+
+		if (!ent || !ent->client) {
+			return false;
+		}
+
+		gclient_t* cl = ent->client;
+		const int64_t now = GetCurrentRealTimeMillis();
+		cl->sess.playEndRealTime = now;
+		P_AccumulateMatchPlayTime(cl, now);
+
+		OnDisconnect(ent);
+
+		if (cl->trackerPainTime) {
+			RemoveAttackingPainDaemons(ent);
+		}
+
+		if (cl->ownedSphere) {
+			if (cl->ownedSphere->inUse) {
+				FreeEntity(cl->ownedSphere);
+			}
+			cl->ownedSphere = nullptr;
+		}
+
+		PlayerTrail_Destroy(ent);
+
+		ProBall::HandleCarrierDisconnect(ent);
+		Harvester_HandlePlayerDisconnect(ent);
+
+		HeadHunters::DropHeads(ent, nullptr);
+		HeadHunters::ResetPlayerState(cl);
+
+		if (!(ent->svFlags & SVF_NOCLIENT)) {
+			TossClientItems(ent);
+
+			gi_.WriteByte(svc_muzzleflash);
+			gi_.WriteEntity(ent);
+			gi_.WriteByte(MZ_LOGOUT);
+			gi_.multicast(ent->s.origin, MULTICAST_PVS, false);
+		}
+
+		if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot) {
+			if (cl->sess.netName[0]) {
+				gi_.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
+			}
+		}
+
+		FreeClientFollowers(ent);
+
+		G_RevertVote(cl);
+
+		P_SaveGhostSlot(ent);
+
+		gi_.unlinkEntity(ent);
+		ent->s.modelIndex = 0;
+		ent->solid = SOLID_NOT;
+		ent->inUse = false;
+		ent->sv.init = false;
+		ent->className = "disconnected";
+		cl->pers.connected = false;
+		cl->sess.matchWins = 0;
+		cl->sess.matchLosses = 0;
+		cl->pers.limitedLivesPersist = false;
+		cl->pers.limitedLivesStash = 0;
+		const bool wasSpawned = cl->pers.spawned;
+		cl->pers.spawned = false;
+		ent->timeStamp = level_.time + 1_sec;
+
+		if (wasSpawned) {
+			ClientConfig_SaveStats(cl, false);
+		}
+
+		if (deathmatch->integer) {
+			CalculateRanks();
+
+			for (auto ec : active_clients()) {
+				if (ec->client->showScores) {
+					ec->client->menu.updateTime = level_.time;
+				}
+			}
+		}
+
+return true;
+}
+
+/*
+=============
+ClientSessionServiceImpl::OnDisconnect
+
+Validates that the player's ready state can be cleared and, when appropriate,
+broadcasts the change before the rest of the disconnect teardown executes.
+=============
+*/
+void ClientSessionServiceImpl::OnDisconnect(gentity_t* ent) {
+		if (!ent || !ent->client) {
+			return;
+		}
+
+		gclient_t* cl = ent->client;
+
+		if (!cl->pers.readyStatus) {
+			return;
+		}
+
+		const bool canUpdateReady = ReadyConditions(ent, false);
+		cl->pers.readyStatus = false;
+
+		if (canUpdateReady && cl->sess.netName[0]) {
+			gi_.LocBroadcast_Print(PRINT_CENTER,
+			"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is NOT ready.",
+			cl->sess.netName);
+		}
 }
 
 /*

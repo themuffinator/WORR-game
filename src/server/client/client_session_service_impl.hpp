@@ -22,7 +22,7 @@ class ClientSessionServiceImpl : public ClientSessionService {
 		gentity_t* ent) override;
 	void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, const char* userInfo) override;
-	void ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	bool ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent) override;
 	void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, usercmd_t* cmd) override;
@@ -35,6 +35,7 @@ class ClientSessionServiceImpl : public ClientSessionService {
 	GameLocals& game_;
 	LevelLocals& level_;
 	ClientConfigStore& configStore_;
+	void OnDisconnect(gentity_t* ent);
 };
 
 ClientSessionServiceImpl& GetClientSessionService();
