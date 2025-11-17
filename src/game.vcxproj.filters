@@ -7,6 +7,9 @@
     <ClInclude Include="server\client\client_session_service_impl.hpp">
       <Filter>clients</Filter>
     </ClInclude>
+    <ClInclude Include="server\client\client_stats_service.hpp">
+      <Filter>clients</Filter>
+    </ClInclude>
     <ClInclude Include="server\bots\bot_debug.hpp">
       <Filter>bots</Filter>
     </ClInclude>
@@ -507,6 +510,9 @@
     </ClCompile>
     <ClCompile Include="client\cg_main.cpp">
       <Filter>cgame</Filter>
+    </ClCompile>
+    <ClCompile Include="server\client\client_stats_service.cpp">
+      <Filter>clients</Filter>
     </ClCompile>
     <ClCompile Include="server\client\client_session_service_impl.cpp">
       <Filter>clients</Filter>
