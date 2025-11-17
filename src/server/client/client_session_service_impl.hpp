@@ -24,6 +24,9 @@ class ClientSessionServiceImpl : public ClientSessionService {
 	void ClientBeginServerFrame(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent) override;
 	ReadyResult OnReadyToggled(gentity_t* ent, bool state, bool toggle);
+	void ApplySpawnFlags(gentity_t* ent) const;
+	void PrepareSpawnPoint(gentity_t* ent, bool allowElevatorDrop = false,
+		void (*dropThink)(gentity_t*) = nullptr) const;
 
 	private:
 	game_import_t& gi_;

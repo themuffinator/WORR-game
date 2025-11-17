@@ -459,24 +459,77 @@ broadcasts the change before the rest of the disconnect teardown executes.
 =============
 */
 void ClientSessionServiceImpl::OnDisconnect(gentity_t* ent) {
-		if (!ent || !ent->client) {
-			return;
-		}
+	if (!ent || !ent->client) {
+		return;
+	}
 
-		gclient_t* cl = ent->client;
+	gclient_t* cl = ent->client;
 
-		if (!cl->pers.readyStatus) {
-			return;
-		}
+	if (!cl->pers.readyStatus) {
+		return;
+	}
 
-		const bool canUpdateReady = ReadyConditions(ent, false);
-		cl->pers.readyStatus = false;
+	const bool canUpdateReady = ReadyConditions(ent, false);
+	cl->pers.readyStatus = false;
 
-		if (canUpdateReady && cl->sess.netName[0]) {
-			gi_.LocBroadcast_Print(PRINT_CENTER,
+	if (canUpdateReady && cl->sess.netName[0]) {
+		gi_.LocBroadcast_Print(PRINT_CENTER,
 			"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is NOT ready.",
 			cl->sess.netName);
-		}
+	}
+}
+
+/*
+=============
+ClientSessionServiceImpl::ApplySpawnFlags
+
+Copies the spawn temp flags collected by the map parser onto the entity so
+that bots, humans, and arena assignments are honored consistently.
+=============
+*/
+void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
+	if (!ent) {
+		return;
+	}
+
+	if (st.noBots) {
+		ent->flags = FL_NO_BOTS;
+	}
+
+	if (st.noHumans) {
+		ent->flags = FL_NO_HUMANS;
+	}
+
+	if (st.arena) {
+		ent->arena = st.arena;
+	}
+}
+
+/*
+=============
+ClientSessionServiceImpl::PrepareSpawnPoint
+
+Ensures the spawn point is valid by freeing stuck points and optionally
+configuring the delayed drop logic used by certain N64 spawn locations.
+=============
+*/
+void ClientSessionServiceImpl::PrepareSpawnPoint(gentity_t* ent, bool allowElevatorDrop,
+		void (*dropThink)(gentity_t*)) const {
+	if (!ent) {
+		return;
+	}
+
+	const trace_t tr = gi_.trace(ent->s.origin, PLAYER_MINS, PLAYER_MAXS,
+		ent->s.origin, ent, MASK_SOLID);
+
+	if (tr.startSolid) {
+		G_FixStuckObject(ent, ent->s.origin);
+	}
+
+	if (allowElevatorDrop && level_.isN64 && dropThink) {
+		ent->think = dropThink;
+		ent->nextThink = level_.time + FRAME_TIME_S;
+	}
 }
 
 /*
