@@ -6,6 +6,7 @@
 #include "command_system.hpp"
 #include "command_registration.hpp"
 #include "../g_local.hpp"
+#include "../client/client_session_service_impl.hpp"
 #include "../gameplay/map_flag_parser.hpp"
 #include "../gameplay/client_config.hpp"
 #include "../monsters/m_player.hpp"
@@ -23,404 +24,92 @@ namespace Commands {
 	// --- Forward Declarations for Client Functions ---
 	void Admin(gentity_t* ent, const CommandArgs& args);
 	void ClientList(gentity_t* ent, const CommandArgs& args);
-	void Drop(gentity_t* ent, const CommandArgs& args);
-	void EyeCam(gentity_t* ent, const CommandArgs& args);
-	void FragMessages(gentity_t* ent, const CommandArgs& args);
-	void Follow(gentity_t* ent, const CommandArgs& args);
-	void FollowKiller(gentity_t* ent, const CommandArgs& args);
-	void FollowLeader(gentity_t* ent, const CommandArgs& args);
-	void FollowPowerup(gentity_t* ent, const CommandArgs& args);
-	void Forfeit(gentity_t* ent, const CommandArgs& args);
-	void Help(gentity_t* ent, const CommandArgs& args);
-	void Hook(gentity_t* ent, const CommandArgs& args);
-	void CrosshairID(gentity_t* ent, const CommandArgs& args);
-	void InvDrop(gentity_t* ent, const CommandArgs& args);
-	void Inven(gentity_t* ent, const CommandArgs& args);
-	void InvNext(gentity_t* ent, const CommandArgs& args);
-	void InvNextP(gentity_t* ent, const CommandArgs& args);
-	void InvNextW(gentity_t* ent, const CommandArgs& args);
-	void InvPrev(gentity_t* ent, const CommandArgs& args);
-	void InvPrevP(gentity_t* ent, const CommandArgs& args);
-	void InvPrevW(gentity_t* ent, const CommandArgs& args);
-	void InvUse(gentity_t* ent, const CommandArgs& args);
-	void KillBeep(gentity_t* ent, const CommandArgs& args);
-	void Kill(gentity_t* ent, const CommandArgs& args);
-	void MapInfo(gentity_t* ent, const CommandArgs& args);
-	void MapPool(gentity_t* ent, const CommandArgs& args);
-	void MapCycle(gentity_t* ent, const CommandArgs& args);
-	void Motd(gentity_t* ent, const CommandArgs& args);
-	void MyMap(gentity_t* ent, const CommandArgs& args);
-	void MySkill(gentity_t* ent, const CommandArgs& args);
-	void NotReady(gentity_t* ent, const CommandArgs& args);
-	void PutAway(gentity_t* ent, const CommandArgs& args);
-	void Ready(gentity_t* ent, const CommandArgs& args);
-	void ReadyUp(gentity_t* ent, const CommandArgs& args);
-	void Score(gentity_t* ent, const CommandArgs& args);
-	void SetWeaponPref(gentity_t* ent, const CommandArgs& args);
-	void Stats(gentity_t* ent, const CommandArgs& args);
-	void JoinTeam(gentity_t* ent, const CommandArgs& args);
-	void TimeIn(gentity_t* ent, const CommandArgs& args);
-	void TimeOut(gentity_t* ent, const CommandArgs& args);
-	void Timer(gentity_t* ent, const CommandArgs& args);
-	void UnHook(gentity_t* ent, const CommandArgs& args);
-	void Use(gentity_t* ent, const CommandArgs& args);
-	void Wave(gentity_t* ent, const CommandArgs& args);
-	void WeapLast(gentity_t* ent, const CommandArgs& args);
-	void WeapNext(gentity_t* ent, const CommandArgs& args);
-	void WeapPrev(gentity_t* ent, const CommandArgs& args);
+void EyeCam(gentity_t* ent, const CommandArgs& args);
+void FragMessages(gentity_t* ent, const CommandArgs& args);
+void Forfeit(gentity_t* ent, const CommandArgs& args);
+void Help(gentity_t* ent, const CommandArgs& args);
+void Hook(gentity_t* ent, const CommandArgs& args);
+void CrosshairID(gentity_t* ent, const CommandArgs& args);
+void KillBeep(gentity_t* ent, const CommandArgs& args);
+void Kill(gentity_t* ent, const CommandArgs& args);
+void MapInfo(gentity_t* ent, const CommandArgs& args);
+void MapPool(gentity_t* ent, const CommandArgs& args);
+void MapCycle(gentity_t* ent, const CommandArgs& args);
+void Motd(gentity_t* ent, const CommandArgs& args);
+void MyMap(gentity_t* ent, const CommandArgs& args);
+void MySkill(gentity_t* ent, const CommandArgs& args);
+void Score(gentity_t* ent, const CommandArgs& args);
+void Stats(gentity_t* ent, const CommandArgs& args);
+void JoinTeam(gentity_t* ent, const CommandArgs& args);
+void TimeIn(gentity_t* ent, const CommandArgs& args);
+void TimeOut(gentity_t* ent, const CommandArgs& args);
+void Timer(gentity_t* ent, const CommandArgs& args);
+void UnHook(gentity_t* ent, const CommandArgs& args);
+void Wave(gentity_t* ent, const CommandArgs& args);
 	void Where(gentity_t* ent, const CommandArgs& args);
 
-	// --- Client Command Implementations ---
+	namespace follow {
 
-	void Admin(gentity_t* ent, const CommandArgs& args) {
-		if (!g_allowAdmin->integer) {
-			gi.Client_Print(ent, PRINT_HIGH, "Administration is disabled on this server.\n");
-			return;
-		}
-
-		if (args.count() > 1) {
-			if (ent->client->sess.admin) {
-				gi.Client_Print(ent, PRINT_HIGH, "You already have administrative rights.\n");
+		/*
+		=============
+		Follow
+		=============
+		*/
+		void Follow(gentity_t* ent, const CommandArgs& args) {
+			if (ClientIsPlaying(ent->client)) {
+				gi.Client_Print(ent, PRINT_HIGH, "You must be a spectator to follow.\n");
 				return;
 			}
-			if (admin_password->string && *admin_password->string && args.getString(1) == admin_password->string) {
-				ent->client->sess.admin = true;
-				gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName);
-			}
-		}
-		else {
-			if (ent->client->sess.admin) {
-				gi.Client_Print(ent, PRINT_HIGH, "You are an admin.\n");
-			}
-			else {
-				PrintUsage(ent, args, "[password]", "", "Gain admin rights by providing the admin password.");
-			}
-		}
-	}
-
-	void ClientList(gentity_t* ent, const CommandArgs& args) {
-		// Parse sort mode (default to "score")
-		std::string_view sort_mode = args.getString(1);
-		enum class Sort { Score, Time, Name };
-		Sort mode = Sort::Score;
-		if (sort_mode == "time") mode = Sort::Time;
-		else if (sort_mode == "name") mode = Sort::Name;
-
-		struct Row {
-			int        clientIndex;   // 0..game.maxclients-1
-			gentity_t* edict;         // &g_entities[clientIndex + 1]
-		};
-
-		std::vector<Row> rows;
-		rows.reserve(game.maxClients);
-
-		// Gather connected clients (0-based client indices)
-		for (auto ec : active_clients()) {
-			if (!ec || !ec->client) continue;
-			int ci = int(ec->client - game.clients);
-			if (ci < 0 || ci >= static_cast<int>(game.maxClients)) continue;
-			rows.push_back({ ci, ec });
-		}
-
-		if (rows.empty()) {
-			gi.Client_Print(ent, PRINT_HIGH, "No clients connected.\n");
-			return;
-		}
-
-		// Sorting
-		switch (mode) {
-		case Sort::Score:
-			std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
-				const gclient_t* A = &game.clients[a.clientIndex];
-				const gclient_t* B = &game.clients[b.clientIndex];
-				return A->resp.score > B->resp.score; // high -> low
-				});
-			break;
-		case Sort::Time:
-			std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
-				const gclient_t* A = &game.clients[a.clientIndex];
-				const gclient_t* B = &game.clients[b.clientIndex];
-				return A->resp.enterTime < B->resp.enterTime; // oldest first
-				});
-			break;
-		case Sort::Name:
-			std::stable_sort(rows.begin(), rows.end(), [](const Row& a, const Row& b) {
-				const gclient_t* A = &game.clients[a.clientIndex];
-				const gclient_t* B = &game.clients[b.clientIndex];
-				const char* an = A->sess.netName;
-				const char* bn = B->sess.netName;
-				auto lower = [](char c) { return (c >= 'A' && c <= 'Z') ? char(c - 'A' + 'a') : c; };
-				for (size_t i = 0; ; ++i) {
-					char ca = lower(an[i]);
-					char cb = lower(bn[i]);
-					if (ca != cb) return ca < cb;
-					if (ca == '\0') return false; // equal
-				}
-				});
-			break;
-		}
-
-		// Fixed column widths (characters)
-		// Adjust if you want wider/narrower fields.
-		const size_t W_NUM = 3;
-		const size_t W_NAME = 24;
-		const size_t W_ID = 20;
-		const size_t W_SR = 5;
-		const size_t W_TIME = 5;   // mm:ss
-		const size_t W_PING = 4;
-		const size_t W_SCORE = 5;
-		const size_t W_TEAM = 10;
-
-		auto trunc_to = [](const char* s, size_t maxlen) -> std::string {
-			if (!s) return std::string();
-			std::string out(s);
-			if (out.size() > maxlen) out.resize(maxlen);
-			return out;
-			};
-
-		auto pad_left = [](const std::string& s, size_t w) -> std::string {
-			if (s.size() >= w) return s;
-			return std::string(w - s.size(), ' ') + s;
-			};
-
-		auto pad_right = [](const std::string& s, size_t w) -> std::string {
-			if (s.size() >= w) return s;
-			return s + std::string(w - s.size(), ' ');
-			};
-
-		// Header
-		{
-			std::string hdr;
-			hdr.reserve(96);
-			hdr += pad_left("num", W_NUM);  hdr += " ";
-			hdr += pad_right("name", W_NAME); hdr += " ";
-			hdr += pad_right("id", W_ID);   hdr += " ";
-			hdr += pad_left("sr", W_SR);   hdr += " ";
-			hdr += pad_left("time", W_TIME); hdr += " ";
-			hdr += pad_left("ping", W_PING); hdr += " ";
-			hdr += pad_left("score", W_SCORE); hdr += " ";
-			hdr += pad_right("state", W_TEAM);
-			hdr += "\n";
-			gi.Client_Print(ent, PRINT_HIGH, hdr.c_str());
-		}
-
-		// Rows (emit one line at a time to avoid message clipping)
-		for (const Row& r : rows) {
-			gclient_t* cl = &game.clients[r.clientIndex];
-
-			const int displayNum = r.clientIndex + 1;
-			const int ping = cl->ping;
-			const int score = cl->resp.score;
-			const int sr = cl->sess.skillRating;
-
-			const char* tn = Teams_TeamName(cl->sess.team);
-			const char* teamName = (tn && tn[0]) ? tn : (ClientIsPlaying(cl) ? "play" : "spec");
-
-			// Time as mm:ss based on your GameTime utilities
-			const auto dt = (level.time - cl->resp.enterTime);
-			const int mm = dt.minutes<int>();
-			const int ss = dt.seconds<int>() % 60;
-
-			std::string num = std::to_string(displayNum);
-			std::string name = trunc_to(cl->sess.netName, W_NAME);
-			std::string sid = trunc_to(cl->sess.socialID, W_ID);
-			std::string s_sr = std::to_string(sr);
-			char time_buf[8];
-			std::snprintf(time_buf, sizeof(time_buf), "%d:%02d", mm, ss);
-			std::string s_time(time_buf);
-			std::string s_ping = std::to_string(ping);
-			std::string s_score = std::to_string(score);
-			std::string s_team = trunc_to(teamName, W_TEAM);
-
-			std::string line;
-			line.reserve(128);
-			line += pad_left(num, W_NUM);   line += " ";
-			line += pad_right(name, W_NAME);  line += " ";
-			line += pad_right(sid, W_ID);    line += " ";
-			line += pad_left(s_sr, W_SR);    line += " ";
-			line += pad_left(s_time, W_TIME);  line += " ";
-			line += pad_left(s_ping, W_PING);  line += " ";
-			line += pad_left(s_score, W_SCORE); line += " ";
-			line += pad_right(s_team, W_TEAM);
-			line += "\n";
-
-			gi.Client_Print(ent, PRINT_HIGH, line.c_str());
-		}
-	}
-
-	void Drop(gentity_t* ent, const CommandArgs& args) {
-		if (CombatIsDisabled()) {
-			return;
-		}
-
-		std::string itemQuery = args.joinFrom(1);
-		std::string_view arg1 = args.getString(1);
-
-		if (itemQuery.empty()) {
-			PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
-			return;
-		}
-
-		Item* it = nullptr;
-
-		// Handle special cases first
-		if (arg1 == "tech") {
-			it = Tech_Held(ent);
-			if (it) {
-				it->drop(ent, it);
-				ValidateSelectedItem(ent);
-			}
-			return;
-		}
-		if (arg1 == "weapon") {
-			it = ent->client->pers.weapon;
-			if (it && it->drop) {
-				it->drop(ent, it);
-				ValidateSelectedItem(ent);
-			}
-			return;
-		}
-
-		// Standard item lookup
-		if (args.getString(0) == "drop_index") {
-			if (auto itemIndex = args.getInt(1)) {
-				if (*itemIndex > IT_NULL && *itemIndex < IT_TOTAL) {
-					it = GetItemByIndex(static_cast<item_id_t>(*itemIndex));
-				}
-			}
-		}
-		else {
-			it = FindItem(arg1.data());
-
-			if (!it) {
-				if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
-					if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
-						it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
-					}
-				}
-			}
-		}
-
-		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", arg1.data());
-			return;
-		}
-
-		if (!it->drop) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
-			return;
-		}
-
-		// Check server-side drop restrictions
-		if (it->id == IT_FLAG_RED || it->id == IT_FLAG_BLUE) {
-			if (!(match_dropCmdFlags->integer & 1)) {
-				gi.Client_Print(ent, PRINT_HIGH, "Flag dropping has been disabled on this server.\n");
+			if (args.count() < 2) {
+				PrintUsage(ent, args, "<client_name|number>", "", "Follows the specified player.");
 				return;
 			}
-		}
-		else if (it->flags & IF_POWERUP) {
-			if (!(match_dropCmdFlags->integer & 2)) {
-				gi.Client_Print(ent, PRINT_HIGH, "Powerup dropping has been disabled on this server.\n");
+
+			gentity_t* follow_ent = ClientEntFromString(args.getString(1).data());
+			if (!follow_ent || !follow_ent->inUse || !ClientIsPlaying(follow_ent->client)) {
+				gi.Client_Print(ent, PRINT_HIGH, "Invalid or non-playing client specified.\n");
 				return;
 			}
-		}
-		else if (it->flags & (IF_WEAPON | IF_AMMO)) {
-			if (!(match_dropCmdFlags->integer & 4)) {
-				gi.Client_Print(ent, PRINT_HIGH, "Weapon and ammo dropping has been disabled on this server.\n");
-				return;
-			}
-			if (!ItemSpawnsEnabled()) {
-				gi.Client_Print(ent, PRINT_HIGH, "Weapon and ammo dropping is not available in this mode.\n");
-				return;
-			}
+
+			ent->client->follow.target = follow_ent;
+			ent->client->follow.update = true;
+			ClientUpdateFollowers(ent);
 		}
 
-		if (it->flags & IF_WEAPON && deathmatch->integer && match_weaponsStay->integer) {
-			gi.Client_Print(ent, PRINT_HIGH, "Weapon dropping is not available during weapons stay mode.\n");
-			return;
+		/*
+		=============
+		FollowKiller
+		=============
+		*/
+		void FollowKiller(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			ent->client->sess.pc.follow_killer = !ent->client->sess.pc.follow_killer;
+			gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow killer: {}.\n", ent->client->sess.pc.follow_killer ? "ON" : "OFF");
 		}
 
-		if (!ent->client->pers.inventory[it->id]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_out_of_item", it->pickupName);
-			return;
+		/*
+		=============
+		FollowLeader
+		=============
+		*/
+		void FollowLeader(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			ent->client->sess.pc.follow_leader = !ent->client->sess.pc.follow_leader;
+			gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow leader: {}.\n", ent->client->sess.pc.follow_leader ? "ON" : "OFF");
 		}
 
-		it->drop(ent, it);
-
-		// Notify teammates
-		if (Teams() && g_teamplay_item_drop_notice->integer) {
-			uint32_t key = GetUnicastKey();
-			std::string message = std::format("[TEAM]: {} drops {}\n", ent->client->sess.netName, it->useName);
-
-			for (auto ec : active_clients()) {
-				if (ent == ec) continue;
-
-				bool isTeammate = OnSameTeam(ent, ec);
-				bool isFollowingTeammate = !ClientIsPlaying(ec->client) && ec->client->follow.target && OnSameTeam(ent, ec->client->follow.target);
-
-				if (isTeammate || isFollowingTeammate) {
-					gi.WriteByte(svc_poi);
-					gi.WriteShort(POI_PING + (ent->s.number - 1));
-					gi.WriteShort(5000);
-					gi.WritePosition(ent->s.origin);
-					gi.WriteShort(gi.imageIndex(it->icon));
-					gi.WriteByte(215);
-					gi.WriteByte(POI_FLAG_NONE);
-					gi.unicast(ec, false);
-					gi.localSound(ec, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
-					gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName);
-				}
-			}
+		/*
+		=============
+		FollowPowerup
+		=============
+		*/
+		void FollowPowerup(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			ent->client->sess.pc.follow_powerup = !ent->client->sess.pc.follow_powerup;
+			gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow powerup carrier: {}.\n", ent->client->sess.pc.follow_powerup ? "ON" : "OFF");
 		}
 
-		ValidateSelectedItem(ent);
-	}
-
-	void EyeCam(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.pc.use_eyecam = !ent->client->sess.pc.use_eyecam;
-		gi.LocClient_Print(ent, PRINT_HIGH, "EyeCam {}.\n", ent->client->sess.pc.use_eyecam ? "enabled" : "disabled");
-	}
-
-	void FragMessages(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.pc.show_fragmessages = !ent->client->sess.pc.show_fragmessages;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Frag messages {}.\n", ent->client->sess.pc.show_fragmessages ? "enabled" : "disabled");
-	}
-
-	void Follow(gentity_t* ent, const CommandArgs& args) {
-		if (ClientIsPlaying(ent->client)) {
-			gi.Client_Print(ent, PRINT_HIGH, "You must be a spectator to follow.\n");
-			return;
-		}
-		if (args.count() < 2) {
-			PrintUsage(ent, args, "<client_name|number>", "", "Follows the specified player.");
-			return;
-		}
-
-		gentity_t* follow_ent = ClientEntFromString(args.getString(1).data());
-		if (!follow_ent || !follow_ent->inUse || !ClientIsPlaying(follow_ent->client)) {
-			gi.Client_Print(ent, PRINT_HIGH, "Invalid or non-playing client specified.\n");
-			return;
-		}
-
-		ent->client->follow.target = follow_ent;
-		ent->client->follow.update = true;
-		ClientUpdateFollowers(ent);
-	}
-
-	void FollowKiller(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.pc.follow_killer = !ent->client->sess.pc.follow_killer;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow killer: {}.\n", ent->client->sess.pc.follow_killer ? "ON" : "OFF");
-	}
-
-	void FollowLeader(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.pc.follow_leader = !ent->client->sess.pc.follow_leader;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow leader: {}.\n", ent->client->sess.pc.follow_leader ? "ON" : "OFF");
-	}
-
-	void FollowPowerup(gentity_t* ent, const CommandArgs& args) {
-		ent->client->sess.pc.follow_powerup = !ent->client->sess.pc.follow_powerup;
-		gi.LocClient_Print(ent, PRINT_HIGH, "Auto-follow powerup carrier: {}.\n", ent->client->sess.pc.follow_powerup ? "ON" : "OFF");
-	}
+	} // namespace follow
 
 	void Forfeit(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::Has(GameFlags::OneVOne)) {
@@ -454,8 +143,8 @@ namespace Commands {
 		ent->client->showScores = false;
 
 		if (ent->client->showHelp &&
-			ent->client->pers.game_help1changed == game.help[0].modificationCount &&
-			ent->client->pers.game_help2changed == game.help[1].modificationCount) {
+		ent->client->pers.game_help1changed == game.help[0].modificationCount &&
+		ent->client->pers.game_help2changed == game.help[1].modificationCount) {
 			ent->client->showHelp = false;
 			globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
 			return;
@@ -482,21 +171,21 @@ namespace Commands {
 	Impulse
 	Quake 1-style one-shot impulse handler.
 	Implements:
-		1..8  = weapon selects (Q1 mapping -> nearest Q2 weapon)
-		9     = give all (cheat; SP/sv_cheats only)
-		10    = next weapon
-		12    = previous weapon
-		21    = drop current weapon (if droppable)
-		255   = give+activate Quad (cheat; SP/sv_cheats only)
+	1..8  = weapon selects (Q1 mapping -> nearest Q2 weapon)
+	9     = give all (cheat; SP/sv_cheats only)
+	10    = next weapon
+	12    = previous weapon
+	21    = drop current weapon (if droppable)
+	255   = give+activate Quad (cheat; SP/sv_cheats only)
 	===============
 	*/
 	static void Impulse(gentity_t* ent, const CommandArgs& args) {
 		if (!ent || !ent->client)
-			return;
+		return;
 
 		gclient_t* cl = ent->client;
 		if (!ClientIsPlaying(cl) || level.intermission.time)
-			return;
+		return;
 
 		// parse impulse number
 		std::optional<int> opt = args.getInt(1);
@@ -513,23 +202,23 @@ namespace Commands {
 		// Helpers
 		auto has_item = [&](item_id_t id) -> bool {
 			return id > IT_NULL && id < IT_TOTAL && cl->pers.inventory[id] > 0;
-			};
+		};
 		auto use_item = [&](item_id_t id) -> bool {
 			if (!has_item(id)) return false;
 			Item* it = &itemList[id];
 			if (!it->use) return false;
 			it->use(ent, it);
 			return cl->weapon.pending == it || !(it->flags & IF_WEAPON);
-			};
+		};
 		auto try_use_first_owned = [&](std::initializer_list<item_id_t> ids) -> bool {
 			for (auto id : ids) if (use_item(id)) return true;
 			return false;
-			};
+		};
 		auto cheats_allowed = [&]() -> bool {
 			// Mirror your projects cheat gates here.
 			// Common pattern: sv_cheats or singleplayer-only.
 			return (CheatsOk(ent));
-			};
+		};
 
 		// Q1 -> Q2 weapon mapping by item_id_t (adjust IDs to your enum)
 		// Replace the placeholder IDs below with your actual item_id_t constants.
@@ -549,17 +238,17 @@ namespace Commands {
 
 		switch (n) {
 			// 1..8: weapon selection (with sensible fallbacks where Q1/Q2 differ)
-		case 1: handled = try_use_first_owned({ ID_BLASTER }); break;                       // Axe -> Blaster
-		case 2: handled = try_use_first_owned({ ID_SHOTGUN }); break;                       // SG
-		case 3: handled = try_use_first_owned({ ID_SUPERSHOTGUN }); break;                  // SSG
-		case 4: handled = try_use_first_owned({ ID_MACHINEGUN }); break;                    // NG  -> MG
-		case 5: handled = try_use_first_owned({ ID_CHAINGUN, ID_HYPERBLASTER }); break;     // SNG -> CG, fallback HB
-		case 6: handled = try_use_first_owned({ ID_GRENADELAUNCHER }); break;               // GL
-		case 7: handled = try_use_first_owned({ ID_ROCKETLAUNCHER }); break;                // RL
-		case 8: handled = try_use_first_owned({ ID_HYPERBLASTER, ID_RAILGUN }); break;      // LG  -> HB, fallback RG
+			case 1: handled = try_use_first_owned({ ID_BLASTER }); break;                       // Axe -> Blaster
+			case 2: handled = try_use_first_owned({ ID_SHOTGUN }); break;                       // SG
+			case 3: handled = try_use_first_owned({ ID_SUPERSHOTGUN }); break;                  // SSG
+			case 4: handled = try_use_first_owned({ ID_MACHINEGUN }); break;                    // NG  -> MG
+			case 5: handled = try_use_first_owned({ ID_CHAINGUN, ID_HYPERBLASTER }); break;     // SNG -> CG, fallback HB
+			case 6: handled = try_use_first_owned({ ID_GRENADELAUNCHER }); break;               // GL
+			case 7: handled = try_use_first_owned({ ID_ROCKETLAUNCHER }); break;                // RL
+			case 8: handled = try_use_first_owned({ ID_HYPERBLASTER, ID_RAILGUN }); break;      // LG  -> HB, fallback RG
 
 			// 9: give all (cheat)
-		case 9:
+			case 9:
 			if (!cheats_allowed()) return;
 			for (int id = IT_NULL + 1; id < IT_TOTAL; ++id) {
 				const Item* it = &itemList[id];
@@ -573,19 +262,19 @@ namespace Commands {
 			break;
 
 			// 10: next weapon
-		case 10:
+			case 10:
 			WeapNext(ent, args);
 			handled = true;
 			break;
 
 			// 12: previous weapon
-		case 12:
+			case 12:
 			WeapPrev(ent, args);
 			handled = true;
 			break;
 
 			// 255: give + activate Quad (cheat)
-		case 255:
+			case 255:
 			if (!cheats_allowed()) return;
 			if (ID_QUAD > IT_NULL && ID_QUAD < IT_TOTAL) {
 				cl->pers.inventory[ID_QUAD] += 1;
@@ -595,7 +284,7 @@ namespace Commands {
 			}
 			break;
 
-		default:
+			default:
 			// Unknown impulses silently ignored (classic Q1 feel), but a hint helps once.
 			gi.LocClient_Print(ent, PRINT_LOW, "impulse %d ignored (supported: 1..8, 9, 10, 12, 21, 255)\n", n);
 			return;
@@ -606,81 +295,267 @@ namespace Commands {
 		}
 	}
 
-	void InvDrop(gentity_t* ent, const CommandArgs& args) {
-		ValidateSelectedItem(ent);
-		if (ent->client->pers.selectedItem == IT_NULL) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_no_item_to_drop");
-			return;
-		}
-		Item* it = &itemList[ent->client->pers.selectedItem];
-		if (!it->drop) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
-			return;
-		}
-		it->drop(ent, it);
-		ValidateSelectedItem(ent);
-	}
+	namespace inventory {
 
-	void Inven(gentity_t* ent, const CommandArgs& args) {
-		gclient_t* cl = ent->client;
-		cl->showScores = false;
-		cl->showHelp = false;
-		globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
+		/*
+		=============
+		Drop
 
-		if (deathmatch->integer) {
-			if (Vote_Menu_Active(ent)) return;
-			if (cl->menu.current || cl->menu.restoreStatusBar) {
-				CloseActiveMenu(ent);
+		Handles dropping items, weapons, or tech, broadcasting POI data to teammates when
+		allowed.
+		=============
+		*/
+		void Drop(gentity_t* ent, const CommandArgs& args) {
+			if (CombatIsDisabled()) {
+				return;
+			}
+
+			std::string itemQuery = args.joinFrom(1);
+			std::string_view arg1 = args.getString(1);
+
+			if (itemQuery.empty()) {
+				PrintUsage(ent, args, "<item_name|tech|weapon>", "", "Drops an item, your current tech, or your current weapon.");
+				return;
+			}
+
+			Item* it = nullptr;
+
+			if (arg1 == "tech") {
+				it = Tech_Held(ent);
+				if (it) {
+					it->drop(ent, it);
+					ValidateSelectedItem(ent);
+				}
+				return;
+			}
+			if (arg1 == "weapon") {
+				it = ent->client->pers.weapon;
+				if (it && it->drop) {
+					it->drop(ent, it);
+					ValidateSelectedItem(ent);
+				}
+				return;
+			}
+
+			if (args.getString(0) == "drop_index") {
+				if (auto itemIndex = args.getInt(1)) {
+					if (*itemIndex > IT_NULL && *itemIndex < IT_TOTAL) {
+						it = GetItemByIndex(static_cast<item_id_t>(*itemIndex));
+					}
+				}
 			}
 			else {
-				OpenJoinMenu(ent);
+				it = FindItem(arg1.data());
+
+				if (!it) {
+					if (auto parsedIndex = CommandArgs::ParseInt(arg1)) {
+						if (*parsedIndex > IT_NULL && *parsedIndex < IT_TOTAL) {
+							it = GetItemByIndex(static_cast<item_id_t>(*parsedIndex));
+						}
+					}
+				}
 			}
-			return;
+
+			if (!it) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown item: {}\n", arg1.data());
+				return;
+			}
+
+			if (!it->drop) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
+				return;
+			}
+
+			if (it->id == IT_FLAG_RED || it->id == IT_FLAG_BLUE) {
+				if (!(match_dropCmdFlags->integer & 1)) {
+					gi.Client_Print(ent, PRINT_HIGH, "Flag dropping has been disabled on this server.\n");
+					return;
+				}
+			}
+			else if (it->flags & IF_POWERUP) {
+				if (!(match_dropCmdFlags->integer & 2)) {
+					gi.Client_Print(ent, PRINT_HIGH, "Powerup dropping has been disabled on this server.\n");
+					return;
+				}
+			}
+			else if (it->flags & (IF_WEAPON | IF_AMMO)) {
+				if (!(match_dropCmdFlags->integer & 4)) {
+					gi.Client_Print(ent, PRINT_HIGH, "Weapon and ammo dropping has been disabled on this server.\n");
+					return;
+				}
+				if (!ItemSpawnsEnabled()) {
+					gi.Client_Print(ent, PRINT_HIGH, "Weapon and ammo dropping is not available in this mode.\n");
+					return;
+				}
+			}
+
+			if (it->flags & IF_WEAPON && deathmatch->integer && match_weaponsStay->integer) {
+				gi.Client_Print(ent, PRINT_HIGH, "Weapon dropping is not available during weapons stay mode.\n");
+				return;
+			}
+
+			if (!ent->client->pers.inventory[it->id]) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_out_of_item", it->pickupName);
+				return;
+			}
+
+			it->drop(ent, it);
+
+			if (Teams() && g_teamplay_item_drop_notice->integer) {
+				uint32_t key = GetUnicastKey();
+				std::string message = std::format("[TEAM]: {} drops {}\n", ent->client->sess.netName, it->useName);
+
+				for (auto ec : active_clients()) {
+					if (ent == ec) continue;
+
+					bool isTeammate = OnSameTeam(ent, ec);
+					bool isFollowingTeammate = !ClientIsPlaying(ec->client) && ec->client->follow.target && OnSameTeam(ent, ec->client->follow.target);
+
+					if (isTeammate || isFollowingTeammate) {
+						gi.WriteByte(svc_poi);
+						gi.WriteShort(POI_PING + (ent->s.number - 1));
+						gi.WriteShort(5000);
+						gi.WritePosition(ent->s.origin);
+						gi.WriteShort(gi.imageIndex(it->icon));
+						gi.WriteByte(215);
+						gi.WriteByte(POI_FLAG_NONE);
+						gi.unicast(ec, false);
+						gi.localSound(ec, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
+						gi.LocClient_Print(ec, PRINT_TTS, message.c_str(), ent->client->sess.netName);
+					}
+				}
+			}
+
+			ValidateSelectedItem(ent);
 		}
 
-		if (cl->showInventory) {
-			cl->showInventory = false;
-			return;
+		/*
+		=============
+		InvDrop
+		=============
+		*/
+		void InvDrop(gentity_t* ent, const CommandArgs& args) {
+			ValidateSelectedItem(ent);
+			if (ent->client->pers.selectedItem == IT_NULL) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_no_item_to_drop");
+				return;
+			}
+			Item* it = &itemList[ent->client->pers.selectedItem];
+			if (!it->drop) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_droppable");
+				return;
+			}
+			it->drop(ent, it);
+			ValidateSelectedItem(ent);
 		}
 
-		globals.serverFlags |= SERVER_FLAG_SLOW_TIME;
-		cl->showInventory = true;
-		gi.WriteByte(svc_inventory);
-		for (int i = 0; i < IT_TOTAL; i++) {
-			gi.WriteShort(cl->pers.inventory[i]);
-		}
-		gi.unicast(ent, true);
-	}
+		/*
+		=============
+		Inven
+		=============
+		*/
+		void Inven(gentity_t* ent, const CommandArgs& args) {
+			gclient_t* cl = ent->client;
+			cl->showScores = false;
+			cl->showHelp = false;
+			globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
 
-	void InvNext(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_ANY); }
-	void InvNextP(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_TIMED | IF_POWERUP | IF_SPHERE); }
-	void InvNextW(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_WEAPON); }
-	void InvPrev(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_ANY); }
-	void InvPrevP(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_TIMED | IF_POWERUP | IF_SPHERE); }
-	void InvPrevW(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_WEAPON); }
+			if (deathmatch->integer) {
+				if (Vote_Menu_Active(ent)) return;
+				if (cl->menu.current || cl->menu.restoreStatusBar) {
+					CloseActiveMenu(ent);
+				}
+				else {
+					OpenJoinMenu(ent);
+				}
+				return;
+			}
 
-	void InvUse(gentity_t* ent, const CommandArgs& args) {
-		if (deathmatch->integer && ent->client->menu.current) {
-			ActivateSelectedMenuItem(ent);
-			return;
-		}
-		if (level.intermission.time || !ClientIsPlaying(ent->client) || ent->health <= 0) return;
+			if (cl->showInventory) {
+				cl->showInventory = false;
+				return;
+			}
 
-		ValidateSelectedItem(ent);
-		if (ent->client->pers.selectedItem == IT_NULL) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_no_item_to_use");
-			return;
-		}
-		Item* it = &itemList[ent->client->pers.selectedItem];
-		if (!it->use) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
-			return;
+			globals.serverFlags |= SERVER_FLAG_SLOW_TIME;
+			cl->showInventory = true;
+			gi.WriteByte(svc_inventory);
+			for (int i = 0; i < IT_TOTAL; i++) {
+				gi.WriteShort(cl->pers.inventory[i]);
+			}
+			gi.unicast(ent, true);
 		}
 
-		ent->client->noWeaponChains = true;
-		it->use(ent, it);
-		ValidateSelectedItem(ent);
-	}
+		/*
+		=============
+		InvNext
+		=============
+		*/
+		void InvNext(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_ANY); }
+
+		/*
+		=============
+		InvNextP
+		=============
+		*/
+		void InvNextP(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_TIMED | IF_POWERUP | IF_SPHERE); }
+
+		/*
+		=============
+		InvNextW
+		=============
+		*/
+		void InvNextW(gentity_t* ent, const CommandArgs& args) { SelectNextItem(ent, IF_WEAPON); }
+
+		/*
+		=============
+		InvPrev
+		=============
+		*/
+		void InvPrev(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_ANY); }
+
+		/*
+		=============
+		InvPrevP
+		=============
+		*/
+		void InvPrevP(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_TIMED | IF_POWERUP | IF_SPHERE); }
+
+		/*
+		=============
+		InvPrevW
+		=============
+		*/
+		void InvPrevW(gentity_t* ent, const CommandArgs& args) { SelectPrevItem(ent, IF_WEAPON); }
+
+		/*
+		=============
+		InvUse
+		=============
+		*/
+		void InvUse(gentity_t* ent, const CommandArgs& args) {
+			if (deathmatch->integer && ent->client->menu.current) {
+				ActivateSelectedMenuItem(ent);
+				return;
+			}
+			if (level.intermission.time || !ClientIsPlaying(ent->client) || ent->health <= 0) return;
+
+			ValidateSelectedItem(ent);
+			if (ent->client->pers.selectedItem == IT_NULL) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_no_item_to_use");
+				return;
+			}
+			Item* it = &itemList[ent->client->pers.selectedItem];
+			if (!it->use) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
+				return;
+			}
+
+			ent->client->noWeaponChains = true;
+			it->use(ent, it);
+			ValidateSelectedItem(ent);
+		}
+
+	} // namespace inventory
 
 	void KillBeep(gentity_t* ent, const CommandArgs& args) {
 		int num = 0;
@@ -811,8 +686,8 @@ namespace Commands {
 
 		gi.LocClient_Print(ent, PRINT_HIGH, "MyMap queued: {}.\n", display.c_str());
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} queued {} for MyMap.\n",
-			ent->client->sess.netName,
-			display.c_str());
+		ent->client->sess.netName,
+		display.c_str());
 	}
 
 	void MySkill(gentity_t* ent, const CommandArgs& args) {
@@ -825,31 +700,92 @@ namespace Commands {
 		gi.LocClient_Print(ent, PRINT_HIGH, "Your Skill Rating in {}: {} (server avg: {})\n", level.gametype_name.data(), ent->client->sess.skillRating, averageSkill);
 	}
 
-	void NotReady(gentity_t* ent, const CommandArgs& args) {
-		if (!ReadyConditions(ent, false)) return;
-		ClientSetReadyStatus(ent, false, false);
-	}
+	namespace readiness {
 
-	void PutAway(gentity_t* ent, const CommandArgs& args) {
-		ent->client->showScores = false;
-		ent->client->showHelp = false;
-		ent->client->showInventory = false;
-		globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
-		if (deathmatch->integer && (ent->client->menu.current || ent->client->menu.restoreStatusBar)) {
-			if (Vote_Menu_Active(ent)) return;
-			CloseActiveMenu(ent);
+		namespace {
+
+			inline worr::server::client::ClientSessionServiceImpl& SessionService() {
+				return worr::server::client::GetClientSessionService();
+			}
+
+			/*
+			=============
+			HandleReadyResult
+
+			Provides user feedback for ready-state changes routed through the
+			ClientSessionServiceImpl.
+			=============
+			*/
+			void HandleReadyResult(gentity_t* ent, worr::server::client::ReadyResult result, bool state, bool toggle) {
+				const char* readyState = state ? "ready" : "not ready";
+				switch (result) {
+					case worr::server::client::ReadyResult::Success:
+					return;
+					case worr::server::client::ReadyResult::AlreadySet:
+					gi.Client_Print(ent, PRINT_HIGH, "You are already %s.\n", readyState);
+					return;
+					case worr::server::client::ReadyResult::NoConditions:
+					gi.Client_Print(ent, PRINT_HIGH, toggle ? "You cannot toggle readiness right now.\n" : "You cannot change readiness right now.\n");
+					return;
+				}
+			}
 		}
-	}
 
-	void Ready(gentity_t* ent, const CommandArgs& args) {
-		if (!ReadyConditions(ent, false)) return;
-		ClientSetReadyStatus(ent, true, false);
-	}
+		/*
+		=============
+		NotReady
+		=============
+		*/
+		void NotReady(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			const auto result = SessionService().OnReadyToggled(ent, false, false);
+			HandleReadyResult(ent, result, false, false);
+		}
 
-	void ReadyUp(gentity_t* ent, const CommandArgs& args) {
-		if (!ReadyConditions(ent, false)) return;
-		ClientSetReadyStatus(ent, false, true);
-	}
+		/*
+		=============
+		Ready
+		=============
+		*/
+		void Ready(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			const auto result = SessionService().OnReadyToggled(ent, true, false);
+			HandleReadyResult(ent, result, true, false);
+		}
+
+		/*
+		=============
+		ReadyUp
+		=============
+		*/
+		void ReadyUp(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			const auto result = SessionService().OnReadyToggled(ent, false, true);
+			HandleReadyResult(ent, result, false, true);
+		}
+
+	} // namespace readiness
+
+	namespace inventory {
+
+		/*
+		=============
+		PutAway
+		=============
+		*/
+		void PutAway(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			ent->client->showScores = false;
+			ent->client->showHelp = false;
+			ent->client->showInventory = false;
+			globals.serverFlags &= ~SERVER_FLAG_SLOW_TIME;
+			if (deathmatch->integer && (ent->client->menu.current || ent->client->menu.restoreStatusBar)) {
+				if (Vote_Menu_Active(ent)) return;
+				CloseActiveMenu(ent);
+			}
+		}
+
+	} // namespace inventory
 
 	void Score(gentity_t* ent, const CommandArgs& args) {
 		if (level.intermission.time) return;
@@ -875,59 +811,70 @@ namespace Commands {
 		}
 	}
 
-	void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
-		if (!ent || !ent->client)
+	namespace inventory {
+
+		/*
+		=============
+		SetWeaponPref
+
+		Parses weapon preference tokens before persisting them via ClientConfigStore.
+		=============
+		*/
+		void SetWeaponPref(gentity_t* ent, const CommandArgs& args) {
+			if (!ent || !ent->client)
 			return;
 
-		auto* cl = ent->client;
-		std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
-		std::vector<Weapon> parsed;
-		parsed.reserve(static_cast<size_t>(std::max(args.count() - 1, 0)));
-		std::vector<std::string> invalidTokens;
-		bool capacityExceeded = false;
+			auto* cl = ent->client;
+			std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+			std::vector<Weapon> parsed;
+			parsed.reserve(static_cast<size_t>(std::max(args.count() - 1, 0)));
+			std::vector<std::string> invalidTokens;
+			bool capacityExceeded = false;
 
-		for (int i = 1; i < args.count(); ++i) {
-			std::string_view token = args.getString(i);
-			if (token.empty())
+			for (int i = 1; i < args.count(); ++i) {
+				std::string_view token = args.getString(i);
+				if (token.empty())
 				continue;
 
-			std::string normalized;
-			switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
-			case WeaponPrefAppendResult::Added:
-				break;
-			case WeaponPrefAppendResult::Duplicate:
-				break;
-			case WeaponPrefAppendResult::Invalid:
-				if (!normalized.empty())
+				std::string normalized;
+				switch (TryAppendWeaponPreference(token, parsed, seen, &normalized)) {
+					case WeaponPrefAppendResult::Added:
+					break;
+					case WeaponPrefAppendResult::Duplicate:
+					break;
+					case WeaponPrefAppendResult::Invalid:
+					if (!normalized.empty())
 					invalidTokens.emplace_back(std::move(normalized));
-				break;
-			case WeaponPrefAppendResult::CapacityExceeded:
-				capacityExceeded = true;
-				break;
+					break;
+					case WeaponPrefAppendResult::CapacityExceeded:
+					capacityExceeded = true;
+					break;
+				}
 			}
-		}
 
-		cl->sess.weaponPrefs.swap(parsed);
-		Client_RebuildWeaponPreferenceOrder(*cl);
-		ClientConfig_SaveWeaponPreferences(cl);
+			cl->sess.weaponPrefs.swap(parsed);
+			Client_RebuildWeaponPreferenceOrder(*cl);
+			GetClientConfigStore().SaveWeaponPreferences(cl);
 
-		if (!invalidTokens.empty()) {
-			std::ostringstream joined;
-			for (size_t i = 0; i < invalidTokens.size(); ++i) {
-				if (i)
+			if (!invalidTokens.empty()) {
+				std::ostringstream joined;
+				for (size_t i = 0; i < invalidTokens.size(); ++i) {
+					if (i)
 					joined << ", ";
-				joined << invalidTokens[i];
+					joined << invalidTokens[i];
+				}
+				gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation(s): {}\n", joined.str().c_str());
 			}
-			gi.LocClient_Print(ent, PRINT_HIGH, "Unknown weapon abbreviation(s): {}\n", joined.str().c_str());
-		}
 
-		if (capacityExceeded) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "Only the first {} unique weapon preferences were kept.\n",
+			if (capacityExceeded) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "Only the first {} unique weapon preferences were kept.\n",
 				static_cast<int>(WeaponPreferenceCapacity));
+			}
+
+			gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
 		}
 
-		gi.Client_Print(ent, PRINT_HIGH, "Weapon preferences updated.\n");
-	}
+	} // namespace inventory
 
 	void Stats(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::Has(GameFlags::CTF)) {
@@ -1006,44 +953,53 @@ namespace Commands {
 		Weapon_Grapple_DoReset(ent->client);
 	}
 
-	void Use(gentity_t* ent, const CommandArgs& args) {
-		std::string itemQuery = args.joinFrom(1);
-		std::string_view itemName = args.getString(1);
-		if (itemQuery.empty()) {
-			PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
-			return;
+	namespace inventory {
+
+		/*
+		=============
+		Use
+
+		Activates an inventory item, supporting holdable shortcuts and ensuring the
+		client state remains consistent.
+		=============
+		*/
+		void Use(gentity_t* ent, const CommandArgs& args) {
+			std::string itemQuery = args.joinFrom(1);
+			std::string_view itemName = args.getString(1);
+			if (itemQuery.empty()) {
+				PrintUsage(ent, args, "<item_name>", "", "Uses an item from your inventory.");
+				return;
+			}
+
+			Item* it = nullptr;
+			if (itemName == "holdable") {
+				if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
+				else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
+			}
+			else {
+				it = FindItem(itemQuery.c_str());
+			}
+
+			if (!it) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemQuery.c_str());
+				return;
+			}
+			if (!it->use) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
+				return;
+			}
+			if (!ent->client->pers.inventory[it->id]) {
+				gi.LocClient_Print(ent, PRINT_HIGH, "$g_out_of_item", it->pickupName);
+				return;
+			}
+
+			ent->client->noWeaponChains = (args.getString(0) != "use");
+
+			it->use(ent, it);
+			ValidateSelectedItem(ent);
 		}
 
-		Item* it = nullptr;
-		if (itemName == "holdable") {
-			// Logic to find the current holdable item
-			if (ent->client->pers.inventory[IT_TELEPORTER]) it = GetItemByIndex(IT_TELEPORTER);
-			else if (ent->client->pers.inventory[IT_ADRENALINE]) it = GetItemByIndex(IT_ADRENALINE);
-			// ... and so on for other holdables
-		}
-		else {
-			it = FindItem(itemQuery.c_str());
-		}
-
-		if (!it) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_unknown_item_name", itemQuery.c_str());
-			return;
-		}
-		if (!it->use) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_item_not_usable");
-			return;
-		}
-		if (!ent->client->pers.inventory[it->id]) {
-			gi.LocClient_Print(ent, PRINT_HIGH, "$g_out_of_item", it->pickupName);
-			return;
-		}
-
-		// Special handling for use_only variants if needed
-		ent->client->noWeaponChains = (args.getString(0) != "use");
-
-		it->use(ent, it);
-		ValidateSelectedItem(ent);
-	}
+	} // namespace inventory
 
 	void Wave(gentity_t* ent, const CommandArgs& args) {
 		if (ent->deadFlag || ent->moveType == MoveType::NoClip) return;
@@ -1053,7 +1009,7 @@ namespace Commands {
 		const bool doAnimate = ent->client->anim.priority <= ANIM_WAVE && !(ent->client->ps.pmove.pmFlags & PMF_DUCKED);
 
 		if (doAnimate)
-			ent->client->anim.priority = ANIM_WAVE;
+		ent->client->anim.priority = ANIM_WAVE;
 
 		const char* otherNotifyMsg = nullptr;
 		const char* otherNotifyNoneMsg = nullptr;
@@ -1067,7 +1023,7 @@ namespace Commands {
 
 		for (auto player : active_players()) {
 			if (player == ent)
-				continue;
+			continue;
 
 			Vector3 cdir = player->s.origin - start;
 			float dist = cdir.normalize();
@@ -1075,9 +1031,9 @@ namespace Commands {
 			float dot = ent->client->vForward.dot(cdir);
 
 			if (dot < 0.97f)
-				continue;
+			continue;
 			else if (dist < bestDist)
-				continue;
+			continue;
 
 			bestDist = dist;
 			aimingAt = player;
@@ -1091,13 +1047,13 @@ namespace Commands {
 			pointTrace = gi.traceLine(start, start + (ent->client->vForward * 2048.0f), ent, static_cast<contents_t>(MASK_SHOT & ~CONTENTS_WINDOW));
 
 			if (pointTrace.fraction != 1.0f)
-				tracedEnt = pointTrace.ent;
+			tracedEnt = pointTrace.ent;
 
 			if (tracedEnt && tracedEnt->item) {
 				const Item* candidate = tracedEnt->item;
 
 				if (candidate && ((candidate->flags & IF_WEAPON) || candidate->highValue != HighValueItems::None))
-					pointingItem = candidate;
+				pointingItem = candidate;
 			}
 		}
 
@@ -1107,11 +1063,11 @@ namespace Commands {
 			pointingItemName = pointingItem->pickupName;
 
 			if ((!pointingItemName || !pointingItemName[0]) && pointingItem->pickupNameDefinitive)
-				pointingItemName = pointingItem->pickupNameDefinitive;
+			pointingItemName = pointingItem->pickupNameDefinitive;
 		}
 
 		switch (gesture) {
-		case GESTURE_FLIP_OFF:
+			case GESTURE_FLIP_OFF:
 			otherNotifyMsg = "$g_flipoff_other";
 			otherNotifyNoneMsg = "$g_flipoff_none";
 			if (doAnimate) {
@@ -1119,7 +1075,7 @@ namespace Commands {
 				ent->client->anim.end = FRAME_flip12;
 			}
 			break;
-		case GESTURE_SALUTE:
+			case GESTURE_SALUTE:
 			otherNotifyMsg = "$g_salute_other";
 			otherNotifyNoneMsg = "$g_salute_none";
 			if (doAnimate) {
@@ -1127,7 +1083,7 @@ namespace Commands {
 				ent->client->anim.end = FRAME_salute11;
 			}
 			break;
-		case GESTURE_TAUNT:
+			case GESTURE_TAUNT:
 			otherNotifyMsg = "$g_taunt_other";
 			otherNotifyNoneMsg = "$g_taunt_none";
 			if (doAnimate) {
@@ -1135,7 +1091,7 @@ namespace Commands {
 				ent->client->anim.end = FRAME_taunt17;
 			}
 			break;
-		case GESTURE_WAVE:
+			case GESTURE_WAVE:
 			otherNotifyMsg = "$g_wave_other";
 			otherNotifyNoneMsg = "$g_wave_none";
 			if (doAnimate) {
@@ -1143,8 +1099,8 @@ namespace Commands {
 				ent->client->anim.end = FRAME_wave11;
 			}
 			break;
-		case GESTURE_POINT:
-		default:
+			case GESTURE_POINT:
+			default:
 			otherNotifyMsg = "$g_point_other";
 			otherNotifyNoneMsg = "$g_point_none";
 			if (doAnimate) {
@@ -1159,9 +1115,9 @@ namespace Commands {
 		if (gesture == GESTURE_POINT) {
 			for (auto player : active_players()) {
 				if (player == ent)
-					continue;
+				continue;
 				else if (!OnSameTeam(ent, player))
-					continue;
+				continue;
 
 				hasTarget = true;
 				break;
@@ -1171,13 +1127,13 @@ namespace Commands {
 		const char* pointTargetName = nullptr;
 
 		if (aimingAt)
-			pointTargetName = aimingAt->client->sess.netName;
+		pointTargetName = aimingAt->client->sess.netName;
 		else if (pointingItemName)
-			pointTargetName = pointingItemName;
+		pointTargetName = pointingItemName;
 
 		if (gesture == GESTURE_POINT && hasTarget) {
 			if (CheckFlood(ent))
-				return;
+			return;
 
 			const char* pingNotifyMsg = pointTargetName ? "$g_point_other" : "$g_point_other_ping";
 
@@ -1186,7 +1142,7 @@ namespace Commands {
 			if (pointTrace.fraction != 1.0f) {
 				for (auto player : active_players()) {
 					if (player != ent && !OnSameTeam(ent, player))
-						continue;
+					continue;
 
 					gi.WriteByte(svc_poi);
 					gi.WriteShort(POI_PING + (ent->s.number - 1));
@@ -1199,127 +1155,160 @@ namespace Commands {
 
 					gi.localSound(player, CHAN_AUTO, gi.soundIndex("misc/help_marker.wav"), 1.0f, ATTN_NONE, 0.0f, key);
 					if (pointTargetName)
-						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
+					gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName, pointTargetName);
 					else
-						gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
+					gi.LocClient_Print(player, PRINT_TTS, pingNotifyMsg, ent->client->sess.netName);
 				}
 			}
 		}
 		else {
 			if (CheckFlood(ent))
-				return;
+			return;
 
 			gentity_t* targ = nullptr;
 			while ((targ = FindRadius(targ, ent->s.origin, 1024.0f)) != nullptr) {
 				if (ent == targ)
-					continue;
+				continue;
 				if (!targ->client)
-					continue;
+				continue;
 				if (!gi.inPVS(ent->s.origin, targ->s.origin, false))
-					continue;
+				continue;
 
 				if (pointTargetName && otherNotifyMsg)
-					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+				gi.LocClient_Print(targ, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 				else if (otherNotifyNoneMsg)
-					gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+				gi.LocClient_Print(targ, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 			}
 
 			if (pointTargetName && otherNotifyMsg)
-				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
+			gi.LocClient_Print(ent, PRINT_TTS, otherNotifyMsg, ent->client->sess.netName, pointTargetName);
 			else if (otherNotifyNoneMsg)
-				gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
+			gi.LocClient_Print(ent, PRINT_TTS, otherNotifyNoneMsg, ent->client->sess.netName);
 		}
 
 		ent->client->anim.time = 0_ms;
 	}
 
-	void WeapLast(gentity_t* ent, const CommandArgs& args) {
-		gclient_t* cl = ent->client;
-		if (!cl->pers.weapon || !cl->pers.lastWeapon) return;
+	namespace inventory {
 
-		cl->noWeaponChains = true;
-		Item* it = cl->pers.lastWeapon;
-		if (!cl->pers.inventory[it->id]) return;
+		/*
+		=============
+		WeapLast
+		=============
+		*/
+		void WeapLast(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			gclient_t* cl = ent->client;
+			if (!cl->pers.weapon || !cl->pers.lastWeapon) return;
 
-		it->use(ent, it);
-	}
+			cl->noWeaponChains = true;
+			Item* it = cl->pers.lastWeapon;
+			if (!cl->pers.inventory[it->id]) return;
 
-	void WeapNext(gentity_t* ent, const CommandArgs& args) {
-		gclient_t* cl = ent->client;
-		if (!cl->pers.weapon) return;
+			it->use(ent, it);
+		}
 
-		cl->noWeaponChains = true;
-		item_id_t selected_weapon = cl->pers.weapon->id;
+		/*
+		=============
+		WeapNext
+		=============
+		*/
+		void WeapNext(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			gclient_t* cl = ent->client;
+			if (!cl->pers.weapon) return;
 
-		for (int i = 1; i <= IT_TOTAL; i++) {
-			item_id_t index = static_cast<item_id_t>((static_cast<int>(selected_weapon) + i) % IT_TOTAL);
-			if (index > IT_NULL && cl->pers.inventory[index]) {
-				Item* it = &itemList[index];
-				if (it->use && (it->flags & IF_WEAPON)) {
-					it->use(ent, it);
-					return;
+			cl->noWeaponChains = true;
+			item_id_t selected_weapon = cl->pers.weapon->id;
+
+			for (int i = 1; i <= IT_TOTAL; i++) {
+				item_id_t index = static_cast<item_id_t>((static_cast<int>(selected_weapon) + i) % IT_TOTAL);
+				if (index > IT_NULL && cl->pers.inventory[index]) {
+					Item* it = &itemList[index];
+					if (it->use && (it->flags & IF_WEAPON)) {
+						it->use(ent, it);
+						return;
+					}
 				}
 			}
 		}
-	}
 
-	void WeapPrev(gentity_t* ent, const CommandArgs& args) {
-		gclient_t* cl = ent->client;
-		if (!cl->pers.weapon) return;
+		/*
+		=============
+		WeapPrev
+		=============
+		*/
+		void WeapPrev(gentity_t* ent, const CommandArgs& args) {
+			(void)args;
+			gclient_t* cl = ent->client;
+			if (!cl->pers.weapon) return;
 
-		cl->noWeaponChains = true;
-		item_id_t selected_weapon = cl->pers.weapon->id;
+			cl->noWeaponChains = true;
+			item_id_t selected_weapon = cl->pers.weapon->id;
 
-		for (int i = 1; i <= IT_TOTAL; i++) {
-			item_id_t index = static_cast<item_id_t>((static_cast<int>(selected_weapon) + IT_TOTAL - i) % IT_TOTAL);
-			if (index > IT_NULL && cl->pers.inventory[index]) {
-				Item* it = &itemList[index];
-				if (it->use && (it->flags & IF_WEAPON)) {
-					it->use(ent, it);
-					return;
+			for (int i = 1; i <= IT_TOTAL; i++) {
+				item_id_t index = static_cast<item_id_t>((static_cast<int>(selected_weapon) + IT_TOTAL - i) % IT_TOTAL);
+				if (index > IT_NULL && cl->pers.inventory[index]) {
+					Item* it = &itemList[index];
+					if (it->use && (it->flags & IF_WEAPON)) {
+						it->use(ent, it);
+						return;
+					}
 				}
 			}
 		}
-	}
+
+	} // namespace inventory
 
 	void Where(gentity_t* ent, const CommandArgs& args) {
 		if (!ent || !ent->client) return;
 		const Vector3& origin = ent->s.origin;
 		const auto& angles = ent->client->ps.viewAngles;
 		std::string location = std::format("{:.1f} {:.1f} {:.1f} {:.1f} {:.1f} {:.1f}",
-			origin[_X], origin[_Y], origin[_Z], angles[PITCH], angles[YAW], angles[ROLL]);
+		origin[_X], origin[_Y], origin[_Z], angles[PITCH], angles[YAW], angles[ROLL]);
 		gi.LocClient_Print(ent, PRINT_HIGH, "Location: {}\n", location.c_str());
 		gi.SendToClipBoard(location.c_str());
+}
+
+	class ClientCommandController {
+		public:
+		static void RegisterAll();
+
+		private:
+		static void RegisterCoreCommands();
+		static void RegisterFollowCommands();
+		static void RegisterInventoryCommands();
+		static void RegisterReadinessCommands();
+	};
+
+	/*
+	=============
+	ClientCommandController::RegisterAll
+	=============
+	*/
+	void ClientCommandController::RegisterAll() {
+		RegisterCoreCommands();
+		RegisterFollowCommands();
+		RegisterInventoryCommands();
+		RegisterReadinessCommands();
 	}
 
-	// --- Registration Function ---
-	void RegisterClientCommands() {
+	/*
+	=============
+	ClientCommandController::RegisterCoreCommands
+	=============
+	*/
+	void ClientCommandController::RegisterCoreCommands() {
 		using enum CommandFlag;
-
 		RegisterCommand("admin", &Admin, AllowIntermission | AllowSpectator);
 		RegisterCommand("clientlist", &ClientList, AllowDead | AllowIntermission | AllowSpectator);
-		RegisterCommand("drop", &Drop);
-		RegisterCommand("dropindex", &Drop);
 		RegisterCommand("eyecam", &EyeCam, AllowSpectator);
 		RegisterCommand("fm", &FragMessages, AllowSpectator | AllowDead);
-		RegisterCommand("follow", &Follow, AllowSpectator | AllowDead, true);
-		RegisterCommand("followkiller", &FollowKiller, AllowSpectator | AllowDead, true);
-		RegisterCommand("followleader", &FollowLeader, AllowSpectator | AllowDead, true);
-		RegisterCommand("followpowerup", &FollowPowerup, AllowSpectator | AllowDead, true);
 		RegisterCommand("forfeit", &Forfeit, AllowDead, true);
 		RegisterCommand("help", &Help, AllowDead | AllowSpectator, true);
 		RegisterCommand("hook", &Hook, {}, true);
 		RegisterCommand("id", &CrosshairID, AllowSpectator | AllowDead);
 		RegisterCommand("impulse", &Impulse);
-		RegisterCommand("invdrop", &InvDrop);
-		RegisterCommand("inven", &Inven, AllowDead | AllowSpectator, true);
-		RegisterCommand("invnext", &InvNext, AllowSpectator | AllowIntermission, true);
-		RegisterCommand("invnextp", &InvNextP, {}, true);
-		RegisterCommand("invnextw", &InvNextW, {}, true);
-		RegisterCommand("invprev", &InvPrev, AllowSpectator | AllowIntermission, true);
-		RegisterCommand("invprevp", &InvPrevP, {}, true);
-		RegisterCommand("invprevw", &InvPrevW, {}, true);
-		RegisterCommand("invuse", &InvUse, AllowSpectator | AllowIntermission, true);
 		RegisterCommand("kb", &KillBeep, AllowSpectator | AllowDead);
 		RegisterCommand("kill", &Kill);
 		RegisterCommand("mapcycle", &MapCycle, AllowDead | AllowSpectator);
@@ -1327,13 +1316,7 @@ namespace Commands {
 		RegisterCommand("mappool", &MapPool, AllowDead | AllowSpectator);
 		RegisterCommand("motd", &Motd, AllowSpectator | AllowIntermission);
 		RegisterCommand("mymap", &MyMap, AllowDead | AllowSpectator);
-		RegisterCommand("notready", &NotReady, AllowDead);
-		RegisterCommand("putaway", &PutAway, AllowSpectator);
-		RegisterCommand("ready", &Ready, AllowDead);
-		RegisterCommand("ready_up", &ReadyUp, AllowDead);
-		RegisterCommand("readyup", &ReadyUp, AllowDead);
 		RegisterCommand("score", &Score, AllowDead | AllowIntermission | AllowSpectator, true);
-		RegisterCommand("setweaponpref", &SetWeaponPref, AllowDead | AllowIntermission | AllowSpectator);
 		RegisterCommand("sr", &MySkill, AllowDead | AllowSpectator);
 		RegisterCommand("stats", &Stats, AllowIntermission | AllowSpectator);
 		RegisterCommand("team", &JoinTeam, AllowDead | AllowSpectator);
@@ -1341,15 +1324,72 @@ namespace Commands {
 		RegisterCommand("timeout", &TimeOut, AllowDead | AllowSpectator);
 		RegisterCommand("timer", &Timer, AllowSpectator | AllowDead);
 		RegisterCommand("unhook", &UnHook, {}, true);
-		RegisterCommand("use", &Use, {}, true);
-		RegisterCommand("use_index", &Use, {}, true);
-		RegisterCommand("use_index_only", &Use, {}, true);
-		RegisterCommand("use_only", &Use, {}, true);
 		RegisterCommand("wave", &Wave);
-		RegisterCommand("weaplast", &WeapLast, {}, true);
-		RegisterCommand("weapnext", &WeapNext, {}, true);
-		RegisterCommand("weapprev", &WeapPrev, {}, true);
 		RegisterCommand("where", &Where, AllowSpectator);
+	}
+
+	/*
+	=============
+	ClientCommandController::RegisterFollowCommands
+	=============
+	*/
+	void ClientCommandController::RegisterFollowCommands() {
+		using enum CommandFlag;
+		RegisterCommand("follow", &follow::Follow, AllowSpectator | AllowDead, true);
+		RegisterCommand("followkiller", &follow::FollowKiller, AllowSpectator | AllowDead, true);
+		RegisterCommand("followleader", &follow::FollowLeader, AllowSpectator | AllowDead, true);
+		RegisterCommand("followpowerup", &follow::FollowPowerup, AllowSpectator | AllowDead, true);
+	}
+
+	/*
+	=============
+	ClientCommandController::RegisterInventoryCommands
+	=============
+	*/
+	void ClientCommandController::RegisterInventoryCommands() {
+		using enum CommandFlag;
+		RegisterCommand("drop", &inventory::Drop);
+		RegisterCommand("dropindex", &inventory::Drop);
+		RegisterCommand("invdrop", &inventory::InvDrop);
+		RegisterCommand("inven", &inventory::Inven, AllowDead | AllowSpectator, true);
+		RegisterCommand("invnext", &inventory::InvNext, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("invnextp", &inventory::InvNextP, {}, true);
+		RegisterCommand("invnextw", &inventory::InvNextW, {}, true);
+		RegisterCommand("invprev", &inventory::InvPrev, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("invprevp", &inventory::InvPrevP, {}, true);
+		RegisterCommand("invprevw", &inventory::InvPrevW, {}, true);
+		RegisterCommand("invuse", &inventory::InvUse, AllowSpectator | AllowIntermission, true);
+		RegisterCommand("putaway", &inventory::PutAway, AllowSpectator);
+		RegisterCommand("setweaponpref", &inventory::SetWeaponPref, AllowDead | AllowIntermission | AllowSpectator);
+		RegisterCommand("use", &inventory::Use, {}, true);
+		RegisterCommand("use_index", &inventory::Use, {}, true);
+		RegisterCommand("use_index_only", &inventory::Use, {}, true);
+		RegisterCommand("use_only", &inventory::Use, {}, true);
+		RegisterCommand("weaplast", &inventory::WeapLast, {}, true);
+		RegisterCommand("weapnext", &inventory::WeapNext, {}, true);
+		RegisterCommand("weapprev", &inventory::WeapPrev, {}, true);
+	}
+
+	/*
+	=============
+	ClientCommandController::RegisterReadinessCommands
+	=============
+	*/
+	void ClientCommandController::RegisterReadinessCommands() {
+		using enum CommandFlag;
+		RegisterCommand("notready", &readiness::NotReady, AllowDead);
+		RegisterCommand("ready", &readiness::Ready, AllowDead);
+		RegisterCommand("ready_up", &readiness::ReadyUp, AllowDead);
+		RegisterCommand("readyup", &readiness::ReadyUp, AllowDead);
+	}
+
+	/*
+	=============
+	RegisterClientCommands
+	=============
+	*/
+	void RegisterClientCommands() {
+		ClientCommandController::RegisterAll();
 	}
 
 } // namespace Commands

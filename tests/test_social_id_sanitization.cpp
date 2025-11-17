@@ -60,9 +60,9 @@ int main()
 	std::strncpy(client.sess.socialID, invalidID.c_str(), sizeof(client.sess.socialID));
 	client.sess.socialID[sizeof(client.sess.socialID) - 1] = '\0';
 
-	ClientConfig_Init(&client, invalidID, "SanitizedPlayer", "FFA");
+	GetClientConfigStore().LoadProfile(&client, invalidID, "SanitizedPlayer", "FFA");
 	assert(std::filesystem::exists(sanitizedPath));
-	assert(client.sess.skillRating == ClientConfig_DefaultSkillRating());
+	assert(client.sess.skillRating == GetClientConfigStore().DefaultSkillRating());
 
 	for (char ch : sanitized) {
 		const bool allowed = (ch >= '0' && ch <= '9') || (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z') || ch == '-' || ch == '_';

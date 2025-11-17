@@ -17,6 +17,7 @@
 //   gametypes (`ChangeGametype`) by reloading the map and resetting state.
 
 #include "../g_local.hpp"
+#include "../client/client_stats_service.hpp"
 #include "../gameplay/g_proball.hpp"
 #include "../gameplay/g_headhunters.hpp"
 #include "../gameplay/client_config.hpp"
@@ -27,7 +28,9 @@
 #include "match_state_helper.hpp"
 
 #include <array>
+#include <memory>
 #include <string>
+#include <vector>
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 
@@ -1056,257 +1059,6 @@ static void SetMapLastPlayedTime(const char* mapname) {
 
 // =============================================================
 
-#include <cmath>
-#include <vector>
-#include <algorithm>
-
-constexpr float SKILL_K = 32.0f;
-
-// helper to get all playing clients
-static std::vector<gentity_t*> GetPlayers() {
-	std::vector<gentity_t*> out;
-	for (auto ent : active_clients()) {
-		if (ClientIsPlaying(ent->client))
-			out.push_back(ent);
-	}
-	return out;
-}
-
-// calculate Elo expectation
-static float EloExpected(float ra, float rb) {
-	return 1.0f / (1.0f + std::pow(10.0f, (rb - ra) / 400.0f));
-}
-
-/*
-===============
-DidPlayerWin
-===============
-*/
-static bool DidPlayerWin(gentity_t* ent) {
-	if (Game::Is(GameType::Duel)) {
-		auto players = GetPlayers();
-		if (players.size() == 2)
-			return (ent->client->resp.score > players[0]->client->resp.score || ent == players[0]);
-	}
-
-	if (Teams() && Game::IsNot(GameType::RedRover)) {
-		const int redScore = level.teamScores[static_cast<int>(Team::Red)];
-		const int blueScore = level.teamScores[static_cast<int>(Team::Blue)];
-
-		if (ent->client->sess.team == Team::Red)
-			return redScore > blueScore;
-		else if (ent->client->sess.team == Team::Blue)
-			return blueScore > redScore;
-	}
-
-	// FFA
-	auto players = GetPlayers();
-	if (!players.empty())
-		std::sort(players.begin(), players.end(),
-			[](gentity_t* a, gentity_t* b) {
-				return a->client->resp.score > b->client->resp.score;
-			});
-	return (ent == players.front());
-}
-
-/*
-===============
-AdjustSkillRatings
-===============
-*/
-static void AdjustSkillRatings() {
-	if (level.pop.num_playing_clients != level.pop.num_playing_human_clients) {
-		// Not all players are human, so we can't adjust skill ratings
-		if (g_verbose->integer)
-			gi.Com_Print("AdjustSkillRatings: Not all players are human, skipping skill rating adjustment.\n");
-
-		// Update all player config files regardless
-		for (auto ec : active_players()) {
-			// Save stats for all players
-			ClientConfig_SaveStats(ec->client, false);
-		}
-		return;
-	}
-
-	// Sync sess.skillRating with config.skillRating
-	for (int i = 0; i < MAX_CLIENTS; ++i) {
-		gentity_t* ent = &g_entities[i];
-		if (!ent->inUse || !ent->client)
-			continue;
-
-		gclient_t* cl = ent->client;
-		if (cl->sess.skillRating != cl->sess.skillRating)
-			cl->sess.skillRating = cl->sess.skillRating;
-	}
-
-	auto players = GetPlayers();
-	if (players.empty())
-		return;
-
-	const bool isTeamMatch = Teams() && Game::IsNot(GameType::RedRover);
-
-	// === DUEL MODE ===
-	if (Game::Is(GameType::Duel) && players.size() == 2) {
-		auto* a = players[0], * b = players[1];
-		float Ra = a->client->sess.skillRating;
-		float Rb = b->client->sess.skillRating;
-		bool aWon = a->client->resp.score > b->client->resp.score;
-		float Ea = EloExpected(Ra, Rb);
-		float Eb = 1.0f - Ea;
-
-		float dA = SKILL_K * ((aWon ? 1.0f : 0.0f) - Ea);
-		float dB = SKILL_K * ((aWon ? 0.0f : 1.0f) - Eb);
-
-		a->client->sess.skillRating += dA;
-		b->client->sess.skillRating += dB;
-
-		a->client->sess.skillRatingChange = static_cast<int>(dA);
-		b->client->sess.skillRatingChange = static_cast<int>(dB);
-
-		ClientConfig_SaveStats(a->client, aWon);
-		ClientConfig_SaveStats(b->client, !aWon);
-
-		// Ghosts
-		for (auto& g : level.ghosts) {
-			if (!*g.socialID)
-				continue;
-			if (Q_strcasecmp(g.socialID, a->client->sess.socialID) == 0) {
-				g.skillRating += dA;
-				g.skillRatingChange = static_cast<int>(dA);
-				ClientConfig_SaveStatsForGhost(g, aWon);
-			}
-			else if (Q_strcasecmp(g.socialID, b->client->sess.socialID) == 0) {
-				g.skillRating += dB;
-				g.skillRatingChange = static_cast<int>(dB);
-				ClientConfig_SaveStatsForGhost(g, !aWon);
-			}
-		}
-		return;
-	}
-
-	// === TEAM MODE ===
-	if (isTeamMatch && players.size() >= 2) {
-		std::vector<gentity_t*> red, blue;
-		for (auto* ent : players) {
-			if (ent->client->sess.team == Team::Red)
-				red.push_back(ent);
-			else if (ent->client->sess.team == Team::Blue)
-				blue.push_back(ent);
-		}
-		if (red.empty() || blue.empty())
-			return;
-
-		auto avg = [](const std::vector<gentity_t*>& v) {
-			float sum = 0;
-			for (auto* e : v)
-				sum += e->client->sess.skillRating;
-			return sum / v.size();
-			};
-
-		float Rr = avg(red), Rb = avg(blue);
-		float Er = EloExpected(Rr, Rb), Eb = 1.0f - Er;
-
-		const int Sr = level.teamScores[static_cast<int>(Team::Red)];
-		const int Sb = level.teamScores[static_cast<int>(Team::Blue)];
-
-		bool redWin = Sr > Sb;
-
-		for (auto* e : red) {
-			float S = redWin ? 1.0f : 0.0f;
-			float d = SKILL_K * (S - Er);
-			e->client->sess.skillRating += d;
-			e->client->sess.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStats(e->client, redWin);
-		}
-		for (auto* e : blue) {
-			float S = redWin ? 0.0f : 1.0f;
-			float d = SKILL_K * (S - Eb);
-			e->client->sess.skillRating += d;
-			e->client->sess.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStats(e->client, !redWin);
-		}
-
-		// Ghosts
-		for (auto& g : level.ghosts) {
-			if (!*g.socialID)
-				continue;
-
-			float S = (g.team == Team::Red) ? (redWin ? 1.0f : 0.0f)
-				: (g.team == Team::Blue ? (redWin ? 0.0f : 1.0f) : 0.5f);
-			float E = (g.team == Team::Red) ? Er : (g.team == Team::Blue ? Eb : 0.5f);
-			float d = SKILL_K * (S - E);
-
-			g.skillRating += d;
-			g.skillRatingChange = static_cast<int>(d);
-			ClientConfig_SaveStatsForGhost(g, (g.team == Team::Red) ? redWin : (g.team == Team::Blue ? !redWin : false));
-		}
-		return;
-	}
-
-	// === FFA MODE ===
-	{
-		int n = players.size();
-
-		std::sort(players.begin(), players.end(),
-			[](gentity_t* a, gentity_t* b) {
-				return a->client->resp.score > b->client->resp.score;
-			});
-
-		std::vector<float> R(n), S(n), E(n, 0.0f);
-		for (int i = 0; i < n; i++) {
-			R[i] = players[i]->client->sess.skillRating;
-			S[i] = 1.0f - float(i) / float(n - 1);
-		}
-
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < n; j++) {
-				if (i == j) continue;
-				E[i] += EloExpected(R[i], R[j]);
-			}
-			E[i] /= float(n - 1);
-		}
-
-		for (int i = 0; i < n; i++) {
-			float delta = SKILL_K * (S[i] - E[i]);
-			auto* cl = players[i]->client;
-			cl->sess.skillRating += delta;
-			cl->sess.skillRatingChange = static_cast<int>(delta);
-			ClientConfig_SaveStats(cl, i == 0);
-		}
-
-		// Ghosts
-		std::vector<Ghosts*> sortedGhosts;
-		for (auto& g : level.ghosts) {
-			if (*g.socialID)
-				sortedGhosts.push_back(&g);
-		}
-
-		std::sort(sortedGhosts.begin(), sortedGhosts.end(), [](Ghosts* a, Ghosts* b) {
-			return a->score > b->score;
-			});
-
-		int gn = sortedGhosts.size();
-		if (gn > 0) {
-			for (int i = 0; i < gn; i++) {
-				float Ri = sortedGhosts[i]->skillRating;
-				float Si = 1.0f - float(i) / float(gn - 1);
-				float Ei = 0.0f;
-
-				for (int j = 0; j < gn; j++) {
-					if (i == j) continue;
-					Ei += EloExpected(Ri, sortedGhosts[j]->skillRating);
-				}
-				Ei /= float(gn - 1);
-
-				float delta = SKILL_K * (Si - Ei);
-				sortedGhosts[i]->skillRating += delta;
-				sortedGhosts[i]->skillRatingChange = static_cast<int>(delta);
-				ClientConfig_SaveStatsForGhost(*sortedGhosts[i], i == 0);
-			}
-		}
-	}
-}
-
 /*
 =================
 Match_End
@@ -1332,7 +1084,8 @@ void Match_End() {
 	level.matchState = MatchState::Ended;
 	level.matchStateTimer = 0_sec;
 
-	AdjustSkillRatings();
+	const auto statsContext = worr::server::client::BuildMatchStatsContext(level);
+	worr::server::client::GetClientStatsService().PersistMatchResults(statsContext);
 
 	// stay on same level flag
 	if (match_map_sameLevel->integer) {
@@ -2513,8 +2266,8 @@ void GT_Init() {
 }
 
 void ChangeGametype(GameType gt) {
-	switch (gt) {
-	case GameType::CaptureTheFlag:
+switch (gt) {
+case GameType::CaptureTheFlag:
 		if (!ctf->integer)
 			gi.cvarForceSet("ctf", "1");
 		break;
@@ -2541,6 +2294,173 @@ void ChangeGametype(GameType gt) {
 		gi.cvarForceSet("deathmatch", "1");
 	}
 
-	if ((int)gt != g_gametype->integer)
-		gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
+if ((int)gt != g_gametype->integer)
+gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
 }
+
+namespace worr::server::client {
+
+	namespace {
+	struct ClientStatsServiceDependencies {
+	game_import_t* gi;
+	GameLocals* game;
+	LevelLocals* level;
+	};
+
+	ClientStatsServiceDependencies g_clientStatsServiceDependencies{ &gi, &game, &level };
+	std::unique_ptr<ClientStatsService> g_clientStatsServiceInstance;
+	}
+
+	class ClientStatsServiceImpl final : public ClientStatsService {
+	public:
+	ClientStatsServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level);
+
+	void MatchStart(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MatchReset(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MatchEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void RoundEnd(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void MarathonRegisterClientBaseline(game_import_t& gi, GameLocals& game,
+	LevelLocals& level, gclient_t* client) override;
+	void UpdateDuelRecords(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	void ChangeGametype(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	GameType gameType) override;
+	void CheckDMExitRules(game_import_t& gi, GameLocals& game, LevelLocals& level) override;
+	int ScoreLimit(game_import_t& gi, const GameLocals& game, const LevelLocals& level) const override;
+	std::string ScoreLimitString(game_import_t& gi, const GameLocals& game,
+	const LevelLocals& level) const override;
+
+	private:
+	[[maybe_unused]] game_import_t& gi_;
+	[[maybe_unused]] GameLocals& game_;
+	[[maybe_unused]] LevelLocals& level_;
+	};
+
+	/*
+	=============
+	ClientStatsServiceImpl::ClientStatsServiceImpl
+	=============
+	*/
+	ClientStatsServiceImpl::ClientStatsServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level)
+	: gi_(gi)
+	, game_(game)
+	, level_(level) {}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchStart
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchStart(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_Start();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchReset
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchReset(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_Reset();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MatchEnd
+	=============
+	*/
+	void ClientStatsServiceImpl::MatchEnd(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_End();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::RoundEnd
+	=============
+	*/
+	void ClientStatsServiceImpl::RoundEnd(game_import_t&, GameLocals&, LevelLocals&) {
+	Round_End();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::MarathonRegisterClientBaseline
+	=============
+	*/
+	void ClientStatsServiceImpl::MarathonRegisterClientBaseline(game_import_t&, GameLocals&,
+	LevelLocals&, gclient_t* client) {
+	Marathon_RegisterClientBaseline(client);
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::UpdateDuelRecords
+	=============
+	*/
+	void ClientStatsServiceImpl::UpdateDuelRecords(game_import_t&, GameLocals&, LevelLocals&) {
+	Match_UpdateDuelRecords();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ChangeGametype
+	=============
+	*/
+	void ClientStatsServiceImpl::ChangeGametype(game_import_t&, GameLocals&, LevelLocals&, GameType gameType) {
+	::ChangeGametype(gameType);
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::CheckDMExitRules
+	=============
+	*/
+	void ClientStatsServiceImpl::CheckDMExitRules(game_import_t&, GameLocals&, LevelLocals&) {
+	::CheckDMExitRules();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ScoreLimit
+	=============
+	*/
+	int ClientStatsServiceImpl::ScoreLimit(game_import_t&, const GameLocals&, const LevelLocals&) const {
+	return GT_ScoreLimit();
+	}
+
+	/*
+	=============
+	ClientStatsServiceImpl::ScoreLimitString
+	=============
+	*/
+	std::string ClientStatsServiceImpl::ScoreLimitString(game_import_t&, const GameLocals&, const LevelLocals&) const {
+	return GT_ScoreLimitString();
+	}
+
+	/*
+	=============
+	InitializeClientStatsService
+	=============
+	*/
+	void InitializeClientStatsService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+	g_clientStatsServiceDependencies.gi = &giRef;
+	g_clientStatsServiceDependencies.game = &gameRef;
+	g_clientStatsServiceDependencies.level = &levelRef;
+	g_clientStatsServiceInstance.reset();
+	}
+
+	/*
+	=============
+	GetClientStatsService
+	=============
+	*/
+	ClientStatsService& GetClientStatsService() {
+	if (!g_clientStatsServiceInstance) {
+	g_clientStatsServiceInstance = std::make_unique<ClientStatsServiceImpl>(
+	*g_clientStatsServiceDependencies.gi,
+	*g_clientStatsServiceDependencies.game,
+	*g_clientStatsServiceDependencies.level);
+	}
+	return *g_clientStatsServiceInstance;
+	}
+
+} // namespace worr::server::client

@@ -4127,8 +4127,6 @@ void G_PostRespawn(gentity_t* self);
 //
 // g_client_cfg.cpp
 //
-std::string GetPlayerNameForSocialID(const std::string& socialID);
-
 inline std::string SanitizeSocialID(std::string_view socialID)
 {
 	std::string sanitized;
@@ -4327,7 +4325,6 @@ void Match_UpdateDuelRecords();
 //
 // match_logging.cpp
 //
-//bool ClientConfig_BulkUpdate(const std::string &playerID, const std::initializer_list<std::pair<std::string, json>> &updates);
 
 //
 // g_chase.cpp

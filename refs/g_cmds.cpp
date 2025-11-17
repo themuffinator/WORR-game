@@ -2093,7 +2093,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 		// free any followers
 		FreeClientFollowers(ent);
 		if (ent->client->pers.spawned)
-			ClientConfig_SaveStats(ent->client, false);
+			GetClientConfigStore().SaveStats(ent->client, false);
 	}
 	ent->client->sess.initialised = true;
 	// if they are playing gauntlet, count as a loss
@@ -3022,7 +3022,7 @@ static void Cmd_AddAdmins_f(gentity_t* ent) {
 
 	if (AppendIDToFile("admin.txt", resolvedID)) {
 		LoadAdminList();
-		std::string playerName = GetPlayerNameForSocialID(resolvedID);
+		std::string playerName = GetClientConfigStore().PlayerNameForSocialID(resolvedID);
 		if (!playerName.empty()) {
 			gi.LocBroadcast_Print(PRINT_CHAT, "{} has been granted admin rights.\n", playerName.c_str());
 		}
@@ -3092,7 +3092,7 @@ static void Cmd_RemoveAdmins_f(gentity_t* ent) {
 	}
 	if (RemoveIDFromFile("admin.txt", resolvedID)) {
 		LoadAdminList();
-		std::string playerName = GetPlayerNameForSocialID(resolvedID);
+		std::string playerName = GetClientConfigStore().PlayerNameForSocialID(resolvedID);
 		if (!playerName.empty()) {
 			gi.LocBroadcast_Print(PRINT_CHAT, "{} has lost admin rights.\n", playerName.c_str());
 		}
@@ -3427,17 +3427,9 @@ static void Cmd_SetWeaponPref_f(gentity_t* ent) {
 			break;
 		}
 	}
-#if 0
-	// Save it to config
-	ClientConfig_BulkUpdate(cl->sess.socialID, {
-		{"config", {
-			{"weaponPrefs", cl->sess.weaponPrefs}
-		}}
-		});
-#endif
 	cl->sess.weaponPrefs.swap(parsed);
 	Client_RebuildWeaponPreferenceOrder(*cl);
-	ClientConfig_SaveWeaponPreferences(cl);
+	GetClientConfigStore().SaveWeaponPreferences(cl);
 
 	if (!invalidTokens.empty()) {
 		std::ostringstream joined;
