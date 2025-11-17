@@ -1,15 +1,10 @@
 #pragma once
 
 #include "client_config_store.hpp"
+#include "client_session_results.hpp"
 #include "client_session_service.hpp"
 
 namespace worr::server::client {
-
-enum class ReadyResult {
-	Success,
-	NoConditions,
-	AlreadySet,
-};
 
 class ClientSessionServiceImpl : public ClientSessionService {
 	public:
@@ -22,7 +17,7 @@ class ClientSessionServiceImpl : public ClientSessionService {
 		gentity_t* ent) override;
 	void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, const char* userInfo) override;
-	bool ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	DisconnectResult ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent) override;
 	void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, usercmd_t* cmd) override;
