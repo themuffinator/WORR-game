@@ -3,11 +3,16 @@
 #include "client_session_results.hpp"
 #include "client_session_service.hpp"
 
+class ClientConfigStore;
+
 namespace worr::server::client {
 
+class ClientStatsService;
+
 class ClientSessionServiceImpl : public ClientSessionService {
-public:
-ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level);
+	public:
+		ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level,
+		ClientConfigStore& configStore, ClientStatsService& statsService);
 
 	bool ClientConnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, char* userInfo, const char* socialID, bool isBot) override;
@@ -27,12 +32,16 @@ ClientSessionServiceImpl(game_import_t& gi, GameLocals& game, LevelLocals& level
 		void (*dropThink)(gentity_t*) = nullptr) const;
 
 	private:
-	game_import_t& gi_;
-	GameLocals& game_;
-	LevelLocals& level_;
-void OnDisconnect(gentity_t* ent);
+		game_import_t& gi_;
+		GameLocals& game_;
+		LevelLocals& level_;
+		ClientConfigStore& configStore_;
+		ClientStatsService& statsService_;
+		void OnDisconnect(gentity_t* ent);
 };
 
+void InitializeClientSessionService(game_import_t& gi, GameLocals& game, LevelLocals& level,
+		ClientConfigStore& configStore, ClientStatsService& statsService);
 void InitializeClientSessionService(game_import_t& gi, GameLocals& game, LevelLocals& level);
 ClientSessionServiceImpl& GetClientSessionService();
 

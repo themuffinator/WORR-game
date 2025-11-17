@@ -28,6 +28,7 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 #include "../client/client_session_service_impl.hpp"
+#include "../client/client_stats_service.hpp"
 
 #include <algorithm>
 #include <array>
@@ -51,12 +52,14 @@ service so legacy entry points can delegate to the shared implementation.
 */
 namespace {
 	struct ClientSessionServiceDependencies {
-	game_import_t* gi;
-	GameLocals* game;
-	LevelLocals* level;
+		game_import_t* gi;
+		GameLocals* game;
+		LevelLocals* level;
+		ClientConfigStore* configStore;
+		ClientStatsService* statsService;
 	};
 
-	ClientSessionServiceDependencies g_clientSessionServiceDependencies{ &gi, &game, &level };
+	ClientSessionServiceDependencies g_clientSessionServiceDependencies{ &gi, &game, &level, nullptr, nullptr };
 	std::unique_ptr<ClientSessionServiceImpl> g_clientSessionServiceInstance;
 }
 
@@ -69,11 +72,27 @@ service. Tests can replace the references prior to invoking any legacy entry
 points.
 =============
 */
-void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef,
+		ClientConfigStore& configStoreRef, ClientStatsService& statsServiceRef) {
 	g_clientSessionServiceDependencies.gi = &giRef;
 	g_clientSessionServiceDependencies.game = &gameRef;
 	g_clientSessionServiceDependencies.level = &levelRef;
+	g_clientSessionServiceDependencies.configStore = &configStoreRef;
+	g_clientSessionServiceDependencies.statsService = &statsServiceRef;
 	g_clientSessionServiceInstance.reset();
+}
+
+/*
+=============
+InitializeClientSessionService
+
+Convenience overload that wires the service up to the default client config and
+stats services when tests or bootstrapping code don't need to supply mocks.
+=============
+*/
+void InitializeClientSessionService(game_import_t& giRef, GameLocals& gameRef, LevelLocals& levelRef) {
+	InitializeClientSessionService(giRef, gameRef, levelRef,
+			GetClientConfigStore(), GetClientStatsService());
 }
 
 /*
@@ -86,30 +105,18 @@ service so legacy entry points can delegate to the shared implementation.
 */
 ClientSessionServiceImpl& GetClientSessionService() {
 	if (!g_clientSessionServiceInstance) {
-	g_clientSessionServiceInstance = std::make_unique<ClientSessionServiceImpl>(
-	*g_clientSessionServiceDependencies.gi,
-	*g_clientSessionServiceDependencies.game,
-	*g_clientSessionServiceDependencies.level);
-}
-	return *g_clientSessionServiceInstance;
-}
-
-} // namespace worr::server::client
-
-namespace {
-	uint64_t NextDuelQueueTicket() {
-		static uint64_t counter = 1;
-		return counter++;
+		if (!g_clientSessionServiceDependencies.configStore)
+			g_clientSessionServiceDependencies.configStore = &GetClientConfigStore();
+		if (!g_clientSessionServiceDependencies.statsService)
+			g_clientSessionServiceDependencies.statsService = &GetClientStatsService();
+		g_clientSessionServiceInstance = std::make_unique<ClientSessionServiceImpl>(
+				*g_clientSessionServiceDependencies.gi,
+				*g_clientSessionServiceDependencies.game,
+				*g_clientSessionServiceDependencies.level,
+				*g_clientSessionServiceDependencies.configStore,
+				*g_clientSessionServiceDependencies.statsService);
 	}
-}
-
-static THINK(info_player_start_drop) (gentity_t* self) -> void {
-	// allow them to drop
-	self->solid = SOLID_TRIGGER;
-	self->moveType = MoveType::Toss;
-	self->mins = PLAYER_MINS;
-	self->maxs = PLAYER_MAXS;
-	gi.linkEntity(self);
+	return *g_clientSessionServiceInstance;
 }
 
 /*
