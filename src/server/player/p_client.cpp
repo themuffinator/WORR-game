@@ -54,15 +54,6 @@ static THINK(info_player_start_drop) (gentity_t* self) -> void {
 	gi.linkEntity(self);
 }
 
-static inline void deathmatch_spawn_flags(gentity_t* self) {
-	if (st.noBots)
-		self->flags = FL_NO_BOTS;
-	if (st.noHumans)
-		self->flags = FL_NO_HUMANS;
-	if (st.arena)
-		self->arena = st.arena;
-}
-
 /*
 =============
 ClientSetReadyStatus
@@ -90,18 +81,9 @@ The normal starting point for a level.
 "noHumans" will prevent humans from using this spot.
 */
 void SP_info_player_start(gentity_t* self) {
-	// fix stuck spawn points
-	if (gi.trace(self->s.origin, PLAYER_MINS, PLAYER_MAXS, self->s.origin, self, MASK_SOLID).startSolid)
-		G_FixStuckObject(self, self->s.origin);
-
-	// [Paril-KEX] on n64, since these can spawn riding elevators,
-	// allow them to "ride" the elevators so respawning works
-	if (level.isN64) {
-		self->think = info_player_start_drop;
-		self->nextThink = level.time + FRAME_TIME_S;
-	}
-
-	deathmatch_spawn_flags(self);
+	auto& sessionService = worr::server::client::GetClientSessionService();
+	sessionService.PrepareSpawnPoint(self, true, info_player_start_drop);
+	sessionService.ApplySpawnFlags(self);
 }
 
 /*QUAKED info_player_deathmatch (1 0 1) (-16 -16 -24) (16 16 32) INITIAL x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -123,7 +105,7 @@ void SP_info_player_deathmatch(gentity_t* self) {
 
 	CreateSpawnPad(self);
 
-	deathmatch_spawn_flags(self);
+	worr::server::client::GetClientSessionService().ApplySpawnFlags(self);
 }
 
 /*QUAKED info_player_team_red (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
@@ -158,9 +140,7 @@ void SP_info_player_coop_lava(gentity_t* self) {
 		return;
 	}
 
-	// fix stuck spawn points
-	if (gi.trace(self->s.origin, PLAYER_MINS, PLAYER_MAXS, self->s.origin, self, MASK_SOLID).startSolid)
-		G_FixStuckObject(self, self->s.origin);
+	worr::server::client::GetClientSessionService().PrepareSpawnPoint(self);
 }
 
 /*QUAKED info_player_intermission (1 0 1) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
