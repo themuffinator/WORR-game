@@ -30,7 +30,7 @@ class ClientSessionService {
 		gentity_t* ent) = 0;
 	virtual void ClientUserinfoChanged(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, const char* userInfo) = 0;
-	virtual void ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
+	virtual bool ClientDisconnect(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent) = 0;
 	virtual void ClientThink(game_import_t& gi, GameLocals& game, LevelLocals& level,
 		gentity_t* ent, usercmd_t* cmd) = 0;

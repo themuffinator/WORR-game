@@ -3853,78 +3853,9 @@ Will not be called between levels.
 ============
 */
 void ClientDisconnect(gentity_t* ent) {
-	if (!ent->client)
+	auto& service = worr::server::client::GetClientSessionService();
+	if (!service.ClientDisconnect(gi, game, level, ent))
 		return;
-
-	gclient_t* cl = ent->client;
-	const int64_t now = GetCurrentRealTimeMillis();
-	cl->sess.playEndRealTime = now;
-	P_AccumulateMatchPlayTime(cl, now);
-
-	// make sure no trackers are still hurting us.
-	if (cl->trackerPainTime)
-		RemoveAttackingPainDaemons(ent);
-
-	if (cl->ownedSphere) {
-		if (cl->ownedSphere->inUse)
-			FreeEntity(cl->ownedSphere);
-		cl->ownedSphere = nullptr;
-	}
-
-	PlayerTrail_Destroy(ent);
-
-	ProBall::HandleCarrierDisconnect(ent);
-	Harvester_HandlePlayerDisconnect(ent);
-
-	HeadHunters::DropHeads(ent, nullptr);
-	HeadHunters::ResetPlayerState(cl);
-
-	if (!(ent->svFlags & SVF_NOCLIENT)) {
-		TossClientItems(ent);
-
-		// send effect
-		gi.WriteByte(svc_muzzleflash);
-		gi.WriteEntity(ent);
-		gi.WriteByte(MZ_LOGOUT);
-		gi.multicast(ent->s.origin, MULTICAST_PVS, false);
-	}
-
-	if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot)
-		if (cl->sess.netName[0])
-			gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
-
-	// free any followers
-	FreeClientFollowers(ent);
-
-	G_RevertVote(cl);
-
-	P_SaveGhostSlot(ent);
-
-	gi.unlinkEntity(ent);
-	ent->s.modelIndex = 0;
-	ent->solid = SOLID_NOT;
-	ent->inUse = false;
-	ent->sv.init = false;
-	ent->className = "disconnected";
-	cl->pers.connected = false;
-	cl->sess.matchWins = 0;
-	cl->sess.matchLosses = 0;
-	cl->pers.limitedLivesPersist = false;
-	cl->pers.limitedLivesStash = 0;
-	cl->pers.spawned = false;
-	ent->timeStamp = level.time + 1_sec;
-
-	if (cl->pers.spawned)
-		ClientConfig_SaveStats(cl, false);
-
-	// update active scoreboards
-	if (deathmatch->integer) {
-		CalculateRanks();
-
-		for (auto ec : active_clients())
-			if (ec->client->showScores)
-				ec->client->menu.updateTime = level.time;
-	}
 }
 
 //==============================================================
