@@ -3,6 +3,7 @@
 #include "../g_local.hpp"
 #include "../gameplay/g_proball.hpp"
 #include "../gameplay/client_config.hpp"
+#include "client_stats_service.hpp"
 #include "../commands/commands.hpp"
 #include "../gameplay/g_headhunters.hpp"
 #include "../monsters/m_player.hpp"
@@ -423,7 +424,8 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(game_import_t& gi, G
 		ent->timeStamp = level_.time + 1_sec;
 
 		if (wasSpawned) {
-			GetClientConfigStore().SaveStats(cl, false);
+			const auto statsContext = BuildMatchStatsContext(level_);
+			GetClientStatsService().SaveStatsForDisconnect(statsContext, ent);
 		}
 
 		if (deathmatch->integer) {
