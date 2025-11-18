@@ -425,7 +425,7 @@ local_game_import_t& gi = gi_;
 	ent->client = game.clients + (ent - g_entities - 1);
 
 	// set up userInfo early
-	ClientUserinfoChanged(ent, userInfo);
+ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
