@@ -6,7 +6,7 @@
 
 struct gentity_t;
 struct gclient_t;
-class LevelLocals;
+struct LevelLocals;
 struct Ghosts;
 
 enum class GameType : uint8_t;
