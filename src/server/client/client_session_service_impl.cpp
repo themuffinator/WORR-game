@@ -8,6 +8,7 @@
 #include "../gameplay/g_headhunters.hpp"
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
+#include "../player/p_client_shared.hpp"
 
 #include <algorithm>
 #include <array>
@@ -439,7 +440,7 @@ ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 			ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 			ent->client->sess.pc = {};
 
-			InitClientResp(ent->client);
+			worr::server::client::InitClientResp(ent->client);
 
 			ent->client->sess.playStartRealTime = GetCurrentRealTimeMillis();
 		}
@@ -566,7 +567,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	cl->pers.connected = true;
 
 	if (deathmatch->integer) {
-		ClientBeginDeathmatch(ent);
+		worr::server::client::ClientBeginDeathmatch(ent);
 
 		if (game.marathon.active && level.matchState >= MatchState::In_Progress)
 			Marathon_RegisterClientBaseline(ent->client);
@@ -596,9 +597,9 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 		// ClientConnect() time
 		InitGEntity(ent);
 		ent->className = "player";
-		InitClientResp(cl);
+		worr::server::client::InitClientResp(cl);
 		cl->coopRespawn.spawnBegin = true;
-		ClientCompleteSpawn(ent);
+		worr::server::client::ClientCompleteSpawn(ent);
 		cl->coopRespawn.spawnBegin = false;
 
 		if (!cl->sess.inGame)
@@ -629,7 +630,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	// [Paril-KEX] we're going to set this here just to be certain
 	// that the level entry timer only starts when a player is actually
 	// *in* the level
-	G_SetLevelEntry();
+	worr::server::client::G_SetLevelEntry();
 
 	cl->sess.inGame = true;}
 
@@ -744,7 +745,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 		gclient_t* cl = ent->client;
 		const int64_t now = GetCurrentRealTimeMillis();
 		cl->sess.playEndRealTime = now;
-		P_AccumulateMatchPlayTime(cl, now);
+		worr::server::client::P_AccumulateMatchPlayTime(cl, now);
 
 		OnDisconnect(ent);
 
@@ -934,11 +935,11 @@ gentity_t* ent, usercmd_t* ucmd) {
 	cl->cmd = *ucmd;
 
 	if ((cl->latchedButtons & BUTTON_USE) && FreezeTag_IsActive() && ClientIsPlaying(cl) && !cl->eliminated) {
-		if (gentity_t* target = FreezeTag_FindFrozenTarget(ent)) {
+		if (gentity_t* target = worr::server::client::FreezeTag_FindFrozenTarget(ent)) {
 			gclient_t* targetCl = target->client;
 
-			if (targetCl && !targetCl->resp.thawer && FreezeTag_IsValidThawHelper(ent, target)) {
-				FreezeTag_StartThawHold(ent, target);
+			if (targetCl && !targetCl->resp.thawer && worr::server::client::FreezeTag_IsValidThawHelper(ent, target)) {
+				worr::server::client::FreezeTag_StartThawHold(ent, target);
 			}
 		}
 
@@ -995,7 +996,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 		}
 		if (!cl->sess.showed_help && g_showhelp->integer) {
 			if (level.time >= cl->sess.teamJoinTime + delay) {
-				PrintModifierIntro(ent);
+				worr::server::client::PrintModifierIntro(ent);
 
 				cl->sess.showed_help = true;
 			}
@@ -1365,11 +1366,11 @@ gentity_t* ent) {
 
 	if (FreezeTag_IsActive() && client->eliminated) {
 		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
-			FreezeTag_ThawPlayer(nullptr, ent, false, true);
+			worr::server::client::FreezeTag_ThawPlayer(nullptr, ent, false, true);
 			return;
 		}
 
-		if (FreezeTag_UpdateThawHold(ent))
+		if (worr::server::client::FreezeTag_UpdateThawHold(ent))
 			return;
 	}
 

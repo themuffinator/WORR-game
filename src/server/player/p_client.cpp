@@ -29,6 +29,7 @@
 #include "../bots/bot_includes.hpp"
 #include "../client/client_session_service_impl.hpp"
 #include "../client/client_stats_service.hpp"
+#include "p_client_shared.hpp"
 
 #include <algorithm>
 #include <array>
@@ -297,7 +298,7 @@ P_AccumulateMatchPlayTime
 Accumulates the client's active match play segment into their persistent total.
 ===============
 */
-static void P_AccumulateMatchPlayTime(gclient_t* cl, int64_t now) {
+void worr::server::client::P_AccumulateMatchPlayTime(gclient_t* cl, int64_t now) {
 	if (!cl)
 		return;
 
@@ -1778,7 +1779,15 @@ static bool FreezeTag_CanThawTarget(gentity_t* thawer, gentity_t* frozen) {
 	return true;
 }
 
-static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
+/*
+=============
+FreezeTag_FindFrozenTarget
+
+Locates the best frozen teammate within range of the thawer, prioritizing
+line-of-sight and directional alignment.
+=============
+*/
+gentity_t* worr::server::client::FreezeTag_FindFrozenTarget(gentity_t* thawer) {
 	if (!FreezeTag_IsActive() || !thawer || !thawer->client)
 		return nullptr;
 
@@ -1826,7 +1835,15 @@ static gentity_t* FreezeTag_FindFrozenTarget(gentity_t* thawer) {
 static constexpr GameTime FREEZETAG_THAW_HOLD_DURATION = 3_sec;
 static constexpr float FREEZETAG_THAW_RANGE = MELEE_DISTANCE;
 
-static bool FreezeTag_IsValidThawHelper(gentity_t* thawer, gentity_t* frozen) {
+/*
+=============
+FreezeTag_IsValidThawHelper
+
+Checks if a thawer is eligible to thaw the frozen teammate based on distance,
+team alignment, and active state.
+=============
+*/
+bool worr::server::client::FreezeTag_IsValidThawHelper(gentity_t* thawer, gentity_t* frozen) {
 	if (!FreezeTag_IsActive())
 		return false;
 
@@ -1854,7 +1871,7 @@ static gentity_t* FreezeTag_FindNearbyThawer(gentity_t* frozen) {
 	float       bestDistance = 0.0f;
 
 	for (gentity_t* candidate : active_clients()) {
-		if (!FreezeTag_IsValidThawHelper(candidate, frozen))
+if (!worr::server::client::FreezeTag_IsValidThawHelper(candidate, frozen))
 			continue;
 
 		const float distance = (frozen->s.origin - candidate->s.origin).length();
@@ -1884,7 +1901,14 @@ static void FreezeTag_StopThawHold(gentity_t* frozen, bool notify) {
 	fcl->freeze.holdDeadline = 0_ms;
 }
 
-static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
+/*
+=============
+FreezeTag_StartThawHold
+
+Begins the timed thaw-hold interaction between the thawer and frozen player.
+=============
+*/
+void worr::server::client::FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
 	if (!frozen || !frozen->client || !thawer || !thawer->client)
 		return;
 
@@ -1898,7 +1922,14 @@ static void FreezeTag_StartThawHold(gentity_t* thawer, gentity_t* frozen) {
 	gi.LocClient_Print(frozen, PRINT_CENTER, ".{} is thawing you...", thawer->client->sess.netName);
 }
 
-static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
+/*
+=============
+FreezeTag_ThawPlayer
+
+Handles thaw completion, scoring, and respawn reset for a frozen teammate.
+=============
+*/
+void worr::server::client::FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awardScore, bool autoThaw) {
 	if (!frozen || !frozen->client || !FreezeTag_IsFrozen(frozen))
 		return;
 
@@ -1941,7 +1972,15 @@ static void FreezeTag_ThawPlayer(gentity_t* thawer, gentity_t* frozen, bool awar
 	ClientRespawn(frozen);
 }
 
-static bool FreezeTag_UpdateThawHold(gentity_t* frozen) {
+/*
+=============
+FreezeTag_UpdateThawHold
+
+Maintains thaw progress, auto-selecting helpers or completing the thaw when the
+hold timer elapses.
+=============
+*/
+bool worr::server::client::FreezeTag_UpdateThawHold(gentity_t* frozen) {
 	if (!FreezeTag_IsActive() || !frozen || !frozen->client || !frozen->client->eliminated)
 		return false;
 
@@ -1976,7 +2015,7 @@ void FreezeTag_ForceRespawn(gentity_t* ent) {
 	if (!FreezeTag_IsFrozen(ent))
 		return;
 
-	FreezeTag_ThawPlayer(nullptr, ent, false, true);
+worr::server::client::FreezeTag_ThawPlayer(nullptr, ent, false, true);
 }
 
 /*
@@ -2527,7 +2566,15 @@ void InitClientPersistant(gentity_t* ent, gclient_t* client) {
 	P_RestoreFromGhostSlot(ent);
 }
 
-static void InitClientResp(gclient_t* cl) {
+/*
+=============
+InitClientResp
+
+Resets the client's respawn snapshot, optionally preserving match stats for
+active marathon legs.
+=============
+*/
+void worr::server::client::InitClientResp(gclient_t* cl) {
 	const bool preserveScore = game.marathon.active && game.marathon.legIndex > 0;
 	const int32_t savedScore = preserveScore ? cl->resp.score : 0;
 	const int64_t savedPlayTime = preserveScore ? cl->resp.totalMatchPlayRealTime : 0;
@@ -2716,9 +2763,16 @@ void G_PostRespawn(gentity_t* self) {
 		BroadcastReadyReminderMessage();
 }
 
-// Wrap ClientSpawn so the shared post-spawn logic (freeze, respawn timers, etc.)
-// is always applied once regardless of where the spawn originated.
-static void ClientCompleteSpawn(gentity_t* ent) {
+
+/*
+=============
+ClientCompleteSpawn
+
+Wraps ClientSpawn so the shared post-spawn logic (freeze state resets, respawn
+timers, etc.) is always applied once regardless of the spawn origin.
+=============
+*/
+void worr::server::client::ClientCompleteSpawn(gentity_t* ent) {
 	ClientSpawn(ent);
 	G_PostRespawn(ent);
 }
@@ -2752,7 +2806,7 @@ void ClientRespawn(gentity_t* ent) {
 			AssignPlayerSkin(ent, ent->client->sess.skinName);
 		}
 
-		ClientCompleteSpawn(ent);
+worr::server::client::ClientCompleteSpawn(ent);
 		Harvester_OnClientSpawn(ent);
 
 		if (FreezeTag_IsActive())
@@ -3010,7 +3064,7 @@ A client has just connected to the server in
 deathmatch mode, so clear everything out before starting them.
 =====================
 */
-static void ClientBeginDeathmatch(gentity_t* ent) {
+void worr::server::client::ClientBeginDeathmatch(gentity_t* ent) {
 	InitGEntity(ent);
 	HeadHunters::ResetPlayerState(ent->client);
 
@@ -3046,7 +3100,7 @@ static void ClientBeginDeathmatch(gentity_t* ent) {
 G_SetLevelEntry
 ===============
 */
-static void G_SetLevelEntry() {
+void worr::server::client::G_SetLevelEntry() {
 	if (deathmatch->integer)
 		return;
 
@@ -3380,7 +3434,7 @@ bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool 
 			ProBall::DropBall(ent, nullptr, false);
 			Tech_DeadDrop(ent);
 			Weapon_Grapple_DoReset(cl);
-			P_AccumulateMatchPlayTime(cl, now);
+worr::server::client::P_AccumulateMatchPlayTime(cl, now);
 			cl->sess.playEndRealTime = now;
 		}
 		cl->sess.team = Team::Spectator;
@@ -3625,7 +3679,7 @@ static inline gentity_t* ClientChooseSlot_Coop(const char* userInfo, const char*
 
 				InitGEntity(matches[i].slot);
 				matches[i].slot->className = "player";
-				InitClientResp(matches[i].slot->client);
+worr::server::client::InitClientResp(matches[i].slot->client);
 				matches[i].slot->client->coopRespawn.spawnBegin = true;
 				ClientSpawn(matches[i].slot);
 				matches[i].slot->client->coopRespawn.spawnBegin = false;
@@ -3828,7 +3882,7 @@ Displays the intro text for the active game modifier.
 Only one modifier should be active at a time.
 =========================
 */
-static void PrintModifierIntro(gentity_t* ent) {
+void worr::server::client::PrintModifierIntro(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
 
