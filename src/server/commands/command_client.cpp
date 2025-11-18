@@ -721,8 +721,8 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 				case worr::server::client::ReadyResult::Success:
 					return;
 				case worr::server::client::ReadyResult::AlreadySet: {
-					const auto message = G_Fmt("You are already {}.\n", readyState);
-					gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+					const std::string message = std::string(G_Fmt("You are already {}.\n", readyState));
+					gi.Client_Print(ent, PRINT_HIGH, message.data());
 					return;
 				}
 				case worr::server::client::ReadyResult::NoConditions:
