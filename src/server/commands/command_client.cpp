@@ -260,18 +260,17 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 			gi.Client_Print(ent, PRINT_LOW, "impulse 9: all weapons granted\n");
 			handled = true;
 			break;
+			// 10: next weapon
+			case 10:
+				Commands::inventory::WeapNext(ent, args);
+				handled = true;
+				break;
 
-				// 10: next weapon
-				case 10:
-					inventory::WeapNext(ent, args);
-					handled = true;
-					break;
-
-				// 12: previous weapon
-				case 12:
-					inventory::WeapPrev(ent, args);
-					handled = true;
-					break;
+			// 12: previous weapon
+			case 12:
+				Commands::inventory::WeapPrev(ent, args);
+				handled = true;
+				break;
 
 			// 255: give + activate Quad (cheat)
 			case 255:
