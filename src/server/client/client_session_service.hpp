@@ -8,7 +8,7 @@ struct local_game_import_t;
 struct gentity_t;
 struct gclient_t;
 struct usercmd_t;
-class LevelLocals;
+struct LevelLocals;
 struct GameLocals;
 
 namespace worr::server::client {
