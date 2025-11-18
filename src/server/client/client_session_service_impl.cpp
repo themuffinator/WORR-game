@@ -14,6 +14,7 @@
 #include <array>
 #include <cctype>
 #include <cstdlib>
+#include <cstring>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -114,11 +115,24 @@ static bool HandleMenuMovement(gentity_t* ent, usercmd_t* ucmd) {
 	}
 
 	if (ent->client->latchedButtons & (BUTTON_ATTACK | BUTTON_JUMP)) {
-			ActivateSelectedMenuItem(ent);
-			return true;
+		ActivateSelectedMenuItem(ent);
+		return true;
 	}
 
-	return false;}
+	return false;
+}
+
+/*
+=============
+ClientPMoveClip
+
+Provides the PMove clip callback with world-only collisions so that
+spectator and noclip traces stay constrained to BSP geometry.
+=============
+*/
+static trace_t ClientPMoveClip(gvec3_cref_t start, gvec3_cptr_t mins, gvec3_cptr_t maxs, gvec3_cref_t end, contents_t mask) {
+	return gi.game_import_t::clip(world, start, mins, maxs, end, mask);
+}
 
 /*
 =================
@@ -1041,215 +1055,155 @@ gentity_t* ent, usercmd_t* ucmd) {
 	}
 	else {
 
+
 		// set up for pmove
 		memset(&pm, 0, sizeof(pm));
 
+		pmove_state_t& pmState = cl->ps.pmove;
+
 		if (ent->moveType == MoveType::FreeCam) {
 			if (cl->menu.current) {
-				cl->ps.pmove.pmType = PM_FREEZE;
+				pmState.pmType = PM_FREEZE;
 
 				// [Paril-KEX] handle menu movement
 				HandleMenuMovement(ent, ucmd);
 			}
 			else if (cl->awaitingRespawn)
-				cl->ps.pmove.pmType = PM_FREEZE;
+				pmState.pmType = PM_FREEZE;
 			else if (!ClientIsPlaying(ent->client) || cl->eliminated)
-				cl->ps.pmove.pmType = PM_SPECTATOR;
+				pmState.pmType = PM_SPECTATOR;
 			else
-				cl->ps.pmove.pmType = PM_NOCLIP;
+				pmState.pmType = PM_NOCLIP;
 		}
 		else if (ent->moveType == MoveType::NoClip) {
-			cl->ps.pmove.pmType = PM_NOCLIP;
+			pmState.pmType = PM_NOCLIP;
 		}
 		else if (ent->s.modelIndex != MODELINDEX_PLAYER)
-			cl->ps.pmove.pmType = PM_GIB;
+			pmState.pmType = PM_GIB;
 		else if (ent->deadFlag)
-			cl->ps.pmove.pmType = PM_DEAD;
+			pmState.pmType = PM_DEAD;
 		else if (cl->grapple.state >= GrappleState::Pull)
-			cl->ps.pmove.pmType = PM_GRAPPLE;
+			pmState.pmType = PM_GRAPPLE;
 		else
-			cl->ps.pmove.pmType = PM_NORMAL;
+			pmState.pmType = PM_NORMAL;
 
-		// [Paril-KEX]
-		if (!G_ShouldPlayersCollide(false) ||
-			(CooperativeModeOn() && !(ent->clipMask & CONTENTS_PLAYER)) // if player collision is on and we're temporarily ghostly...
-			)
-			cl->ps.pmove.pmFlags |= PMF_IGNORE_PLAYER_COLLISION;
+		bool ignorePlayers = !G_ShouldPlayersCollide(false) ||
+			(CooperativeModeOn() && !(ent->clipMask & CONTENTS_PLAYER));
+		if (cl->PowerupTimer(PowerupTimer::Invisibility) > level.time)
+			ignorePlayers = true;
+		if (ignorePlayers)
+			pmState.pmFlags |= PMF_IGNORE_PLAYER_COLLISION;
 		else
-			cl->ps.pmove.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
+			pmState.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
 
-		// haste support
-		if (cl->PowerupTimer(PowerupTimer::Haste) > level.time && !cl->PowerupCount(PowerupCount::HasteShots))
-			cl->ps.pmove.pmFlags |= PMF_RAIL_JUMP;
-		else
-			cl->ps.pmove.pmFlags &= ~PMF_RAIL_JUMP;
+		pmState.haste = (cl->PowerupTimer(PowerupTimer::Haste) > level.time) &&
+			!cl->PowerupCount(PowerupCount::HasteShots);
 
-		cl->ps.pmove.pmFlags |= PMF_JUMP_HELD;
-
-		if (G_SpawnHasGravity(ent)) {
-			cl->ps.pmove.gravity = ent->gravity;
-			if (!cl->ps.pmove.gravity)
-				cl->ps.pmove.gravity = 1.0f;
-		}
-		else
-			cl->ps.pmove.gravity = 0.0f;
-
-		cl->ps.pmove.trace = G_PM_Clip;
-		cl->ps.pmove.pointContents = gi.pointContents;
-		cl->ps.pmove.bounds = PM_BOUNDS;
-		cl->ps.pmove.viewHeight = ent->viewHeight;
-
-		pm.groundTrace = cl->groundTrace;
-		pm.stepTrace = cl->stepTrace;
-
-		pm.s = cl->ps.pmove;
-		pm.cmd = *ucmd;
-
-		pm.trace_mask = CONTENTS_MASK_PLAYERSOLID;
-
-		pm.hookPull = cl->grapple.pull;
+		pmState.pmFlags |= PMF_JUMP_HELD;
 
 		if (game.cheatsFlag & GameCheatFlags::Fly)
-			pm.s.pmFlags |= PMF_NO_PREDICTION;
+			pmState.pmFlags |= (PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION);
 
-		if (cl->PowerupTimer(PowerupTimer::Invisibility) > level.time)
-			pm.s.pmFlags |= PMF_NO_PLAYER_COLLISION;
+		if (G_SpawnHasGravity(ent)) {
+			pmState.gravity = static_cast<int16_t>(level.gravity * ent->gravity);
+			if (!pmState.gravity)
+				pmState.gravity = 1;
+		}
+		else
+			pmState.gravity = 0;
+
+		pmState.viewHeight = ent->viewHeight;
 
 		if (cl->resp.cmdAngles[YAW] < -180.f)
 			cl->resp.cmdAngles[YAW] += 360.f;
 		else if (cl->resp.cmdAngles[YAW] > 180.f)
 			cl->resp.cmdAngles[YAW] -= 360.f;
 
-		// N64: apply friction so we don't skate
-		pm.apply_friction = !(level.isN64 && CooperativeModeOn());
+		const pmflags_t previousFlags = pmState.pmFlags;
 
-		bool old_teleported = (cl->ps.pmove.pmFlags & PMF_TIME_TELEPORT) != 0;
-
-		pm.Config().Apply(pm_config);
-		pm.Calc();
-
-		cl->groundTrace = pm.groundTrace;
-		cl->stepTrace = pm.stepTrace;
+		pm.s = pmState;
+		pm.s.origin = ent->s.origin;
+		pm.s.velocity = ent->velocity;
+		if (std::memcmp(&cl->old_pmove, &pm.s, sizeof(pm.s)) != 0)
+			pm.snapInitial = true;
+		pm.cmd = *ucmd;
+		pm.player = ent;
+		pm.trace = gi.game_import_t::trace;
+		pm.clip = ClientPMoveClip;
+		pm.pointContents = gi.game_import_t::pointContents;
+		pm.viewOffset = cl->ps.viewOffset;
 
 		const Vector3 oldOrigin = ent->s.origin;
 
-		// This handles lagged clients that are behind the server when they respawn. Without this check,
-		// their ClientThink might attempt to respawn them before they start a pmove and cause bad behavior,
-		// so we wait for their first pmove and fall through to ClientBegin.
-		if (cl->awaitingRespawn && pm.s.pmFlags & PMF_RESPAWNED)
-			cl->awaitingRespawn = false;
+		Pmove(&pm);
 
-		if ((pm.s.pmFlags & PMF_TIME_TELEPORT) && !old_teleported) {
-			cl->ps.pmove.pmFlags &= ~(PMF_JUMPED | PMF_JUMPED_SHORT);
-			cl->ps.pmove.pmTime = 0;
-
-			Vector3 delta = pm.s.origin - ent->s.origin;
-			const float delta_2d = delta.Length2D();
-			const float delta_3d = delta.Length();
-
-			if ((pm.s.pmFlags & PMF_NOCLIP) == 0) {
-				if ((pm.s.pmFlags & PMF_ON_LADDER) != 0)
-					ent->moveType = MoveType::Ladder;
-				else if ((pm.s.pmFlags & PMF_GRAPPLE_PULL) != 0)
-					ent->moveType = MoveType::Fly;
-				else if ((pm.s.pmFlags & PMF_FREECAM) != 0)
-					ent->moveType = MoveType::FreeCam;
-				else if ((pm.s.pmFlags & PMF_SPECTATOR) != 0)
-					ent->moveType = MoveType::FreeCam;
-				else if ((pm.s.pmFlags & PMF_DEAD) != 0)
-					ent->moveType = MoveType::Toss;
-				else
-					ent->moveType = MoveType::Normal;
-			}
-
-			if (cl->PowerupTimer(PowerupTimer::Invisibility) <= level.time) {
-				ent->s.effects &= ~FX_PLAYER_HIDE;
-				ent->svFlags &= ~SVF_NOCLIENT;
-			}
-
-			Vector3 originDelta = pm.s.origin - ent->s.origin;
-			const bool wasSolid = pm.groundTrace.startSolid || pm.groundTrace.allSolid;
-
-			if (wasSolid || originDelta.Length2D() >= 32.0f || originDelta[2] >= 16.0f) {
-				ent->s.event = EV_TELEPORT;
-				ent->s.renderFX |= RF_BEAM;
-			}
-
-			ent->s.origin = pm.s.origin;
-			ent->s.oldOrigin = ent->s.origin;
-			ent->velocity = pm.s.velocity;
-			ent->s.angles = pm.s.viewAngles;
-			ent->s.angles[PITCH] = 0;
-			ent->s.angles[ROLL] = 0;
-			ent->s.angles[YAW] = pm.s.viewAngles[YAW];
-			VectorCopy(ent->s.angles, cl->ps.viewAngles);
-
-			ent->clipMask = pm.trace_mask;
-
-			if (pm.s.pmFlags & PMF_FREECAM) {
-				ent->moveType = MoveType::FreeCam;
-				ent->clipMask &= ~(CONTENTS_SOLID | CONTENTS_PLAYER);
-			}
-
-			gi.linkEntity(ent);
-
-			return;
-		}
+		const bool wasOnLadder = (previousFlags & PMF_ON_LADDER) != PMF_NONE;
+		const bool onLadder = (pm.s.pmFlags & PMF_ON_LADDER) != PMF_NONE;
 
 		ent->s.origin = pm.s.origin;
 		ent->velocity = pm.s.velocity;
-		ent->clipMask = pm.trace_mask;
 		ent->s.event = pm.s.event;
 		ent->s.renderFX &= ~RF_BEAM;
 
-		if (pm.s.pmFlags & PMF_FREECAM)
-			ent->moveType = MoveType::FreeCam;
-		else if (pm.s.pmFlags & PMF_DEAD)
-			ent->moveType = MoveType::Toss;
-		else if (pm.s.pmFlags & PMF_ON_LADDER)
-			ent->moveType = MoveType::Ladder;
-		else if (pm.s.pmFlags & PMF_GRAPPLE_PULL)
-			ent->moveType = MoveType::Fly;
-		else
-			ent->moveType = MoveType::Normal;
+		MoveType newMoveType = MoveType::Normal;
+		switch (pm.s.pmType) {
+		case PM_SPECTATOR:
+			newMoveType = MoveType::FreeCam;
+			break;
+		case PM_NOCLIP:
+			newMoveType = MoveType::NoClip;
+			break;
+		case PM_DEAD:
+		case PM_GIB:
+			newMoveType = MoveType::Toss;
+			break;
+		case PM_GRAPPLE:
+			newMoveType = MoveType::Fly;
+			break;
+		default:
+			newMoveType = MoveType::Normal;
+			break;
+		}
 
-		cl->ps.pmove.pmFlags = pm.s.pmFlags;
-		cl->ps.pmove.pmType = pm.s.pmType;
-		cl->ps.pmove.pmTime = pm.s.pmTime;
+		if (onLadder)
+			newMoveType = MoveType::Ladder;
 
-		if (pm.s.pmFlags & PMF_RESPAWNED)
-			cl->ps.pmove.pmFlags &= ~PMF_RESPAWNED;
+		contents_t clipMask = MASK_PLAYERSOLID;
+		if (newMoveType == MoveType::FreeCam || newMoveType == MoveType::NoClip)
+			clipMask &= ~(CONTENTS_SOLID | CONTENTS_PLAYER);
 
-		if (pm.s.pmFlags & PMF_ON_LADDER)
-			ent->moveType = MoveType::Ladder;
+		ent->clipMask = clipMask;
+		ent->moveType = newMoveType;
 
-		if ((pm.s.pmFlags & PMF_ON_LADDER) != (cl->ps.pmove.pmFlags & PMF_ON_LADDER)) {
+		if ((onLadder != wasOnLadder)) {
 			cl->last_ladder_pos = ent->s.origin;
 
-			if (pm.s.pmFlags & PMF_ON_LADDER) {
-				if (!deathmatch->integer &&
-					cl->last_ladder_sound < level.time) {
+			if (onLadder) {
+				if (!deathmatch->integer && cl->last_ladder_sound < level.time) {
 					ent->s.event = EV_LADDER_STEP;
 					cl->last_ladder_sound = level.time + LADDER_SOUND_TIME;
 				}
 			}
 		}
 
-		// save results of pmove
 		cl->ps.pmove = pm.s;
 		cl->old_pmove = pm.s;
-
 		ent->mins = pm.mins;
 		ent->maxs = pm.maxs;
 
 		if (!cl->menu.current)
 			cl->resp.cmdAngles = ucmd->angles;
 
-		if (pm.jumpSound && !(pm.s.pmFlags & PMF_ON_LADDER)) {
+		if (pm.jumpSound && !onLadder) {
 			gi.sound(ent, CHAN_VOICE, gi.soundIndex("*jump1.wav"), 1, ATTN_NORM, 0);
 		}
 
-		// sam raimi cam support
+		ent->s.angles = pm.s.viewAngles;
+		ent->s.angles[PITCH] = 0;
+		ent->s.angles[ROLL] = 0;
+		ent->s.angles[YAW] = pm.s.viewAngles[YAW];
+		VectorCopy(ent->s.angles, cl->ps.viewAngles);
+
 		if (ent->flags & FL_SAM_RAIMI)
 			ent->viewHeight = 8;
 		else
@@ -1277,7 +1231,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 
 		gi.linkEntity(ent);
 
-		ent->gravity = 1.0;
+		ent->gravity = 1.0f;
 
 		if (ent->moveType != MoveType::NoClip) {
 			TouchTriggers(ent);
