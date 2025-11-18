@@ -119,6 +119,8 @@ ClientSessionServiceImpl& GetClientSessionService() {
 	return *g_clientSessionServiceInstance;
 }
 
+} // namespace worr::server::client
+
 /*
 =============
 ClientSetReadyStatus
