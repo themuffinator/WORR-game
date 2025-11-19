@@ -1,4 +1,4 @@
-#include "g_match_grace_scope.hpp"
+#include "server/match/g_match_grace_scope.hpp"
 
 #include <cassert>
 
