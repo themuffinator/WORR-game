@@ -3,6 +3,11 @@
 
 // g_local.h -- local definitions for game module
 #pragma once
+#include <cmath>
+
+namespace std {
+	using ::sinf;
+}
 
 class Menu;
 #include "../shared/bg_local.hpp"
@@ -14,15 +19,25 @@ class Menu;
 #include <fstream>
 #include <bitset>		// for bitset
 #include <random>
+#include <regex>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
+#include <type_traits>
 #include <vector>
 #include <algorithm>
 #include <cctype>
 #include <memory>
 #include <mutex>
+
+#ifndef _WIN32
+#include <strings.h>
+#ifndef _stricmp
+#define _stricmp strcasecmp
+#endif
+#endif
 
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
@@ -649,26 +664,31 @@ public:
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator|(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) | std::to_underlying(rhs));
+	using Underlying = std::underlying_type_t<Enum>;
+	return BitFlags<Enum>(static_cast<Underlying>(lhs) | static_cast<Underlying>(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator&(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) & std::to_underlying(rhs));
+	using Underlying = std::underlying_type_t<Enum>;
+	return BitFlags<Enum>(static_cast<Underlying>(lhs) & static_cast<Underlying>(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator^(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
+	using Underlying = std::underlying_type_t<Enum>;
+	return BitFlags<Enum>(static_cast<Underlying>(lhs) ^ static_cast<Underlying>(rhs));
 }
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
 constexpr BitFlags<Enum> operator~(Enum val) {
-	return BitFlags<Enum>(~std::to_underlying(val));
+	using Underlying = std::underlying_type_t<Enum>;
+	return BitFlags<Enum>(~static_cast<Underlying>(val));
 }
+
 
 // ==================================================================
 
@@ -2087,6 +2107,89 @@ inline bool MapSystem::MapExists(std::string_view mapName) const
 		return mapExistsInDir(GAMEVERSION);
 
 	return false;
+}
+
+/*
+=============
+G_OpenMapFile
+
+Attempts to open a game configuration file within the active mod's
+directory before falling back to the base GAMEVERSION path. On
+success, `file` is opened in binary mode and `resolvedPath` records the
+absolute path that succeeded.
+=============
+*/
+inline bool G_OpenMapFile(const char* filename, std::ifstream& file, std::string& resolvedPath)
+{
+	file = std::ifstream();
+	resolvedPath.clear();
+
+	std::string activeGameDir;
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0])
+			activeGameDir = gameCvar->string;
+	}
+
+	const auto tryOpen = [&](std::string_view gamedir) -> bool {
+		if (gamedir.empty())
+			return false;
+
+		std::filesystem::path candidate(gamedir);
+		candidate /= filename;
+
+		file.open(candidate, std::ifstream::binary);
+		if (file.is_open()) {
+			resolvedPath = std::filesystem::absolute(candidate).string();
+			return true;
+		}
+
+		return false;
+	};
+
+	if (tryOpen(activeGameDir))
+		return true;
+
+	if (activeGameDir.empty() || activeGameDir != GAMEVERSION)
+		return tryOpen(GAMEVERSION);
+
+	return false;
+}
+
+
+/*
+=========================
+G_ParseMapCycleContent
+
+Strips comments from the provided map cycle content, tokenizes the
+remaining BSP names, and marks entries in the supplied map pool as
+cycleable. Outputs match and mismatch counts for caller reporting.
+=========================
+*/
+inline void G_ParseMapCycleContent(const std::string& content, std::vector<MapEntry>& mapPool, int& matched, int& unmatched)
+{
+	std::string sanitized = std::regex_replace(content, std::regex("//.*"), "");
+	sanitized = std::regex_replace(sanitized, std::regex("/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"), "");
+
+	std::istringstream stream(sanitized);
+	std::string token;
+	matched = 0;
+	unmatched = 0;
+
+	while (stream >> token) {
+		bool found = false;
+		for (auto& map : mapPool) {
+			if (_stricmp(token.c_str(), map.filename.c_str()) == 0) {
+				map.isCycleable = true;
+				matched++;
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+			unmatched++;
+	}
 }
 
 /*

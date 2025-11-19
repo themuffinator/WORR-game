@@ -21,7 +21,6 @@
 #include "map_flag_parser.hpp"
 #include <json/json.h>
 #include <fstream>
-#include <regex>
 #include <algorithm>
 #include <random>
 
@@ -323,14 +322,18 @@ void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
 
-	std::string path = "baseq2/";
-	path += g_maps_pool_file->string;
+	std::ifstream file;
+	std::string path;
 
-	std::ifstream file(path, std::ifstream::binary);
-	if (!file.is_open()) {
+	if (!G_OpenMapFile(g_maps_pool_file->string, file, path)) {
+		std::filesystem::path fallback(GAMEVERSION);
+		fallback /= g_maps_pool_file->string;
+
+		const std::string displayPath = path.empty() ? fallback.string() : path;
+
 		if (entClient)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
-		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, path.c_str());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", displayPath.c_str());
+		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, displayPath.c_str());
 		return;
 	}
 
@@ -420,48 +423,32 @@ LoadMapCycle
 void LoadMapCycle(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 
-	std::string path = "baseq2/";
-	path += g_maps_cycle_file->string;
+	std::ifstream file;
+	std::string path;
 
-	std::ifstream file(path);
-	if (!file.is_open()) {
-		if (ent && ent->client)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
+	if (!G_OpenMapFile(g_maps_cycle_file->string, file, path)) {
+		std::filesystem::path fallback(GAMEVERSION);
+		fallback /= g_maps_cycle_file->string;
+
+		const std::string displayPath = path.empty() ? fallback.string() : path;
+
+		if (entClient)
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", displayPath.c_str());
 		return;
 	}
 
-
-	// Reset cycleable flags
 	for (auto& m : game.mapSystem.mapPool)
 		m.isCycleable = false;
 
 	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-
-	// Remove single-line comments
-	content = std::regex_replace(content, std::regex("//.*"), "");
-
-	// Remove multi-line comments (match across lines safely)
-	content = std::regex_replace(content, std::regex("/\\*[^*]*\\*+(?:[^/*][^*]*\\*+)*/"), "");
-
-	std::istringstream stream(content);
-	std::string token;
 	int matched = 0, unmatched = 0;
 
-	while (stream >> token) {
-		for (auto& m : game.mapSystem.mapPool) {
-			if (_stricmp(token.c_str(), m.filename.c_str()) == 0) {
-				m.isCycleable = true;
-				matched++;
-				goto next_token;
-			}
-		}
-		unmatched++;
-	next_token:;
-	}
+	G_ParseMapCycleContent(content, game.mapSystem.mapPool, matched, unmatched);
 
 	if (entClient)
 		gi.LocClient_Print(ent, PRINT_HIGH, "[MapCycle] Marked {} maps cycleable, ignored {} unknown entries.\n", matched, unmatched);
 }
+
 
 /*
 =========================
