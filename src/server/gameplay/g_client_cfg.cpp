@@ -71,36 +71,46 @@ ClientConfigStore::ClientConfigStore(local_game_import_t& gi, std::string player
 void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRating, int skillChange, int64_t timePlayedSeconds,
 	bool won, bool isGhost, bool updateStats, const client_config_t* pc, const std::vector<Weapon>* weaponPrefs) const {
 	if (playerID.empty())
-	return;
-	
+		return;
+
 	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
 	if (!pathOpt)
-	return;
-	
+		return;
+
 	const std::string path = *pathOpt;
-	Json::Value cfg;
-	
-	std::ifstream in(path);
-	if (!in.is_open()) {
-		gi_.Com_PrintFmt("{}: failed to open {}\n", __FUNCTION__, path.c_str());
-		return;
-	}
-	
-	Json::CharReaderBuilder builder;
-	std::string errs;
-	if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
-		gi_.Com_PrintFmt("{}: parse error in {}: {}\n", __FUNCTION__, path.c_str(), errs.c_str());
-		return;
-	}
-	
+	Json::Value cfg(Json::objectValue);
 	bool modified = false;
-	
+
+	{
+		std::ifstream in(path);
+		if (in.is_open()) {
+			Json::CharReaderBuilder builder;
+			std::string errs;
+			if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
+				gi_.Com_PrintFmt("%s: parse error in %s: %s\n", __FUNCTION__, path.c_str(), errs.c_str());
+				cfg = Json::Value(Json::objectValue);
+			}
+		}
+		else {
+			gi_.Com_PrintFmt("%s: creating new player config for missing file %s\n", __FUNCTION__, path.c_str());
+		}
+	}
+
 	if (updateStats) {
 		if (!cfg.isMember("stats") || !cfg["stats"].isObject()) {
-			cfg["stats"] = Json::Value(Json::objectValue);
+			Json::Value stats(Json::objectValue);
+			stats["totalMatches"] = 0;
+			stats["totalWins"] = 0;
+			stats["totalLosses"] = 0;
+			stats["totalAbandons"] = 0;
+			stats["totalTimePlayed"] = Json::Value::Int64(0);
+			stats["bestSkillRating"] = 0;
+			stats["lastSkillRating"] = kDefaultSkillRating;
+			stats["lastSkillChange"] = 0;
+			cfg["stats"] = stats;
 			modified = true;
 		}
-		
+
 		auto& stats = cfg["stats"];
 		auto ensure_int = [&](const char* key, int def) {
 			if (!stats.isMember(key) || !stats[key].isInt()) {
@@ -109,7 +119,7 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 			}
 			return stats[key].asInt();
 		};
-		
+
 		auto ensure_int64 = [&](const char* key, Json::Value::Int64 def) {
 			if (!stats.isMember(key) || !stats[key].isInt64()) {
 				stats[key] = def;
@@ -117,60 +127,78 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 			}
 			return stats[key].asInt64();
 		};
-		
+
 		const int totalMatches = ensure_int("totalMatches", 0);
 		const int totalWins = ensure_int("totalWins", 0);
 		const int totalLosses = ensure_int("totalLosses", 0);
 		const int totalAbandons = ensure_int("totalAbandons", 0);
 		const int bestSkillRating = ensure_int("bestSkillRating", 0);
 		const Json::Value::Int64 totalTimePlayed = ensure_int64("totalTimePlayed", 0);
-		
-		stats["totalMatches"] = totalMatches + 1;
-		stats["totalWins"] = won ? totalWins + 1 : totalWins;
-		if (!won) {
-			if (isGhost)
-			stats["totalAbandons"] = totalAbandons + 1;
-			else
-			stats["totalLosses"] = totalLosses + 1;
+		const int lastSkillRating = ensure_int("lastSkillRating", kDefaultSkillRating);
+		const int lastSkillChange = ensure_int("lastSkillChange", 0);
+
+		const int newTotalMatches = totalMatches + 1;
+		if (newTotalMatches != totalMatches) {
+			stats["totalMatches"] = newTotalMatches;
+			modified = true;
 		}
-		
+
+		const int newTotalWins = won ? totalWins + 1 : totalWins;
+		if (newTotalWins != totalWins) {
+			stats["totalWins"] = newTotalWins;
+			modified = true;
+		}
+
+		if (!won) {
+			const int updatedAbandons = isGhost ? totalAbandons + 1 : totalAbandons;
+			const int updatedLosses = isGhost ? totalLosses : totalLosses + 1;
+			if (updatedAbandons != totalAbandons) {
+				stats["totalAbandons"] = updatedAbandons;
+				modified = true;
+			}
+			if (updatedLosses != totalLosses) {
+				stats["totalLosses"] = updatedLosses;
+				modified = true;
+			}
+		}
+
 		const Json::Value::Int64 nonNegativeTime = std::max<Json::Value::Int64>(timePlayedSeconds, 0);
 		const Json::Value::Int64 cappedBase = std::max<Json::Value::Int64>(totalTimePlayed, 0);
 		const Json::Value::Int64 maxValue = std::numeric_limits<Json::Value::Int64>::max();
-		Json::Value::Int64 newTotal = cappedBase;
+		Json::Value::Int64 newTotalTime = cappedBase;
 		if (cappedBase > maxValue - nonNegativeTime)
-		newTotal = maxValue;
+			newTotalTime = maxValue;
 		else
-		newTotal = cappedBase + nonNegativeTime;
-		
-		if (newTotal != totalTimePlayed) {
-			stats["totalTimePlayed"] = Json::Value::Int64(newTotal);
+			newTotalTime = cappedBase + nonNegativeTime;
+
+		if (newTotalTime != totalTimePlayed) {
+			stats["totalTimePlayed"] = Json::Value::Int64(newTotalTime);
 			modified = true;
 		}
-		
+
 		const int updatedBest = std::max(bestSkillRating, skillRating);
 		if (updatedBest != bestSkillRating) {
 			stats["bestSkillRating"] = updatedBest;
 			modified = true;
 		}
-		
-		if (!stats.isMember("lastSkillRating") || !stats["lastSkillRating"].isInt() || stats["lastSkillRating"].asInt() != skillRating) {
+
+		if (lastSkillRating != skillRating) {
 			stats["lastSkillRating"] = skillRating;
 			modified = true;
 		}
-		
-		if (!stats.isMember("lastSkillChange") || !stats["lastSkillChange"].isInt() || stats["lastSkillChange"].asInt() != skillChange) {
+
+		if (lastSkillChange != skillChange) {
 			stats["lastSkillChange"] = skillChange;
 			modified = true;
 		}
 	}
-	
+
 	if (pc) {
 		if (!cfg.isMember("config") || !cfg["config"].isObject()) {
 			cfg["config"] = Json::Value(Json::objectValue);
 			modified = true;
 		}
-		
+
 		auto& config = cfg["config"];
 		if (!config.isMember("drawCrosshairID") || !config["drawCrosshairID"].isBool() || config["drawCrosshairID"].asBool() != pc->show_id) {
 			config["drawCrosshairID"] = pc->show_id;
@@ -205,59 +233,60 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 			modified = true;
 		}
 	}
-	
+
 	if (weaponPrefs) {
 		if (!cfg.isMember("config") || !cfg["config"].isObject()) {
 			cfg["config"] = Json::Value(Json::objectValue);
 		}
-		
+
 		std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
 		Json::Value prefs(Json::arrayValue);
 		for (Weapon weapon : *weaponPrefs) {
 			const auto index = static_cast<size_t>(weapon);
 			if (weapon == Weapon::None || index >= seen.size() || seen[index])
-			continue;
-			
+				continue;
+
 			seen[index] = true;
 			std::string_view abbr = WeaponToAbbreviation(weapon);
 			if (!abbr.empty())
-			prefs.append(std::string(abbr));
+				prefs.append(std::string(abbr));
 		}
-		
+
 		if (cfg["config"]["weaponPrefs"] != prefs) {
 			cfg["config"]["weaponPrefs"] = prefs;
 			modified = true;
 		}
 	}
-	
+
 	if (!modified)
-	return;
-	
-	cfg["lastUpdated"] = TimeStamp();
-	
-	try {
-		if (!EnsurePlayerConfigDirectory())
 		return;
-		
-		std::ofstream out(path);
-		if (!out.is_open()) {
-			gi_.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
+
+	cfg["lastUpdated"] = TimeStamp();
+
+	try {
+		if (!EnsurePlayerConfigDirectory()) {
+			gi_.Com_PrintFmt("%s: failed to ensure player config directory\n", __FUNCTION__);
 			return;
 		}
-		
+
+		std::ofstream out(path);
+		if (!out.is_open()) {
+			gi_.Com_PrintFmt("%s: failed to write %s\n", __FUNCTION__, path.c_str());
+			return;
+		}
+
 		Json::StreamWriterBuilder writerBuilder;
 		writerBuilder["indentation"] = "\t";
 		std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
 		writer->write(cfg, &out);
 		out.close();
-		
-		gi_.Com_PrintFmt("{}: saved updates for {}\n", __FUNCTION__, playerID.c_str());
+
+		gi_.Com_PrintFmt("%s: saved updates for %s\n", __FUNCTION__, playerID.c_str());
 	}
 	catch (const std::exception& e) {
-		gi_.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+		gi_.Com_PrintFmt("%s: exception: %s\n", __FUNCTION__, e.what());
 	}
 }
-
 /*
 =============
 ClientConfigStore::PlayerConfigPathFromID
