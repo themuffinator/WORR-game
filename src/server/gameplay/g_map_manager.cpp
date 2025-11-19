@@ -27,6 +27,20 @@
 
 /*
 =============
+MapSelectorResolveCandidate
+
+Fetches a map entry from the current pool using the stored candidate identifier.
+=============
+*/
+static const MapEntry* MapSelectorResolveCandidate(const std::string& candidate) {
+	if (candidate.empty())
+		return nullptr;
+
+	return game.mapSystem.GetMapEntry(candidate);
+}
+
+/*
+=============
 MapSelectorFinalize
 =============
 */
@@ -48,7 +62,7 @@ void MapSelectorFinalize() {
 	std::fill(ms.voteCounts.begin(), ms.voteCounts.end(), 0);
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		int vote = ms.votes[i];
-		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && ms.candidates[vote]) {
+		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && !ms.candidates[vote].empty()) {
 			ms.voteCounts[vote]++;
 		}
 	}
@@ -59,7 +73,7 @@ void MapSelectorFinalize() {
 	// Find all tied candidates
 	std::vector<int> tiedIndices;
 	for (size_t i = 0; i < ms.candidates.size(); ++i) {
-		if (ms.candidates[i] && ms.voteCounts[i] == maxVotes)
+		if (!ms.candidates[i].empty() && ms.voteCounts[i] == maxVotes)
 			tiedIndices.push_back(static_cast<int>(i));
 	}
 
@@ -73,7 +87,7 @@ void MapSelectorFinalize() {
 		// No votes or all invalid - fallback
 		std::vector<int> available;
 		for (size_t i = 0; i < ms.candidates.size(); ++i) {
-			if (ms.candidates[i])
+			if (!ms.candidates[i].empty())
 				available.push_back(static_cast<int>(i));
 		}
 		if (!available.empty()) {
@@ -82,13 +96,19 @@ void MapSelectorFinalize() {
 		}
 	}
 
-	if (selectedIndex >= 0 && ms.candidates[selectedIndex]) {
-		const MapEntry* selected = ms.candidates[selectedIndex];
-		level.changeMap = selected->filename.c_str();
+	if (selectedIndex >= 0 && !ms.candidates[selectedIndex].empty()) {
+		const std::string& selectedId = ms.candidates[selectedIndex];
+		const MapEntry* selected = MapSelectorResolveCandidate(selectedId);
+		const char* filename = selected ? selected->filename.c_str() : selectedId.c_str();
+		const char* longName = selected
+			? (selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str())
+			: filename;
+
+		level.changeMap = filename;
 
 		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
-			selected->filename.c_str(),
-			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
+				filename,
+				longName);
 
 		AnnouncerSound(world, "vote_passed");
 	}
@@ -97,8 +117,8 @@ void MapSelectorFinalize() {
 		if (fallback) {
 			level.changeMap = fallback->filename.c_str();
 			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
-				fallback->filename.c_str(),
-				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
+					fallback->filename.c_str(),
+					fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
 		}
 		else {
 			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
@@ -110,6 +130,27 @@ void MapSelectorFinalize() {
 	level.intermission.exit = true;
 }
 
+/*
+=============
+MapSelector_ClearVote
+
+Removes a client's active map vote and keeps the tallies in sync so stale
+votes cannot influence early majority detection.
+=============
+*/
+void MapSelector_ClearVote(LevelLocals& levelState, int clientIndex) {
+	if (clientIndex < 0 || clientIndex >= MAX_CLIENTS)
+		return;
+
+	auto& ms = levelState.mapSelector;
+
+	const int previousVote = ms.votes[clientIndex];
+	if (previousVote >= 0 && previousVote < static_cast<int>(ms.voteCounts.size())) {
+		ms.voteCounts[previousVote] = std::max(0, ms.voteCounts[previousVote] - 1);
+	}
+
+	ms.votes[clientIndex] = -1;
+}
 /*
 =============
 MapSelectorBegin
@@ -124,14 +165,14 @@ void MapSelectorBegin() {
 	// Defensive reset
 	ms.votes.fill(-1);
 	ms.voteCounts.fill(0);
-	ms.candidates.fill(nullptr);
+	ms.candidates.fill(std::string{});
 
 	auto candidates = MapSelectorVoteCandidates();
 	if (candidates.empty())
 		return;
 
 	for (size_t i = 0; i < std::min(candidates.size(), ms.candidates.size()); ++i)
-		ms.candidates[i] = candidates[i];
+	ms.candidates[i] = candidates[i]->filename;
 
 	// Set voteStartTime here to lock vote as active
 	ms.voteStartTime = level.time;
@@ -143,7 +184,6 @@ void MapSelectorBegin() {
 	gi.LocBroadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have {} seconds to vote.\n", MAP_SELECTOR_DURATION.seconds());
 	AnnouncerSound(world, "vote_now");
 }
-
 /*
 ====================
 MapSelector_CastVote
@@ -155,9 +195,11 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 
 	auto& ms = level.mapSelector;
 
-	auto* candidate = ms.candidates[voteIndex];
-	if (!candidate)
+	const std::string& candidateId = ms.candidates[voteIndex];
+	if (candidateId.empty())
 		return;
+
+	const MapEntry* candidate = MapSelectorResolveCandidate(candidateId);
 
 	const int clientNum = ent->s.number - 1;
 	if (clientNum < 0 || clientNum >= MAX_CLIENTS)
@@ -177,9 +219,9 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 	ms.voteCounts[voteIndex]++;
 
 	// Feedback
-	const char* mapName = candidate->longName.empty()
-		? candidate->filename.c_str()
-		: candidate->longName.c_str();
+	const char* mapName = candidate
+		? (candidate->longName.empty() ? candidate->filename.c_str() : candidate->longName.c_str())
+		: candidateId.c_str();
 
 	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
 		ent->client->sess.netName, mapName);
@@ -203,7 +245,7 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 
 	// If a map has more than half the votes, finalize early
 	for (int i = 0; i < 3; ++i) {
-		if (ms.candidates[i] && ms.voteCounts[i] > totalVoters / 2) {
+		if (!ms.candidates[i].empty() && ms.voteCounts[i] > totalVoters / 2) {
 			gi.Broadcast_Print(PRINT_HIGH, "Majority vote detected - finalizing early...\n");
 			MapSelectorFinalize();
 			level.intermission.postIntermissionTime = level.time;  // allow countdown to continue cleanly
@@ -211,7 +253,6 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 		}
 	}
 }
-
 // ==========================
 
 /*
@@ -315,6 +356,61 @@ bool MapSystem::IsMapInQueue(const std::string& mapName) const {
 }
 
 /*
+=========================
+MapSystem::PruneQueuesToMapPool
+
+Removes queued map requests that reference maps not present in the current
+map pool. Optionally collects descriptions of removed requests for logging.
+=========================
+*/
+void MapSystem::PruneQueuesToMapPool(std::vector<std::string>* removedRequests)
+{
+	auto mapInPool = [this](const std::string& name) {
+		return GetMapEntry(name) != nullptr;
+	};
+
+	auto playEnd = std::remove_if(playQueue.begin(), playQueue.end(),
+		[&](const QueuedMap& queued) {
+			if (mapInPool(queued.filename))
+				return false;
+
+			if (removedRequests) {
+				std::string details = queued.filename;
+				details += " (play queue";
+				if (!queued.socialID.empty()) {
+					details += ", ";
+					details += queued.socialID;
+				}
+				details += ')';
+				removedRequests->push_back(std::move(details));
+			}
+			return true;
+		});
+
+	playQueue.erase(playEnd, playQueue.end());
+
+	auto myMapEnd = std::remove_if(myMapQueue.begin(), myMapQueue.end(),
+		[&](const MyMapRequest& request) {
+			if (mapInPool(request.mapName))
+				return false;
+
+			if (removedRequests) {
+				std::string details = request.mapName;
+				details += " (MyMap";
+				if (!request.socialID.empty()) {
+					details += ", ";
+					details += request.socialID;
+				}
+				details += ')';
+				removedRequests->push_back(std::move(details));
+			}
+			return true;
+		});
+
+	myMapQueue.erase(myMapEnd, myMapQueue.end());
+}
+
+/*
 ==================
 LoadMapPool
 ==================
@@ -323,14 +419,13 @@ void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
 
-	std::string path = "baseq2/";
-	path += g_maps_pool_file->string;
+	MapPoolLocation location = G_ResolveMapPoolPath();
 
-	std::ifstream file(path, std::ifstream::binary);
+	std::ifstream file(location.path, std::ifstream::binary);
 	if (!file.is_open()) {
 		if (entClient)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
-		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, path.c_str());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", location.path.c_str());
+		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
@@ -341,21 +436,21 @@ void LoadMapPool(gentity_t* ent) {
 	if (!Json::parseFromStream(builder, file, &root, &errs)) {
 		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", errs.c_str());
-		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, path.c_str(), errs.c_str());
+		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, location.path.c_str(), errs.c_str());
 		return;
 	}
 
 	if (!root.isMember("maps") || !root["maps"].isArray()) {
 		if (entClient)
 			gi.Client_Print(ent, PRINT_HIGH, "[MapPool] JSON must contain a 'maps' array.\n");
-		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, path.c_str());
+		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
 	int loaded = 0, skipped = 0;
 	for (const auto& entry : root["maps"]) {
 		if (!entry.isMember("bsp") || !entry["bsp"].isString() ||
-			!entry.isMember("dm") || !entry["dm"].asBool()) {
+				!entry.isMember("dm") || !entry["dm"].asBool()) {
 			skipped++;
 			continue;
 		}
@@ -398,18 +493,41 @@ void LoadMapPool(gentity_t* ent) {
 		map.isCycleable = false;
 		map.lastPlayed = 0;
 
-		newPool.push_back(std::move(map));
-		loaded++;
-	}
+                newPool.push_back(std::move(map));
+                loaded++;
+        }
 
-	game.mapSystem.mapPool.swap(newPool);
+        game.mapSystem.mapPool.swap(newPool);
 
-	if (entClient) {
-		gi.LocClient_Print(ent, PRINT_HIGH,
-			"[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
-			loaded, (loaded == 1 ? "" : "s"), path.c_str(),
-			skipped, (skipped == 1 ? "y" : "ies"));
-	}
+        std::vector<std::string> removedRequests;
+        game.mapSystem.PruneQueuesToMapPool(&removedRequests);
+
+        if (entClient) {
+                gi.LocClient_Print(ent, PRINT_HIGH,
+                        "[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
+                        loaded, (loaded == 1 ? "" : "s"), path.c_str(),
+                        skipped, (skipped == 1 ? "y" : "ies"));
+        }
+
+        if (!removedRequests.empty()) {
+                std::string removedList;
+                for (size_t i = 0; i < removedRequests.size(); ++i) {
+                        if (i > 0)
+                                removedList += ", ";
+                        removedList += removedRequests[i];
+                }
+
+                if (entClient) {
+                        gi.LocClient_Print(ent, PRINT_HIGH,
+                                "[MapPool] Removed {} queued request{} referencing missing maps: {}\n",
+                                removedRequests.size(), (removedRequests.size() == 1 ? "" : "s"),
+                                removedList.c_str());
+                }
+
+                gi.Com_PrintFmt("{}: removed {} queued request{} referencing missing maps: {}\n",
+                        __FUNCTION__, removedRequests.size(), (removedRequests.size() == 1 ? "" : "s"),
+                        removedList.c_str());
+        }
 }
 
 /*

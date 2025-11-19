@@ -35,6 +35,7 @@
 #include <new>
 #include <sstream>
 #include <string>
+#include <vector>
 
 CHECK_GCLIENT_INTEGRITY;
 CHECK_ENTITY_INTEGRITY;
@@ -257,6 +258,7 @@ cvar_t* g_maps_pool_file;
 cvar_t* g_maps_cycle_file;
 cvar_t* g_maps_selector;
 cvar_t* g_maps_mymap;
+cvar_t* g_maps_mymap_queue_limit;
 cvar_t* g_maps_allow_custom_textures;
 cvar_t* g_maps_allow_custom_sounds;
 
@@ -316,15 +318,34 @@ Loads the message of the day file after validating the configured filename.
 void LoadMotd() {
 	const char* rawName = g_motd_filename->string;
 	const std::string configuredName = rawName[0] ? rawName : "motd.txt";
-	const std::filesystem::path basePath("baseq2");
-	const std::filesystem::path normalizedBase = basePath.lexically_normal();
-	std::filesystem::path resolvedPath;
-	std::string effectiveName = configuredName;
+	std::string activeGameDir;
 
-	auto validateAndResolve = [&](const std::string& name, std::filesystem::path& outPath) -> bool {
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+
+		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
+			activeGameDir = gameCvar->string;
+		}
+	}
+
+	std::vector<std::filesystem::path> motdRoots;
+
+	if (!activeGameDir.empty()) {
+		motdRoots.emplace_back(activeGameDir);
+	}
+
+	if (motdRoots.empty() || activeGameDir != "baseq2") {
+		motdRoots.emplace_back("baseq2");
+	}
+
+	std::string effectiveName = configuredName;
+	bool invalidNameReported = false;
+	bool loaded = false;
+
+	auto validateAndResolve = [](const std::string& name, const std::filesystem::path& basePath, std::filesystem::path& outPath) -> bool {
 		std::filesystem::path relativePath(name);
 
-		if (relativePath.empty()) {
+		if (basePath.empty() || relativePath.empty()) {
 			return false;
 		}
 
@@ -338,6 +359,7 @@ void LoadMotd() {
 			}
 		}
 
+		const std::filesystem::path normalizedBase = basePath.lexically_normal();
 		const std::filesystem::path candidate = (basePath / relativePath).lexically_normal();
 		auto candidateIter = candidate.begin();
 
@@ -351,77 +373,113 @@ void LoadMotd() {
 
 		outPath = candidate;
 		return true;
-		};
+	};
 
-	if (!validateAndResolve(configuredName, resolvedPath)) {
-		gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: {}\n", __FUNCTION__, configuredName);
-		effectiveName = "motd.txt";
+	auto loadMotdFile = [&](const std::filesystem::path& resolvedPath) -> bool {
+		const std::string resolvedPathString = resolvedPath.string();
+		FILE* f = fopen(resolvedPathString.c_str(), "rb");
 
-		if (!validateAndResolve(effectiveName, resolvedPath)) {
-			gi.Com_PrintFmt("{}: Default MotD filename failed validation: {}\n", __FUNCTION__, effectiveName);
-			return;
+		if (!f) {
+			if (g_verbose && g_verbose->integer) {
+				gi.Com_PrintFmt("{}: MotD file not found: {}\n", __FUNCTION__, resolvedPathString);
+			}
+
+			return false;
 		}
-	}
 
-	const std::string motdPath = resolvedPath.string();
-	FILE* f = fopen(motdPath.c_str(), "rb");
+		bool valid = true;
+		std::string contents;
 
-	if (!f) {
-		return;
-	}
-
-	bool valid = true;
-	std::string contents;
-
-	if (fseek(f, 0, SEEK_END) != 0) {
-		valid = false;
-	}
-
-	long endPosition = valid ? ftell(f) : -1;
-
-	if (endPosition < 0) {
-		valid = false;
-	}
-
-	if (valid) {
-		if (fseek(f, 0, SEEK_SET) != 0) {
+		if (fseek(f, 0, SEEK_END) != 0) {
 			valid = false;
 		}
-	}
 
-	if (valid) {
-		const std::size_t length = static_cast<std::size_t>(endPosition);
+		long endPosition = valid ? ftell(f) : -1;
 
-		if (length > 0x40000) {
-			gi.Com_PrintFmt("{}: MotD file length exceeds maximum: {}\n", __FUNCTION__, motdPath);
+		if (endPosition < 0) {
 			valid = false;
 		}
-		else {
-			contents.resize(length);
 
-			if (length > 0) {
-				const std::size_t readLength = fread(contents.data(), 1, length, f);
+		if (valid) {
+			if (fseek(f, 0, SEEK_SET) != 0) {
+				valid = false;
+			}
+		}
 
-				if (readLength != length) {
-					gi.Com_PrintFmt("{}: MotD file read error: {}\n", __FUNCTION__, motdPath);
-					valid = false;
+		if (valid) {
+			const std::size_t length = static_cast<std::size_t>(endPosition);
+
+			if (length > 0x40000) {
+				gi.Com_PrintFmt("{}: MotD file length exceeds maximum: {}\n", __FUNCTION__, resolvedPathString);
+				valid = false;
+			}
+
+			else {
+				contents.resize(length);
+
+				if (length > 0) {
+					const std::size_t readLength = fread(contents.data(), 1, length, f);
+
+					if (readLength != length) {
+						gi.Com_PrintFmt("{}: MotD file read error: {}\n", __FUNCTION__, resolvedPathString);
+						valid = false;
+					}
 				}
 			}
 		}
-	}
 
-	fclose(f);
+		fclose(f);
 
-	if (valid) {
-		game.motd = contents;
-		game.motdModificationCount++;
+		if (valid) {
+			game.motd = contents;
+			game.motdModificationCount++;
 
-		if (g_verbose->integer) {
-			gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, motdPath);
+			if (g_verbose && g_verbose->integer) {
+				gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, resolvedPathString);
+			}
+
+			return true;
 		}
-	}
-	else {
-		gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, motdPath);
+
+		gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, resolvedPathString);
+		return false;
+	};
+
+	while (!loaded) {
+		bool validPathFound = false;
+
+		for (const std::filesystem::path& basePath : motdRoots) {
+			std::filesystem::path resolvedPath;
+
+			if (!validateAndResolve(effectiveName, basePath, resolvedPath)) {
+				continue;
+			}
+
+			validPathFound = true;
+
+			if (loadMotdFile(resolvedPath)) {
+				loaded = true;
+				break;
+			}
+		}
+
+		if (loaded) {
+			break;
+		}
+
+		if (!validPathFound) {
+			if (!invalidNameReported) {
+				gi.Com_PrintFmt("{}: Invalid MotD filename, ignoring: {}\n", __FUNCTION__, effectiveName);
+				invalidNameReported = true;
+				effectiveName = "motd.txt";
+				continue;
+			}
+
+			gi.Com_PrintFmt("{}: Default MotD filename failed validation: {}\n", __FUNCTION__, effectiveName);
+			return;
+		}
+
+		return;
 	}
 }
 
@@ -995,6 +1053,7 @@ static void InitGame() {
 	g_maps_cycle_file = gi.cvar("g_maps_cycle_file", "mapcycle.txt", CVAR_NOFLAGS);
 	g_maps_selector = gi.cvar("g_maps_selector", "1", CVAR_NOFLAGS);
 	g_maps_mymap = gi.cvar("g_maps_mymap", "1", CVAR_NOFLAGS);
+	g_maps_mymap_queue_limit = gi.cvar("g_maps_mymap_queue_limit", "8", CVAR_NOFLAGS);
 	g_maps_allow_custom_textures = gi.cvar("g_maps_allow_custom_textures", "1", CVAR_NOFLAGS);
 	g_maps_allow_custom_sounds = gi.cvar("g_maps_allow_custom_sounds", "1", CVAR_NOFLAGS);
 

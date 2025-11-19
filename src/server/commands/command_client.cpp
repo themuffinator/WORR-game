@@ -675,7 +675,11 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 		}
 
 		std::string_view socialID = ent->client->sess.socialID;
-		game.mapSystem.EnqueueMyMapRequest(*map, socialID, enableFlags, disableFlags, level.time);
+		const auto enqueueResult = game.mapSystem.EnqueueMyMapRequest(*map, socialID, enableFlags, disableFlags, level.time);
+		if (!enqueueResult.accepted) {
+			gi.Client_Print(ent, PRINT_HIGH, "MyMap queueing is currently disabled.\n");
+			return;
+		}
 
 		std::string display = map->filename;
 		for (const auto& flag : flagArgs) {
@@ -685,8 +689,11 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 
 		gi.LocClient_Print(ent, PRINT_HIGH, "MyMap queued: {}.\n", display.c_str());
 		gi.LocBroadcast_Print(PRINT_HIGH, "{} queued {} for MyMap.\n",
-		ent->client->sess.netName,
-		display.c_str());
+			ent->client->sess.netName,
+			display.c_str());
+		if (enqueueResult.evictedOldest) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "MyMap queue was full; the oldest request was replaced.\n");
+		}
 	}
 
 	void MySkill(gentity_t* ent, const CommandArgs& args) {

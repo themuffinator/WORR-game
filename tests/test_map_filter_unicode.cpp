@@ -1,10 +1,11 @@
 #include <algorithm>
 #include <cassert>
 #include <cctype>
+#include <cstddef>
 #include <string>
 #include <vector>
 
-void SanitizeSpectatorString(const char* in, char* out);
+void SanitizeSpectatorString(const char* in, char* out, size_t outSize);
 
 struct MapRecord {
 	std::string filename;
@@ -55,13 +56,19 @@ int main() {
 	const std::string highByteNeedle = std::string(1, static_cast<char>(0xFF));
 	const bool highByteMatch = str_contains_case(maps.back().longName, highByteNeedle);
 	assert(highByteMatch);
-
+	
 	char sanitizedBuffer[32] = {};
-	SanitizeSpectatorString("FJ\xC3\x96RD\x1F", sanitizedBuffer);
+	SanitizeSpectatorString("FJ\xC3\x96RD\x1F", sanitizedBuffer, sizeof(sanitizedBuffer));
 	assert(std::string(sanitizedBuffer) == "fj\xC3\x96rd");
-
-	SanitizeSpectatorString("\xFFChamp\x01", sanitizedBuffer);
+	
+	SanitizeSpectatorString("\xFFChamp\x01", sanitizedBuffer, sizeof(sanitizedBuffer));
 	assert(std::string(sanitizedBuffer) == "\xFFchamp");
+	
+	char nearLimitBuffer[8];
+	std::fill(std::begin(nearLimitBuffer), std::end(nearLimitBuffer), 'x');
+	SanitizeSpectatorString("123456789", nearLimitBuffer, sizeof(nearLimitBuffer));
+	assert(std::string(nearLimitBuffer) == "1234567");
+	assert(nearLimitBuffer[7] == '\0');
 
 	return 0;
 }

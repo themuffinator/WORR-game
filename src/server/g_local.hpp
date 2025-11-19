@@ -8,6 +8,7 @@ class Menu;
 #include "../shared/bg_local.hpp"
 #include "../shared/map_validation.hpp"
 #include "../shared/version.hpp"
+#include "../shared/string_compat.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <filesystem>
@@ -2030,12 +2031,21 @@ struct MapSystem {
 	std::vector<QueuedMap> playQueue;
 	std::vector<MyMapRequest> myMapQueue;
 
+	static constexpr int DEFAULT_MYMAP_QUEUE_LIMIT = 8;
+
+	struct MyMapEnqueueResult {
+		bool accepted = false;
+		bool evictedOldest = false;
+	};
+
 	bool MapExists(std::string_view mapName) const;
 
 	bool IsMapInQueue(const std::string& mapName) const;
 	bool IsClientInQueue(const std::string& socialID) const;
 
-	void EnqueueMyMapRequest(const MapEntry& map,
+	void PruneQueuesToMapPool(std::vector<std::string>* removedRequests = nullptr);
+
+	MyMapEnqueueResult EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
 		uint16_t enableFlags,
 		uint16_t disableFlags,
@@ -2045,6 +2055,37 @@ struct MapSystem {
 
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
+
+struct MapPoolLocation {
+	std::string path;
+	bool loadedFromMod = false;
+};
+
+/*
+=============
+G_ResolveMapPoolPath
+
+Selects the map pool JSON path, preferring the active gamedir when it
+contains the configured file and falling back to GAMEVERSION otherwise.
+=============
+*/
+inline MapPoolLocation G_ResolveMapPoolPath()
+{
+	const char* poolFile = (g_maps_pool_file && g_maps_pool_file->string) ? g_maps_pool_file->string : "";
+	const std::string basePath = std::string(GAMEVERSION) + "/" + poolFile;
+
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
+			const std::string modPath = std::string(gameCvar->string) + "/" + poolFile;
+			std::ifstream file(modPath, std::ifstream::binary);
+			if (file.is_open())
+				return { modPath, true };
+		}
+	}
+
+	return { basePath, false };
+}
 
 /*
 ===============
@@ -2114,14 +2155,37 @@ MapSystem::EnqueueMyMapRequest
 
 Adds a MyMap request to both the play queue and the persistent
 MyMap request log, preserving flag overrides and request metadata.
+Respects g_maps_mymap_queue_limit to cap queue size, evicting the
+oldest entry when full or rejecting requests when the limit is
+disabled. Returns the operation outcome flags.
 ========================
 */
-inline void MapSystem::EnqueueMyMapRequest(const MapEntry& map,
+inline MapSystem::MyMapEnqueueResult MapSystem::EnqueueMyMapRequest(const MapEntry& map,
 	std::string_view socialID,
 	uint16_t enableFlags,
 	uint16_t disableFlags,
 	GameTime queuedTime)
 {
+	MyMapEnqueueResult result{};
+
+	const int maxQueue = g_maps_mymap_queue_limit ? g_maps_mymap_queue_limit->integer : DEFAULT_MYMAP_QUEUE_LIMIT;
+	if (maxQueue <= 0) {
+		gi.Com_PrintFmt("{}: rejected MyMap request for '{}' because the queue limit is disabled (<= 0)\n",
+			__FUNCTION__, map.filename.c_str());
+		return result;
+	}
+
+	if (playQueue.size() >= static_cast<size_t>(maxQueue)) {
+		if (!playQueue.empty()) {
+			const auto& evicted = playQueue.front();
+			gi.Com_PrintFmt("{}: MyMap queue full ({}). Evicting '{}'.\n", __FUNCTION__, maxQueue, evicted.filename.c_str());
+			playQueue.erase(playQueue.begin());
+			if (!myMapQueue.empty())
+				myMapQueue.erase(myMapQueue.begin());
+			result.evictedOldest = true;
+		}
+	}
+
 	QueuedMap queued{};
 	queued.filename = map.filename;
 	queued.socialID.assign(socialID.begin(), socialID.end());
@@ -2136,6 +2200,9 @@ inline void MapSystem::EnqueueMyMapRequest(const MapEntry& map,
 	request.disableFlags = disableFlags;
 	request.queuedTime = queuedTime;
 	myMapQueue.push_back(std::move(request));
+
+	result.accepted = true;
+	return result;
 }
 
 struct HelpMessage {
@@ -2703,18 +2770,13 @@ std::array<gentity_t*, 4> outOfBounds{};
 	uint16_t	vote_flags_enable = 0;
 	uint16_t	vote_flags_disable = 0;
 
-	// map selector
-	struct {
-		std::array<const MapEntry*, 3> candidates = { nullptr, nullptr, nullptr };
-		std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
-		std::array<int, 3> voteCounts = { 0, 0, 0 };
-		GameTime voteStartTime = 0_ms;
-	} mapSelector;
-
-	//RA2 support
-	int			arenaActive = 0;
-	int			arenaTotal = 0;
-
+		// map selector
+		struct {
+			std::array<std::string, 3> candidates{};
+			std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
+			std::array<int, 3> voteCounts = { 0, 0, 0 };
+			GameTime voteStartTime = 0_ms;
+		} mapSelector;
 	std::array<Ghosts, MAX_CLIENTS> ghosts{};
 
 	int			autoScreenshotTool_index = 0;
@@ -3578,6 +3640,7 @@ extern cvar_t* g_maps_pool_file;
 extern cvar_t* g_maps_cycle_file;
 extern cvar_t* g_maps_selector;
 extern cvar_t* g_maps_mymap;
+extern cvar_t* g_maps_mymap_queue_limit;
 extern cvar_t* g_maps_allow_custom_textures;
 extern cvar_t* g_maps_allow_custom_sounds;
 
@@ -4376,6 +4439,7 @@ void LoadMapPool(gentity_t* ent);
 void LoadMapCycle(gentity_t* ent);
 std::optional<MapEntry> AutoSelectNextMap();
 std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates = 3);
+void MapSelector_ClearVote(LevelLocals& levelState, int clientIndex);
 int PrintMapListFiltered(gentity_t* ent, bool cycleOnly, const std::string& filterQuery);
 
 //

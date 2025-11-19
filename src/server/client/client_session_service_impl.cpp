@@ -797,11 +797,14 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 			}
 		}
 
-		FreeClientFollowers(ent);
+	FreeClientFollowers(ent);
 
-		G_RevertVote(cl);
+	const int clientIndex = ent->s.number - 1;
+	MapSelector_ClearVote(level_, clientIndex);
 
-		P_SaveGhostSlot(ent);
+	G_RevertVote(cl);
+
+	P_SaveGhostSlot(ent);
 
 		gi_.unlinkEntity(ent);
 		ent->s.modelIndex = 0;

@@ -1,4 +1,4 @@
-#include "freezetag_damage.hpp"
+#include "server/gameplay/freezetag_damage.hpp"
 
 #include <cassert>
 

@@ -49,7 +49,8 @@ q2dm1 q2dm2, q2dm3
 Only maps flagged `dm: true` in the active pool are eligible for the cycle.
 
 ### MyMap Queue
-Enable personal map requests with `g_maps_mymap`. Each player may queue one map (max 8 across the lobby) using optional overrides:
+Enable personal map requests with `g_maps_mymap`. Each player may queue one map; the lobby queue defaults to eight entries and can be tuned via `g_maps_mymap_queue_limit`, which evicts the oldest entry when full or rejects new requests when set to `0`.
+Queue maps with optional overrides:
 ```text
 mymap q2dm1 +pu -ht
 ```
