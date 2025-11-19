@@ -323,8 +323,17 @@ void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
 
+std::string poolFilename;
+std::string poolRejectReason;
+	if (!G_SanitizeMapConfigFilename(g_maps_pool_file->string, poolFilename, poolRejectReason)) {
+		if (entClient)
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Invalid filename '{}': {}. Using default 'mapdb.json'.\n", g_maps_pool_file->string, poolRejectReason.c_str());
+		gi.Com_PrintFmt("{}: invalid g_maps_pool_file '{}': {}. Using default 'mapdb.json'.\n", __FUNCTION__, g_maps_pool_file->string, poolRejectReason.c_str());
+		poolFilename = "mapdb.json";
+	}
+
 	std::string path = "baseq2/";
-	path += g_maps_pool_file->string;
+	path += poolFilename;
 
 	std::ifstream file(path, std::ifstream::binary);
 	if (!file.is_open()) {
@@ -420,8 +429,17 @@ LoadMapCycle
 void LoadMapCycle(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 
+	std::string cycleFilename;
+	std::string cycleRejectReason;
+	if (!G_SanitizeMapConfigFilename(g_maps_cycle_file->string, cycleFilename, cycleRejectReason)) {
+		if (entClient)
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapCycle] Invalid filename '{}': {}. Using default 'mapcycle.txt'.\n", g_maps_cycle_file->string, cycleRejectReason.c_str());
+		gi.Com_PrintFmt("{}: invalid g_maps_cycle_file '{}': {}. Using default 'mapcycle.txt'.\n", __FUNCTION__, g_maps_cycle_file->string, cycleRejectReason.c_str());
+		cycleFilename = "mapcycle.txt";
+	}
+
 	std::string path = "baseq2/";
-	path += g_maps_cycle_file->string;
+	path += cycleFilename;
 
 	std::ifstream file(path);
 	if (!file.is_open()) {
