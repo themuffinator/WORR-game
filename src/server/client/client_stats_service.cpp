@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 
 namespace worr::server::client {
 namespace {
@@ -39,6 +40,22 @@ stats via the client config store.
 =============
 */
 void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& context) {
+	std::optional<int> defaultSkillRating;
+	auto defaultSkillRatingForClient = [&]() {
+		if (!defaultSkillRating.has_value())
+			defaultSkillRating = GetClientConfigStore().DefaultSkillRating();
+
+		return *defaultSkillRating;
+	};
+
+	for (auto* ent : context.participants) {
+		if (!ent || !ent->client)
+			continue;
+
+		if (std::isnan(ent->client->sess.skillRating))
+			ent->client->sess.skillRating = static_cast<float>(defaultSkillRatingForClient());
+	}
+
 	if (!context.allowSkillAdjustments) {
 		if (g_verbose->integer) {
 			gi.Com_Print("AdjustSkillRatings: Not all players are human, skipping skill rating adjustment.\n");
@@ -51,16 +68,6 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 			GetClientConfigStore().SaveStats(ent->client, false);
 		}
 		return;
-	}
-
-	for (int i = 0; i < MAX_CLIENTS; ++i) {
-		gentity_t* ent = &g_entities[i];
-		if (!ent->inUse || !ent->client)
-			continue;
-
-		gclient_t* cl = ent->client;
-		if (cl->sess.skillRating != cl->sess.skillRating)
-			cl->sess.skillRating = cl->sess.skillRating;
 	}
 
 	if (context.participants.empty())
