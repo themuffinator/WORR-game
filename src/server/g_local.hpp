@@ -8,6 +8,7 @@ class Menu;
 #include "../shared/bg_local.hpp"
 #include "../shared/map_validation.hpp"
 #include "../shared/version.hpp"
+#include "../shared/string_compat.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <filesystem>
