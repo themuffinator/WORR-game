@@ -111,6 +111,13 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 
 	} // namespace follow
 
+/*
+=============
+Forfeit
+
+Allows the losing player in a duel to forfeit the match.
+=============
+*/
 	void Forfeit(gentity_t* ent, const CommandArgs& args) {
 		if (!Game::Has(GameFlags::OneVOne)) {
 			gi.Client_Print(ent, PRINT_HIGH, "Forfeit is only available during Duel or Gauntlet.\n");
@@ -120,7 +127,17 @@ void Wave(gentity_t* ent, const CommandArgs& args);
 			gi.Client_Print(ent, PRINT_HIGH, "Forfeit is not available during warmup.\n");
 			return;
 		}
-		if (ent->client != &game.clients[level.sortedClients[1]]) {
+		const int runnerUpIndex = level.sortedClients[1];
+		if (runnerUpIndex < 0 || runnerUpIndex >= game.maxClients) {
+			gi.Client_Print(ent, PRINT_HIGH, "No opponent to forfeit against.\n");
+			return;
+		}
+		gclient_t* runnerUp = &game.clients[runnerUpIndex];
+		if (!runnerUp->pers.connected) {
+			gi.Client_Print(ent, PRINT_HIGH, "No opponent to forfeit against.\n");
+			return;
+		}
+		if (ent->client != runnerUp) {
 			gi.Client_Print(ent, PRINT_HIGH, "Forfeit is only available to the losing player.\n");
 			return;
 		}
