@@ -107,8 +107,8 @@ void MapSelectorFinalize() {
 		level.changeMap = filename;
 
 		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
-				filename,
-				longName);
+						filename,
+						longName);
 
 		AnnouncerSound(world, "vote_passed");
 	}
@@ -117,11 +117,26 @@ void MapSelectorFinalize() {
 		if (fallback) {
 			level.changeMap = fallback->filename.c_str();
 			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
-					fallback->filename.c_str(),
-					fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
+						fallback->filename.c_str(),
+						fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
 		}
 		else {
-			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
+			std::string safeMap = level.nextMap.data();
+			if (safeMap.empty())
+				safeMap = level.mapName.data();
+
+			if (safeMap.empty() && !game.mapSystem.mapPool.empty())
+				safeMap = game.mapSystem.mapPool.front().filename;
+
+			if (safeMap.empty())
+				safeMap = "base1";
+
+			level.changeMap = safeMap;
+
+			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match. Replaying {}.\n",
+						level.changeMap.c_str());
+			gi.Broadcast_Print(PRINT_HIGH, "[ADMIN]: Map selection failed; check mapcycle/configuration. Fallback map: {}.\n",
+						level.changeMap.c_str());
 		}
 		AnnouncerSound(world, "vote_failed");
 	}
