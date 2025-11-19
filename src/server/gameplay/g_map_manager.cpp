@@ -166,6 +166,76 @@ void MapSelector_ClearVote(LevelLocals& levelState, int clientIndex) {
 
 	ms.votes[clientIndex] = -1;
 }
+
+/*
+=============
+MapSelector_SyncVotes
+
+Removes votes from invalid or disconnected clients, recomputes vote tallies
+from active voters, and marks menus dirty when the state changes.
+=============
+*/
+int MapSelector_SyncVotes(LevelLocals& levelState) {
+	auto& ms = levelState.mapSelector;
+
+	const auto previousCounts = ms.voteCounts;
+	bool votesCleared = false;
+
+	ms.voteCounts.fill(0);
+
+	int totalVoters = 0;
+	for (int i = 0; i < MAX_CLIENTS; ++i) {
+		const int previousVote = ms.votes[i];
+		gentity_t* ent = nullptr;
+
+		if (g_entities && (i + 1) < globals.numEntities)
+		ent = &g_entities[i + 1];
+
+		if (!ent || !ent->inUse || !ent->client || !ent->client->pers.connected) {
+			if (previousVote != -1) {
+				ms.votes[i] = -1;
+				votesCleared = true;
+			}
+			continue;
+		}
+
+		gclient_t* cl = ent->client;
+		if (cl->sess.is_a_bot) {
+			if (previousVote != -1) {
+				ms.votes[i] = -1;
+				votesCleared = true;
+			}
+			continue;
+		}
+
+		if (!ClientIsPlaying(cl) && !g_allowSpecVote->integer) {
+			if (previousVote != -1) {
+				ms.votes[i] = -1;
+				votesCleared = true;
+			}
+			continue;
+		}
+
+		++totalVoters;
+
+		const int vote = ms.votes[i];
+		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && !ms.candidates[vote].empty()) {
+			ms.voteCounts[vote]++;
+		}
+		else if (vote != -1) {
+			ms.votes[i] = -1;
+			votesCleared = true;
+		}
+	}
+
+	if (votesCleared || ms.voteCounts != previousCounts) {
+		for (auto ec : active_players()) {
+			ec->client->menu.doUpdate = true;
+		}
+	}
+
+	return totalVoters;
+}
 /*
 =============
 MapSelectorBegin
@@ -245,14 +315,11 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 	if (ms.votes[clientNum] == voteIndex)
 		return;
 
-	// Remove previous vote if any
-	if (int prevVote = ms.votes[clientNum]; prevVote >= 0 && prevVote < 3) {
-		ms.voteCounts[prevVote] = std::max(0, ms.voteCounts[prevVote] - 1);
-	}
-
 	// Store new vote
 	ms.votes[clientNum] = voteIndex;
-	ms.voteCounts[voteIndex]++;
+
+	// Recompute tallies to purge stale voters and keep counts in sync
+	const int totalVoters = MapSelector_SyncVotes(level);
 
 	// Feedback
 	const char* mapName = candidate
@@ -260,25 +327,12 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 		: candidateId.c_str();
 
 	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
-		ent->client->sess.netName, mapName);
+			ent->client->sess.netName, mapName);
 
 	// Mark menu dirty to update HUD/bar
 	ent->client->menu.doUpdate = true;
 
 	// === Early vote finalization check ===
-
-	// Count number of eligible voters
-	int totalVoters = 0;
-	for (auto ec : active_clients()) {
-		if (!ec || !ec->client)
-			continue;
-		if (ec->client->sess.is_a_bot)
-			continue;
-		if (!ClientIsPlaying(ec->client) && !g_allowSpecVote->integer)
-			continue;
-		++totalVoters;
-	}
-
 	// If a map has more than half the votes, finalize early
 	for (int i = 0; i < 3; ++i) {
 		if (!ms.candidates[i].empty() && ms.voteCounts[i] > totalVoters / 2) {
