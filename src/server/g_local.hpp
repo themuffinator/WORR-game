@@ -8,6 +8,7 @@ class Menu;
 #include "../shared/bg_local.hpp"
 #include "../shared/map_validation.hpp"
 #include "../shared/version.hpp"
+#include "../shared/string_compat.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <filesystem>
@@ -2042,6 +2043,8 @@ struct MapSystem {
 	bool IsMapInQueue(const std::string& mapName) const;
 	bool IsClientInQueue(const std::string& socialID) const;
 
+	void PruneQueuesToMapPool(std::vector<std::string>* removedRequests = nullptr);
+
 	MyMapEnqueueResult EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
 		uint16_t enableFlags,
@@ -2050,6 +2053,37 @@ struct MapSystem {
 
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
+
+struct MapPoolLocation {
+	std::string path;
+	bool loadedFromMod = false;
+};
+
+/*
+=============
+G_ResolveMapPoolPath
+
+Selects the map pool JSON path, preferring the active gamedir when it
+contains the configured file and falling back to GAMEVERSION otherwise.
+=============
+*/
+inline MapPoolLocation G_ResolveMapPoolPath()
+{
+	const char* poolFile = (g_maps_pool_file && g_maps_pool_file->string) ? g_maps_pool_file->string : "";
+	const std::string basePath = std::string(GAMEVERSION) + "/" + poolFile;
+
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
+			const std::string modPath = std::string(gameCvar->string) + "/" + poolFile;
+			std::ifstream file(modPath, std::ifstream::binary);
+			if (file.is_open())
+				return { modPath, true };
+		}
+	}
+
+	return { basePath, false };
+}
 
 /*
 ===============

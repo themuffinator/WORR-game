@@ -315,6 +315,61 @@ bool MapSystem::IsMapInQueue(const std::string& mapName) const {
 }
 
 /*
+=========================
+MapSystem::PruneQueuesToMapPool
+
+Removes queued map requests that reference maps not present in the current
+map pool. Optionally collects descriptions of removed requests for logging.
+=========================
+*/
+void MapSystem::PruneQueuesToMapPool(std::vector<std::string>* removedRequests)
+{
+	auto mapInPool = [this](const std::string& name) {
+		return GetMapEntry(name) != nullptr;
+	};
+
+	auto playEnd = std::remove_if(playQueue.begin(), playQueue.end(),
+		[&](const QueuedMap& queued) {
+			if (mapInPool(queued.filename))
+				return false;
+
+			if (removedRequests) {
+				std::string details = queued.filename;
+				details += " (play queue";
+				if (!queued.socialID.empty()) {
+					details += ", ";
+					details += queued.socialID;
+				}
+				details += ')';
+				removedRequests->push_back(std::move(details));
+			}
+			return true;
+		});
+
+	playQueue.erase(playEnd, playQueue.end());
+
+	auto myMapEnd = std::remove_if(myMapQueue.begin(), myMapQueue.end(),
+		[&](const MyMapRequest& request) {
+			if (mapInPool(request.mapName))
+				return false;
+
+			if (removedRequests) {
+				std::string details = request.mapName;
+				details += " (MyMap";
+				if (!request.socialID.empty()) {
+					details += ", ";
+					details += request.socialID;
+				}
+				details += ')';
+				removedRequests->push_back(std::move(details));
+			}
+			return true;
+		});
+
+	myMapQueue.erase(myMapEnd, myMapQueue.end());
+}
+
+/*
 ==================
 LoadMapPool
 ==================
@@ -323,14 +378,13 @@ void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
 
-	std::string path = "baseq2/";
-	path += g_maps_pool_file->string;
+	MapPoolLocation location = G_ResolveMapPoolPath();
 
-	std::ifstream file(path, std::ifstream::binary);
+	std::ifstream file(location.path, std::ifstream::binary);
 	if (!file.is_open()) {
 		if (entClient)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
-		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, path.c_str());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", location.path.c_str());
+		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
@@ -341,21 +395,21 @@ void LoadMapPool(gentity_t* ent) {
 	if (!Json::parseFromStream(builder, file, &root, &errs)) {
 		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", errs.c_str());
-		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, path.c_str(), errs.c_str());
+		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, location.path.c_str(), errs.c_str());
 		return;
 	}
 
 	if (!root.isMember("maps") || !root["maps"].isArray()) {
 		if (entClient)
 			gi.Client_Print(ent, PRINT_HIGH, "[MapPool] JSON must contain a 'maps' array.\n");
-		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, path.c_str());
+		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
 	int loaded = 0, skipped = 0;
 	for (const auto& entry : root["maps"]) {
 		if (!entry.isMember("bsp") || !entry["bsp"].isString() ||
-			!entry.isMember("dm") || !entry["dm"].asBool()) {
+				!entry.isMember("dm") || !entry["dm"].asBool()) {
 			skipped++;
 			continue;
 		}
@@ -398,18 +452,41 @@ void LoadMapPool(gentity_t* ent) {
 		map.isCycleable = false;
 		map.lastPlayed = 0;
 
-		newPool.push_back(std::move(map));
-		loaded++;
-	}
+                newPool.push_back(std::move(map));
+                loaded++;
+        }
 
-	game.mapSystem.mapPool.swap(newPool);
+        game.mapSystem.mapPool.swap(newPool);
 
-	if (entClient) {
-		gi.LocClient_Print(ent, PRINT_HIGH,
-			"[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
-			loaded, (loaded == 1 ? "" : "s"), path.c_str(),
-			skipped, (skipped == 1 ? "y" : "ies"));
-	}
+        std::vector<std::string> removedRequests;
+        game.mapSystem.PruneQueuesToMapPool(&removedRequests);
+
+        if (entClient) {
+                gi.LocClient_Print(ent, PRINT_HIGH,
+                        "[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
+                        loaded, (loaded == 1 ? "" : "s"), path.c_str(),
+                        skipped, (skipped == 1 ? "y" : "ies"));
+        }
+
+        if (!removedRequests.empty()) {
+                std::string removedList;
+                for (size_t i = 0; i < removedRequests.size(); ++i) {
+                        if (i > 0)
+                                removedList += ", ";
+                        removedList += removedRequests[i];
+                }
+
+                if (entClient) {
+                        gi.LocClient_Print(ent, PRINT_HIGH,
+                                "[MapPool] Removed {} queued request{} referencing missing maps: {}\n",
+                                removedRequests.size(), (removedRequests.size() == 1 ? "" : "s"),
+                                removedList.c_str());
+                }
+
+                gi.Com_PrintFmt("{}: removed {} queued request{} referencing missing maps: {}\n",
+                        __FUNCTION__, removedRequests.size(), (removedRequests.size() == 1 ? "" : "s"),
+                        removedList.c_str());
+        }
 }
 
 /*
