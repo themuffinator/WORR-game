@@ -112,6 +112,27 @@ void MapSelectorFinalize() {
 
 /*
 =============
+MapSelector_ClearVote
+
+Removes a client's active map vote and keeps the tallies in sync so stale
+votes cannot influence early majority detection.
+=============
+*/
+void MapSelector_ClearVote(LevelLocals& levelState, int clientIndex) {
+	if (clientIndex < 0 || clientIndex >= MAX_CLIENTS)
+		return;
+
+	auto& ms = levelState.mapSelector;
+
+	const int previousVote = ms.votes[clientIndex];
+	if (previousVote >= 0 && previousVote < static_cast<int>(ms.voteCounts.size())) {
+		ms.voteCounts[previousVote] = std::max(0, ms.voteCounts[previousVote] - 1);
+	}
+
+	ms.votes[clientIndex] = -1;
+}
+/*
+=============
 MapSelectorBegin
 =============
 */
