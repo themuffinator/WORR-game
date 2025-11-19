@@ -581,25 +581,23 @@ void LoadMapCycle(gentity_t* ent) {
 	const char* rawCycle = (g_maps_cycle_file && g_maps_cycle_file->string) ? g_maps_cycle_file->string : "";
 	if (!G_SanitizeMapConfigFilename(rawCycle, sanitizedCycleFile, rejectReason)) {
 		gi.Com_PrintFmt("{}: invalid g_maps_cycle_file \"{}\" ({}) falling back to {}\n",
-			__FUNCTION__, rawCycle, rejectReason.c_str(), defaultCycleFile);
+				__FUNCTION__, rawCycle, rejectReason.c_str(), defaultCycleFile);
 		sanitizedCycleFile = defaultCycleFile;
 
 		if (entClient) {
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapCycle] Invalid g_maps_cycle_file: {}. Using {}.\n",
-				rejectReason.c_str(), defaultCycleFile);
+					rejectReason.c_str(), defaultCycleFile);
 		}
 	}
 
-	std::string path = "baseq2/";
-	path += sanitizedCycleFile;
+	MapPoolLocation location = G_ResolveMapCyclePath(sanitizedCycleFile);
 
-	std::ifstream file(path);
+	std::ifstream file(location.path);
 	if (!file.is_open()) {
 		if (ent && ent->client)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapCycle] Failed to open file: {}\n", location.path.c_str());
 		return;
 	}
-
 
 	// Reset cycleable flags
 	for (auto& m : game.mapSystem.mapPool)
