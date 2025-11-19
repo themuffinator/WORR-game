@@ -1533,10 +1533,12 @@ static void TakeIntermissionScreenshot() {
 
 	// Duel screenshots: show player vs player
 	if (Game::Is(GameType::Duel)) {
-		const gentity_t* e1 = &g_entities[level.sortedClients[0] + 1];
-		const gentity_t* e2 = &g_entities[level.sortedClients[1] + 1];
+		const bool hasP1 = level.sortedClients[0] >= 0;
+		const bool hasP2 = level.sortedClients[1] >= 0;
+		const gentity_t* e1 = hasP1 ? &g_entities[level.sortedClients[0] + 1] : nullptr;
+		const gentity_t* e2 = hasP2 ? &g_entities[level.sortedClients[1] + 1] : nullptr;
 		const char* n1 = (e1 && e1->client && e1->client->sess.netName[0]) ? e1->client->sess.netName : "player1";
-		const char* n2 = (e2 && e2->client && e2->client->sess.netName[0]) ? e2->client->sess.netName : "player2";
+		const char* n2 = (e2 && e2->client && e2->client->sess.netName[0]) ? e2->client->sess.netName : (hasP2 ? "player2" : "opponent");
 
 		filename = G_Fmt("screenshot {}-vs-{}-{}-{}\n", n1, n2, level.mapName.data(), timestamp);
 	}
