@@ -8,6 +8,7 @@ class Menu;
 #include "../shared/bg_local.hpp"
 #include "../shared/map_validation.hpp"
 #include "../shared/version.hpp"
+#include "../shared/string_compat.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
 #include <filesystem>
@@ -2034,6 +2035,8 @@ struct MapSystem {
 
 	bool IsMapInQueue(const std::string& mapName) const;
 	bool IsClientInQueue(const std::string& socialID) const;
+
+	void PruneQueuesToMapPool(std::vector<std::string>* removedRequests = nullptr);
 
 	void EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,

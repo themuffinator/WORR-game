@@ -1,16 +1,10 @@
 #pragma once
 
+#include "../../shared/string_compat.hpp"
 #include <array>
 #include <cstdint>
 #include <string>
 #include <vector>
-
-#ifndef _WIN32
-#include <strings.h>
-#ifndef _stricmp
-#define _stricmp strcasecmp
-#endif
-#endif
 
 namespace detail {
 	struct MapFlagDefinition {
