@@ -69,23 +69,25 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 			return;
 
 		const int vote = ms.votes[clientNum];
-		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && ms.candidates[vote]);
+		const bool hasVoted = (vote >= 0 && vote < NUM_CANDIDATES && !ms.candidates[vote].empty());
 
 		if (!hasVoted) {
 			menu.entries[headerIndex].text = "Vote for the next arena:";
 
 			for (int i = 0; i < NUM_CANDIDATES; ++i) {
 				const int idx = voteEntryIndices[i];
-				auto* candidate = ms.candidates[i];
+				const auto& candidateId = ms.candidates[i];
+				const MapEntry* candidate = game.mapSystem.GetMapEntry(candidateId);
 
-				if (candidate) {
-					menu.entries[idx].text = candidate->longName.empty()
-						? candidate->filename
-						: candidate->longName;
+				if (!candidateId.empty()) {
+					const std::string candidateName = candidate && !candidate->longName.empty()
+						? candidate->longName
+						: candidateId;
 
+					menu.entries[idx].text = candidateName;
 					menu.entries[idx].onSelect = [i](gentity_t* ent, Menu& menu) {
 						MapSelector_CastVote(ent, i);
-						};
+					};
 					menu.entries[idx].align = MenuAlign::Left;
 				}
 				else {
@@ -104,8 +106,9 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 				menu.entries[idx].onSelect = nullptr;
 			}
 
-			const MapEntry* voted = ms.candidates[vote];
-			const std::string name = voted->longName.empty() ? voted->filename : voted->longName;
+			const auto& candidateId = ms.candidates[vote];
+			const MapEntry* voted = game.mapSystem.GetMapEntry(candidateId);
+			const std::string name = (voted && !voted->longName.empty()) ? voted->longName : candidateId;
 			menu.entries[ackIndex].text = "Vote cast:";
 			menu.entries[ackIndex + 1].text = G_Fmt("{}", name);
 		}
