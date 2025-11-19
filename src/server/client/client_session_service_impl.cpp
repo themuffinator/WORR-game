@@ -801,6 +801,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 
 	const int clientIndex = ent->s.number - 1;
 	MapSelector_ClearVote(level_, clientIndex);
+	MapSelector_SyncVotes(level_);
 
 	G_RevertVote(cl);
 
