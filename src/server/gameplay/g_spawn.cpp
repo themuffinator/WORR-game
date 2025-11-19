@@ -1776,7 +1776,8 @@ static void MapPostProcess(gentity_t* ent) {
 TryLoadEntityOverride
 ==============
 */
-static const char* TryLoadEntityOverride(const char* mapName, const char* default_entities) {
+static const char* TryLoadEntityOverride(const char* mapName, const char* default_entities, bool& overrideAllocated) {
+	overrideAllocated = false;
 	if (!mapName || !G_IsValidMapIdentifier(mapName)) {
 		gi.Com_PrintFmt("{}: refusing to use invalid map identifier for entity override: \"{}\"\n", __FUNCTION__, mapName ? mapName : "<null>");
 		return default_entities;
@@ -1805,8 +1806,10 @@ static const char* TryLoadEntityOverride(const char* mapName, const char* defaul
 					if (VerifyEntityString(buffer.data())) {
 						if (g_verbose->integer)
 							gi.Com_PrintFmt("{}: Entities override file verified and loaded: \"{}\"\n", __FUNCTION__, overridePath.c_str());
-						char* out = (char*)gi.TagMalloc(buffer.size(), TAG_GAME);
+
+						char* out = (char*)gi.TagMalloc(buffer.size(), TAG_LEVEL);
 						memcpy(out, buffer.data(), buffer.size());
+						overrideAllocated = true;
 						return out;
 					}
 				}
@@ -1843,8 +1846,13 @@ parsing textual entity definitions out of an ent file.
 */
 void SpawnEntities(const char* mapName, const char* entities, const char* spawnPoint) {
 	if (entities && *entities) {
-		entities = TryLoadEntityOverride(mapName, entities);
-		level.savedEntityString.assign(entities);
+		bool overrideAllocated = false;
+		const char* loadedEntities = TryLoadEntityOverride(mapName, entities, overrideAllocated);
+		level.savedEntityString.assign(loadedEntities);
+		if (overrideAllocated) {
+			gi.TagFree((void*)loadedEntities);
+		}
+		entities = level.savedEntityString.c_str();
 	}
 	else {
 		if (g_verbose->integer) {
@@ -1852,8 +1860,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		}
 
 		level.savedEntityString.clear();
-		static const char emptyEntityString[] = "";
-		entities = emptyEntityString;
+		entities = level.savedEntityString.c_str();
 	}
 
 	// Clamp skill level to valid range [0, 4]
@@ -1871,15 +1878,22 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	gi.FreeTags(TAG_LEVEL);
 	ResetLevelLocals();
 	Domination_ClearState();
-	HeadHunters::ClearState();
-	ProBall::ClearState();
-	ProBall::ClearState();
+HeadHunters::ClearState();
+ProBall::ClearState();
 	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
+	globals.numEntities = game.maxClients + 1;
+	std::memset(world, 0, sizeof(*world));
+	world->s.number = 0;
+	level.bodyQue = 0;
+	InitBodyQue();
 
 	globals.serverFlags |= SERVER_FLAG_LOADING;
 
 	Q_strlcpy(level.mapName.data(), mapName, level.mapName.size());
+
+	if (g_dm_exec_level_cfg->integer)
+		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
 	if (!game.autoSaved) {
 		const char* src = spawnPoint ? spawnPoint : "";
 		const size_t cap = game.spawnPoint.size();
@@ -1901,8 +1915,6 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		game.clients[i].pers.limitedLivesStash = 0;
 		game.clients[i].pers.spawned = false;
 	}
-
-	InitBodyQue();
 
 	int inhibited = 0;
 	bool firstEntity = true;

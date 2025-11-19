@@ -28,6 +28,8 @@
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
+#include <cstring>
+#include <array>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -773,8 +775,17 @@ static void InitGame() {
 
 	G_InitSave();
 
+	game = {};
+
 	std::random_device rd;
 	game.mapRNG.seed(rd());
+
+	std::mt19937 mapRNGPreview = game.mapRNG;
+	std::array<uint32_t, 3> mapRNGPreviewValues = {};
+	for (auto &value : mapRNGPreviewValues)
+	value = mapRNGPreview();
+
+	gi.Com_PrintFmt("InitGame: map RNG preview values: {}, {}, {}\n", mapRNGPreviewValues[0], mapRNGPreviewValues[1], mapRNGPreviewValues[2]);
 
 	// seed RNG
 	mt_rand.seed((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
@@ -1001,16 +1012,10 @@ static void InitGame() {
 	// ruleset
 	CheckRuleset();
 
-	game = {};
-
-	// initialize all clients for this game
-	AllocateClientArray(maxclients->integer);
-
-	ValidateEntityCapacityOrError(maxentities->integer, game.maxClients);
-
 	// initialize all entities for this game
 	game.maxEntities = maxentities->integer;
 	g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
+	std::memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
 	globals.gentities = g_entities;
 	globals.maxEntities = game.maxEntities;
 
@@ -1048,8 +1053,6 @@ static void InitGame() {
 	// initialise the heatmap system
 	HM_Init();
 
-	if (g_dm_exec_level_cfg->integer)
-		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
 }
 
 //===================================================================
