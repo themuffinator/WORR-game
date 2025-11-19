@@ -877,17 +877,28 @@ void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 		return;
 	}
 
-	if (st.noBots) {
-		ent->flags = FL_NO_BOTS;
+	if (st.was_key_specified("noBots")) {
+		if (st.noBots) {
+			ent->flags |= FL_NO_BOTS;
+		}
+		else {
+			ent->flags &= ~FL_NO_BOTS;
+		}
 	}
 
-	if (st.noHumans) {
-		ent->flags = FL_NO_HUMANS;
+	if (st.was_key_specified("noHumans")) {
+		if (st.noHumans) {
+			ent->flags |= FL_NO_HUMANS;
+		}
+		else {
+			ent->flags &= ~FL_NO_HUMANS;
+		}
 	}
 
 	if (st.arena) {
 		ent->arena = st.arena;
-	}}
+	}
+}
 
 /*
 =============

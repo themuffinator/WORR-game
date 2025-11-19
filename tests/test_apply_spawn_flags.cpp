@@ -1,0 +1,80 @@
+#include <cassert>
+#include <string>
+
+#include "server/client/client_session_service_impl.hpp"
+#include "server/client/client_stats_service.hpp"
+#include "server/gameplay/client_config.hpp"
+#include "server/g_local.hpp"
+
+spawn_temp_t st{};
+
+namespace worr::server::client {
+
+class StubClientStatsService : public ClientStatsService {
+public:
+	/*
+	=============
+	StubClientStatsService::PersistMatchResults
+
+	No-op for testing.
+	=============
+	*/
+	void PersistMatchResults(const MatchStatsContext&) override {}
+
+	/*
+	=============
+	StubClientStatsService::SaveStatsForDisconnect
+
+	No-op for testing.
+	=============
+	*/
+	void SaveStatsForDisconnect(const MatchStatsContext&, gentity_t*) override {}
+};
+
+} // namespace worr::server::client
+
+/*
+=============
+main
+
+Verifies that ApplySpawnFlags preserves existing flags, allows coexistence of
+bot/human restrictions, and leaves unrelated bits untouched.
+=============
+*/
+int main() {
+	local_game_import_t gi{};
+	GameLocals game{};
+	LevelLocals level{};
+	ClientConfigStore configStore(gi, "");
+	worr::server::client::StubClientStatsService statsService{};
+	worr::server::client::ClientSessionServiceImpl service(gi, game, level, configStore, statsService);
+
+	gentity_t ent{};
+	ent.flags = FL_FLASHLIGHT | FL_NO_BOTS;
+
+	st = {};
+	service.ApplySpawnFlags(&ent);
+	assert(ent.flags & FL_NO_BOTS);
+	assert(ent.flags & FL_FLASHLIGHT);
+	assert((ent.flags & FL_NO_HUMANS) == 0);
+
+	st = {};
+	st.keys_specified.insert("noBots");
+	st.keys_specified.insert("noHumans");
+	st.noBots = true;
+	st.noHumans = true;
+	service.ApplySpawnFlags(&ent);
+	assert(ent.flags & FL_NO_BOTS);
+	assert(ent.flags & FL_NO_HUMANS);
+	assert(ent.flags & FL_FLASHLIGHT);
+
+	st = {};
+	st.keys_specified.insert("noBots");
+	st.noBots = false;
+	service.ApplySpawnFlags(&ent);
+	assert(!(ent.flags & FL_NO_BOTS));
+	assert(ent.flags & FL_NO_HUMANS);
+	assert(ent.flags & FL_FLASHLIGHT);
+
+	return 0;
+}
