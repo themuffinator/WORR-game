@@ -28,6 +28,8 @@
 #include <fstream>	// for ent overrides
 #include <algorithm>	// for std::fill
 #include <new>
+#include <type_traits>
+#include <utility>
 
 struct spawn_t {
 	const char* name;
@@ -1997,9 +1999,127 @@ bool G_ResetWorldEntitiesFromSavedString() {
 	if (level.savedEntityString.empty())
 		return false;
 
+	using MapSelectorState = std::remove_reference_t<decltype(level.mapSelector)>;
+
+	struct LevelPersistentState {
+		GameTime		time;
+		GameTime		levelStartTime;
+		int64_t		matchStartRealTime;
+		int64_t		matchEndRealTime;
+		GameTime		exitTime;
+		bool			readyToExit;
+		std::array<char, MAX_QPATH> mapName;
+		std::array<char, MAX_QPATH> longName;
+		std::array<char, MAX_QPATH> nextMap;
+		std::array<char, MAX_QPATH> forceMap;
+		std::string		changeMap;
+		std::string		achievement;
+		std::string		savedEntityString;
+		LevelLocals::Intermission intermission;
+		bool			isN64;
+		Voting			vote;
+		LevelEntry*		entry;
+		Population		pop;
+		MatchState		matchState;
+		WarmupState		warmupState;
+		GameTime		warmupNoticeTime;
+		GameTime		matchStateTimer;
+		int32_t		warmupModificationCount;
+		GameTime		countdownTimerCheck;
+		GameTime		matchEndWarnTimerCheck;
+		int			roundNumber;
+		RoundState		roundState;
+		int			roundStateQueued;
+		GameTime		roundStateTimer;
+		bool			restarted;
+		GameTime		overtime;
+		bool			suddenDeath;
+		std::array<int, static_cast<int>(Team::Total)> locked;
+		GameTime		ctf_last_flag_capture;
+		Team			ctf_last_capture_team;
+		std::array<int, LAST_WEAPON - FIRST_WEAPON> weaponCount;
+		GameTime		no_players_time;
+		bool			strike_red_attacks;
+		bool			strike_flag_touch;
+		bool			strike_turn_red;
+		bool			strike_turn_blue;
+		GameTime		timeoutActive;
+		std::string		matchID;
+		std::array<bool, 3> fragWarning;
+		bool			prepare_to_fight;
+		GameTime		endmatch_grace;
+		MatchOverallStats match;
+		uint16_t		vote_flags_enable;
+		uint16_t		vote_flags_disable;
+		MapSelectorState mapSelector;
+		int			arenaActive;
+		int			arenaTotal;
+		std::array<Ghosts, MAX_CLIENTS> ghosts;
+		int			autoScreenshotTool_index;
+		bool			autoScreenshotTool_initialised;
+		GameTime		autoScreenshotTool_delayTime;
+	} persistent{
+		level.time,
+		level.levelStartTime,
+		level.matchStartRealTime,
+		level.matchEndRealTime,
+		level.exitTime,
+		level.readyToExit,
+		level.mapName,
+		level.longName,
+		level.nextMap,
+		level.forceMap,
+		level.changeMap,
+		level.achievement,
+		level.savedEntityString,
+		level.intermission,
+		level.isN64,
+		level.vote,
+		level.entry,
+		level.pop,
+		level.matchState,
+		level.warmupState,
+		level.warmupNoticeTime,
+		level.matchStateTimer,
+		level.warmupModificationCount,
+		level.countdownTimerCheck,
+		level.matchEndWarnTimerCheck,
+		level.roundNumber,
+		level.roundState,
+		level.roundStateQueued,
+		level.roundStateTimer,
+		level.restarted,
+		level.overtime,
+		level.suddenDeath,
+		level.locked,
+		level.ctf_last_flag_capture,
+		level.ctf_last_capture_team,
+		level.weaponCount,
+		level.no_players_time,
+		level.strike_red_attacks,
+		level.strike_flag_touch,
+		level.strike_turn_red,
+		level.strike_turn_blue,
+		level.timeoutActive,
+		level.matchID,
+		level.fragWarning,
+		level.prepare_to_fight,
+		level.endmatch_grace,
+		level.match,
+		level.vote_flags_enable,
+		level.vote_flags_disable,
+		level.mapSelector,
+		level.arenaActive,
+		level.arenaTotal,
+		level.ghosts,
+		level.autoScreenshotTool_index,
+		level.autoScreenshotTool_initialised,
+		level.autoScreenshotTool_delayTime
+	};
+
 	globals.serverFlags |= SERVER_FLAG_LOADING;
 
-	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
+	const GameTime reloadGraceUntil = persistent.time + FRAME_TIME_MS * 2;
 
 	for (size_t i = static_cast<size_t>(game.maxClients) + BODY_QUEUE_SIZE + 1; i < globals.numEntities; ++i) {
 		gentity_t* ent = &g_entities[i];
@@ -2011,17 +2131,84 @@ bool G_ResetWorldEntitiesFromSavedString() {
 
 	gi.FreeTags(TAG_LEVEL);
 
+	ResetLevelLocals();
+
+	level.time = persistent.time;
+	level.levelStartTime = persistent.levelStartTime;
+	level.matchStartRealTime = persistent.matchStartRealTime;
+	level.matchEndRealTime = persistent.matchEndRealTime;
+	level.exitTime = persistent.exitTime;
+	level.readyToExit = persistent.readyToExit;
+	level.mapName = persistent.mapName;
+	level.longName = persistent.longName;
+	level.nextMap = persistent.nextMap;
+	level.forceMap = persistent.forceMap;
+	level.changeMap = std::move(persistent.changeMap);
+	level.achievement = std::move(persistent.achievement);
+	level.savedEntityString = std::move(persistent.savedEntityString);
+	level.intermission = persistent.intermission;
+	level.vote = persistent.vote;
+	level.entry = persistent.entry;
+	level.pop = persistent.pop;
+	level.matchState = persistent.matchState;
+	level.warmupState = persistent.warmupState;
+	level.warmupNoticeTime = persistent.warmupNoticeTime;
+	level.matchStateTimer = persistent.matchStateTimer;
+	level.warmupModificationCount = persistent.warmupModificationCount;
+	level.countdownTimerCheck = persistent.countdownTimerCheck;
+	level.matchEndWarnTimerCheck = persistent.matchEndWarnTimerCheck;
+	level.roundNumber = persistent.roundNumber;
+	level.roundState = persistent.roundState;
+	level.roundStateQueued = persistent.roundStateQueued;
+	level.roundStateTimer = persistent.roundStateTimer;
+	level.restarted = persistent.restarted;
+	level.overtime = persistent.overtime;
+	level.suddenDeath = persistent.suddenDeath;
+	level.locked = persistent.locked;
+	level.ctf_last_flag_capture = persistent.ctf_last_flag_capture;
+	level.ctf_last_capture_team = persistent.ctf_last_capture_team;
+	level.weaponCount = persistent.weaponCount;
+	level.no_players_time = persistent.no_players_time;
+	level.strike_red_attacks = persistent.strike_red_attacks;
+	level.strike_flag_touch = persistent.strike_flag_touch;
+	level.strike_turn_red = persistent.strike_turn_red;
+	level.strike_turn_blue = persistent.strike_turn_blue;
+	level.timeoutActive = persistent.timeoutActive;
+	level.matchID = std::move(persistent.matchID);
+	level.fragWarning = persistent.fragWarning;
+	level.prepare_to_fight = persistent.prepare_to_fight;
+	level.endmatch_grace = persistent.endmatch_grace;
+	level.match = std::move(persistent.match);
+	level.vote_flags_enable = persistent.vote_flags_enable;
+	level.vote_flags_disable = persistent.vote_flags_disable;
+	level.mapSelector = persistent.mapSelector;
+	level.arenaActive = persistent.arenaActive;
+	level.arenaTotal = persistent.arenaTotal;
+	level.ghosts = persistent.ghosts;
+	level.autoScreenshotTool_index = persistent.autoScreenshotTool_index;
+	level.autoScreenshotTool_initialised = persistent.autoScreenshotTool_initialised;
+	level.autoScreenshotTool_delayTime = persistent.autoScreenshotTool_delayTime;
+
+	std::string_view mapView(level.mapName.data(), strnlen(level.mapName.data(), level.mapName.size()));
+	if (!mapView.empty())
+		level.isN64 = mapView.starts_with("q64/");
+	else
+		level.isN64 = persistent.isN64;
+
 	level.spawn.Clear();
 	level.spawnSpots.fill(nullptr);
 	level.shadowLightCount = 0;
 	std::fill(level.shadowLightInfo.begin(), level.shadowLightInfo.end(), ShadowLightInfo{});
 	level.campaign = {};
+	level.campaign.coopScalePlayers = 0;
+	level.campaign.coopHealthScaling = std::clamp(g_coop_health_scaling->value, 0.0f, 1.0f);
 	level.start_items = nullptr;
 	level.instantItems = false;
 	level.no_grapple = false;
 	level.no_dm_spawnpads = false;
 	level.no_dm_telepads = false;
 	level.timeoutOwner = nullptr;
+	level.entityReloadGraceUntil = reloadGraceUntil;
 
 	Domination_ClearState();
 	HeadHunters::ClearState();
@@ -2036,6 +2223,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
 	InitBodyQue();
 
 	const char* entities = level.savedEntityString.c_str();
+
 	bool firstEntity = true;
 	int inhibited = 0;
 
