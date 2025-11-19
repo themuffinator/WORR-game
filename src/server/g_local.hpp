@@ -2044,8 +2044,39 @@ struct MapSystem {
 		uint16_t disableFlags,
 		GameTime queuedTime);
 
-const MapEntry* GetMapEntry(const std::string& mapName) const;
+	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
+
+struct MapPoolLocation {
+	std::string path;
+	bool loadedFromMod = false;
+};
+
+/*
+=============
+G_ResolveMapPoolPath
+
+Selects the map pool JSON path, preferring the active gamedir when it
+contains the configured file and falling back to GAMEVERSION otherwise.
+=============
+*/
+inline MapPoolLocation G_ResolveMapPoolPath()
+{
+	const char* poolFile = (g_maps_pool_file && g_maps_pool_file->string) ? g_maps_pool_file->string : "";
+	const std::string basePath = std::string(GAMEVERSION) + "/" + poolFile;
+
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
+			const std::string modPath = std::string(gameCvar->string) + "/" + poolFile;
+			std::ifstream file(modPath, std::ifstream::binary);
+			if (file.is_open())
+				return { modPath, true };
+		}
+	}
+
+	return { basePath, false };
+}
 
 /*
 ===============

@@ -378,14 +378,13 @@ void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
 
-	std::string path = "baseq2/";
-	path += g_maps_pool_file->string;
+	MapPoolLocation location = G_ResolveMapPoolPath();
 
-	std::ifstream file(path, std::ifstream::binary);
+	std::ifstream file(location.path, std::ifstream::binary);
 	if (!file.is_open()) {
 		if (entClient)
-			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
-		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, path.c_str());
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", location.path.c_str());
+		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
@@ -396,21 +395,21 @@ void LoadMapPool(gentity_t* ent) {
 	if (!Json::parseFromStream(builder, file, &root, &errs)) {
 		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", errs.c_str());
-		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, path.c_str(), errs.c_str());
+		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, location.path.c_str(), errs.c_str());
 		return;
 	}
 
 	if (!root.isMember("maps") || !root["maps"].isArray()) {
 		if (entClient)
 			gi.Client_Print(ent, PRINT_HIGH, "[MapPool] JSON must contain a 'maps' array.\n");
-		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, path.c_str());
+		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, location.path.c_str());
 		return;
 	}
 
 	int loaded = 0, skipped = 0;
 	for (const auto& entry : root["maps"]) {
 		if (!entry.isMember("bsp") || !entry["bsp"].isString() ||
-			!entry.isMember("dm") || !entry["dm"].asBool()) {
+				!entry.isMember("dm") || !entry["dm"].asBool()) {
 			skipped++;
 			continue;
 		}
