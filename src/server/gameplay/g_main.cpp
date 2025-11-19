@@ -27,6 +27,7 @@
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
+#include <cstring>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -1005,6 +1006,7 @@ static void InitGame() {
 	// initialize all entities for this game
 	game.maxEntities = maxentities->integer;
 	g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
+	std::memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
 	globals.gentities = g_entities;
 	globals.maxEntities = game.maxEntities;
 
