@@ -1045,8 +1045,6 @@ static void InitGame() {
 	// initialise the heatmap system
 	HM_Init();
 
-	if (g_dm_exec_level_cfg->integer)
-		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
 }
 
 //===================================================================

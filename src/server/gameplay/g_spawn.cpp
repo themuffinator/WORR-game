@@ -1880,6 +1880,9 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	globals.serverFlags |= SERVER_FLAG_LOADING;
 
 	Q_strlcpy(level.mapName.data(), mapName, level.mapName.size());
+
+	if (g_dm_exec_level_cfg->integer)
+		gi.AddCommandString(G_Fmt("exec {}\n", level.mapName).data());
 	if (!game.autoSaved) {
 		const char* src = spawnPoint ? spawnPoint : "";
 		const size_t cap = game.spawnPoint.size();
