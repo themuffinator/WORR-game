@@ -93,6 +93,7 @@ This reference consolidates the gameplay-facing console variables (cvars) that W
 | `g_maps_cycle_file` | `mapcycle.txt` | Live | Plain-text rotation list consumed when the pool is empty.【F:src/server/gameplay/g_main.cpp†L909-L914】【F:docs/wiki/server-hosts.md†L45-L63】 |
 | `g_maps_selector` | `1` | Live | Enables the end-of-match selector ballot.【F:src/server/gameplay/g_main.cpp†L909-L914】 |
 | `g_maps_mymap` | `1` | Live | Allows personal queue submissions (see `g_allow_mymap`).【F:src/server/gameplay/g_main.cpp†L909-L914】【F:src/server/match/match_state.cpp†L1200-L1263】 |
+| `g_maps_mymap_queue_limit` | `8` | Live | Caps MyMap/play queue length; evicts the oldest request when full or rejects when set to `0` or below.【F:src/server/gameplay/g_main.cpp†L909-L914】【F:src/server/g_local.hpp†L2031-L2163】 |
 | `g_maps_allow_custom_textures` | `1` | Live | Permits custom material references from map metadata.【F:src/server/gameplay/g_main.cpp†L909-L914】 |
 | `g_maps_allow_custom_sounds` | `1` | Live | Same as above for audio packages.【F:src/server/gameplay/g_main.cpp†L909-L914】 |
 | `match_maps_list` | `` | Live | Inline rotation fallback processed when the pool is empty.【F:src/server/gameplay/g_main.cpp†L870-L872】【F:src/server/match/match_state.cpp†L1216-L1263】 |
