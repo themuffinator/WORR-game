@@ -2786,6 +2786,7 @@ std::array<gentity_t*, 4> outOfBounds{};
 			std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
 			std::array<int, 3> voteCounts = { 0, 0, 0 };
 			GameTime voteStartTime = 0_ms;
+			bool		forceExit = false;
 		} mapSelector;
 	std::array<Ghosts, MAX_CLIENTS> ghosts{};
 

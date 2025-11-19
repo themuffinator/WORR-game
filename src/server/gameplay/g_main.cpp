@@ -1692,6 +1692,11 @@ static void PreExitLevel() {
 	}
 
 	if (level.intermission.postIntermissionTime == 0_sec) {
+		if (ms.forceExit) {
+			level.intermission.postIntermissionTime = level.time;
+			return;
+		}
+
 		// Run vote sequence once
 		if (ms.voteStartTime == 0_sec) {
 			MapSelectorBegin(); // sets voteStartTime internally
@@ -1714,7 +1719,6 @@ static void PreExitLevel() {
 
 	ExitLevel(true);
 }
-
 /*
 =============
 CheckPowerupsDisabled
