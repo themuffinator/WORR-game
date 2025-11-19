@@ -344,7 +344,7 @@ LoadMapPool
 */
 void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
-	game.mapSystem.mapPool.clear();
+	std::vector<MapEntry> newPool;
 
 	std::string path = "baseq2/";
 	path += g_maps_pool_file->string;
@@ -353,6 +353,7 @@ void LoadMapPool(gentity_t* ent) {
 	if (!file.is_open()) {
 		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Failed to open file: {}\n", path.c_str());
+		gi.Com_PrintFmt("{}: failed to open map pool file '{}'.\n", __FUNCTION__, path.c_str());
 		return;
 	}
 
@@ -363,12 +364,14 @@ void LoadMapPool(gentity_t* ent) {
 	if (!Json::parseFromStream(builder, file, &root, &errs)) {
 		if (entClient)
 			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] JSON parsing failed: {}\n", errs.c_str());
+		gi.Com_PrintFmt("{}: JSON parsing failed for '{}': {}\n", __FUNCTION__, path.c_str(), errs.c_str());
 		return;
 	}
 
 	if (!root.isMember("maps") || !root["maps"].isArray()) {
 		if (entClient)
 			gi.Client_Print(ent, PRINT_HIGH, "[MapPool] JSON must contain a 'maps' array.\n");
+		gi.Com_PrintFmt("{}: JSON missing 'maps' array in '{}'.\n", __FUNCTION__, path.c_str());
 		return;
 	}
 
@@ -418,9 +421,11 @@ void LoadMapPool(gentity_t* ent) {
 		map.isCycleable = false;
 		map.lastPlayed = 0;
 
-		game.mapSystem.mapPool.push_back(std::move(map));
+		newPool.push_back(std::move(map));
 		loaded++;
 	}
+
+	game.mapSystem.mapPool.swap(newPool);
 
 	if (entClient) {
 		gi.LocClient_Print(ent, PRINT_HIGH,
