@@ -24,6 +24,7 @@
 #include "../bots/bot_includes.hpp"
 #include "../../shared/char_array_utils.hpp"
 #include "../commands/commands.hpp"
+#include "server_limits.hpp"
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
@@ -1002,14 +1003,16 @@ static void InitGame() {
 
 	game = {};
 
+	// initialize all clients for this game
+	AllocateClientArray(maxclients->integer);
+
+	ValidateEntityCapacityOrError(maxentities->integer, game.maxClients);
+
 	// initialize all entities for this game
 	game.maxEntities = maxentities->integer;
 	g_entities = (gentity_t*)gi.TagMalloc(game.maxEntities * sizeof(g_entities[0]), TAG_GAME);
 	globals.gentities = g_entities;
 	globals.maxEntities = game.maxEntities;
-
-	// initialize all clients for this game
-	AllocateClientArray(maxclients->integer);
 
 	level.levelStartTime = level.time;
 	game.serverStartTime = time(nullptr);
