@@ -21,6 +21,7 @@
 
 #include "../g_local.hpp"
 #include <cctype>
+#include <cstddef>
 
 void FreeFollower(gentity_t* ent) {
 	if (!ent)
@@ -201,22 +202,29 @@ void ClientUpdateFollowers(gentity_t* ent) {
 ==================
 SanitizeString
 
-Remove case and control characters
+Remove case and control characters, truncating to fit the output buffer.
 ==================
 */
-static void SanitizeString(const char* in, char* out) {
-	while (*in) {
+static void SanitizeString(const char* in, char* out, size_t outSize) {
+	if (!outSize)
+		return;
+
+	char* cursor = out;
+	size_t remaining = outSize;
+
+	while (*in && remaining > 1) {
 		const unsigned char ch = static_cast<unsigned char>(*in);
 		if (ch < ' ') {
 			++in;
 			continue;
 		}
-		*out = static_cast<char>(std::tolower(ch));
-		++out;
+		*cursor = static_cast<char>(std::tolower(ch));
+		++cursor;
+		--remaining;
 		++in;
 	}
 
-	*out = '\0';
+	*cursor = '\0';
 }
 
 /*
@@ -226,8 +234,8 @@ SanitizeSpectatorString
 Public wrapper used by tests to exercise spectator string sanitization.
 ==================
 */
-void SanitizeSpectatorString(const char* in, char* out) {
-	SanitizeString(in, out);
+void SanitizeSpectatorString(const char* in, char* out, size_t outSize) {
+	SanitizeString(in, out, outSize);
 }
 
 /*
@@ -261,11 +269,11 @@ static int ClientNumberFromString(gentity_t* to, char* s) {
 	}
 
 	// check for a name match
-	SanitizeString(s, s2);
+	SanitizeString(s, s2, sizeof(s2));
 	for (idnum = 0, cl = game.clients; idnum < game.maxClients; idnum++, cl++) {
 		if (!cl->pers.connected)
 			continue;
-		SanitizeString(cl->sess.netName, n2);
+		SanitizeString(cl->sess.netName, n2, sizeof(n2));
 		if (!strcmp(n2, s2)) {
 			return idnum;
 		}
