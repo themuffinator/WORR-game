@@ -2027,14 +2027,16 @@ struct QueuedMap {
 };
 
 struct MapSystem {
-std::vector<MapEntry> mapPool;
-std::vector<QueuedMap> playQueue;
-std::vector<MyMapRequest> myMapQueue;
+	std::vector<MapEntry> mapPool;
+	std::vector<QueuedMap> playQueue;
+	std::vector<MyMapRequest> myMapQueue;
 
-bool MapExists(std::string_view mapName) const;
+	bool MapExists(std::string_view mapName) const;
 
-bool IsMapInQueue(const std::string& mapName) const;
-bool IsClientInQueue(const std::string& socialID) const;
+	bool IsMapInQueue(const std::string& mapName) const;
+	bool IsClientInQueue(const std::string& socialID) const;
+
+	void PruneQueuesToMapPool(std::vector<std::string>* removedRequests = nullptr);
 
 	void EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
