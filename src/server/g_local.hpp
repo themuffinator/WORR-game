@@ -2751,18 +2751,13 @@ std::array<gentity_t*, 4> outOfBounds{};
 	uint16_t	vote_flags_enable = 0;
 	uint16_t	vote_flags_disable = 0;
 
-	// map selector
-	struct {
-		std::array<const MapEntry*, 3> candidates = { nullptr, nullptr, nullptr };
-		std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
-		std::array<int, 3> voteCounts = { 0, 0, 0 };
-		GameTime voteStartTime = 0_ms;
-	} mapSelector;
-
-	//RA2 support
-	int			arenaActive = 0;
-	int			arenaTotal = 0;
-
+		// map selector
+		struct {
+			std::array<std::string, 3> candidates{};
+			std::array<int, MAX_CLIENTS> votes = { -1 };     // -1 = no vote
+			std::array<int, 3> voteCounts = { 0, 0, 0 };
+			GameTime voteStartTime = 0_ms;
+		} mapSelector;
 	std::array<Ghosts, MAX_CLIENTS> ghosts{};
 
 	int			autoScreenshotTool_index = 0;

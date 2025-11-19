@@ -27,6 +27,20 @@
 
 /*
 =============
+MapSelectorResolveCandidate
+
+Fetches a map entry from the current pool using the stored candidate identifier.
+=============
+*/
+static const MapEntry* MapSelectorResolveCandidate(const std::string& candidate) {
+	if (candidate.empty())
+		return nullptr;
+
+	return game.mapSystem.GetMapEntry(candidate);
+}
+
+/*
+=============
 MapSelectorFinalize
 =============
 */
@@ -48,7 +62,7 @@ void MapSelectorFinalize() {
 	std::fill(ms.voteCounts.begin(), ms.voteCounts.end(), 0);
 	for (int i = 0; i < MAX_CLIENTS; ++i) {
 		int vote = ms.votes[i];
-		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && ms.candidates[vote]) {
+		if (vote >= 0 && vote < static_cast<int>(ms.candidates.size()) && !ms.candidates[vote].empty()) {
 			ms.voteCounts[vote]++;
 		}
 	}
@@ -59,7 +73,7 @@ void MapSelectorFinalize() {
 	// Find all tied candidates
 	std::vector<int> tiedIndices;
 	for (size_t i = 0; i < ms.candidates.size(); ++i) {
-		if (ms.candidates[i] && ms.voteCounts[i] == maxVotes)
+		if (!ms.candidates[i].empty() && ms.voteCounts[i] == maxVotes)
 			tiedIndices.push_back(static_cast<int>(i));
 	}
 
@@ -73,7 +87,7 @@ void MapSelectorFinalize() {
 		// No votes or all invalid - fallback
 		std::vector<int> available;
 		for (size_t i = 0; i < ms.candidates.size(); ++i) {
-			if (ms.candidates[i])
+			if (!ms.candidates[i].empty())
 				available.push_back(static_cast<int>(i));
 		}
 		if (!available.empty()) {
@@ -82,13 +96,19 @@ void MapSelectorFinalize() {
 		}
 	}
 
-	if (selectedIndex >= 0 && ms.candidates[selectedIndex]) {
-		const MapEntry* selected = ms.candidates[selectedIndex];
-		level.changeMap = selected->filename.c_str();
+	if (selectedIndex >= 0 && !ms.candidates[selectedIndex].empty()) {
+		const std::string& selectedId = ms.candidates[selectedIndex];
+		const MapEntry* selected = MapSelectorResolveCandidate(selectedId);
+		const char* filename = selected ? selected->filename.c_str() : selectedId.c_str();
+		const char* longName = selected
+			? (selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str())
+			: filename;
+
+		level.changeMap = filename;
 
 		gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote complete!\nNext map: {} ({})\n",
-			selected->filename.c_str(),
-			selected->longName.empty() ? selected->filename.c_str() : selected->longName.c_str());
+				filename,
+				longName);
 
 		AnnouncerSound(world, "vote_passed");
 	}
@@ -97,8 +117,8 @@ void MapSelectorFinalize() {
 		if (fallback) {
 			level.changeMap = fallback->filename.c_str();
 			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nRandomly selected: {} ({})\n",
-				fallback->filename.c_str(),
-				fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
+					fallback->filename.c_str(),
+					fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str());
 		}
 		else {
 			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match.\n");
@@ -145,14 +165,14 @@ void MapSelectorBegin() {
 	// Defensive reset
 	ms.votes.fill(-1);
 	ms.voteCounts.fill(0);
-	ms.candidates.fill(nullptr);
+	ms.candidates.fill(std::string{});
 
 	auto candidates = MapSelectorVoteCandidates();
 	if (candidates.empty())
 		return;
 
 	for (size_t i = 0; i < std::min(candidates.size(), ms.candidates.size()); ++i)
-		ms.candidates[i] = candidates[i];
+	ms.candidates[i] = candidates[i]->filename;
 
 	// Set voteStartTime here to lock vote as active
 	ms.voteStartTime = level.time;
@@ -164,7 +184,6 @@ void MapSelectorBegin() {
 	gi.LocBroadcast_Print(PRINT_HIGH, "Voting has started for the next map!\nYou have {} seconds to vote.\n", MAP_SELECTOR_DURATION.seconds());
 	AnnouncerSound(world, "vote_now");
 }
-
 /*
 ====================
 MapSelector_CastVote
@@ -176,9 +195,11 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 
 	auto& ms = level.mapSelector;
 
-	auto* candidate = ms.candidates[voteIndex];
-	if (!candidate)
+	const std::string& candidateId = ms.candidates[voteIndex];
+	if (candidateId.empty())
 		return;
+
+	const MapEntry* candidate = MapSelectorResolveCandidate(candidateId);
 
 	const int clientNum = ent->s.number - 1;
 	if (clientNum < 0 || clientNum >= MAX_CLIENTS)
@@ -198,9 +219,9 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 	ms.voteCounts[voteIndex]++;
 
 	// Feedback
-	const char* mapName = candidate->longName.empty()
-		? candidate->filename.c_str()
-		: candidate->longName.c_str();
+	const char* mapName = candidate
+		? (candidate->longName.empty() ? candidate->filename.c_str() : candidate->longName.c_str())
+		: candidateId.c_str();
 
 	gi.LocBroadcast_Print(PRINT_HIGH, "{} voted for map {}\n",
 		ent->client->sess.netName, mapName);
@@ -224,7 +245,7 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 
 	// If a map has more than half the votes, finalize early
 	for (int i = 0; i < 3; ++i) {
-		if (ms.candidates[i] && ms.voteCounts[i] > totalVoters / 2) {
+		if (!ms.candidates[i].empty() && ms.voteCounts[i] > totalVoters / 2) {
 			gi.Broadcast_Print(PRINT_HIGH, "Majority vote detected - finalizing early...\n");
 			MapSelectorFinalize();
 			level.intermission.postIntermissionTime = level.time;  // allow countdown to continue cleanly
@@ -232,7 +253,6 @@ void MapSelector_CastVote(gentity_t* ent, int voteIndex) {
 		}
 	}
 }
-
 // ==========================
 
 /*
