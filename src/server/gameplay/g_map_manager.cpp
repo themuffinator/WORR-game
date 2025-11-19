@@ -749,6 +749,8 @@ std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates) {
 				continue;
 			if (ShouldAvoidCustomResources(map, avoidCustom, avoidCustomTextures, avoidCustomSounds))
 				continue;
+			if (!Q_strcasecmp(level.mapName.data(), map.filename.c_str()))
+				continue;
 			pool.push_back(&map);
 		}
 	}
