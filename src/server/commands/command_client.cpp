@@ -616,13 +616,37 @@ Allows the losing player in a duel to forfeit the match.
 		}
 	}
 
+	/*
+	=============
+	MapPool
+
+	Lists maps in the pool, optionally filtered by name.
+	=============
+	*/
 	void MapPool(gentity_t* ent, const CommandArgs& args) {
-		int count = PrintMapListFiltered(ent, false, std::string(args.getString(1)));
+		std::string filter = args.joinFrom(1);
+		if (filter.empty()) {
+			filter = std::string(args.getString(1));
+		}
+
+		int count = PrintMapListFiltered(ent, false, filter);
 		gi.LocClient_Print(ent, PRINT_HIGH, "Total maps in pool: {}\n", count);
 	}
 
+	/*
+	=============
+	MapCycle
+
+	Lists maps eligible for the cycle, optionally filtered by name.
+	=============
+	*/
 	void MapCycle(gentity_t* ent, const CommandArgs& args) {
-		int count = PrintMapListFiltered(ent, true, std::string(args.getString(1)));
+		std::string filter = args.joinFrom(1);
+		if (filter.empty()) {
+			filter = std::string(args.getString(1));
+		}
+
+		int count = PrintMapListFiltered(ent, true, filter);
 		gi.LocClient_Print(ent, PRINT_HIGH, "Total cycleable maps: {}\n", count);
 	}
 
