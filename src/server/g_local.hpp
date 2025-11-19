@@ -2071,13 +2071,23 @@ contains the configured file and falling back to GAMEVERSION otherwise.
 */
 inline MapPoolLocation G_ResolveMapPoolPath()
 {
+	const char* defaultPoolFile = "mapdb.json";
 	const char* poolFile = (g_maps_pool_file && g_maps_pool_file->string) ? g_maps_pool_file->string : "";
-	const std::string basePath = std::string(GAMEVERSION) + "/" + poolFile;
+
+	std::string sanitizedPoolFile;
+	std::string rejectReason;
+	if (!G_SanitizeMapConfigFilename(poolFile, sanitizedPoolFile, rejectReason)) {
+		gi.Com_PrintFmt("{}: invalid g_maps_pool_file \"{}\" ({}) falling back to {}\n",
+			__FUNCTION__, poolFile, rejectReason.c_str(), defaultPoolFile);
+		sanitizedPoolFile = defaultPoolFile;
+	}
+
+	const std::string basePath = std::string(GAMEVERSION) + "/" + sanitizedPoolFile;
 
 	if (gi.cvar) {
 		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
 		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
-			const std::string modPath = std::string(gameCvar->string) + "/" + poolFile;
+			const std::string modPath = std::string(gameCvar->string) + "/" + sanitizedPoolFile;
 			std::ifstream file(modPath, std::ifstream::binary);
 			if (file.is_open())
 				return { modPath, true };

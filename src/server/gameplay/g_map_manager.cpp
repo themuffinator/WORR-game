@@ -538,8 +538,24 @@ LoadMapCycle
 void LoadMapCycle(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 
+	const char* defaultCycleFile = "mapcycle.txt";
+	std::string sanitizedCycleFile;
+	std::string rejectReason;
+
+	const char* rawCycle = (g_maps_cycle_file && g_maps_cycle_file->string) ? g_maps_cycle_file->string : "";
+	if (!G_SanitizeMapConfigFilename(rawCycle, sanitizedCycleFile, rejectReason)) {
+		gi.Com_PrintFmt("{}: invalid g_maps_cycle_file \"{}\" ({}) falling back to {}\n",
+			__FUNCTION__, rawCycle, rejectReason.c_str(), defaultCycleFile);
+		sanitizedCycleFile = defaultCycleFile;
+
+		if (entClient) {
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapCycle] Invalid g_maps_cycle_file: {}. Using {}.\n",
+				rejectReason.c_str(), defaultCycleFile);
+		}
+	}
+
 	std::string path = "baseq2/";
-	path += g_maps_cycle_file->string;
+	path += sanitizedCycleFile;
 
 	std::ifstream file(path);
 	if (!file.is_open()) {
