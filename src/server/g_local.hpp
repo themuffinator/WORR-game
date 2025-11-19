@@ -6,9 +6,12 @@
 
 class Menu;
 #include "../shared/bg_local.hpp"
+#include "../shared/map_validation.hpp"
 #include "../shared/version.hpp"
 #include <array>
 #include <optional>		// for AutoSelectNextMap()
+#include <filesystem>
+#include <fstream>
 #include <bitset>		// for bitset
 #include <random>
 #include <string>
@@ -2023,14 +2026,14 @@ struct QueuedMap {
 };
 
 struct MapSystem {
-	std::vector<MapEntry> mapPool;
-	std::vector<QueuedMap> playQueue;
-	std::vector<MyMapRequest> myMapQueue;
+std::vector<MapEntry> mapPool;
+std::vector<QueuedMap> playQueue;
+std::vector<MyMapRequest> myMapQueue;
 
-	bool MapExists(std::string_view mapName) const;
+bool MapExists(std::string_view mapName) const;
 
-	bool IsMapInQueue(const std::string& mapName) const;
-	bool IsClientInQueue(const std::string& socialID) const;
+bool IsMapInQueue(const std::string& mapName) const;
+bool IsClientInQueue(const std::string& socialID) const;
 
 	void EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
@@ -2038,8 +2041,53 @@ struct MapSystem {
 		uint16_t disableFlags,
 		GameTime queuedTime);
 
-	const MapEntry* GetMapEntry(const std::string& mapName) const;
+const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
+
+/*
+===============
+MapSystem::MapExists
+
+Checks whether a map BSP file exists within the active gamedir's maps
+directory, falling back to the default GAMEVERSION path when no mod is
+active. Returns true if the BSP can be opened from any applicable search
+path.
+===============
+*/
+inline bool MapSystem::MapExists(std::string_view mapName) const
+{
+	if (!G_IsValidMapIdentifier(mapName)) {
+		gi.Com_PrintFmt("{}: rejected invalid map identifier \"{}\"\n", __FUNCTION__, std::string(mapName).c_str());
+		return false;
+	}
+
+	const std::string bspName = std::string(mapName) + ".bsp";
+	const auto mapExistsInDir = [&](std::string_view gamedir) -> bool {
+		if (gamedir.empty())
+			return false;
+
+		std::filesystem::path candidate(gamedir);
+		candidate /= "maps";
+		candidate /= bspName;
+		std::ifstream file(candidate, std::ifstream::binary);
+		return file.is_open();
+	};
+
+	std::string activeGameDir;
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0])
+			activeGameDir = gameCvar->string;
+	}
+
+	if (!activeGameDir.empty() && mapExistsInDir(activeGameDir))
+		return true;
+
+	if (activeGameDir.empty() || activeGameDir != GAMEVERSION)
+		return mapExistsInDir(GAMEVERSION);
+
+	return false;
+}
 
 /*
 ========================
