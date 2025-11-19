@@ -185,6 +185,15 @@ static inline bool AdminOk(gentity_t* ent) {
 	return true;
 }
 
+
+/*
+=================
+HasCommandPermission
+
+Verifies that the client is allowed to execute the command based on
+the current game state and command flags.
+=================
+*/
 static inline bool HasCommandPermission(gentity_t* ent, const Command& cmd) {
 	using enum CommandFlag;
 	if (cmd.flags.has(AdminOnly) && !AdminOk(ent)) return false;
@@ -192,7 +201,7 @@ static inline bool HasCommandPermission(gentity_t* ent, const Command& cmd) {
 	if (!cmd.flags.has(AllowDead) && (ent->health <= 0 || ent->deadFlag)) return false;
 	if (!cmd.flags.has(AllowSpectator) && !ClientIsPlaying(ent->client)) return false;
 	if (cmd.flags.has(MatchOnly) && !InAMatch()) return false;
-	if (!cmd.flags.has(AllowIntermission) && level.intermission.time && !level.mapSelector.voteStartTime) return false;
+	if (!cmd.flags.has(AllowIntermission) && (level.intermission.time || level.intermission.postIntermissionTime)) return false;
 	return true;
 }
 
