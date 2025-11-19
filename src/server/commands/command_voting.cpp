@@ -100,6 +100,14 @@ namespace Commands {
 		ExitLevel(true);
 	}
 
+/*
+=============
+Pass_NextMap
+
+Advances to the next map and removes any consumed queue entries to keep
+queue state consistent.
+=============
+*/
 	static void Pass_NextMap() {
 		if (!game.mapSystem.playQueue.empty()) {
 			const auto& queued = game.mapSystem.playQueue.front();
@@ -107,8 +115,9 @@ namespace Commands {
 			game.map.overrideEnableFlags = queued.enableFlags;
 			game.map.overrideDisableFlags = queued.disableFlags;
 			ExitLevel(true);
+			game.mapSystem.ConsumeQueuedMap();
 			return;
-		}
+	}
 
 		auto result = AutoSelectNextMap();
 		if (result.has_value()) {
@@ -116,10 +125,11 @@ namespace Commands {
 			game.map.overrideEnableFlags = 0;
 			game.map.overrideDisableFlags = 0;
 			ExitLevel(true);
-		}
+			game.mapSystem.ConsumeQueuedMap();
+	}
 		else {
 			gi.Broadcast_Print(PRINT_HIGH, "No eligible maps available.\n");
-		}
+	}
 	}
 
 	static void Pass_RestartMatch() { Match_Reset(); }

@@ -2026,14 +2026,14 @@ struct QueuedMap {
 };
 
 struct MapSystem {
-std::vector<MapEntry> mapPool;
-std::vector<QueuedMap> playQueue;
-std::vector<MyMapRequest> myMapQueue;
+	std::vector<MapEntry> mapPool;
+	std::vector<QueuedMap> playQueue;
+	std::vector<MyMapRequest> myMapQueue;
 
-bool MapExists(std::string_view mapName) const;
+	bool MapExists(std::string_view mapName) const;
 
-bool IsMapInQueue(const std::string& mapName) const;
-bool IsClientInQueue(const std::string& socialID) const;
+	bool IsMapInQueue(const std::string& mapName) const;
+	bool IsClientInQueue(const std::string& socialID) const;
 
 	void EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
@@ -2041,7 +2041,9 @@ bool IsClientInQueue(const std::string& socialID) const;
 		uint16_t disableFlags,
 		GameTime queuedTime);
 
-const MapEntry* GetMapEntry(const std::string& mapName) const;
+	void ConsumeQueuedMap();
+
+	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
 
 /*
@@ -2081,12 +2083,29 @@ inline bool MapSystem::MapExists(std::string_view mapName) const
 	}
 
 	if (!activeGameDir.empty() && mapExistsInDir(activeGameDir))
-		return true;
+	return true;
 
 	if (activeGameDir.empty() || activeGameDir != GAMEVERSION)
-		return mapExistsInDir(GAMEVERSION);
+	return mapExistsInDir(GAMEVERSION);
 
 	return false;
+}
+
+/*
+=============
+MapSystem::ConsumeQueuedMap
+
+Removes the leading entries from both the play queue and the mymap queue if
+they are present.
+=============
+*/
+inline void MapSystem::ConsumeQueuedMap()
+{
+	if (!playQueue.empty())
+		playQueue.erase(playQueue.begin());
+
+	if (!myMapQueue.empty())
+		myMapQueue.erase(myMapQueue.begin());
 }
 
 /*
