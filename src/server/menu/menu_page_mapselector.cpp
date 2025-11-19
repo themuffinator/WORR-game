@@ -28,7 +28,6 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 
 	constexpr int NUM_CANDIDATES = 3;
 	constexpr int TOTAL_BAR_SEGMENTS = 28;	//24;
-	constexpr GameTime VOTE_DURATION = 5_sec;
 
 	MenuBuilder builder;
 
@@ -115,9 +114,9 @@ void OpenMapSelectorMenu(gentity_t* ent) {
 
 		// --- Progress bar ---
 		float elapsed = (level.time - ms.voteStartTime).seconds();
-		elapsed = std::clamp(elapsed, 0.0f, VOTE_DURATION.seconds());
+		elapsed = std::clamp(elapsed, 0.0f, MAP_SELECTOR_DURATION.seconds());
 
-		int filled = static_cast<int>((elapsed / VOTE_DURATION.seconds()) * TOTAL_BAR_SEGMENTS);
+		int filled = static_cast<int>((elapsed / MAP_SELECTOR_DURATION.seconds()) * TOTAL_BAR_SEGMENTS);
 		int empty = TOTAL_BAR_SEGMENTS - filled;
 
 		menu.entries[barIndex].text = std::string(filled, '=') + std::string(empty, ' ');
