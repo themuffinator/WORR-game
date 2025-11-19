@@ -18,7 +18,6 @@
 //   a specific map next.
 
 #include "../g_local.hpp"
-#include "../../shared/map_validation.hpp"
 #include "map_flag_parser.hpp"
 #include <json/json.h>
 #include <fstream>
@@ -300,28 +299,6 @@ bool MapSystem::IsClientInQueue(const std::string& socialID) const {
 			return true;
 	}
 	return false;
-}
-
-/*
-===============
-MapSystem::MapExists
-
-Checks whether a map BSP file exists under "baseq2/maps/<mapname>.bsp".
-Returns true if the file can be opened.
-===============
-*/
-bool MapSystem::MapExists(std::string_view mapName) const {
-	if (!G_IsValidMapIdentifier(mapName)) {
-		gi.Com_PrintFmt("{}: rejected invalid map identifier \"{}\"\n", __FUNCTION__, std::string(mapName).c_str());
-		return false;
-	}
-
-	std::string path = "baseq2/maps/";
-	path += mapName;
-	path += ".bsp";
-
-	std::ifstream file(path);
-	return file.is_open();
 }
 
 /*
