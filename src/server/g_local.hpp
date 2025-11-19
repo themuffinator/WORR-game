@@ -4357,6 +4357,7 @@ void LoadMapPool(gentity_t* ent);
 void LoadMapCycle(gentity_t* ent);
 std::optional<MapEntry> AutoSelectNextMap();
 std::vector<const MapEntry*> MapSelectorVoteCandidates(int maxCandidates = 3);
+void MapSelector_ClearVote(LevelLocals& levelState, int clientIndex);
 int PrintMapListFiltered(gentity_t* ent, bool cycleOnly, const std::string& filterQuery);
 
 //
