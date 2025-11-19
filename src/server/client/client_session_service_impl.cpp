@@ -888,6 +888,9 @@ void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 			ent->flags &= ~FL_NO_BOTS;
 		}
 	}
+	else {
+		ent->flags &= ~FL_NO_BOTS;
+	}
 
 	if (st.was_key_specified("noHumans")) {
 		if (st.noHumans) {
@@ -896,6 +899,9 @@ void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 		else {
 			ent->flags &= ~FL_NO_HUMANS;
 		}
+	}
+	else {
+		ent->flags &= ~FL_NO_HUMANS;
 	}
 
 	if (st.arena) {
