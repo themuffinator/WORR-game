@@ -257,6 +257,7 @@ cvar_t* g_maps_pool_file;
 cvar_t* g_maps_cycle_file;
 cvar_t* g_maps_selector;
 cvar_t* g_maps_mymap;
+cvar_t* g_maps_mymap_queue_limit;
 cvar_t* g_maps_allow_custom_textures;
 cvar_t* g_maps_allow_custom_sounds;
 
@@ -995,6 +996,7 @@ static void InitGame() {
 	g_maps_cycle_file = gi.cvar("g_maps_cycle_file", "mapcycle.txt", CVAR_NOFLAGS);
 	g_maps_selector = gi.cvar("g_maps_selector", "1", CVAR_NOFLAGS);
 	g_maps_mymap = gi.cvar("g_maps_mymap", "1", CVAR_NOFLAGS);
+	g_maps_mymap_queue_limit = gi.cvar("g_maps_mymap_queue_limit", "8", CVAR_NOFLAGS);
 	g_maps_allow_custom_textures = gi.cvar("g_maps_allow_custom_textures", "1", CVAR_NOFLAGS);
 	g_maps_allow_custom_sounds = gi.cvar("g_maps_allow_custom_sounds", "1", CVAR_NOFLAGS);
 

@@ -2026,22 +2026,29 @@ struct QueuedMap {
 };
 
 struct MapSystem {
-std::vector<MapEntry> mapPool;
-std::vector<QueuedMap> playQueue;
-std::vector<MyMapRequest> myMapQueue;
+	std::vector<MapEntry> mapPool;
+	std::vector<QueuedMap> playQueue;
+	std::vector<MyMapRequest> myMapQueue;
 
-bool MapExists(std::string_view mapName) const;
+	static constexpr int DEFAULT_MYMAP_QUEUE_LIMIT = 8;
 
-bool IsMapInQueue(const std::string& mapName) const;
-bool IsClientInQueue(const std::string& socialID) const;
+	struct MyMapEnqueueResult {
+		bool accepted = false;
+		bool evictedOldest = false;
+	};
 
-	void EnqueueMyMapRequest(const MapEntry& map,
+	bool MapExists(std::string_view mapName) const;
+
+	bool IsMapInQueue(const std::string& mapName) const;
+	bool IsClientInQueue(const std::string& socialID) const;
+
+	MyMapEnqueueResult EnqueueMyMapRequest(const MapEntry& map,
 		std::string_view socialID,
 		uint16_t enableFlags,
 		uint16_t disableFlags,
 		GameTime queuedTime);
 
-const MapEntry* GetMapEntry(const std::string& mapName) const;
+	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
 
 /*
@@ -2095,14 +2102,37 @@ MapSystem::EnqueueMyMapRequest
 
 Adds a MyMap request to both the play queue and the persistent
 MyMap request log, preserving flag overrides and request metadata.
+Respects g_maps_mymap_queue_limit to cap queue size, evicting the
+oldest entry when full or rejecting requests when the limit is
+disabled. Returns the operation outcome flags.
 ========================
 */
-inline void MapSystem::EnqueueMyMapRequest(const MapEntry& map,
+inline MapSystem::MyMapEnqueueResult MapSystem::EnqueueMyMapRequest(const MapEntry& map,
 	std::string_view socialID,
 	uint16_t enableFlags,
 	uint16_t disableFlags,
 	GameTime queuedTime)
 {
+	MyMapEnqueueResult result{};
+
+	const int maxQueue = g_maps_mymap_queue_limit ? g_maps_mymap_queue_limit->integer : DEFAULT_MYMAP_QUEUE_LIMIT;
+	if (maxQueue <= 0) {
+		gi.Com_PrintFmt("{}: rejected MyMap request for '{}' because the queue limit is disabled (<= 0)\n",
+			__FUNCTION__, map.filename.c_str());
+		return result;
+	}
+
+	if (playQueue.size() >= static_cast<size_t>(maxQueue)) {
+		if (!playQueue.empty()) {
+			const auto& evicted = playQueue.front();
+			gi.Com_PrintFmt("{}: MyMap queue full ({}). Evicting '{}'.\n", __FUNCTION__, maxQueue, evicted.filename.c_str());
+			playQueue.erase(playQueue.begin());
+			if (!myMapQueue.empty())
+				myMapQueue.erase(myMapQueue.begin());
+			result.evictedOldest = true;
+		}
+	}
+
 	QueuedMap queued{};
 	queued.filename = map.filename;
 	queued.socialID.assign(socialID.begin(), socialID.end());
@@ -2117,6 +2147,9 @@ inline void MapSystem::EnqueueMyMapRequest(const MapEntry& map,
 	request.disableFlags = disableFlags;
 	request.queuedTime = queuedTime;
 	myMapQueue.push_back(std::move(request));
+
+	result.accepted = true;
+	return result;
 }
 
 struct HelpMessage {
@@ -3559,6 +3592,7 @@ extern cvar_t* g_maps_pool_file;
 extern cvar_t* g_maps_cycle_file;
 extern cvar_t* g_maps_selector;
 extern cvar_t* g_maps_mymap;
+extern cvar_t* g_maps_mymap_queue_limit;
 extern cvar_t* g_maps_allow_custom_textures;
 extern cvar_t* g_maps_allow_custom_sounds;
 
