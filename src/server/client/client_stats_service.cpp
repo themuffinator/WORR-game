@@ -71,12 +71,13 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 		auto* b = context.participants[1];
 		float Ra = a->client->sess.skillRating;
 		float Rb = b->client->sess.skillRating;
+		bool isDraw = a->client->resp.score == b->client->resp.score;
 		bool aWon = a->client->resp.score > b->client->resp.score;
 		float Ea = EloExpected(Ra, Rb);
 		float Eb = 1.0f - Ea;
 
-		float dA = SKILL_K * ((aWon ? 1.0f : 0.0f) - Ea);
-		float dB = SKILL_K * ((aWon ? 0.0f : 1.0f) - Eb);
+		float dA = SKILL_K * ((isDraw ? 0.5f : (aWon ? 1.0f : 0.0f)) - Ea);
+		float dB = SKILL_K * ((isDraw ? 0.5f : (aWon ? 0.0f : 1.0f)) - Eb);
 
 		a->client->sess.skillRating += dA;
 		b->client->sess.skillRating += dB;
@@ -84,8 +85,8 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 		a->client->sess.skillRatingChange = static_cast<int>(dA);
 		b->client->sess.skillRatingChange = static_cast<int>(dB);
 
-		GetClientConfigStore().SaveStats(a->client, aWon);
-		GetClientConfigStore().SaveStats(b->client, !aWon);
+		GetClientConfigStore().SaveStats(a->client, aWon, isDraw);
+		GetClientConfigStore().SaveStats(b->client, !aWon, isDraw);
 
 		for (auto* ghost : context.ghosts) {
 			if (!ghost || !*ghost->socialID)
@@ -94,12 +95,12 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 			if (Q_strcasecmp(ghost->socialID, a->client->sess.socialID) == 0) {
 				ghost->skillRating += dA;
 				ghost->skillRatingChange = static_cast<int>(dA);
-				GetClientConfigStore().SaveStatsForGhost(*ghost, aWon);
+				GetClientConfigStore().SaveStatsForGhost(*ghost, aWon, isDraw);
 			}
 			else if (Q_strcasecmp(ghost->socialID, b->client->sess.socialID) == 0) {
 				ghost->skillRating += dB;
 				ghost->skillRatingChange = static_cast<int>(dB);
-				GetClientConfigStore().SaveStatsForGhost(*ghost, !aWon);
+				GetClientConfigStore().SaveStatsForGhost(*ghost, !aWon, isDraw);
 			}
 		}
 		return;
@@ -134,21 +135,22 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 		float Er = EloExpected(Rr, Rb);
 		float Eb = 1.0f - Er;
 		bool redWin = context.redScore > context.blueScore;
+		bool isDraw = context.redScore == context.blueScore;
 
 		for (auto* e : red) {
-			float S = redWin ? 1.0f : 0.0f;
+			float S = isDraw ? 0.5f : (redWin ? 1.0f : 0.0f);
 			float d = SKILL_K * (S - Er);
 			e->client->sess.skillRating += d;
 			e->client->sess.skillRatingChange = static_cast<int>(d);
-			GetClientConfigStore().SaveStats(e->client, redWin);
+			GetClientConfigStore().SaveStats(e->client, redWin, isDraw);
 		}
 
 		for (auto* e : blue) {
-			float S = redWin ? 0.0f : 1.0f;
+			float S = isDraw ? 0.5f : (redWin ? 0.0f : 1.0f);
 			float d = SKILL_K * (S - Eb);
 			e->client->sess.skillRating += d;
 			e->client->sess.skillRatingChange = static_cast<int>(d);
-			GetClientConfigStore().SaveStats(e->client, !redWin);
+			GetClientConfigStore().SaveStats(e->client, !redWin, isDraw);
 		}
 
 		for (auto* ghost : context.ghosts) {
@@ -156,8 +158,8 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 				continue;
 
 			float S = (ghost->team == Team::Red)
-					? (redWin ? 1.0f : 0.0f)
-					: (ghost->team == Team::Blue ? (redWin ? 0.0f : 1.0f) : 0.5f);
+					? (isDraw ? 0.5f : (redWin ? 1.0f : 0.0f))
+					: (ghost->team == Team::Blue ? (isDraw ? 0.5f : (redWin ? 0.0f : 1.0f)) : 0.5f);
 			float E = (ghost->team == Team::Red)
 					? Er
 					: (ghost->team == Team::Blue ? Eb : 0.5f);
@@ -166,7 +168,7 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 			ghost->skillRating += d;
 			ghost->skillRatingChange = static_cast<int>(d);
 			GetClientConfigStore().SaveStatsForGhost(*ghost,
-					(ghost->team == Team::Red) ? redWin : (ghost->team == Team::Blue ? !redWin : false));
+					(ghost->team == Team::Red) ? redWin : (ghost->team == Team::Blue ? !redWin : false), isDraw);
 		}
 		return;
 	}

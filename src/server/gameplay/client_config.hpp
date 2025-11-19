@@ -22,8 +22,8 @@ class ClientConfigStore {
 ClientConfigStore(local_game_import_t& gi, std::string playerConfigDirectory);
 
 		bool LoadProfile(gclient_t* client, const std::string& playerID, const std::string& playerName, const std::string& gameType);
-		void SaveStats(gclient_t* client, bool wonMatch);
-		void SaveStatsForGhost(const Ghosts& ghost, bool wonMatch);
+void SaveStats(gclient_t* client, bool wonMatch, bool isDraw = false);
+void SaveStatsForGhost(const Ghosts& ghost, bool wonMatch, bool isDraw = false);
 		void SaveWeaponPreferences(gclient_t* client);
 		int DefaultSkillRating() const;
 		std::string PlayerNameForSocialID(const std::string& socialID) const;
@@ -35,8 +35,8 @@ local_game_import_t& gi_;
 		bool EnsurePlayerConfigDirectory() const;
 		std::optional<std::string> PlayerConfigPathFromID(const std::string& playerID, const char* functionName) const;
 		void CreateProfile(gclient_t* client, const std::string& playerID, const std::string& playerName, const std::string& gameType) const;
-		void SaveInternal(const std::string& playerID, int skillRating, int skillChange, int64_t timePlayedSeconds, bool won, bool isGhost,
-		bool updateStats, const client_config_t* pc = nullptr, const std::vector<Weapon>* weaponPrefs = nullptr) const;
+void SaveInternal(const std::string& playerID, int skillRating, int skillChange, int64_t timePlayedSeconds, bool won, bool isGhost,
+bool updateStats, const client_config_t* pc = nullptr, const std::vector<Weapon>* weaponPrefs = nullptr, bool isDraw = false) const;
 		bool UpdateConfig(const std::string& playerID, const std::function<void(Json::Value&)>& updater) const;
 		void ApplyWeaponPreferencesFromJson(gclient_t* client, const Json::Value& playerData) const;
 		void ApplyVisualConfigFromJson(gclient_t* client, const Json::Value& playerData) const;

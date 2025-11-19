@@ -69,7 +69,7 @@ ClientConfigStore::ClientConfigStore(local_game_import_t& gi, std::string player
 	=============
 	*/
 void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRating, int skillChange, int64_t timePlayedSeconds,
-	bool won, bool isGhost, bool updateStats, const client_config_t* pc, const std::vector<Weapon>* weaponPrefs) const {
+bool won, bool isGhost, bool updateStats, const client_config_t* pc, const std::vector<Weapon>* weaponPrefs, bool isDraw) const {
 	if (playerID.empty())
 	return;
 	
@@ -124,14 +124,16 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 		const int totalAbandons = ensure_int("totalAbandons", 0);
 		const int bestSkillRating = ensure_int("bestSkillRating", 0);
 		const Json::Value::Int64 totalTimePlayed = ensure_int64("totalTimePlayed", 0);
-		
+
 		stats["totalMatches"] = totalMatches + 1;
-		stats["totalWins"] = won ? totalWins + 1 : totalWins;
-		if (!won) {
-			if (isGhost)
-			stats["totalAbandons"] = totalAbandons + 1;
-			else
-			stats["totalLosses"] = totalLosses + 1;
+		if (!isDraw) {
+			stats["totalWins"] = won ? totalWins + 1 : totalWins;
+			if (!won) {
+				if (isGhost)
+					stats["totalAbandons"] = totalAbandons + 1;
+				else
+					stats["totalLosses"] = totalLosses + 1;
+			}
 		}
 		
 		const Json::Value::Int64 nonNegativeTime = std::max<Json::Value::Int64>(timePlayedSeconds, 0);
@@ -139,9 +141,9 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 		const Json::Value::Int64 maxValue = std::numeric_limits<Json::Value::Int64>::max();
 		Json::Value::Int64 newTotal = cappedBase;
 		if (cappedBase > maxValue - nonNegativeTime)
-		newTotal = maxValue;
+			newTotal = maxValue;
 		else
-		newTotal = cappedBase + nonNegativeTime;
+			newTotal = cappedBase + nonNegativeTime;
 		
 		if (newTotal != totalTimePlayed) {
 			stats["totalTimePlayed"] = Json::Value::Int64(newTotal);
@@ -318,9 +320,9 @@ void ClientConfigStore::CreateProfile(gclient_t* client, const std::string& play
 	newFile["ratings"] = ratings;
 
 	Json::Value stats(Json::objectValue);
-	stats["totalMatches"] = 0;
-	stats["totalWins"] = 0;
-	stats["totalLosses"] = 0;
+		stats["totalMatches"] = 0;
+		stats["totalWins"] = 0;
+		stats["totalLosses"] = 0;
 	stats["totalTimePlayed"] = Json::Value::Int64(0);
 	stats["bestSkillRating"] = 0;
 	stats["lastSkillRating"] = kDefaultSkillRating;
@@ -351,7 +353,7 @@ writer->write(newFile, &file);
 file.close();
 gi_.Com_PrintFmt("Created new client config file: {}\n", path);
 }
-else {
+				else {
 gi_.Com_PrintFmt("Failed to create client config file: {}\n", path);
 }
 }
@@ -646,13 +648,13 @@ ClientConfigStore::SaveStats
 Persists the real player's session statistics and HUD settings.
 =============
 */
-void ClientConfigStore::SaveStats(gclient_t* client, bool wonMatch) {
+void ClientConfigStore::SaveStats(gclient_t* client, bool wonMatch, bool isDraw) {
 	if (!client || client->sess.is_a_bot || !client->sess.socialID[0])
-		return;
+	return;
 
 	const int64_t rawTimePlayed = client->sess.playEndRealTime - client->sess.playStartRealTime;
 	const int64_t timePlayed = rawTimePlayed > 0 ? rawTimePlayed : 0;
-	SaveInternal(client->sess.socialID, client->sess.skillRating, client->sess.skillRatingChange, timePlayed, wonMatch, false, true, &client->sess.pc, &client->sess.weaponPrefs);
+	SaveInternal(client->sess.socialID, client->sess.skillRating, client->sess.skillRatingChange, timePlayed, wonMatch, false, true, &client->sess.pc, &client->sess.weaponPrefs, isDraw);
 }
 
 /*
@@ -662,12 +664,12 @@ ClientConfigStore::SaveStatsForGhost
 Persists statistics for ghost (disconnected) players.
 =============
 */
-void ClientConfigStore::SaveStatsForGhost(const Ghosts& ghost, bool wonMatch) {
+void ClientConfigStore::SaveStatsForGhost(const Ghosts& ghost, bool wonMatch, bool isDraw) {
 	if (!*ghost.socialID)
-		return;
+	return;
 
 	const int64_t timePlayed = ghost.totalMatchPlayRealTime > 0 ? ghost.totalMatchPlayRealTime : 0;
-	SaveInternal(ghost.socialID, ghost.skillRating, ghost.skillRatingChange, timePlayed, wonMatch, true, true, nullptr, nullptr);
+	SaveInternal(ghost.socialID, ghost.skillRating, ghost.skillRatingChange, timePlayed, wonMatch, true, true, nullptr, nullptr, isDraw);
 }
 
 /*
