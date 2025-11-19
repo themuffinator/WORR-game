@@ -30,6 +30,7 @@
 #include "../client/client_session_service_impl.hpp"
 #include "../client/client_stats_service.hpp"
 #include "p_client_shared.hpp"
+#include "team_join_capacity.hpp"
 
 #include <algorithm>
 #include <array>
@@ -3273,36 +3274,6 @@ void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bool sile
 		std::string msg = std::format("%bind:inven:Toggles Menu%{}", t);
 		gi.LocClient_Print(ent, PRINT_CENTER, msg.c_str());
 	}
-}
-
-enum class TeamJoinCapacityAction {
-	Allow,
-	QueueForDuel,
-	Deny
-};
-
-static inline TeamJoinCapacityAction EvaluateTeamJoinCapacity(
-	bool joinPlaying,
-	bool requestQueue,
-	bool force,
-	bool wasPlaying,
-	bool duel,
-	bool isHuman,
-	int playingHumans,
-	int maxPlayers) {
-	if (!joinPlaying || requestQueue || force || wasPlaying || !isHuman)
-		return TeamJoinCapacityAction::Allow;
-
-	if (maxPlayers <= 0)
-		return TeamJoinCapacityAction::Allow;
-
-	if (playingHumans < maxPlayers)
-		return TeamJoinCapacityAction::Allow;
-
-	if (duel)
-		return TeamJoinCapacityAction::QueueForDuel;
-
-	return TeamJoinCapacityAction::Deny;
 }
 
 bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool silent) {
