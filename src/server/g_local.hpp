@@ -2098,6 +2098,31 @@ inline MapPoolLocation G_ResolveMapPoolPath()
 }
 
 /*
+=============
+G_ResolveMapCyclePath
+
+Selects the map cycle path, preferring the active gamedir when it contains
+the configured file and falling back to GAMEVERSION otherwise.
+=============
+*/
+inline MapPoolLocation G_ResolveMapCyclePath(const std::string& cycleFile)
+{
+	const std::string basePath = std::string(GAMEVERSION) + "/" + cycleFile;
+
+	if (gi.cvar) {
+		cvar_t* gameCvar = gi.cvar("game", "", CVAR_NOFLAGS);
+		if (gameCvar && gameCvar->string && gameCvar->string[0]) {
+			const std::string modPath = std::string(gameCvar->string) + "/" + cycleFile;
+			std::ifstream file(modPath, std::ifstream::binary);
+			if (file.is_open())
+				return { modPath, true };
+		}
+	}
+
+	return { basePath, false };
+}
+
+/*
 ===============
 MapSystem::MapExists
 
