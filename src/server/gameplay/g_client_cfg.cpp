@@ -61,6 +61,203 @@ ClientConfigStore::ClientConfigStore(local_game_import_t& gi, std::string player
 	return true;
 }
 
+	/*
+	=============
+	ClientConfigStore::SaveInternal
+	
+	Persists statistics and optional player configuration updates to disk.
+	=============
+	*/
+void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRating, int skillChange, int64_t timePlayedSeconds,
+	bool won, bool isGhost, bool updateStats, const client_config_t* pc, const std::vector<Weapon>* weaponPrefs) const {
+	if (playerID.empty())
+	return;
+	
+	const auto pathOpt = PlayerConfigPathFromID(playerID, __FUNCTION__);
+	if (!pathOpt)
+	return;
+	
+	const std::string path = *pathOpt;
+	Json::Value cfg;
+	
+	std::ifstream in(path);
+	if (!in.is_open()) {
+		gi_.Com_PrintFmt("{}: failed to open {}\n", __FUNCTION__, path.c_str());
+		return;
+	}
+	
+	Json::CharReaderBuilder builder;
+	std::string errs;
+	if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
+		gi_.Com_PrintFmt("{}: parse error in {}: {}\n", __FUNCTION__, path.c_str(), errs.c_str());
+		return;
+	}
+	
+	bool modified = false;
+	
+	if (updateStats) {
+		if (!cfg.isMember("stats") || !cfg["stats"].isObject()) {
+			cfg["stats"] = Json::Value(Json::objectValue);
+			modified = true;
+		}
+		
+		auto& stats = cfg["stats"];
+		auto ensure_int = [&](const char* key, int def) {
+			if (!stats.isMember(key) || !stats[key].isInt()) {
+				stats[key] = def;
+				modified = true;
+			}
+			return stats[key].asInt();
+		};
+		
+		auto ensure_int64 = [&](const char* key, Json::Value::Int64 def) {
+			if (!stats.isMember(key) || !stats[key].isInt64()) {
+				stats[key] = def;
+				modified = true;
+			}
+			return stats[key].asInt64();
+		};
+		
+		const int totalMatches = ensure_int("totalMatches", 0);
+		const int totalWins = ensure_int("totalWins", 0);
+		const int totalLosses = ensure_int("totalLosses", 0);
+		const int totalAbandons = ensure_int("totalAbandons", 0);
+		const int bestSkillRating = ensure_int("bestSkillRating", 0);
+		const Json::Value::Int64 totalTimePlayed = ensure_int64("totalTimePlayed", 0);
+		
+		stats["totalMatches"] = totalMatches + 1;
+		stats["totalWins"] = won ? totalWins + 1 : totalWins;
+		if (!won) {
+			if (isGhost)
+			stats["totalAbandons"] = totalAbandons + 1;
+			else
+			stats["totalLosses"] = totalLosses + 1;
+		}
+		
+		const Json::Value::Int64 nonNegativeTime = std::max<Json::Value::Int64>(timePlayedSeconds, 0);
+		const Json::Value::Int64 cappedBase = std::max<Json::Value::Int64>(totalTimePlayed, 0);
+		const Json::Value::Int64 maxValue = std::numeric_limits<Json::Value::Int64>::max();
+		Json::Value::Int64 newTotal = cappedBase;
+		if (cappedBase > maxValue - nonNegativeTime)
+		newTotal = maxValue;
+		else
+		newTotal = cappedBase + nonNegativeTime;
+		
+		if (newTotal != totalTimePlayed) {
+			stats["totalTimePlayed"] = Json::Value::Int64(newTotal);
+			modified = true;
+		}
+		
+		const int updatedBest = std::max(bestSkillRating, skillRating);
+		if (updatedBest != bestSkillRating) {
+			stats["bestSkillRating"] = updatedBest;
+			modified = true;
+		}
+		
+		if (!stats.isMember("lastSkillRating") || !stats["lastSkillRating"].isInt() || stats["lastSkillRating"].asInt() != skillRating) {
+			stats["lastSkillRating"] = skillRating;
+			modified = true;
+		}
+		
+		if (!stats.isMember("lastSkillChange") || !stats["lastSkillChange"].isInt() || stats["lastSkillChange"].asInt() != skillChange) {
+			stats["lastSkillChange"] = skillChange;
+			modified = true;
+		}
+	}
+	
+	if (pc) {
+		if (!cfg.isMember("config") || !cfg["config"].isObject()) {
+			cfg["config"] = Json::Value(Json::objectValue);
+			modified = true;
+		}
+		
+		auto& config = cfg["config"];
+		if (!config.isMember("drawCrosshairID") || !config["drawCrosshairID"].isBool() || config["drawCrosshairID"].asBool() != pc->show_id) {
+			config["drawCrosshairID"] = pc->show_id;
+			modified = true;
+		}
+		if (!config.isMember("drawTimer") || !config["drawTimer"].isBool() || config["drawTimer"].asBool() != pc->show_timer) {
+			config["drawTimer"] = pc->show_timer;
+			modified = true;
+		}
+		if (!config.isMember("drawFragMessages") || !config["drawFragMessages"].isBool() || config["drawFragMessages"].asBool() != pc->show_fragmessages) {
+			config["drawFragMessages"] = pc->show_fragmessages;
+			modified = true;
+		}
+		if (!config.isMember("eyeCam") || !config["eyeCam"].isBool() || config["eyeCam"].asBool() != pc->use_eyecam) {
+			config["eyeCam"] = pc->use_eyecam;
+			modified = true;
+		}
+		if (!config.isMember("killBeep") || !config["killBeep"].isInt() || config["killBeep"].asInt() != pc->killbeep_num) {
+			config["killBeep"] = pc->killbeep_num;
+			modified = true;
+		}
+		if (!config.isMember("followKiller") || !config["followKiller"].isBool() || config["followKiller"].asBool() != pc->follow_killer) {
+			config["followKiller"] = pc->follow_killer;
+			modified = true;
+		}
+		if (!config.isMember("followLeader") || !config["followLeader"].isBool() || config["followLeader"].asBool() != pc->follow_leader) {
+			config["followLeader"] = pc->follow_leader;
+			modified = true;
+		}
+		if (!config.isMember("followPowerup") || !config["followPowerup"].isBool() || config["followPowerup"].asBool() != pc->follow_powerup) {
+			config["followPowerup"] = pc->follow_powerup;
+			modified = true;
+		}
+	}
+	
+	if (weaponPrefs) {
+		if (!cfg.isMember("config") || !cfg["config"].isObject()) {
+			cfg["config"] = Json::Value(Json::objectValue);
+		}
+		
+		std::array<bool, static_cast<size_t>(Weapon::Total)> seen{};
+		Json::Value prefs(Json::arrayValue);
+		for (Weapon weapon : *weaponPrefs) {
+			const auto index = static_cast<size_t>(weapon);
+			if (weapon == Weapon::None || index >= seen.size() || seen[index])
+			continue;
+			
+			seen[index] = true;
+			std::string_view abbr = WeaponToAbbreviation(weapon);
+			if (!abbr.empty())
+			prefs.append(std::string(abbr));
+		}
+		
+		if (cfg["config"]["weaponPrefs"] != prefs) {
+			cfg["config"]["weaponPrefs"] = prefs;
+			modified = true;
+		}
+	}
+	
+	if (!modified)
+	return;
+	
+	cfg["lastUpdated"] = TimeStamp();
+	
+	try {
+		if (!EnsurePlayerConfigDirectory())
+		return;
+		
+		std::ofstream out(path);
+		if (!out.is_open()) {
+			gi_.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
+			return;
+		}
+		
+		Json::StreamWriterBuilder writerBuilder;
+		writerBuilder["indentation"] = "\t";
+		std::unique_ptr<Json::StreamWriter> writer(writerBuilder.newStreamWriter());
+		writer->write(cfg, &out);
+		out.close();
+		
+		gi_.Com_PrintFmt("{}: saved updates for {}\n", __FUNCTION__, playerID.c_str());
+	}
+	catch (const std::exception& e) {
+		gi_.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
+	}
+}
+
 /*
 =============
 ClientConfigStore::PlayerConfigPathFromID
