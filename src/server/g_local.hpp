@@ -2051,6 +2051,8 @@ struct MapSystem {
 		uint16_t disableFlags,
 		GameTime queuedTime);
 
+	void ConsumeQueuedMap();
+
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
 
@@ -2122,12 +2124,29 @@ inline bool MapSystem::MapExists(std::string_view mapName) const
 	}
 
 	if (!activeGameDir.empty() && mapExistsInDir(activeGameDir))
-		return true;
+	return true;
 
 	if (activeGameDir.empty() || activeGameDir != GAMEVERSION)
-		return mapExistsInDir(GAMEVERSION);
+	return mapExistsInDir(GAMEVERSION);
 
 	return false;
+}
+
+/*
+=============
+MapSystem::ConsumeQueuedMap
+
+Removes the leading entries from both the play queue and the mymap queue if
+they are present.
+=============
+*/
+inline void MapSystem::ConsumeQueuedMap()
+{
+	if (!playQueue.empty())
+		playQueue.erase(playQueue.begin());
+
+	if (!myMapQueue.empty())
+		myMapQueue.erase(myMapQueue.begin());
 }
 
 /*

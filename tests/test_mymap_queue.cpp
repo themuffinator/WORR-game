@@ -83,12 +83,7 @@ int main() {
 	assert(system.IsClientInQueue("PlayerB"));
 	assert(system.IsMapInQueue("q2dm3"));
 
-	if (!system.playQueue.empty()) {
-		system.playQueue.erase(system.playQueue.begin());
-		if (!system.myMapQueue.empty()) {
-			system.myMapQueue.erase(system.myMapQueue.begin());
-		}
-	}
+	system.ConsumeQueuedMap();
 
 	assert(system.playQueue.size() == 1);
 	assert(system.myMapQueue.size() == 1);
