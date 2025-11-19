@@ -166,13 +166,34 @@ void MapSelectorBegin() {
 	ms.votes.fill(-1);
 	ms.voteCounts.fill(0);
 	ms.candidates.fill(std::string{});
+	ms.forceExit = false;
 
 	auto candidates = MapSelectorVoteCandidates();
-	if (candidates.empty())
+	if (candidates.empty()) {
+		auto fallback = AutoSelectNextMap();
+		if (fallback) {
+			const char* longName = fallback->longName.empty() ? fallback->filename.c_str() : fallback->longName.c_str();
+
+			level.changeMap = fallback->filename.c_str();
+
+			gi.LocBroadcast_Print(PRINT_CENTER, ".No map vote available.\nNext map: {} ({})\n",
+				fallback->filename.c_str(),
+				longName);
+		}
+		else {
+			level.changeMap = level.mapName.data();
+			gi.LocBroadcast_Print(PRINT_CENTER, ".No map vote available.\nRestarting current map: {}\n",
+				level.changeMap.data());
+		}
+
+		ms.voteStartTime = level.time;
+		ms.forceExit = true;
+		level.intermission.postIntermissionTime = level.time;
 		return;
+	}
 
 	for (size_t i = 0; i < std::min(candidates.size(), ms.candidates.size()); ++i)
-	ms.candidates[i] = candidates[i]->filename;
+		ms.candidates[i] = candidates[i]->filename;
 
 	// Set voteStartTime here to lock vote as active
 	ms.voteStartTime = level.time;
