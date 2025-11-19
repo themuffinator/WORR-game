@@ -298,7 +298,7 @@ static int CG_DrawHUDString(const char* str, int x, int y, int centerwidth, int 
 		if (newline != std::string_view::npos) {
 			input.remove_prefix(newline + 1);
 			x = margin;
-			y += useKFont ? static_cast<int>(10 * scale) : CONCHAR_WIDTH * scale; // TODO: use size.y if available
+			y += useKFont ? static_cast<int>(size.y) : CONCHAR_WIDTH * scale;
 		}
 		else {
 			break;
