@@ -1876,6 +1876,11 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	ProBall::ClearState();
 	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
+	globals.numEntities = game.maxClients + 1;
+	std::memset(world, 0, sizeof(*world));
+	world->s.number = 0;
+	level.bodyQue = 0;
+	InitBodyQue();
 
 	globals.serverFlags |= SERVER_FLAG_LOADING;
 
@@ -1901,8 +1906,6 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		game.clients[i].pers.limitedLivesStash = 0;
 		game.clients[i].pers.spawned = false;
 	}
-
-	InitBodyQue();
 
 	int inhibited = 0;
 	bool firstEntity = true;
