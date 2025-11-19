@@ -24,6 +24,7 @@
 #include <regex>
 #include <algorithm>
 #include <random>
+#include <unordered_map>
 
 /*
 =============
@@ -454,6 +455,10 @@ LoadMapPool
 void LoadMapPool(gentity_t* ent) {
 	bool entClient = ent && ent->client;
 	std::vector<MapEntry> newPool;
+	std::unordered_map<std::string, std::pair<int64_t, bool>> existingRuntime;
+
+	for (const auto& map : game.mapSystem.mapPool)
+		existingRuntime.emplace(map.filename, std::make_pair(map.lastPlayed, map.isCycleable));
 
 	MapPoolLocation location = G_ResolveMapPoolPath();
 
@@ -529,9 +534,15 @@ void LoadMapPool(gentity_t* ent) {
 		map.isCycleable = false;
 		map.lastPlayed = 0;
 
-                newPool.push_back(std::move(map));
-                loaded++;
-        }
+		const auto existing = existingRuntime.find(map.filename);
+		if (existing != existingRuntime.end()) {
+			map.lastPlayed = existing->second.first;
+			map.isCycleable = existing->second.second;
+		}
+
+newPool.push_back(std::move(map));
+loaded++;
+}
 
         game.mapSystem.mapPool.swap(newPool);
 
