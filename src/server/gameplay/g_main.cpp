@@ -28,6 +28,7 @@
 #include "g_headhunters.hpp"
 #include <algorithm>
 #include <cstring>
+#include <array>
 #include <ctime>
 #include <filesystem>
 #include <fstream>
@@ -773,8 +774,17 @@ static void InitGame() {
 
 	G_InitSave();
 
+	game = {};
+
 	std::random_device rd;
 	game.mapRNG.seed(rd());
+
+	std::mt19937 mapRNGPreview = game.mapRNG;
+	std::array<uint32_t, 3> mapRNGPreviewValues = {};
+	for (auto &value : mapRNGPreviewValues)
+	value = mapRNGPreview();
+
+	gi.Com_PrintFmt("InitGame: map RNG preview values: {}, {}, {}\n", mapRNGPreviewValues[0], mapRNGPreviewValues[1], mapRNGPreviewValues[2]);
 
 	// seed RNG
 	mt_rand.seed((uint32_t)std::chrono::system_clock::now().time_since_epoch().count());
@@ -1000,8 +1010,6 @@ static void InitGame() {
 
 	// ruleset
 	CheckRuleset();
-
-	game = {};
 
 	// initialize all entities for this game
 	game.maxEntities = maxentities->integer;
