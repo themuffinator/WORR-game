@@ -1223,7 +1223,7 @@ TossClientItems
 Toss the weapon, tech, CTF flag and powerups for the killed player
 =================
 */
-static void TossClientItems(gentity_t* self) {
+void TossClientItems(gentity_t* self) {
 	if (!deathmatch->integer)
 		return;
 
@@ -3540,7 +3540,7 @@ G_EncodedPlayerName
 Gets a token version of the players "name" to be decoded on the client.
 ================
 */
-static std::string G_EncodedPlayerName(gentity_t* player) {
+std::string G_EncodedPlayerName(gentity_t* player) {
 	unsigned int playernum = P_GetLobbyUserNum(player);
 	return std::string("##P") + std::to_string(playernum);
 }
@@ -4060,7 +4060,7 @@ enum respawn_state_t {
 // [Paril-KEX] return false to fall back to click-to-respawn behavior.
 // note that this is only called if they are allowed to respawn (not
 // restarting the level due to all being dead)
-static bool G_LimitedLivesRespawn(gentity_t* ent) {
+bool G_LimitedLivesRespawn(gentity_t* ent) {
 	if (CooperativeModeOn()) {
 		const bool limitedLives = G_LimitedLivesInCoop();
 		const bool allowSquadRespawn = coop->integer && g_coop_squad_respawn->integer;
