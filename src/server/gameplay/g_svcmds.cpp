@@ -386,16 +386,17 @@ namespace
 		if (std::fclose(file.release()) != 0) {
 			gi.LocClient_Print(nullptr, PRINT_HIGH, "Error closing {}\n", pathStr.c_str());
 		}
+	}
+
 	/*
-	===============
+	==============
 	SVCmd_NextMap_f
-	===============
+	==============
 	*/
 	static void SVCmd_NextMap_f()
 	{
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_map_ended_by_server");
 		Match_End();
-	}
 
 } // anonymous namespace
 

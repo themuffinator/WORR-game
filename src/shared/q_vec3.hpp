@@ -59,6 +59,17 @@ struct Vector3 {
 	[[nodiscard]] constexpr bool operator!=(const Vector3& v) const {
 		return !(*this == v);
 	}
+
+	/*
+	=============
+	is_zero
+
+	Returns true if all components are zero.
+	=============
+	*/
+	[[nodiscard]] constexpr bool is_zero() const {
+		return x == 0.0f && y == 0.0f && z == 0.0f;
+	}
 	[[nodiscard]] constexpr explicit operator bool() const {
 		return x || y || z;
 	}

@@ -551,7 +551,7 @@ void LoadMapPool(gentity_t* ent) {
 				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Skipping entry{}{}{}: {}\n",
 					hasName ? " '" : "", hasName ? bspName : "", hasName ? "'" : "", reason.c_str());
 			gi.Com_PrintFmt("{}: skipping map pool entry{}{}{} ({})\n", __FUNCTION__,
-				hasName ? " \\"" : "", hasName ? bspName : "", hasName ? "\"" : "",
+				hasName ? " \"" : "", hasName ? bspName : "", hasName ? "\"" : "",
 				reason.c_str());
 		};
 
