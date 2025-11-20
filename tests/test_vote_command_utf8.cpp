@@ -6,6 +6,7 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
+#include "server/commands/command_validation.hpp"
 
 enum print_type_t { PRINT_HIGH };
 
@@ -139,7 +140,8 @@ int main() {
 	assert(level.vote.countNo == 0);
 	assert(entity.client->pers.voted == 0);
 	assert(g_usageCount == 1);
-	assert(g_printMessages.empty());
+	assert(g_printMessages.size() == 1);
+	assert(g_printMessages.back() == "Vote choice must use printable ASCII characters.\n");
 
 	return 0;
 }

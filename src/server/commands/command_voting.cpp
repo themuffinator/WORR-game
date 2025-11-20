@@ -8,6 +8,7 @@
 #include "command_voting.hpp"
 #include "../g_local.hpp"
 #include "command_registration.hpp"
+#include "command_validation.hpp"
 #include "command_voting_utils.hpp"
 #include "command_system.hpp"
 #include <string>
@@ -415,16 +416,17 @@ queue state consistent.
 		return s_voteDefinitions;
 	}
 
-	VoteLaunchResult TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
+        VoteLaunchResult TryLaunchVote(gentity_t* ent, std::string_view voteName, std::string_view voteArg) {
 		VoteLaunchResult result;
+		std::string validationError;
 
 		if (!g_allowVoting || !g_allowVoting->integer) {
 			result.message = "Voting is disabled on this server.";
-			return result;
+		return result;
 		}
 		if (level.vote.time) {
 			result.message = "A vote is already in progress.";
-			return result;
+		return result;
 		}
 		if (level.vote.executeTime || level.restarted) {
 			result.message = "Cannot start a vote right now.";
@@ -440,6 +442,15 @@ queue state consistent.
 		}
 		if (!ClientIsPlaying(ent->client) && !g_allowSpecVote->integer) {
 			result.message = "Spectators cannot call a vote on this server.";
+			return result;
+		}
+
+		if (!ValidatePrintableASCII(voteName, "Vote command", validationError)) {
+			result.message = validationError;
+			return result;
+		}
+		if (!voteArg.empty() && !ValidatePrintableASCII(voteArg, "Vote argument", validationError)) {
+			result.message = validationError;
 			return result;
 		}
 
@@ -478,11 +489,11 @@ queue state consistent.
 		CommandArgs manualArgs(std::move(args));
 		if (manualArgs.count() < (1 + found_cmd.minArgs)) {
 			result.message = "Not enough parameters supplied for that vote.";
-			return result;
+		return result;
 		}
 
 		if (!found_cmd.validate || !found_cmd.validate(ent, manualArgs)) {
-			return result;
+		return result;
 		}
 
 		std::string displayArg = voteArgStr;
@@ -494,7 +505,7 @@ queue state consistent.
 			auto parsed = ParseMapVoteArguments(splitTokens, parseError);
 			if (!parsed) {
 				result.message = parseError.empty() ? "Unable to parse map vote arguments." : parseError;
-				return result;
+		return result;
 			}
 
 			level.vote_flags_enable = parsed->enableFlags;
@@ -595,6 +606,23 @@ queue state consistent.
 		}
 
 		std::string_view voteName = args.getString(1);
+		std::string validationError;
+		if (!ValidatePrintableASCII(voteName, "Vote command", validationError)) {
+			std::string message = validationError;
+			message.push_back('\n');
+			gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+			return;
+		}
+
+		for (int i = 2; i < args.count(); ++i) {
+			if (!ValidatePrintableASCII(args.getString(i), "Vote argument", validationError)) {
+			std::string message = validationError;
+			message.push_back('\n');
+			gi.Client_Print(ent, PRINT_HIGH, message.c_str());
+			return;
+		}
+		}
+
 		auto it = s_voteCommands.find(voteName);
 
 		if (it == s_voteCommands.end()) {
