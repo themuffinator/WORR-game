@@ -117,7 +117,7 @@ queue state consistent.
 			ExitLevel(true);
 			game.mapSystem.ConsumeQueuedMap();
 			return;
-	}
+		}
 
 		auto result = AutoSelectNextMap();
 		if (result.has_value()) {
@@ -126,10 +126,12 @@ queue state consistent.
 			game.map.overrideDisableFlags = 0;
 			ExitLevel(true);
 			game.mapSystem.ConsumeQueuedMap();
-	}
+		}
 		else {
+			game.map.overrideEnableFlags = 0;
+			game.map.overrideDisableFlags = 0;
 			gi.Broadcast_Print(PRINT_HIGH, "No eligible maps available.\n");
-	}
+		}
 	}
 
 	static void Pass_RestartMatch() { Match_Reset(); }
