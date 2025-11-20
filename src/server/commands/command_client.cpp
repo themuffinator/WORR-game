@@ -16,6 +16,7 @@
 #include <vector>
 #include <array>
 #include <algorithm>
+#include <cctype>
 #include <ranges>
 #include <sstream>
 
@@ -24,29 +25,29 @@ namespace Commands {
 	// --- Forward Declarations for Client Functions ---
 	void Admin(gentity_t* ent, const CommandArgs& args);
 	void ClientList(gentity_t* ent, const CommandArgs& args);
-void EyeCam(gentity_t* ent, const CommandArgs& args);
-void FragMessages(gentity_t* ent, const CommandArgs& args);
-void Forfeit(gentity_t* ent, const CommandArgs& args);
-void Help(gentity_t* ent, const CommandArgs& args);
-void Hook(gentity_t* ent, const CommandArgs& args);
-void CrosshairID(gentity_t* ent, const CommandArgs& args);
-void KillBeep(gentity_t* ent, const CommandArgs& args);
-void Kill(gentity_t* ent, const CommandArgs& args);
-void MapInfo(gentity_t* ent, const CommandArgs& args);
-void MapPool(gentity_t* ent, const CommandArgs& args);
-void MapCycle(gentity_t* ent, const CommandArgs& args);
-void Motd(gentity_t* ent, const CommandArgs& args);
-void MyMap(gentity_t* ent, const CommandArgs& args);
-void MySkill(gentity_t* ent, const CommandArgs& args);
-void Score(gentity_t* ent, const CommandArgs& args);
-void Stats(gentity_t* ent, const CommandArgs& args);
-void JoinTeam(gentity_t* ent, const CommandArgs& args);
-void TimeIn(gentity_t* ent, const CommandArgs& args);
-void TimeOut(gentity_t* ent, const CommandArgs& args);
-void Timer(gentity_t* ent, const CommandArgs& args);
-void UnHook(gentity_t* ent, const CommandArgs& args);
-void Wave(gentity_t* ent, const CommandArgs& args);
-void Where(gentity_t* ent, const CommandArgs& args);
+	void EyeCam(gentity_t* ent, const CommandArgs& args);
+	void FragMessages(gentity_t* ent, const CommandArgs& args);
+	void Forfeit(gentity_t* ent, const CommandArgs& args);
+	void Help(gentity_t* ent, const CommandArgs& args);
+	void Hook(gentity_t* ent, const CommandArgs& args);
+	void CrosshairID(gentity_t* ent, const CommandArgs& args);
+	void KillBeep(gentity_t* ent, const CommandArgs& args);
+	void Kill(gentity_t* ent, const CommandArgs& args);
+	void MapInfo(gentity_t* ent, const CommandArgs& args);
+	void MapPool(gentity_t* ent, const CommandArgs& args);
+	void MapCycle(gentity_t* ent, const CommandArgs& args);
+	void Motd(gentity_t* ent, const CommandArgs& args);
+	void MyMap(gentity_t* ent, const CommandArgs& args);
+	void MySkill(gentity_t* ent, const CommandArgs& args);
+	void Score(gentity_t* ent, const CommandArgs& args);
+	void Stats(gentity_t* ent, const CommandArgs& args);
+	void JoinTeam(gentity_t* ent, const CommandArgs& args);
+	void TimeIn(gentity_t* ent, const CommandArgs& args);
+	void TimeOut(gentity_t* ent, const CommandArgs& args);
+	void Timer(gentity_t* ent, const CommandArgs& args);
+	void UnHook(gentity_t* ent, const CommandArgs& args);
+	void Wave(gentity_t* ent, const CommandArgs& args);
+	void Where(gentity_t* ent, const CommandArgs& args);
 
 namespace inventory {
 	void WeapNext(gentity_t* ent, const CommandArgs& args);
@@ -133,7 +134,7 @@ Allows the losing player in a duel to forfeit the match.
 			return;
 		}
 		const int runnerUpIndex = level.sortedClients[1];
-		if (runnerUpIndex < 0 || runnerUpIndex >= game.maxClients) {
+		if (runnerUpIndex < 0 || runnerUpIndex >= static_cast<int>(game.maxClients)) {
 			gi.Client_Print(ent, PRINT_HIGH, "No opponent to forfeit against.\n");
 			return;
 		}
@@ -181,6 +182,39 @@ Allows the losing player in a duel to forfeit the match.
 	void Hook(gentity_t* ent, const CommandArgs& args) {
 		if (!g_allow_grapple->integer || !g_grapple_offhand->integer) return;
 		Weapon_Hook(ent);
+	}
+
+/*
+=============
+Admin
+
+Enables administrative permissions when the correct password is supplied.
+=============
+*/
+	void Admin(gentity_t* ent, const CommandArgs& args) {
+		if (!g_allowAdmin->integer) {
+			gi.Client_Print(ent, PRINT_HIGH, "Administration is disabled.\n");
+			return;
+		}
+
+		if (args.count() < 2) {
+			PrintUsage(ent, args, "<password>", "", "Enables administrative access with the correct password.");
+			return;
+		}
+
+		if (ent->client->sess.admin) {
+			gi.Client_Print(ent, PRINT_HIGH, "You already have administrative rights.\n");
+			return;
+		}
+
+		std::string password(args.getString(1));
+		if (admin_password->string && *admin_password->string && Q_strcasecmp(admin_password->string, password.c_str()) == 0) {
+			ent->client->sess.admin = true;
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} has become an admin.\n", ent->client->sess.netName);
+			return;
+		}
+
+		gi.Client_Print(ent, PRINT_HIGH, "Invalid admin password.\n");
 	}
 
 	void CrosshairID(gentity_t* ent, const CommandArgs& args) {
@@ -577,6 +611,102 @@ Allows the losing player in a duel to forfeit the match.
 		}
 
 	} // namespace inventory
+
+/*
+=============
+ClientList
+
+Displays connected clients, optionally sorted by score or time played.
+=============
+*/
+	void ClientList(gentity_t* ent, const CommandArgs& args) {
+		enum class ClientListSortMode {
+			None,
+			Score,
+			Time,
+		};
+
+		ClientListSortMode sortMode = ClientListSortMode::None;
+
+		if (args.count() > 1) {
+			std::string arg = std::string(args.getString(1));
+			std::ranges::transform(arg, arg.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+			if (arg == "score") {
+				sortMode = ClientListSortMode::Score;
+			}
+			else if (arg == "time") {
+				sortMode = ClientListSortMode::Time;
+			}
+		}
+
+		std::vector<int> clientIndices;
+		clientIndices.reserve(game.maxClients);
+
+		for (auto* clientEnt : active_clients()) {
+			if (!clientEnt || !clientEnt->client || !clientEnt->client->pers.connected) {
+				continue;
+			}
+
+			const int index = static_cast<int>((clientEnt - g_entities) - 1);
+			clientIndices.push_back(index);
+		}
+
+		auto sortBy = [&sortMode](int lhs, int rhs) {
+			gclient_t* left = &game.clients[lhs];
+			gclient_t* right = &game.clients[rhs];
+
+			switch (sortMode) {
+			case ClientListSortMode::Score:
+				return left->resp.score > right->resp.score;
+			case ClientListSortMode::Time:
+				return (level.time - left->resp.enterTime) > (level.time - right->resp.enterTime);
+			default:
+				return lhs < rhs;
+			}
+		};
+
+		std::ranges::stable_sort(clientIndices, sortBy);
+
+		gi.Client_Print(ent, PRINT_HIGH | PRINT_NO_NOTIFY, "\nClients ({}):\n", clientIndices.size());
+
+		for (int clientIndex : clientIndices) {
+			gclient_t* cl = &game.clients[clientIndex];
+			const auto timePlayed = (level.time - cl->resp.enterTime).seconds<int32_t>();
+
+			gi.LocClient_Print(ent, PRINT_HIGH | PRINT_NO_NOTIFY,
+				"[{}] {} | score: {} | time: {}s\n",
+				clientIndex, cl->sess.netName, cl->resp.score, timePlayed);
+		}
+
+		gi.Client_Print(ent, PRINT_HIGH | PRINT_NO_NOTIFY, "\n");
+	}
+
+/*
+=============
+FragMessages
+
+Toggles display of frag message popups for the client.
+=============
+*/
+	void FragMessages(gentity_t* ent, const CommandArgs& args) {
+		(void)args;
+		ent->client->sess.pc.show_fragmessages = !ent->client->sess.pc.show_fragmessages;
+		gi.LocClient_Print(ent, PRINT_HIGH, "{} frag messages.\n", ent->client->sess.pc.show_fragmessages ? "Activating" : "Disabling");
+	}
+
+/*
+=============
+EyeCam
+
+Toggles the eyecam view when following other players.
+=============
+*/
+	void EyeCam(gentity_t* ent, const CommandArgs& args) {
+		(void)args;
+		ent->client->sess.pc.use_eyecam = !ent->client->sess.pc.use_eyecam;
+		gi.LocClient_Print(ent, PRINT_HIGH, "Eyecam: {}.\n", ent->client->sess.pc.use_eyecam ? "ON" : "OFF");
+	}
 
 	void KillBeep(gentity_t* ent, const CommandArgs& args) {
 		int num = 0;
