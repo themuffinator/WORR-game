@@ -3223,6 +3223,8 @@ struct reinforcement_t {
 struct reinforcement_list_t {
 	reinforcement_t* reinforcements;
 	uint32_t		num_reinforcements;
+	uint32_t		next_reinforcement;
+	uint32_t*		spawn_counts;
 };
 
 constexpr size_t MAX_REINFORCEMENTS = 5; // max number of spawns we can do at once.
