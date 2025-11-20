@@ -10,10 +10,20 @@ def detect_encoding(path):
 def fix_encoding(input_file, output_file):
     encoding, raw_bytes = detect_encoding(input_file)
 
+    if not encoding:
+        print(
+            f"Failed to detect encoding for {input_file}; ensure the file is not empty "
+            "or specify the expected encoding manually."
+        )
+        return
+
     try:
         text = raw_bytes.decode(encoding, errors='replace')  # Replace illegal chars
-    except Exception as e:
-        print(f"Failed to decode using {encoding}: {e}")
+    except (UnicodeDecodeError, LookupError) as e:
+        print(
+            f"Failed to decode {input_file} using detected encoding '{encoding}': {e}. "
+            "Try converting the file to UTF-8 manually before re-running."
+        )
         return
 
     with open(output_file, 'w', encoding='utf-8') as f:

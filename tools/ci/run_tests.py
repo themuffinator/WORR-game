@@ -270,8 +270,12 @@ def main() -> int:
     write_log(results)
     try:
         write_junit(results)
-    except Exception as exc:  # pragma: no cover - best effort only
-        print(f"warning: failed to write JUnit report: {exc}", file=sys.stderr)
+    except OSError as exc:  # pragma: no cover - best effort only
+        print(
+            f"warning: failed to write JUnit report to {JUNIT_FILE}: {exc}. "
+            "Ensure the artifacts directory is writable.",
+            file=sys.stderr,
+        )
     write_summary(results)
 
     failures = sum(1 for result in results if not result.passed)
