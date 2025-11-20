@@ -20,6 +20,7 @@
 // - Pointer Marshalling: Safely handles saving and restoring function pointers
 //   and entity pointers by converting them to names or ID numbers.
 
+#include <algorithm>
 #include <new>
 #include <sstream>
 
@@ -2244,6 +2245,11 @@ bool write_save_struct_json(const void* data, const save_struct_t* structure, bo
 	Json::Value obj(Json::objectValue);
 
 	for (auto& field : structure->fields) {
+		if (!field.name) {
+			gi.Com_PrintFmt("{}: save structure {} has unnamed field at offset {}\n", __FUNCTION__, structure->name, field.offset);
+			continue;
+		}
+
 		const void* p = ((const uint8_t*)data) + field.offset;
 		Json::Value value;
 		bool		valid_value = write_save_type_json(p, &field.type, !field.type.never_empty, value);
@@ -2267,24 +2273,21 @@ void read_save_struct_json(const Json::Value& json, void* data, const save_struc
 		return;
 	}
 
-	//for (auto key : json.getMemberNames())
 	for (auto it = json.begin(); it != json.end(); it++) {
-		//const char		   *className = key.c_str();
 		const char* dummy;
 		const char* key = it.memberName(&dummy);
-		const Json::Value& value = *it;//json[key];
-		const save_field_t* field;
+		const Json::Value& value = *it;
+		const auto field = std::find_if(structure->fields.begin(), structure->fields.end(), [key](const save_field_t& candidate) {
+			return candidate.name && strcmp(key, candidate.name) == 0;
+		});
 
-		for (field = structure->fields.begin(); field != structure->fields.end(); field++) {
-			if (strcmp(key, field->name) == 0) {
-				void* p = ((uint8_t*)data) + field->offset;
-				read_save_type_json(value, p, &field->type, field->name);
-				break;
-			}
+		if (field == structure->fields.end()) {
+			json_print_error(key, "unknown field", false);
+			continue;
 		}
 
-		if (!field->name)
-			json_print_error(key, "unknown field", false);
+		void* p = ((uint8_t*)data) + field->offset;
+		read_save_type_json(value, p, &field->type, field->name);
 	}
 }
 
