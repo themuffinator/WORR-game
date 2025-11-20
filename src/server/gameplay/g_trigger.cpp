@@ -554,6 +554,7 @@ static THINK(AimAtTarget) (gentity_t* self) -> void {
 	Vector3	origin;
 	float	height, gravity, time, forward;
 	float	dist;
+	const bool gravityChanged = self->lastGravityModCount != game.gravity_modCount;
 
 	ent = PickTarget(self->target);
 	if (!ent) {
@@ -564,11 +565,21 @@ static THINK(AimAtTarget) (gentity_t* self) -> void {
 	if (!self->targetEnt)
 		self->targetEnt = ent;
 
+	if (!gravityChanged && self->origin2 != vec3_origin) {
+		self->nextThink = level.time + 100_ms;
+		return;
+	}
+
 	origin = self->absMin + self->absMax;
 	origin *= 0.5;
 
 	height = ent->s.origin[_Z] - origin[_Z];
-	gravity = g_gravity->value;
+	gravity = level.gravity;
+	if (gravity <= 0.0f) {
+		self->nextThink = level.time + 100_ms;
+		return;
+	}
+
 	time = sqrt(height / (0.5 * gravity));
 	if (!time) {
 		FreeEntity(self);
@@ -583,6 +594,8 @@ static THINK(AimAtTarget) (gentity_t* self) -> void {
 	forward = dist / time;
 	self->origin2 *= forward;
 	self->origin2[2] = time * gravity;
+	self->lastGravityModCount = game.gravity_modCount;
+	self->nextThink = level.time + 100_ms;
 
 	//gi.Com_PrintFmt("{}: origin2={}\n", __FUNCTION__, self->origin2);
 }
@@ -696,6 +709,8 @@ SILENT - doesn't make wind noise
 void SP_trigger_push(gentity_t* self) {
 	InitTrigger(self);
 
+	self->lastGravityModCount = game.gravity_modCount;
+
 	if (self->target) {
 		self->think = AimAtTarget;
 		self->nextThink = level.time + 100_ms;
@@ -754,6 +769,7 @@ void SP_target_push(gentity_t* self) {
 	if (!self->speed)
 		self->speed = 1000;
 
+	self->lastGravityModCount = game.gravity_modCount;
 	self->origin2 = self->origin2 * self->speed;
 
 	if (self->spawnFlags.has(1_spawnflag)) {

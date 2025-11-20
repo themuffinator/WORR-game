@@ -5279,6 +5279,7 @@ struct gentity_t {
 	int32_t mass;
 	GameTime airFinished;
 	float	gravity; // per entity gravity multiplier (1.0 is normal)
+	uint32_t	lastGravityModCount;
 	// use for lowgrav artifact, flares
 
 	gentity_t* goalEntity;
