@@ -510,6 +510,40 @@ int gt_ctf = 0;
 int gt_g_gametype = 0;
 bool gt_teams_on = false;
 GameType gt_check = GameType::None;
+
+/*
+============
+Match_SetGameType
+
+Applies the pending gametype change and resets the current map from the cached entity string when possible.
+============
+*/
+static void Match_SetGameType(GameType gt) {
+	gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
+	gt_g_gametype = g_gametype->modifiedCount;
+	gt_check = gt;
+	level.matchReloadedFromEntities = false;
+
+	const bool canReloadEntities = !level.savedEntityString.empty();
+
+	GT_PrecacheAssets();
+	GT_SetLongName();
+	gi.LocBroadcast_Print(PRINT_CENTER, "{}", level.gametype_name.data());
+
+	if (canReloadEntities) {
+		Match_Reset();
+
+		if (!level.matchReloadedFromEntities) {
+			gi.Com_PrintFmt("{}: Falling back to gamemap {} because map state reload failed.\n", __FUNCTION__, level.mapName.data());
+			gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapName).data());
+		}
+		return;
+	}
+
+	gi.Com_PrintFmt("{}: Cached entity string missing for {}, reloading map.\n", __FUNCTION__, level.mapName.data());
+	gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapName).data());
+}
+
 static void GT_Changes() {
 	if (!deathmatch->integer)
 		return;
@@ -636,21 +670,8 @@ static void GT_Changes() {
 		}
 	}
 
-	if (gt != gt_check) {
-		gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
-		gt_g_gametype = g_gametype->modifiedCount;
-		gt_check = gt;
-	}
-	else return;
-
-	//TODO: save ent string so we can simply reload it and Match_Reset
-	//gi.AddCommandString("map_restart");
-
-	gi.AddCommandString(G_Fmt("gamemap {}\n", level.mapName).data());
-
-	GT_PrecacheAssets();
-	GT_SetLongName();
-	gi.LocBroadcast_Print(PRINT_CENTER, "{}", level.gametype_name.data());
+        if (gt != gt_check)
+                Match_SetGameType(gt);
 }
 
 /*

@@ -409,10 +409,19 @@ static bool ShouldResetLimitedLives(LimitedLivesResetMode mode) {
 	return mode == LimitedLivesResetMode::Force;
 }
 
+/*
+============
+ResetMatchWorldState
+
+Clears transient world state and optionally reloads the cached map entity string.
+============
+*/
 static void ResetMatchWorldState(bool reloadWorldEntities) {
+	level.matchReloadedFromEntities = false;
 	bool reloadedEntities = false;
 	if (reloadWorldEntities && deathmatch->integer) {
 		reloadedEntities = G_ResetWorldEntitiesFromSavedString();
+		level.matchReloadedFromEntities = reloadedEntities;
 	}
 
 	Tech_Reset();
