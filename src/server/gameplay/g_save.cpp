@@ -26,6 +26,7 @@
 
 #include "../g_local.hpp"
 #include "g_clients.hpp"
+#include "g_save_metadata.hpp"
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma GCC diagnostic ignored "-Weverything"
@@ -43,7 +44,6 @@
 // - backwards & forwards compatible with this same format
 // - I wrote this initially when the codebase was in C, so it
 //   does have some C-isms in here.
-constexpr size_t SAVE_FORMAT_VERSION = 1;
 
 // Professor Daniel J. Bernstein; https://www.partow.net/programming/hashfunctions/#APHashFunction MIT
 struct cstring_hash {
@@ -2334,8 +2334,7 @@ char* WriteGameJson(bool autosave, size_t* out_size) {
 
 	Json::Value json(Json::objectValue);
 
-	json["save_version"] = SAVE_FORMAT_VERSION;
-	// TODO: engine version ID?
+	WriteSaveMetadata(json);
 
 	// write game
 	game.autoSaved = autosave;
@@ -2367,6 +2366,9 @@ void ReadGameJson(const char* jsonString) {
 	gi.FreeTags(TAG_GAME);
 
 	Json::Value json = parseJson(jsonString);
+
+	if (!ValidateSaveMetadata(json, "game"))
+		return;
 
 	game = {};
 	g_entities = (gentity_t*)gi.TagMalloc(maxEntities * sizeof(g_entities[0]), TAG_GAME);
@@ -2409,7 +2411,7 @@ char* WriteLevelJson(bool transition, size_t* out_size) {
 
 	Json::Value json(Json::objectValue);
 
-	json["save_version"] = SAVE_FORMAT_VERSION;
+	WriteSaveMetadata(json);
 
 	// write level
 	write_save_struct_json(&level, &LevelLocals_savestruct, false, json["level"]);
@@ -2451,6 +2453,9 @@ void ReadLevelJson(const char* jsonString) {
 	gi.FreeTags(TAG_LEVEL);
 
 	Json::Value json = parseJson(jsonString);
+
+	if (!ValidateSaveMetadata(json, "level"))
+		return;
 
 	// wipe all the entities
 	memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
