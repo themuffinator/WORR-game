@@ -2330,7 +2330,7 @@ void Use_Doppelganger(gentity_t* ent, Item* item) {
 	// Validate a clear spawn point in front of the player and on ground
 	if (!FindSpawnPoint(createPt, ent->mins, ent->maxs, spawnPt, kSpawnClear))
 		return;
-	if (!CheckGroundSpawnPoint(spawnPt, ent->mins, ent->maxs, kGroundUp, -1))
+	if (!CheckGroundSpawnPoint(spawnPt, ent->mins, ent->maxs, kGroundUp, false))
 		return;
 
 	// Consume, notify, effects, and spawn

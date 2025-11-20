@@ -34,6 +34,18 @@ constexpr float sweep_angles[] = {
 constexpr Vector3 stalker_mins = { -28, -28, -18 };
 constexpr Vector3 stalker_maxs = { 28, 28, 18 };
 
+/*
+=============
+WidowRoofSpawnsEnabled
+
+Checks the controlling cvar to determine whether stalker reinforcements
+should originate from the ceiling during the spawn sequence.
+=============
+*/
+static bool WidowRoofSpawnsEnabled() {
+	return ai_widow_roof_spawn && ai_widow_roof_spawn->integer != 0;
+}
+
 bool infront(gentity_t *self, gentity_t *other);
 void WidowCalcSlots(gentity_t *self);
 void WidowPowerups(gentity_t *self);
@@ -138,6 +150,7 @@ static void Widow2Spawn(gentity_t *self) {
 	Vector3	 f, r, u, offset, startpoint, spawnpoint;
 	gentity_t *ent, *designated_enemy;
 	int		 i;
+	const bool useRoofSpawns = WidowRoofSpawnsEnabled();
 
 	AngleVectors(self->s.angles, f, r, u);
 
@@ -146,8 +159,8 @@ static void Widow2Spawn(gentity_t *self) {
 
 		startpoint = G_ProjectSource2(self->s.origin, offset, f, r, u);
 
-		if (FindSpawnPoint(startpoint, stalker_mins, stalker_maxs, spawnpoint, 64)) {
-			ent = CreateGroundMonster(spawnpoint, self->s.angles, stalker_mins, stalker_maxs, "monster_stalker", 256);
+		if (FindSpawnPoint(startpoint, stalker_mins, stalker_maxs, spawnpoint, 64, true, useRoofSpawns)) {
+			ent = CreateGroundMonster(spawnpoint, self->s.angles, stalker_mins, stalker_maxs, "monster_stalker", 256, useRoofSpawns);
 
 			if (!ent)
 				continue;
@@ -192,6 +205,7 @@ void widow2_spawn_check(gentity_t *self) {
 static void widow2_ready_spawn(gentity_t *self) {
 	Vector3 f, r, u, offset, startpoint, spawnpoint;
 	int	   i;
+	const bool useRoofSpawns = WidowRoofSpawnsEnabled();
 
 	Widow2Beam(self);
 	AngleVectors(self->s.angles, f, r, u);
@@ -199,7 +213,7 @@ static void widow2_ready_spawn(gentity_t *self) {
 	for (i = 0; i < 2; i++) {
 		offset = spawnpoints[i];
 		startpoint = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		if (FindSpawnPoint(startpoint, stalker_mins, stalker_maxs, spawnpoint, 64)) {
+		if (FindSpawnPoint(startpoint, stalker_mins, stalker_maxs, spawnpoint, 64, true, useRoofSpawns)) {
 			float radius = (stalker_maxs - stalker_mins).length() * 0.5f;
 
 			SpawnGrow_Spawn(spawnpoint + (stalker_mins + stalker_maxs), radius, radius * 2.f);

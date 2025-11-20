@@ -1074,7 +1074,7 @@ static void medic_determine_spawn(gentity_t *self) {
 		auto &reinforcement = self->monsterInfo.reinforcements.reinforcements[self->monsterInfo.chosen_reinforcements[count]];
 
 		if (FindSpawnPoint(startpoint, reinforcement.mins, reinforcement.maxs, spawnpoint, 32)) {
-			if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, -1)) {
+			if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, false)) {
 				num_success++;
 				// we found a spot, we're done here
 				count = num_summoned;
@@ -1100,7 +1100,7 @@ static void medic_determine_spawn(gentity_t *self) {
 			auto &reinforcement = self->monsterInfo.reinforcements.reinforcements[self->monsterInfo.chosen_reinforcements[count]];
 
 			if (FindSpawnPoint(startpoint, reinforcement.mins, reinforcement.maxs, spawnpoint, 32)) {
-				if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, -1)) {
+				if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, false)) {
 					num_success++;
 					// we found a spot, we're done here
 					count = num_summoned;
@@ -1159,7 +1159,7 @@ static void medic_spawngrows(gentity_t *self) {
 		auto &reinforcement = self->monsterInfo.reinforcements.reinforcements[self->monsterInfo.chosen_reinforcements[count]];
 
 		if (FindSpawnPoint(startpoint, reinforcement.mins, reinforcement.maxs, spawnpoint, 32)) {
-			if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, -1)) {
+			if (CheckGroundSpawnPoint(spawnpoint, reinforcement.mins, reinforcement.maxs, 256, false)) {
 				num_success++;
 				float radius = (reinforcement.maxs - reinforcement.mins).length() * 0.5f;
 				SpawnGrow_Spawn(spawnpoint + (reinforcement.mins + reinforcement.maxs), radius, radius * 2.f);
