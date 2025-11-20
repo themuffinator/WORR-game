@@ -1731,18 +1731,36 @@ static void read_save_type_json(const Json::Value& json, void* data, const save_
 		}
 		return;
 	case Reinforcements:
-		if (!json.isArray())
-			json_print_error(field, "expected array", false);
+		if (!json.isArray() && !json.isObject())
+			json_print_error(field, "expected array or object", false);
 		else {
 			reinforcement_list_t* list_ptr = (reinforcement_list_t*)data;
+			const Json::Value* entries = &json;
 
-			list_ptr->num_reinforcements = json.size();
+			list_ptr->next_reinforcement = 0;
+			list_ptr->spawn_counts = nullptr;
+
+			if (json.isObject()) {
+				if (json["next"].isUInt())
+					list_ptr->next_reinforcement = json["next"].asUInt();
+
+				entries = &json["entries"];
+			}
+
+			if (!entries->isArray()) {
+				json_print_error(field, "expected array", false);
+				return;
+			}
+
+			list_ptr->num_reinforcements = entries->size();
 			list_ptr->reinforcements = (reinforcement_t*)gi.TagMalloc(sizeof(reinforcement_t) * list_ptr->num_reinforcements, TAG_LEVEL);
+			list_ptr->spawn_counts = (uint32_t*)gi.TagMalloc(sizeof(uint32_t) * list_ptr->num_reinforcements, TAG_LEVEL);
+			memset(list_ptr->spawn_counts, 0, sizeof(uint32_t) * list_ptr->num_reinforcements);
 
 			reinforcement_t* p = list_ptr->reinforcements;
 
-			for (Json::Value::ArrayIndex i = 0; i < json.size(); i++, p++) {
-				const Json::Value& value = json[i];
+			for (Json::Value::ArrayIndex i = 0; i < entries->size(); i++, p++) {
+				const Json::Value& value = (*entries)[i];
 
 				if (!value.isObject()) {
 					json_push_stack(fmt::format("{}", i));
@@ -1781,6 +1799,13 @@ static void read_save_type_json(const Json::Value& json, void* data, const save_
 					continue;
 				}
 
+				if (value.isMember("count")) {
+					if (value["count"].isUInt())
+						list_ptr->spawn_counts[i] = value["count"].asUInt();
+					else
+						json_print_error(field, "expected unsigned count", false);
+				}
+
 				p->className = CopyString(value["classname"].asCString(), TAG_LEVEL);
 				p->strength = value["strength"].asInt();
 
@@ -1789,8 +1814,12 @@ static void read_save_type_json(const Json::Value& json, void* data, const save_
 					p->maxs[x] = value["maxs"][x].asInt();
 				}
 			}
+
+			if (list_ptr->num_reinforcements && list_ptr->next_reinforcement >= list_ptr->num_reinforcements)
+				list_ptr->next_reinforcement %= list_ptr->num_reinforcements;
 		}
 		return;
+}
 	default:
 		gi.Com_ErrorFmt("Can't read type ID {}", (int32_t)type->id);
 		break;
@@ -2209,8 +2238,8 @@ static bool write_save_type_json(const void* data, const save_type_t* type, bool
 		if (null_for_empty && !reinforcement_ptr->num_reinforcements)
 			return false;
 
-		Json::Value	   reinforcements = Json::Value(Json::arrayValue);
-		reinforcements.resize(reinforcement_ptr->num_reinforcements);
+		Json::Value entries = Json::Value(Json::arrayValue);
+		entries.resize(reinforcement_ptr->num_reinforcements);
 
 		for (uint32_t i = 0; i < reinforcement_ptr->num_reinforcements; i++) {
 			const reinforcement_t* reinforcement = &reinforcement_ptr->reinforcements[i];
@@ -2225,9 +2254,14 @@ static bool write_save_type_json(const void* data, const save_type_t* type, bool
 				obj["maxs"][x] = reinforcement->maxs[x];
 			}
 			obj["strength"] = reinforcement->strength;
+			obj["count"] = reinforcement_ptr->spawn_counts ? reinforcement_ptr->spawn_counts[i] : 0;
 
-			reinforcements[i] = obj;
+			entries[i] = obj;
 		}
+
+		Json::Value reinforcements = Json::Value(Json::objectValue);
+		reinforcements["entries"] = std::move(entries);
+		reinforcements["next"] = reinforcement_ptr->next_reinforcement;
 
 		output = std::move(reinforcements);
 		return true;

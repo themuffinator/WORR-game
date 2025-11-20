@@ -11,6 +11,7 @@ MEDIC
 #include "../g_local.hpp"
 #include "m_medic.hpp"
 #include "m_flash.hpp"
+#include "reinforcement_selection.hpp"
 
 constexpr float MEDIC_MIN_DISTANCE = 32;
 constexpr float MEDIC_MAX_HEAL_DISTANCE = 400;
@@ -56,6 +57,10 @@ static cached_soundIndex commander_sound_spawn;
 constexpr const char *default_reinforcements = "monster_soldier_light 1;monster_soldier 2;monster_soldier_ss 2;monster_infantry 3;monster_gunner 4;monster_medic 5;monster_gladiator 6";
 constexpr int32_t default_monster_slots_base = 3;
 
+// Reinforcement selection defaults prioritize least-used entries and advance through
+// the list in a deterministic round-robin order to keep commander spawns fair.
+constexpr ReinforcementSelectionConfig reinforcement_selection_config = reinforcement_selection_defaults;
+
 static const float inverse_log_slots = pow(2, MAX_REINFORCEMENTS);
 
 constexpr std::array<Vector3, MAX_REINFORCEMENTS> reinforcement_position = {
@@ -66,7 +71,13 @@ constexpr std::array<Vector3, MAX_REINFORCEMENTS> reinforcement_position = {
 	Vector3 { 0, -80, 0 }
 };
 
-// filter out the reinforcement indices we can pick given the space we have left
+/*
+=============
+M_PickValidReinforcements
+
+Filter out reinforcement indices we can pick given the space we have left.
+=============
+*/
 static void M_PickValidReinforcements(gentity_t *self, int32_t space, std::vector<uint8_t> &output) {
 	output.clear();
 
@@ -75,7 +86,13 @@ static void M_PickValidReinforcements(gentity_t *self, int32_t space, std::vecto
 			output.push_back(i);
 }
 
-// pick an array of reinforcements to use; note that this does not modify `self`
+/*
+=============
+M_PickReinforcements
+
+Pick an array of reinforcements to use using weighted round-robin fairness; note that this does not modify `self`.
+=============
+*/
 std::array<uint8_t, MAX_REINFORCEMENTS> M_PickReinforcements(gentity_t *self, int32_t &num_chosen, int32_t max_slots = 0) {
 	static std::vector<uint8_t> available;
 	std::array<uint8_t, MAX_REINFORCEMENTS> chosen{};
@@ -101,8 +118,12 @@ std::array<uint8_t, MAX_REINFORCEMENTS> M_PickReinforcements(gentity_t *self, in
 		if (!available.size())
 			break;
 
-		// select monster, TODO fairly
-		chosen[num_chosen] = random_element(available);
+		chosen[num_chosen] = M_SelectReinforcementIndex(
+			self->monsterInfo.reinforcements.spawn_counts,
+			self->monsterInfo.reinforcements.num_reinforcements,
+			self->monsterInfo.reinforcements.next_reinforcement,
+			available,
+			reinforcement_selection_config);
 
 		remaining -= self->monsterInfo.reinforcements.reinforcements[chosen[num_chosen]].strength;
 	}
@@ -110,9 +131,18 @@ std::array<uint8_t, MAX_REINFORCEMENTS> M_PickReinforcements(gentity_t *self, in
 	return chosen;
 }
 
+/*
+=============
+M_SetupReinforcements
+
+Populate reinforcement data and initialize weighting metadata for fair selection.
+=============
+*/
 void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &list) {
 	// count up the semicolons
 	list.num_reinforcements = 0;
+	list.next_reinforcement = 0;
+	list.spawn_counts = nullptr;
 
 	if (!*reinforcements)
 		return;
@@ -125,6 +155,8 @@ void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &lis
 
 	// allocate
 	list.reinforcements = (reinforcement_t *)gi.TagMalloc(sizeof(reinforcement_t) * list.num_reinforcements, TAG_LEVEL);
+	list.spawn_counts = (uint32_t *)gi.TagMalloc(sizeof(uint32_t) * list.num_reinforcements, TAG_LEVEL);
+	memset(list.spawn_counts, 0, sizeof(uint32_t) * list.num_reinforcements);
 
 	// parse
 	const char *p = reinforcements;
@@ -160,7 +192,6 @@ void M_SetupReinforcements(const char *reinforcements, reinforcement_list_t &lis
 		r++;
 	}
 }
-
 static void cleanupHeal(gentity_t *self, bool change_frame) {
 	// clean up target, if we have one and it's legit
 	if (self->enemy && self->enemy->inUse)
