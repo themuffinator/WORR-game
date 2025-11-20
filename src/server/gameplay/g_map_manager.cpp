@@ -134,9 +134,9 @@ void MapSelectorFinalize() {
 
 			level.changeMap = safeMap;
 
-			gi.Broadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match. Replaying {}.\n",
+			gi.LocBroadcast_Print(PRINT_CENTER, ".Map vote failed.\nNo maps available for next match. Replaying {}.\n",
 						level.changeMap.c_str());
-			gi.Broadcast_Print(PRINT_HIGH, "[ADMIN]: Map selection failed; check mapcycle/configuration. Fallback map: {}.\n",
+			gi.LocBroadcast_Print(PRINT_HIGH, "[ADMIN]: Map selection failed; check mapcycle/configuration. Fallback map: {}.\n",
 						level.changeMap.c_str());
 		}
 		AnnouncerSound(world, "vote_failed");
@@ -594,21 +594,21 @@ void LoadMapPool(gentity_t* ent) {
 			map.isCycleable = existing->second.second;
 		}
 
-newPool.push_back(std::move(map));
-loaded++;
-}
+			newPool.push_back(std::move(map));
+			loaded++;
+		}
 
-        game.mapSystem.mapPool.swap(newPool);
+	game.mapSystem.mapPool.swap(newPool);
 
-        std::vector<std::string> removedRequests;
-        game.mapSystem.PruneQueuesToMapPool(&removedRequests);
+	std::vector<std::string> removedRequests;
+	game.mapSystem.PruneQueuesToMapPool(&removedRequests);
 
-        if (entClient) {
-                gi.LocClient_Print(ent, PRINT_HIGH,
-                        "[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
-                        loaded, (loaded == 1 ? "" : "s"), path.c_str(),
-                        skipped, (skipped == 1 ? "y" : "ies"));
-        }
+	if (entClient) {
+		gi.LocClient_Print(ent, PRINT_HIGH,
+			"[MapPool] Loaded {} map{} from '{}'. Skipped {} non-DM or invalid entr{}.\n",
+			loaded, (loaded == 1 ? "" : "s"), location.path.c_str(),
+			skipped, (skipped == 1 ? "y" : "ies"));
+	}
 
         if (!removedRequests.empty()) {
                 std::string removedList;

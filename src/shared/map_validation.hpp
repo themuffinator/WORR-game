@@ -110,7 +110,7 @@ inline bool G_SanitizeMapConfigFilename(std::string_view rawName, std::string& s
 		return false;
 	}
 
-	if (candidate.find('/') != std::string::npos || candidate.find('\\\\') != std::string::npos) {
+	if (candidate.find('/') != std::string::npos || candidate.find('\\') != std::string::npos) {
 		rejectReason = "contains path separators";
 		return false;
 	}
