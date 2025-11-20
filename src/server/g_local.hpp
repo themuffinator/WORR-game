@@ -2056,6 +2056,9 @@ struct MapSystem {
 	const MapEntry* GetMapEntry(const std::string& mapName) const;
 };
 
+extern cvar_t* g_maps_pool_file;
+extern cvar_t* g_maps_mymap_queue_limit;
+
 struct MapPoolLocation {
 	std::string path;
 	bool loadedFromMod = false;
@@ -2827,6 +2830,9 @@ std::array<gentity_t*, 4> outOfBounds{};
 			GameTime voteStartTime = 0_ms;
 			bool		forceExit = false;
 		} mapSelector;
+
+	int			arenaActive = 0;
+	int			arenaTotal = 0;
 	std::array<Ghosts, MAX_CLIENTS> ghosts{};
 
 	int			autoScreenshotTool_index = 0;
@@ -3686,11 +3692,9 @@ extern cvar_t* g_warmup_ready_percentage;
 extern cvar_t* g_weaponProjection;
 extern cvar_t* g_weapon_respawn_time;
 
-extern cvar_t* g_maps_pool_file;
 extern cvar_t* g_maps_cycle_file;
 extern cvar_t* g_maps_selector;
 extern cvar_t* g_maps_mymap;
-extern cvar_t* g_maps_mymap_queue_limit;
 extern cvar_t* g_maps_allow_custom_textures;
 extern cvar_t* g_maps_allow_custom_sounds;
 
