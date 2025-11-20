@@ -1152,16 +1152,24 @@ USE(monster_use) (gentity_t* self, gentity_t* other, gentity_t* activator) -> vo
 
 void monster_start_go(gentity_t* self);
 
+/*
+=============
+monster_triggered_spawn
+
+Completes activation for monsters spawned by triggers, making them solid and visible while clearing trigger-only spawn flags.
+=============
+*/
 static THINK(monster_triggered_spawn) (gentity_t* self) -> void {
 	self->s.origin[_Z] += 1;
-
+	
 	self->solid = SOLID_BBOX;
 	self->moveType = MoveType::Step;
 	self->svFlags &= ~SVF_NOCLIENT;
 	self->airFinished = level.time + 12_sec;
 	gi.linkEntity(self);
-
+	
 	KillBox(self, false);
+	self->spawnFlags &= ~SPAWNFLAG_MONSTER_TRIGGER_SPAWN;
 
 	monster_start_go(self);
 
