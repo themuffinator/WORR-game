@@ -189,8 +189,8 @@ int MapSelector_SyncVotes(LevelLocals& levelState) {
 		const int previousVote = ms.votes[i];
 		gentity_t* ent = nullptr;
 
-		if (g_entities && (i + 1) < globals.numEntities)
-		ent = &g_entities[i + 1];
+		if (g_entities && (i + 1) < static_cast<int>(globals.numEntities))
+			ent = &g_entities[i + 1];
 
 		if (!ent || !ent->inUse || !ent->client || !ent->client->pers.connected) {
 			if (previousVote != -1) {
