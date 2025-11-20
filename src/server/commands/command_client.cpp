@@ -668,7 +668,7 @@ Displays connected clients, optionally sorted by score or time played.
 
 		std::ranges::stable_sort(clientIndices, sortBy);
 
-		gi.Client_Print(ent, PRINT_HIGH | PRINT_NO_NOTIFY, "\nClients ({}):\n", clientIndices.size());
+		gi.LocClient_Print(ent, PRINT_HIGH | PRINT_NO_NOTIFY, "\nClients ({}):\n", clientIndices.size());
 
 		for (int clientIndex : clientIndices) {
 			gclient_t* cl = &game.clients[clientIndex];
