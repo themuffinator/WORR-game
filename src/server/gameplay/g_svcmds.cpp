@@ -20,6 +20,7 @@
 #include <charconv>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <system_error>
 
 // External cvars/engine globals expected from g_local.hpp
@@ -362,33 +363,29 @@ namespace
 			}
 		}
 
-		std::FILE* file = std::fopen(pathStr.c_str(), "wb");
+		std::unique_ptr<std::FILE, decltype(&std::fclose)> file(std::fopen(pathStr.c_str(), "wb"), &std::fclose);
 		if (!file) {
 			gi.LocClient_Print(nullptr, PRINT_HIGH, "Couldn't open {}\n", pathStr.c_str());
 			return;
 		}
 
 		const int filterValue = (filterBan != nullptr) ? filterBan->integer : 1;
-		if (std::fprintf(file, "set filterban %d\n", filterValue) < 0) {
+		if (std::fprintf(file.get(), "set filterban %d\n", filterValue) < 0) {
 			gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to write filterban state to {}\n", pathStr.c_str());
-			std::fclose(file);
 			return;
 		}
 
 		for (const auto& f : g_filters) {
 			const std::string ip = FormatIP(f.compare);
-			if (std::fprintf(file, "sv addip %s\n", ip.c_str()) < 0) {
+			if (std::fprintf(file.get(), "sv addip %s\n", ip.c_str()) < 0) {
 				gi.LocClient_Print(nullptr, PRINT_HIGH, "Failed to write entry for {}\n", ip.c_str());
-				std::fclose(file);
 				return;
 			}
 		}
 
-		if (std::fclose(file) != 0) {
+		if (std::fclose(file.release()) != 0) {
 			gi.LocClient_Print(nullptr, PRINT_HIGH, "Error closing {}\n", pathStr.c_str());
 		}
-	}
-
 	/*
 	===============
 	SVCmd_NextMap_f

@@ -511,8 +511,8 @@ void PCfg_WriteConfig(gentity_t* ent) {
 		return;
 	}
 
-	FILE* f = std::fopen(path.c_str(), "wb");
-	if (!f) {
+	std::unique_ptr<FILE, decltype(&std::fclose)> file(std::fopen(path.c_str(), "wb"), &std::fclose);
+	if (!file) {
 		if (gi.Com_Print) {
 			gi.Com_PrintFmt("{}: Cannot save player config: {}\n", __FUNCTION__, path.c_str());
 		}
@@ -548,8 +548,7 @@ void PCfg_WriteConfig(gentity_t* ent) {
 	appendBoolLine("follow_leader", pc.follow_leader);
 	appendBoolLine("follow_powerup", pc.follow_powerup);
 
-	const size_t written = std::fwrite(contents.data(), 1, contents.size(), f);
-	std::fclose(f);
+const size_t written = std::fwrite(contents.data(), 1, contents.size(), file.get());
 	if (written != contents.size()) {
 		if (gi.Com_Print) {
 			gi.Com_PrintFmt("WARNING: {}: short write while saving player config \"{}\"\n", __FUNCTION__, path.c_str());
@@ -761,15 +760,15 @@ void PCfg_ClientInitPConfig(gentity_t* ent) {
 		}
 	}
 
-	FILE* f = fopen(path.c_str(), "rb");
+	std::unique_ptr<FILE, decltype(&std::fclose)> file(fopen(path.c_str(), "rb"), &std::fclose);
 	char* buffer = nullptr;
-	if (f != NULL) {
+	if (file != nullptr) {
 		size_t length;
 		size_t read_length = 0;
 
-		fseek(f, 0, SEEK_END);
-		length = static_cast<size_t>(ftell(f));
-		fseek(f, 0, SEEK_SET);
+		fseek(file.get(), 0, SEEK_END);
+		length = static_cast<size_t>(ftell(file.get()));
+		fseek(file.get(), 0, SEEK_SET);
 
 		if (length > 0x40000) {
 			cfg_valid = false;
@@ -781,7 +780,7 @@ void PCfg_ClientInitPConfig(gentity_t* ent) {
 			}
 			else {
 				if (length > 0) {
-					read_length = fread(buffer, 1, length, f);
+					read_length = fread(buffer, 1, length, file.get());
 
 					if (length != read_length) {
 						cfg_valid = false;
@@ -791,7 +790,6 @@ void PCfg_ClientInitPConfig(gentity_t* ent) {
 			}
 		}
 		file_exists = true;
-		fclose(f);
 
 		if (!cfg_valid || !buffer) {
 			if (buffer) {

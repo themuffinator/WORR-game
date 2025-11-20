@@ -33,6 +33,7 @@
 #include <ctime>
 #include <filesystem>
 #include <fstream>
+#include <memory>
 #include <new>
 #include <sstream>
 #include <string>
@@ -391,75 +392,73 @@ void LoadMotd() {
 		return true;
 	};
 
-	auto loadMotdFile = [&](const std::filesystem::path& resolvedPath) -> bool {
-		const std::string resolvedPathString = resolvedPath.string();
-		FILE* f = fopen(resolvedPathString.c_str(), "rb");
+		auto loadMotdFile = [&](const std::filesystem::path& resolvedPath) -> bool {
+			const std::string resolvedPathString = resolvedPath.string();
+			std::unique_ptr<FILE, decltype(&std::fclose)> file(fopen(resolvedPathString.c_str(), "rb"), &std::fclose);
 
-		if (!f) {
-			if (g_verbose && g_verbose->integer) {
-				gi.Com_PrintFmt("{}: MotD file not found: {}\n", __FUNCTION__, resolvedPathString);
+			if (!file) {
+				if (g_verbose && g_verbose->integer) {
+					gi.Com_PrintFmt("{}: MotD file not found: {}\n", __FUNCTION__, resolvedPathString);
+				}
+
+				return false;
 			}
 
-			return false;
-		}
+			bool valid = true;
+			std::string contents;
 
-		bool valid = true;
-		std::string contents;
-
-		if (fseek(f, 0, SEEK_END) != 0) {
-			valid = false;
-		}
-
-		long endPosition = valid ? ftell(f) : -1;
-
-		if (endPosition < 0) {
-			valid = false;
-		}
-
-		if (valid) {
-			if (fseek(f, 0, SEEK_SET) != 0) {
-				valid = false;
-			}
-		}
-
-		if (valid) {
-			const std::size_t length = static_cast<std::size_t>(endPosition);
-
-			if (length > 0x40000) {
-				gi.Com_PrintFmt("{}: MotD file length exceeds maximum: {}\n", __FUNCTION__, resolvedPathString);
+			if (fseek(file.get(), 0, SEEK_END) != 0) {
 				valid = false;
 			}
 
-			else {
-				contents.resize(length);
+			long endPosition = valid ? ftell(file.get()) : -1;
 
-				if (length > 0) {
-					const std::size_t readLength = fread(contents.data(), 1, length, f);
+			if (endPosition < 0) {
+				valid = false;
+			}
 
-					if (readLength != length) {
-						gi.Com_PrintFmt("{}: MotD file read error: {}\n", __FUNCTION__, resolvedPathString);
-						valid = false;
+			if (valid) {
+				if (fseek(file.get(), 0, SEEK_SET) != 0) {
+					valid = false;
+				}
+			}
+
+			if (valid) {
+				const std::size_t length = static_cast<std::size_t>(endPosition);
+
+				if (length > 0x40000) {
+					gi.Com_PrintFmt("{}: MotD file length exceeds maximum: {}\n", __FUNCTION__, resolvedPathString);
+					valid = false;
+				}
+
+				else {
+					contents.resize(length);
+
+					if (length > 0) {
+						const std::size_t readLength = fread(contents.data(), 1, length, file.get());
+
+						if (readLength != length) {
+							gi.Com_PrintFmt("{}: MotD file read error: {}\n", __FUNCTION__, resolvedPathString);
+							valid = false;
+						}
 					}
 				}
 			}
-		}
 
-		fclose(f);
+			if (valid) {
+				game.motd = contents;
+				game.motdModificationCount++;
 
-		if (valid) {
-			game.motd = contents;
-			game.motdModificationCount++;
+				if (g_verbose && g_verbose->integer) {
+					gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, resolvedPathString);
+				}
 
-			if (g_verbose && g_verbose->integer) {
-				gi.Com_PrintFmt("{}: MotD file verified and loaded: {}\n", __FUNCTION__, resolvedPathString);
+				return true;
 			}
 
-			return true;
-		}
-
-		gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, resolvedPathString);
-		return false;
-	};
+			gi.Com_PrintFmt("{}: MotD file load error for {}, discarding.\n", __FUNCTION__, resolvedPathString);
+			return false;
+		};
 
 	while (!loaded) {
 		bool validPathFound = false;

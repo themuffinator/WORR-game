@@ -31,13 +31,31 @@ static void NoopError(const char* /*msg*/)
 
 /*
 =============
+CountOpenFileDescriptors
+
+Counts the visible file descriptors in /proc/self/fd for leak detection.
+=============
+*/
+	static size_t CountOpenFileDescriptors()
+	{
+		size_t count = 0;
+		for (const auto& entry : std::filesystem::directory_iterator("/proc/self/fd"))
+		{
+			(void)entry;
+			++count;
+		}
+		return count;
+	}
+
+/*
+=============
 main
 
 Validates that legacy player config exports contain all expected key/value pairs.
 =============
 */
 int main()
-{
+	{
 	gi.Com_Print = NoopPrint;
 	gi.Com_Error = NoopError;
 
@@ -49,6 +67,8 @@ int main()
 	std::filesystem::create_directories(configDir);
 	std::error_code ec;
 	std::filesystem::remove(cfgPath, ec);
+
+	const std::size_t fdCountBefore = CountOpenFileDescriptors();
 
 	gclient_t client{};
 	std::strncpy(client.sess.socialID, socialID.c_str(), sizeof(client.sess.socialID));
@@ -69,9 +89,12 @@ int main()
 
 	PCfg_WriteConfig(&entity);
 
-	std::ifstream in(cfgPath);
-	assert(in.is_open());
-	const std::string contents((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+	std::string contents;
+	{
+		std::ifstream in(cfgPath);
+		assert(in.is_open());
+		contents.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+}
 
 	assert(contents.find("show_id 0") != std::string::npos);
 	assert(contents.find("show_fragmessages 1") != std::string::npos);
@@ -83,6 +106,9 @@ int main()
 	assert(contents.find("follow_powerup 1") != std::string::npos);
 
 	std::filesystem::remove(cfgPath, ec);
+
+	const std::size_t fdCountAfter = CountOpenFileDescriptors();
+	assert(fdCountBefore == fdCountAfter);
 
 	return 0;
 }
