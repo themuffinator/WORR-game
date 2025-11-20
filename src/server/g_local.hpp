@@ -5250,6 +5250,7 @@ struct gentity_t {
 	const char* message;
 	const char* className;
 	SpawnFlags	spawnFlags;
+	bool		turretFireRequested{};
 
 	GameTime timeStamp;
 
