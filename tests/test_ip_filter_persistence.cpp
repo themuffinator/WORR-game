@@ -22,14 +22,32 @@ namespace {
 	static std::vector<std::string> g_args;
 	static cvar_t g_gameCvar{};
 	static cvar_t g_dummyCvar{};
-	static cvar_t g_filterBanCvar{};
-	static char g_gameBuffer[1] = { '\0' };
-	static char g_dummyBuffer[1] = { '\0' };
-	static char g_filterBanBuffer[2] = "0";
+static cvar_t g_filterBanCvar{};
+static char g_gameBuffer[1] = { '\0' };
+static char g_dummyBuffer[1] = { '\0' };
+static char g_filterBanBuffer[2] = "0";
 
-	/*
-	=============
-	TestLocPrint
+/*
+=============
+CountOpenFileDescriptors
+
+Counts the visible file descriptors in /proc/self/fd for leak detection.
+=============
+*/
+	static size_t CountOpenFileDescriptors()
+	{
+		size_t count = 0;
+		for (const auto& entry : std::filesystem::directory_iterator("/proc/self/fd"))
+		{
+			(void)entry;
+			++count;
+		}
+		return count;
+	}
+
+/*
+=============
+TestLocPrint
 
 	Captures localized prints emitted during testing.
 	=============
@@ -119,7 +137,7 @@ Verifies that IP filters persist to disk and restore across restarts.
 =============
 */
 int main()
-{
+	{
 	const std::filesystem::path originalCwd = std::filesystem::current_path();
 	const std::filesystem::path tempRoot = std::filesystem::temp_directory_path() / "worr_ip_filter_persistence";
 	const std::filesystem::path baseDir = tempRoot / "baseq2";
@@ -128,6 +146,8 @@ int main()
 	std::filesystem::remove_all(tempRoot, ec);
 	std::filesystem::create_directories(baseDir);
 	std::filesystem::current_path(tempRoot);
+
+	const std::size_t fdCountBefore = CountOpenFileDescriptors();
 
 	g_gameCvar.string = g_gameBuffer;
 	g_gameCvar.integer = 0;
@@ -168,6 +188,9 @@ int main()
 	assert(fileLines[0] == "set filterban 0");
 	assert(fileLines[1] == "sv addip 192.168.1.1");
 	assert(fileLines[2] == "sv addip 10.0.0.0");
+
+	const std::size_t fdCountAfterSave = CountOpenFileDescriptors();
+	assert(fdCountBefore == fdCountAfterSave);
 
 	g_args = { "sv", "removeip", "192.168.1.1" };
 	ServerCommand();
