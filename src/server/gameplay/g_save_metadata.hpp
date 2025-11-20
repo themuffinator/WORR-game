@@ -4,7 +4,7 @@
 
 #include "../g_local.hpp"
 #include "json/json.h"
-#include "shared/version.hpp"
+#include "../../shared/version.hpp"
 
 inline constexpr size_t SAVE_FORMAT_VERSION = 1;
 
