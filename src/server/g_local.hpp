@@ -2553,7 +2553,7 @@ struct LevelLocals {
 	std::array<char, MAX_QPATH> forceMap{};	// forced destination
 
 	int		arenaTotal = 0;
-	bool		arenaActive = false;
+	int		arenaActive = 0;
 
 	std::string changeMap = "";		// map to change to, if any
 	std::string achievement = "";		// achievement to show on intermission, if any
@@ -2830,9 +2830,6 @@ std::array<gentity_t*, 4> outOfBounds{};
 			GameTime voteStartTime = 0_ms;
 			bool		forceExit = false;
 		} mapSelector;
-
-	int			arenaActive = 0;
-	int			arenaTotal = 0;
 	std::array<Ghosts, MAX_CLIENTS> ghosts{};
 
 	int			autoScreenshotTool_index = 0;
