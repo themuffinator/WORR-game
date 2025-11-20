@@ -26,6 +26,19 @@ namespace {
 
 /*
 =============
+G_SpawnHasGravity
+
+Returns true when the entity should be affected by gravity based on its
+current flags and gravity scaling.
+=============
+*/
+static bool G_SpawnHasGravity(const gentity_t* ent)
+{
+	return !(ent->flags & FL_FLY) && ent->gravity != 0.0f;
+}
+
+/*
+=============
 ClientSkinOverride
 
 Restricts players to the stock Quake 2 skin sets when the server disallows
@@ -1163,7 +1176,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 
 		ent->s.origin = pm.s.origin;
 		ent->velocity = pm.s.velocity;
-		ent->s.event = pm.s.event;
+		ent->s.event = EV_NONE;
 		ent->s.renderFX &= ~RF_BEAM;
 
 		MoveType newMoveType = MoveType::Normal;
@@ -1219,10 +1232,10 @@ gentity_t* ent, usercmd_t* ucmd) {
 			gi.sound(ent, CHAN_VOICE, gi.soundIndex("*jump1.wav"), 1, ATTN_NORM, 0);
 		}
 
-		ent->s.angles = pm.s.viewAngles;
-		ent->s.angles[PITCH] = 0;
-		ent->s.angles[ROLL] = 0;
-		ent->s.angles[YAW] = pm.s.viewAngles[YAW];
+ent->s.angles = pm.viewAngles;
+ent->s.angles[PITCH] = 0;
+ent->s.angles[ROLL] = 0;
+ent->s.angles[YAW] = pm.viewAngles[YAW];
 		VectorCopy(ent->s.angles, cl->ps.viewAngles);
 
 		if (ent->flags & FL_SAM_RAIMI)

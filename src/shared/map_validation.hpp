@@ -90,17 +90,17 @@ periods for extensions.
 */
 inline bool G_SanitizeMapConfigFilename(std::string_view rawName, std::string& sanitized, std::string& rejectReason)
 {
-	const size_t start = rawName.find_first_not_of(" \\t\\r\\n");
+const size_t start = rawName.find_first_not_of(" \t\r\n");
 	if (start == std::string_view::npos) {
 		sanitized.clear();
 		rejectReason = "is empty";
 		return false;
 	}
 
-	const size_t end = rawName.find_last_not_of(" \\t\\r\\n");
+const size_t end = rawName.find_last_not_of(" \t\r\n");
 	std::string candidate(rawName.substr(start, end - start + 1));
 
-	if (candidate.front() == '/' || candidate.front() == '\\\\') {
+if (candidate.front() == '/' || candidate.front() == '\\') {
 		rejectReason = "is an absolute path";
 		return false;
 	}
@@ -110,7 +110,7 @@ inline bool G_SanitizeMapConfigFilename(std::string_view rawName, std::string& s
 		return false;
 	}
 
-	if (candidate.find('/') != std::string::npos || candidate.find('\\') != std::string::npos) {
+if (candidate.find('/') != std::string::npos || candidate.find('\\') != std::string::npos) {
 		rejectReason = "contains path separators";
 		return false;
 	}

@@ -2064,6 +2064,9 @@ struct MapPoolLocation {
 	bool loadedFromMod = false;
 };
 
+extern cvar_t* g_maps_pool_file;
+extern cvar_t* g_maps_mymap_queue_limit;
+
 /*
 =============
 G_ResolveMapPoolPath
@@ -2244,8 +2247,8 @@ inline MapSystem::MyMapEnqueueResult MapSystem::EnqueueMyMapRequest(const MapEnt
 }
 
 struct HelpMessage {
-	std::array<char, MAX_TOKEN_CHARS> message{};
-	int32_t modificationCount = 0;
+std::array<char, MAX_TOKEN_CHARS> message{};
+int32_t modificationCount = 0;
 
 	[[nodiscard]] std::string_view view() const {
 		return std::string_view(message.data());
@@ -2253,8 +2256,15 @@ struct HelpMessage {
 
 	[[nodiscard]] bool empty() const {
 		return message[0] == '\0';
-	}
+}
 };
+
+enum class GameCheatFlags : uint32_t {
+	None = 0,
+	Fly = bit_v<0>,
+};
+
+MAKE_ENUM_BITFLAGS(GameCheatFlags);
 
 //
 // this structure is left intact through an entire game
@@ -2262,6 +2272,7 @@ struct HelpMessage {
 // the server.ssv file for savegames
 //
 struct GameLocals {
+	GameCheatFlags	cheatsFlag = GameCheatFlags::None;
 	std::array<HelpMessage, 2> help{};
 
 	gclient_t* clients; // [maxClients]
@@ -2540,6 +2551,9 @@ struct LevelLocals {
 	std::array<char, MAX_QPATH> mapName{};	// base1, etc
 	std::array<char, MAX_QPATH> nextMap{};	// when score limit is hit
 	std::array<char, MAX_QPATH> forceMap{};	// forced destination
+
+	int		arenaTotal = 0;
+	bool		arenaActive = false;
 
 	std::string changeMap = "";		// map to change to, if any
 	std::string achievement = "";		// achievement to show on intermission, if any
@@ -4271,6 +4285,9 @@ void P_AssignClientSkinNum(gentity_t* ent);
 void P_ForceFogTransition(gentity_t* ent, bool instant);
 void P_SendLevelPOI(gentity_t* ent);
 unsigned int P_GetLobbyUserNum(const gentity_t* player);
+std::string G_EncodedPlayerName(gentity_t* player);
+void TossClientItems(gentity_t* self);
+bool G_LimitedLivesRespawn(gentity_t* ent);
 void EndOfUnitMessage();
 bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool force_spawn, bool& landmark);
 void PCfg_WriteConfig(gentity_t* ent);

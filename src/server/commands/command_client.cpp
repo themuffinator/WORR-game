@@ -46,7 +46,12 @@ void TimeOut(gentity_t* ent, const CommandArgs& args);
 void Timer(gentity_t* ent, const CommandArgs& args);
 void UnHook(gentity_t* ent, const CommandArgs& args);
 void Wave(gentity_t* ent, const CommandArgs& args);
-	void Where(gentity_t* ent, const CommandArgs& args);
+void Where(gentity_t* ent, const CommandArgs& args);
+
+namespace inventory {
+	void WeapNext(gentity_t* ent, const CommandArgs& args);
+void WeapPrev(gentity_t* ent, const CommandArgs& args);
+}
 
 	namespace follow {
 
@@ -1416,7 +1421,7 @@ Allows the losing player in a duel to forfeit the match.
 		RegisterCommand("use_only", &inventory::Use, {}, true);
 		RegisterCommand("weaplast", &inventory::WeapLast, {}, true);
 		RegisterCommand("weapnext", &inventory::WeapNext, {}, true);
-		RegisterCommand("weapprev", &inventory::WeapPrev, {}, true);
+			RegisterCommand("weapprev", &inventory::WeapPrev, {}, true);
 	}
 
 	/*
