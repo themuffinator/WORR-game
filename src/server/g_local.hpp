@@ -2558,6 +2558,7 @@ struct LevelLocals {
 	std::string changeMap = "";		// map to change to, if any
 	std::string achievement = "";		// achievement to show on intermission, if any
 	std::string savedEntityString{};		// original map entity string for match resets
+	bool		matchReloadedFromEntities = false; // true when the last reset rebuilt from saved entities
 
 	struct Intermission {
 		// intermission state
