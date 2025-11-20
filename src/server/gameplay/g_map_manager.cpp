@@ -544,34 +544,56 @@ void LoadMapPool(gentity_t* ent) {
 
 	int loaded = 0, skipped = 0;
 	for (const auto& entry : root["maps"]) {
-		if (!entry.isMember("bsp") || !entry["bsp"].isString() ||
-				!entry.isMember("dm") || !entry["dm"].asBool()) {
+		auto LogSkippedEntry = [&](const std::string& reason, const char* bspName) {
 			skipped++;
+			const bool hasName = bspName && bspName[0];
+			if (entClient)
+				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Skipping entry{}{}{}: {}\n",
+					hasName ? " '" : "", hasName ? bspName : "", hasName ? "'" : "", reason.c_str());
+			gi.Com_PrintFmt("{}: skipping map pool entry{}{}{} ({})\n", __FUNCTION__,
+				hasName ? " \\"" : "", hasName ? bspName : "", hasName ? "\"" : "",
+				reason.c_str());
+		};
+
+		if (!entry.isObject()) {
+			LogSkippedEntry("entry is not a JSON object", nullptr);
+			continue;
+		}
+
+		if (!entry.isMember("bsp") || !entry["bsp"].isString()) {
+			LogSkippedEntry("missing required 'bsp' string", nullptr);
 			continue;
 		}
 
 		const std::string bspName = entry["bsp"].asString();
 		std::string sanitizedName;
 		std::string rejectReason;
-		if (!G_SanitizeMapPoolFilename(bspName, sanitizedName, rejectReason)) {
-			skipped++;
-			if (entClient)
-				gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Rejected '{}': {}\n", bspName.c_str(), rejectReason.c_str());
-			gi.Com_PrintFmt("{}: ignoring map pool entry \"{}\" ({})\n", __FUNCTION__, bspName.c_str(), rejectReason.c_str());
+		if (!G_SanitizeMapPoolFilename(bspName, sanitizedName, rejectReason) || sanitizedName.empty()) {
+			LogSkippedEntry(rejectReason, bspName.c_str());
+			continue;
+		}
+
+		if (!entry.isMember("dm") || !entry["dm"].isBool()) {
+			LogSkippedEntry("missing required boolean 'dm' flag", sanitizedName.c_str());
+			continue;
+		}
+
+		if (!entry["dm"].asBool()) {
+			LogSkippedEntry("'dm' flag must be true", sanitizedName.c_str());
 			continue;
 		}
 
 		MapEntry map;
 		map.filename = sanitizedName;
 
-		if (entry.isMember("title"))          map.longName = entry["title"].asString();
-		if (entry.isMember("min"))            map.minPlayers = entry["min"].asInt();
-		if (entry.isMember("max"))            map.maxPlayers = entry["max"].asInt();
-		if (entry.isMember("gametype"))       map.suggestedGametype = static_cast<GameType>(entry["gametype"].asInt());
-		if (entry.isMember("ruleset"))        map.suggestedRuleset = Ruleset(entry["ruleset"].asInt());
-		if (entry.isMember("scorelimit"))     map.scoreLimit = entry["scorelimit"].asInt();
-		if (entry.isMember("timeLimit"))      map.timeLimit = entry["timeLimit"].asInt();
-		if (entry.isMember("popular"))        map.isPopular = entry["popular"].asBool();
+		if (entry.isMember("title"))			map.longName = entry["title"].asString();
+		if (entry.isMember("min"))			map.minPlayers = entry["min"].asInt();
+		if (entry.isMember("max"))			map.maxPlayers = entry["max"].asInt();
+		if (entry.isMember("gametype"))		map.suggestedGametype = static_cast<GameType>(entry["gametype"].asInt());
+		if (entry.isMember("ruleset"))		map.suggestedRuleset = Ruleset(entry["ruleset"].asInt());
+		if (entry.isMember("scorelimit"))		map.scoreLimit = entry["scorelimit"].asInt();
+		if (entry.isMember("timeLimit"))		map.timeLimit = entry["timeLimit"].asInt();
+		if (entry.isMember("popular"))		map.isPopular = entry["popular"].asBool();
 
 		const bool isCustom = entry.get("custom", false).asBool();
 		const bool hasCustomTextures = entry.get("custom_textures", false).asBool();
@@ -579,7 +601,7 @@ void LoadMapPool(gentity_t* ent) {
 		ApplyCustomResourceFlags(map, isCustom, hasCustomTextures, hasCustomSounds);
 
 		map.mapTypeFlags |= MAP_DM;
-		if (entry.get("sp", false).asBool())   map.mapTypeFlags |= MAP_SP;
+		if (entry.get("sp", false).asBool())	map.mapTypeFlags |= MAP_SP;
 		if (entry.get("coop", false).asBool()) map.mapTypeFlags |= MAP_COOP;
 		if (entry.get("tdm", false).asBool())  map.preferredTDM = true;
 		if (entry.get("ctf", false).asBool())  map.preferredCTF = true;
@@ -594,10 +616,9 @@ void LoadMapPool(gentity_t* ent) {
 			map.isCycleable = existing->second.second;
 		}
 
-			newPool.push_back(std::move(map));
-			loaded++;
-		}
-
+		newPool.push_back(std::move(map));
+		loaded++;
+	}
 	game.mapSystem.mapPool.swap(newPool);
 
 	std::vector<std::string> removedRequests;
