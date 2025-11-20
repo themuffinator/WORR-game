@@ -11,6 +11,7 @@ SUPERTANK
 #include "../g_local.hpp"
 #include "m_supertank.hpp"
 #include "m_flash.hpp"
+#include <limits>
 
 constexpr SpawnFlags SPAWNFLAG_SUPERTANK_POWERSHIELD = 8_spawnflag;
 // n64
@@ -24,6 +25,24 @@ static cached_soundIndex sound_search1;
 static cached_soundIndex sound_search2;
 
 static cached_soundIndex tread_sound;
+
+/*
+=============
+SupertankApplyN64Tuning
+
+Configures Nintendo 64 specific behavior to match the port's toned-down death
+sequences: the death animation loops longer, gore is disabled, and the corpse
+sticks around without extra drops.
+=============
+*/
+void SupertankApplyN64Tuning(gentity_t *self) {
+	if (!self)
+		return;
+
+	self->spawnFlags |= SPAWNFLAG_SUPERTANK_LONG_DEATH;
+	self->count = 10;
+	self->gibHealth = std::numeric_limits<int32_t>::min();
+}
 
 static void TreadSound(gentity_t *self) {
 	gi.sound(self, CHAN_BODY, tread_sound, 1, ATTN_NORM, 0);
@@ -614,11 +633,8 @@ void SP_monster_supertank(gentity_t *self) {
 
 	self->monsterInfo.aiFlags |= AI_IGNORE_SHOTS;
 
-	// TODO
-	if (level.isN64) {
-		self->spawnFlags |= SPAWNFLAG_SUPERTANK_LONG_DEATH;
-		self->count = 10;
-	}
+	if (level.isN64)
+		SupertankApplyN64Tuning(self);
 }
 
 /*QUAKED monster_boss5 (1 .5 0) (-64 -64 0) (64 64 72) AMBUSH TRIGGER_SPAWN SIGHT x CORPSE x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
