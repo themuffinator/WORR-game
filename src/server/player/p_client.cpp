@@ -162,7 +162,7 @@ static void info_player_start_drop(gentity_t* self) {
 	self->moveType = MoveType::Toss;
 	self->mins = PLAYER_MINS;
 	self->maxs = PLAYER_MAXS;
-	gi.linkentity(self);
+	gi.linkEntity(self);
 }
 
 /*
