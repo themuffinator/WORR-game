@@ -2037,7 +2037,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		std::array<int, static_cast<int>(Team::Total)> locked;
 		GameTime		ctf_last_flag_capture;
 		Team			ctf_last_capture_team;
-		std::array<int, LAST_WEAPON - FIRST_WEAPON> weaponCount;
+		std::array<int, LAST_WEAPON - FIRST_WEAPON + 1> weaponCount;
 		GameTime		no_players_time;
 		bool			strike_red_attacks;
 		bool			strike_flag_touch;
