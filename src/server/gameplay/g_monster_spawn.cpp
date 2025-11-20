@@ -16,7 +16,32 @@
 // - Visual Effects: Contains the logic for the "spawngrow" effect, a visual
 //   cue that plays where a monster is about to materialize.
 
+#include <cmath>
+
 #include "../g_local.hpp"
+
+/*
+=============
+GetSpawnGravity
+
+Returns the normalized gravity vector for spawn validation, defaulting to
+standard downward gravity when no world entity is available or when the stored
+gravity vector is zero.
+=============
+*/
+static Vector3 GetSpawnGravity() {
+	Vector3 gravity = { 0.0f, 0.0f, -1.0f };
+
+	if (g_entities)
+		gravity = world->gravityVector;
+
+	if (gravity.is_zero())
+		gravity = { 0.0f, 0.0f, -1.0f };
+
+	gravity.normalize();
+
+	return gravity;
+}
 
 //
 // Monster spawning code
@@ -105,11 +130,13 @@ FindSpawnPoint
 =============
 */
 bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint, float maxMoveUp, bool drop, bool ceiling) {
-	auto TryDrop = [mins, maxs, drop, ceiling](const Vector3& point, Vector3& out) {
+	const Vector3 gravity = GetSpawnGravity();
+
+	auto TryDrop = [mins, maxs, drop, ceiling, gravity](const Vector3& point, Vector3& out) {
 		out = point;
 
 		if (drop)
-			return M_droptofloor_generic(out, mins, maxs, ceiling, nullptr, MASK_MONSTERSOLID, false);
+			return M_droptofloor_generic(out, mins, maxs, gravity, ceiling, nullptr, MASK_MONSTERSOLID, false);
 
 		return CheckSpawnPoint(out, mins, maxs);
 	};
@@ -122,11 +149,11 @@ bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector
 	spawnpoint = startpoint;
 
 	if (G_FixStuckObject_Generic(spawnpoint, mins, maxs, [](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-		return gi.trace(start, mins, maxs, end, nullptr, MASK_MONSTERSOLID);
-	}) == StuckResult::GoodPosition && TryDrop(spawnpoint, spawnpoint))
+			return gi.trace(start, mins, maxs, end, nullptr, MASK_MONSTERSOLID);
+		}) == StuckResult::GoodPosition && TryDrop(spawnpoint, spawnpoint))
 		return true;
 
-	const Vector3 moveDir = ceiling ? Vector3{ 0, 0, -1 } : Vector3{ 0, 0, 1 };
+	const Vector3 moveDir = ceiling ? gravity : -gravity;
 
 	for (float move = 16.0f; move <= maxMoveUp; move += 16.0f) {
 		Vector3 candidate = startpoint + (moveDir * move);
@@ -187,21 +214,33 @@ bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const 
 	if (!CheckSpawnPoint(origin, entMins, entMaxs))
 		return false;
 
-	Vector3 end = origin;
-	end[2] += ceiling ? height : -height;
+	const Vector3 gravity = GetSpawnGravity();
+	const Vector3 dropDir = ceiling ? -gravity : gravity;
+	const bool verticalGravity = fabsf(gravity.x) < 0.001f && fabsf(gravity.y) < 0.001f;
 
-	trace_t support = gi.trace(origin, entMins, entMaxs, end, nullptr, MASK_MONSTERSOLID);
+	trace_t support = gi.trace(origin, entMins, entMaxs, origin + (dropDir * height), nullptr, MASK_MONSTERSOLID);
 
 	if (support.startSolid || support.allSolid || support.fraction == 1.0f || support.ent != world)
 		return false;
 
-	if (M_CheckBottom_Fast_Generic(support.endPos + entMins, support.endPos + entMaxs, ceiling))
-		return true;
+	if (!support.plane.normal.is_zero()) {
+		const float alignment = support.plane.normal.dot(-dropDir);
 
-	if (M_CheckBottom_Slow_Generic(support.endPos, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, ceiling, false))
-		return true;
+		if (alignment < 0.7f)
+			return false;
+	}
 
-	return false;
+	if (verticalGravity) {
+		if (M_CheckBottom_Fast_Generic(support.endPos + entMins, support.endPos + entMaxs, ceiling))
+			return true;
+
+		if (M_CheckBottom_Slow_Generic(support.endPos, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, ceiling, false))
+			return true;
+
+		return false;
+	}
+
+	return true;
 }
 
 // ****************************

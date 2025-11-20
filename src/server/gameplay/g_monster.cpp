@@ -480,26 +480,33 @@ void M_WorldEffects(gentity_t* ent) {
 	}
 }
 
-bool M_droptofloor_generic(Vector3& origin, const Vector3& mins, const Vector3& maxs, bool ceiling, gentity_t* ignore, contents_t mask, bool allow_partial) {
-	Vector3	end;
+/*
+=============
+M_droptofloor_generic
+
+Drops an entity origin along the specified gravity vector until it contacts
+world geometry, optionally allowing partial intersections at the start of the
+trace.
+=============
+*/
+bool M_droptofloor_generic(Vector3& origin, const Vector3& mins, const Vector3& maxs, const Vector3& gravity, bool ceiling, gentity_t* ignore, contents_t mask, bool allow_partial) {
+	Vector3 gravityDir = gravity;
+
+	if (gravityDir.is_zero())
+		gravityDir = { 0.0f, 0.0f, -1.0f };
+
+	gravityDir.normalize();
+
+	Vector3 dropDir = ceiling ? -gravityDir : gravityDir;
+	Vector3 end;
 	trace_t trace;
 
-	if (gi.trace(origin, mins, maxs, origin, ignore, mask).startSolid) {
-		if (!ceiling)
-			origin[_Z] += 1;
-		else
-			origin[_Z] -= 1;
-	}
+	trace = gi.trace(origin, mins, maxs, origin, ignore, mask);
 
-	if (!ceiling) {
-		end = origin;
-		end[2] -= 256;
-	}
-	else {
-		end = origin;
-		end[2] += 256;
-	}
+	if (trace.startSolid)
+		origin -= dropDir;
 
+	end = origin + (dropDir * 256.0f);
 	trace = gi.trace(origin, mins, maxs, end, ignore, mask);
 
 	if (trace.fraction == 1 || trace.allSolid || (!allow_partial && trace.startSolid))
@@ -514,7 +521,7 @@ bool M_droptofloor(gentity_t* ent) {
 	contents_t mask = G_GetClipMask(ent);
 
 	if (!ent->spawnFlags.has(SPAWNFLAG_MONSTER_NO_DROP)) {
-		if (!M_droptofloor_generic(ent->s.origin, ent->mins, ent->maxs, ent->gravityVector[2] > 0, ent, mask, true))
+		if (!M_droptofloor_generic(ent->s.origin, ent->mins, ent->maxs, ent->gravityVector, ent->gravityVector[2] > 0, ent, mask, true))
 			return false;
 	}
 	else {
