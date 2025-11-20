@@ -2017,9 +2017,9 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		std::string		savedEntityString;
 		LevelLocals::Intermission intermission;
 		bool			isN64;
-		Voting			vote;
+			LevelLocals::Voting vote;
 		LevelEntry*		entry;
-		Population		pop;
+			LevelLocals::Population pop;
 		MatchState		matchState;
 		WarmupState		warmupState;
 		GameTime		warmupNoticeTime;

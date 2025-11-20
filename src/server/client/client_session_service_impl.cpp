@@ -1130,8 +1130,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 		else
 			pmState.pmFlags &= ~PMF_IGNORE_PLAYER_COLLISION;
 
-		pmState.haste = (cl->PowerupTimer(PowerupTimer::Haste) > level.time) &&
-			!cl->PowerupCount(PowerupCount::HasteShots);
+		pmState.haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
 
 		pmState.pmFlags |= PMF_JUMP_HELD;
 
@@ -1179,7 +1178,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 		ent->s.event = EV_NONE;
 		ent->s.renderFX &= ~RF_BEAM;
 
-		MoveType newMoveType = MoveType::Normal;
+		MoveType newMoveType = MoveType::Walk;
 		switch (pm.s.pmType) {
 		case PM_SPECTATOR:
 			newMoveType = MoveType::FreeCam;
@@ -1195,12 +1194,12 @@ gentity_t* ent, usercmd_t* ucmd) {
 			newMoveType = MoveType::Fly;
 			break;
 		default:
-			newMoveType = MoveType::Normal;
+			newMoveType = MoveType::Walk;
 			break;
 		}
 
 		if (onLadder)
-			newMoveType = MoveType::Ladder;
+			newMoveType = MoveType::Walk;
 
 		contents_t clipMask = MASK_PLAYERSOLID;
 		if (newMoveType == MoveType::FreeCam || newMoveType == MoveType::NoClip)
@@ -1232,11 +1231,11 @@ gentity_t* ent, usercmd_t* ucmd) {
 			gi.sound(ent, CHAN_VOICE, gi.soundIndex("*jump1.wav"), 1, ATTN_NORM, 0);
 		}
 
-ent->s.angles = pm.viewAngles;
-ent->s.angles[PITCH] = 0;
-ent->s.angles[ROLL] = 0;
-ent->s.angles[YAW] = pm.viewAngles[YAW];
-		VectorCopy(ent->s.angles, cl->ps.viewAngles);
+		ent->s.angles = pm.viewAngles;
+		ent->s.angles[PITCH] = 0;
+		ent->s.angles[ROLL] = 0;
+		ent->s.angles[YAW] = pm.viewAngles[YAW];
+		cl->ps.viewAngles = ent->s.angles;
 
 		if (ent->flags & FL_SAM_RAIMI)
 			ent->viewHeight = 8;
