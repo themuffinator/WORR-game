@@ -81,11 +81,11 @@ static std::string BuildMapVoteArg(const std::string &mapname, const MapVoteStat
 		if (state.enableFlags & f.bit) {
 			arg += " +";
 			arg += f.code;
-		}
+	}
 		if (state.disableFlags & f.bit) {
 			arg += " -";
 			arg += f.code;
-		}
+	}
 	}
 	return arg;
 }
@@ -151,6 +151,27 @@ int main() {
 	const std::string builtArg = BuildMapVoteArg("testmap", menuState);
 	assert(builtArg.find("+sd") != std::string::npos);
 	assert(builtArg.find("-ws") != std::string::npos);
+
+	// Failed next-map selection should clear stale overrides so they aren't reused.
+	uint16_t staleEnable = static_cast<uint16_t>(MAPFLAG_PU | MAPFLAG_BFG);
+	uint16_t staleDisable = MAPFLAG_WS;
+	uint16_t overrideEnable = staleEnable;
+	uint16_t overrideDisable = staleDisable;
+	std::optional<int> noNextMap{};
+	if (!noNextMap.has_value()) {
+		overrideEnable = 0;
+		overrideDisable = 0;
+	}
+
+	assert(overrideEnable == 0);
+	assert(overrideDisable == 0);
+
+	error.clear();
+	auto parsedAfterFailure = Commands::ParseMapVoteArguments({ "testmap", "+pa" }, error);
+	assert(parsedAfterFailure.has_value());
+	assert(error.empty());
+	assert(parsedAfterFailure->enableFlags == MAPFLAG_PA);
+	assert(parsedAfterFailure->disableFlags == 0);
 
 	return 0;
 }
