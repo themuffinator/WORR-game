@@ -46,7 +46,6 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>../../</OutDir>
     <TargetName>$(ProjectName)_$(Platform)</TargetName>
-    <ExternalIncludePath>c:\fmtlib\;c:\jsoncpp\;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>../</OutDir>
@@ -71,7 +70,6 @@
       <DisableSpecificWarnings>4267;4244</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
-      <AdditionalIncludeDirectories>c:\jsoncpp;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -83,7 +81,6 @@
     <Link>
       <SubSystem>NotSet</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>c:\jsoncpp;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <GenerateMapFile>true</GenerateMapFile>
@@ -234,7 +231,6 @@
     <ClInclude Include="shared\q_vec3.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fmt.cc" />
     <ClCompile Include="format.cc" />
     <ClCompile Include="os.cc" />
     <ClCompile Include="server\bots\bot_debug.cpp" />
