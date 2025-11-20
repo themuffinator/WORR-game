@@ -1,7 +1,12 @@
-import chardet
 import argparse
 
 def detect_encoding(path):
+    try:
+        import chardet
+    except ModuleNotFoundError as exc:
+        raise ModuleNotFoundError(
+            "The 'chardet' package is required to detect file encodings. "
+            "Install it with 'pip install chardet'.") from exc
     with open(path, 'rb') as f:
         raw = f.read()
     result = chardet.detect(raw)
@@ -12,8 +17,10 @@ def fix_encoding(input_file, output_file):
 
     try:
         text = raw_bytes.decode(encoding, errors='replace')  # Replace illegal chars
-    except Exception as e:
-        print(f"Failed to decode using {encoding}: {e}")
+    except (UnicodeDecodeError, LookupError) as e:
+        print(
+            f"Failed to decode using detected encoding '{encoding}': {e}. "
+            "Specify a valid encoding or regenerate the source with UTF-8.")
         return
 
     with open(output_file, 'w', encoding='utf-8') as f:

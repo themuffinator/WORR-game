@@ -37,8 +37,8 @@ for root, dirs, files in os.walk('.'):
                             continue
                         if include_pattern.match(stripped):
                             includes.append(stripped)
-            except Exception as e:
-                includes.append(f"// Error reading file: {e}")
+            except OSError as e:
+                includes.append(f"// Error reading file (check permissions or path): {e}")
 
             includes_by_file[filepath] = includes
 

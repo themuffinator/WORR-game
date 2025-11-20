@@ -69,11 +69,20 @@ def _terminate_processes() -> None:
     for proc in list(ACTIVE_PROCESSES):
         try:
             proc.terminate()
-        except Exception:
+        except OSError as exc:
+            print(
+                f"warning: unable to terminate process {getattr(proc, 'pid', 'unknown')}: {exc}. "
+                "Attempting forced kill; check permissions or lingering test runs if this persists.",
+                file=sys.stderr,
+            )
             try:
                 proc.kill()
-            except Exception:
-                pass
+            except OSError as kill_exc:
+                print(
+                    f"error: failed to kill process {getattr(proc, 'pid', 'unknown')}: {kill_exc}. "
+                    "Manually clean up stuck test processes before re-running.",
+                    file=sys.stderr,
+                )
         finally:
             ACTIVE_PROCESSES.discard(proc)
 
@@ -271,8 +280,13 @@ def write_junit(results: Iterable[TestResult]) -> None:
             failure.text = "\n".join(message_lines)
 
     tree = ET.ElementTree(testsuite)
-    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    tree.write(JUNIT_FILE, encoding="utf-8", xml_declaration=True)
+    try:
+        ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+        tree.write(JUNIT_FILE, encoding="utf-8", xml_declaration=True)
+    except OSError as exc:
+        raise OSError(
+            f"Failed to write JUnit report to {JUNIT_FILE}: {exc}. "
+            "Verify disk space and permissions for the artifacts directory.") from exc
 
 
 def write_summary(results: Iterable[TestResult]) -> None:
@@ -340,8 +354,12 @@ def main() -> int:
         write_log(results)
         try:
             write_junit(results)
-        except Exception as exc:  # pragma: no cover - best effort only
-            print(f"warning: failed to write JUnit report: {exc}", file=sys.stderr)
+        except OSError as exc:  # pragma: no cover - best effort only
+            print(
+                f"warning: failed to write JUnit report at {JUNIT_FILE}: {exc}. "
+                "Ensure the artifacts directory is writable.",
+                file=sys.stderr,
+            )
         write_summary(results)
 
     failures = sum(1 for result in results if not result.passed)

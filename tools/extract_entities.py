@@ -27,8 +27,8 @@ for root, dirs, files in os.walk(PROJECT_ROOT):
                     matches = quaked_block_pattern.findall(content)
                     if matches:
                         entity_blocks.extend(matches)
-            except Exception as e:
-                print(f"Error reading {file_path}: {e}")
+            except OSError as e:
+                print(f"Error reading {file_path}: {e}. Ensure the file exists and is readable.")
 
 # Write all found blocks to the output file
 with open(OUTPUT_PATH, "w", encoding="utf-8") as out:
