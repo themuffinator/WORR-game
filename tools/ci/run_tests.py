@@ -13,9 +13,11 @@ from __future__ import annotations
 import os
 import platform
 import shutil
+import signal
 import subprocess
 import sys
 import textwrap
+import threading
 from dataclasses import dataclass
 from datetime import datetime, UTC
 from pathlib import Path
@@ -28,6 +30,9 @@ INCLUDE_DIRS = [SRC_ROOT, SRC_ROOT / "fmt", SRC_ROOT / "json"]
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "test-results"
 LOG_FILE = ARTIFACT_DIR / "test-log.txt"
 JUNIT_FILE = ARTIFACT_DIR / "junit.xml"
+
+ACTIVE_PROCESSES: "set[subprocess.Popen[str]]" = set()
+SHUTDOWN_EVENT = threading.Event()
 
 
 @dataclass
@@ -50,6 +55,39 @@ class TestResult:
 
 class ToolchainError(RuntimeError):
     pass
+
+
+class ShutdownRequested(RuntimeError):
+    pass
+
+
+def shutdown_requested() -> bool:
+    return SHUTDOWN_EVENT.is_set()
+
+
+def _terminate_processes() -> None:
+    for proc in list(ACTIVE_PROCESSES):
+        try:
+            proc.terminate()
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        finally:
+            ACTIVE_PROCESSES.discard(proc)
+
+
+def request_shutdown(signum: int | None = None, frame: object | None = None) -> None:  # pragma: no cover - invoked by signal
+    if shutdown_requested():
+        return
+    SHUTDOWN_EVENT.set()
+    _terminate_processes()
+
+
+def register_signal_handlers() -> None:
+    for sig in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(sig, request_shutdown)
 
 
 def find_tests() -> List[Path]:
@@ -112,16 +150,38 @@ def build_command(compiler_cmd: Sequence[str], source: Path, output: Path) -> Li
     ]
 
 
+def run_subprocess(command: Sequence[str], cwd: Path) -> subprocess.CompletedProcess[str]:
+    if shutdown_requested():
+        raise ShutdownRequested("shutdown requested before process start")
+
+    proc = subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    ACTIVE_PROCESSES.add(proc)
+    try:
+        stdout, stderr = proc.communicate()
+    finally:
+        ACTIVE_PROCESSES.discard(proc)
+
+    if shutdown_requested():
+        raise ShutdownRequested("shutdown requested during process execution")
+
+    return subprocess.CompletedProcess(command, proc.returncode, stdout, stderr)
+
+
 def run_test(compiler_cmd: Sequence[str], source: Path, build_dir: Path) -> TestResult:
     build_dir.mkdir(parents=True, exist_ok=True)
     exe_suffix = ".exe" if platform.system() == "Windows" else ""
     executable = build_dir / (source.stem + exe_suffix)
 
-    compile_proc = subprocess.run(
+    compile_proc = run_subprocess(
         build_command(compiler_cmd, source, executable),
         cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
     )
     compiled = compile_proc.returncode == 0 and executable.exists()
 
@@ -130,12 +190,7 @@ def run_test(compiler_cmd: Sequence[str], source: Path, build_dir: Path) -> Test
     run_stderr: str | None = None
 
     if compiled:
-        run_proc = subprocess.run(
-            [str(executable)],
-            cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-        )
+        run_proc = run_subprocess([str(executable)], cwd=REPO_ROOT)
         run_returncode = run_proc.returncode
         run_stdout = run_proc.stdout
         run_stderr = run_proc.stderr
@@ -246,6 +301,8 @@ def write_summary(results: Iterable[TestResult]) -> None:
 
 
 def main() -> int:
+    register_signal_handlers()
+
     try:
         compiler_cmd = detect_compiler()
     except ToolchainError as exc:
@@ -260,26 +317,43 @@ def main() -> int:
     build_dir = ARTIFACT_DIR / "build"
     results: List[TestResult] = []
 
-    for test_source in tests:
-        print(f"Running {test_source.name}...")
-        result = run_test(compiler_cmd, test_source, build_dir)
-        status = "PASS" if result.passed else "FAIL"
-        print(f"  {status}")
-        results.append(result)
+    interrupted = False
 
-    write_log(results)
     try:
-        write_junit(results)
-    except Exception as exc:  # pragma: no cover - best effort only
-        print(f"warning: failed to write JUnit report: {exc}", file=sys.stderr)
-    write_summary(results)
+        for test_source in tests:
+            if shutdown_requested():
+                interrupted = True
+                print("Shutdown requested. Skipping remaining tests.")
+                break
+
+            print(f"Running {test_source.name}...")
+            try:
+                result = run_test(compiler_cmd, test_source, build_dir)
+            except ShutdownRequested:
+                interrupted = True
+                print("Shutdown requested. Aborting current test run.")
+                break
+            status = "PASS" if result.passed else "FAIL"
+            print(f"  {status}")
+            results.append(result)
+    finally:
+        write_log(results)
+        try:
+            write_junit(results)
+        except Exception as exc:  # pragma: no cover - best effort only
+            print(f"warning: failed to write JUnit report: {exc}", file=sys.stderr)
+        write_summary(results)
 
     failures = sum(1 for result in results if not result.passed)
     if failures:
         print(f"{failures} test(s) failed. See {LOG_FILE.relative_to(REPO_ROOT)} for details.")
+    elif interrupted:
+        print("Test run interrupted before completion.")
     else:
         print(f"All {len(results)} test(s) passed.")
 
+    if interrupted:
+        return 1
     return 0 if failures == 0 else 1
 
 
