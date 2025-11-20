@@ -2165,10 +2165,10 @@ inline bool MapSystem::MapExists(std::string_view mapName) const
 	}
 
 	if (!activeGameDir.empty() && mapExistsInDir(activeGameDir))
-	return true;
+		return true;
 
-	if (activeGameDir.empty() || activeGameDir != GAMEVERSION)
-	return mapExistsInDir(GAMEVERSION);
+	if (mapExistsInDir(GAMEVERSION))
+		return true;
 
 	return false;
 }
