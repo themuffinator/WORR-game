@@ -1134,7 +1134,7 @@ gentity_t* ent, usercmd_t* ucmd) {
 
 		pmState.pmFlags |= PMF_JUMP_HELD;
 
-		if (game.cheatsFlag & GameCheatFlags::Fly)
+		if ((game.cheatsFlag & GameCheatFlags::Fly) != GameCheatFlags::None)
 			pmState.pmFlags |= (PMF_NO_POSITIONAL_PREDICTION | PMF_NO_ANGULAR_PREDICTION);
 
 		if (G_SpawnHasGravity(ent)) {

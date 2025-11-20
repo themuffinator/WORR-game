@@ -149,6 +149,29 @@ The normal starting point for a level.
 "noBots" will prevent bots from using this spot.
 "noHumans" will prevent humans from using this spot.
 */
+/*
+=============
+info_player_start_drop
+
+Prepare an info_player_start point to drop safely onto moving platforms when
+spawning on N64 maps.
+=============
+*/
+static void info_player_start_drop(gentity_t* self) {
+	self->solid = SOLID_TRIGGER;
+	self->moveType = MoveType::Toss;
+	self->mins = PLAYER_MINS;
+	self->maxs = PLAYER_MAXS;
+	gi.linkentity(self);
+}
+
+/*
+=============
+SP_info_player_start
+
+Entry point for info_player_start entities.
+=============
+*/
 void SP_info_player_start(gentity_t* self) {
 	auto& sessionService = worr::server::client::GetClientSessionService();
 	sessionService.PrepareSpawnPoint(self, true, info_player_start_drop);
@@ -3274,6 +3297,18 @@ void BroadcastTeamChange(gentity_t* ent, Team old_team, bool inactive, bool sile
 		std::string msg = std::format("%bind:inven:Toggles Menu%{}", t);
 		gi.LocClient_Print(ent, PRINT_CENTER, msg.c_str());
 	}
+}
+
+/*
+=============
+NextDuelQueueTicket
+
+Generates the next ticket number for ordering players in the duel queue.
+=============
+*/
+static uint64_t NextDuelQueueTicket() {
+	static uint64_t nextTicket = 1;
+	return nextTicket++;
 }
 
 bool SetTeam(gentity_t* ent, Team desired_team, bool inactive, bool force, bool silent) {
