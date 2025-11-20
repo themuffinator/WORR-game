@@ -17,6 +17,9 @@
 //   cue that plays where a monster is about to materialize.
 
 #include "../g_local.hpp"
+#include <cmath>
+#include <limits>
+#include <optional>
 
 //
 // Monster spawning code
@@ -36,9 +39,79 @@
 
 // FIXME - for the black widow, if we want the stalkers coming in on the roof, we'll have to tweak some things
 
-//
-// CreateMonster
-//
+/*
+=============
+NormalizeGravityVector
+
+Returns a normalized gravity direction, defaulting to -Z when undefined.
+=============
+*/
+static Vector3 NormalizeGravityVector(Vector3 gravityVector) {
+	if (gravityVector.lengthSquared() < 0.0001f)
+		return { 0, 0, -1 };
+
+	return gravityVector.normalized();
+}
+
+/*
+=============
+BuildGravityAxes
+
+Builds an orthonormal basis from the gravity vector for planar sampling.
+=============
+*/
+static void BuildGravityAxes(const Vector3& gravityVector, Vector3& down, Vector3& right, Vector3& forward) {
+	down = NormalizeGravityVector(gravityVector);
+
+	Vector3 arbitrary = (fabsf(down.z) < 0.99f) ? Vector3{ 0, 0, 1 } : Vector3{ 1, 0, 0 };
+	right = arbitrary.cross(down).normalized();
+	forward = down.cross(right).normalized();
+}
+
+/*
+=============
+DropToGravitySurface
+
+Drops the given bounds along the gravity vector until they touch solid geometry.
+=============
+*/
+static bool DropToGravitySurface(Vector3& origin, const Vector3& mins, const Vector3& maxs, const Vector3& gravityVector, gentity_t* ignore, contents_t mask, bool allowPartial) {
+	Vector3 down = NormalizeGravityVector(gravityVector);
+	Vector3 up = -down;
+	trace_t trace = gi.trace(origin, mins, maxs, origin, ignore, mask);
+
+	if (trace.allSolid)
+		return false;
+
+	if (trace.startSolid) {
+		trace_t clearTrace = gi.trace(origin, mins, maxs, origin + (up * 64.0f), ignore, mask);
+
+		if (clearTrace.allSolid)
+			return false;
+
+		origin = clearTrace.endPos;
+	}
+
+	Vector3 end = origin + (down * 256.0f);
+	trace = gi.trace(origin, mins, maxs, end, ignore, mask);
+
+	if (trace.fraction == 1 || trace.allSolid || (!allowPartial && trace.startSolid))
+		return false;
+
+	origin = trace.endPos;
+
+	return true;
+}
+
+
+#ifndef UNIT_TEST
+/*
+=============
+CreateMonster
+
+Creates a monster at the requested origin and angles with default gravity.
+=============
+*/
 gentity_t* CreateMonster(const Vector3& origin, const Vector3& angles, const char* className) {
 	gentity_t* newEnt;
 
@@ -56,6 +129,13 @@ gentity_t* CreateMonster(const Vector3& origin, const Vector3& angles, const cha
 	return newEnt;
 }
 
+/*
+=============
+CreateFlyMonster
+
+Creates a flying monster if the spawn volume is clear.
+=============
+*/
 gentity_t* CreateFlyMonster(const Vector3& origin, const Vector3& angles, const Vector3& mins, const Vector3& maxs, const char* className) {
 	if (!CheckSpawnPoint(origin, mins, maxs))
 		return nullptr;
@@ -66,11 +146,18 @@ gentity_t* CreateFlyMonster(const Vector3& origin, const Vector3& angles, const 
 // This is just a wrapper for CreateMonster that looks down height # of CMUs and sees if there
 // are bad things down there or not
 
+/*
+=============
+CreateGroundMonster
+
+Creates a ground-based monster if the spawn point is validated against gravity.
+=============
+*/
 gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, const Vector3& entMins, const Vector3& entMaxs, const char* className, float height) {
 	gentity_t* newEnt;
 
 	// check the ground to make sure it's there, it's relatively flat, and it's not toxic
-	if (!CheckGroundSpawnPoint(origin, entMins, entMaxs, height, -1.f))
+	if (!CheckGroundSpawnPoint(origin, entMins, entMaxs, height, { 0, 0, -1 }))
 		return nullptr;
 
 	newEnt = CreateMonster(origin, angles, className);
@@ -79,47 +166,52 @@ gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, con
 
 	return newEnt;
 }
+#endif // UNIT_TEST
 
-// FindSpawnPoint
-// PMM - this is used by the medic commander (possibly by the carrier) to find a good spawn point
-// if the startpoint is bad, try above the startpoint for a bit
+/*
+=============
+FindSpawnPoint
 
-bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint, float maxMoveUp, bool drop) {
+Finds a spawn point near the start position, honoring the provided gravity vector.
+=============
+*/
+bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint, float maxMoveUp, bool drop, Vector3 gravityVector) {
 	spawnpoint = startpoint;
+	gravityVector = NormalizeGravityVector(gravityVector);
 
 	// drop first
-	if (!drop || !M_droptofloor_generic(spawnpoint, mins, maxs, false, nullptr, MASK_MONSTERSOLID, false)) {
+	if (!drop || !DropToGravitySurface(spawnpoint, mins, maxs, gravityVector, nullptr, MASK_MONSTERSOLID, false)) {
 		spawnpoint = startpoint;
 
 		// fix stuck if we couldn't drop initially
 		if (G_FixStuckObject_Generic(spawnpoint, mins, maxs, [](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
 			return gi.trace(start, mins, maxs, end, nullptr, MASK_MONSTERSOLID);
 			}) == StuckResult::NoGoodPosition)
-			return false;
+		return false;
 
 		// fixed, so drop again
-		if (drop && !M_droptofloor_generic(spawnpoint, mins, maxs, false, nullptr, MASK_MONSTERSOLID, false))
-			return false; // ???
+		if (drop && !DropToGravitySurface(spawnpoint, mins, maxs, gravityVector, nullptr, MASK_MONSTERSOLID, false))
+		return false; // ???
 	}
 
 	return true;
 }
 
-// FIXME - all of this needs to be tweaked to handle the new gravity rules
-// if we ever want to spawn stuff on the roof
+/*
+=============
+CheckSpawnPoint
 
-//
-// CheckSpawnPoint
-//
-// PMM - checks volume to make sure we can spawn a monster there (is it solid?)
-//
-// This is all fliers should need
-
-bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& maxs) {
+Checks volume clearance for a monster spawn against gravity-aware traces.
+=============
+*/
+bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& maxs, Vector3 gravityVector) {
 	trace_t tr;
 
 	if (!mins || !maxs)
 		return false;
+
+	Vector3 down = NormalizeGravityVector(gravityVector);
+	Vector3 up = -down;
 
 	tr = gi.trace(origin, mins, maxs, origin, nullptr, MASK_MONSTERSOLID);
 	if (tr.startSolid || tr.allSolid)
@@ -128,32 +220,116 @@ bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& 
 	if (tr.ent != world)
 		return false;
 
+	trace_t upTrace = gi.trace(origin, mins, maxs, origin + (up * 4.0f), nullptr, MASK_MONSTERSOLID);
+	if (upTrace.startSolid || upTrace.allSolid)
+		return false;
+
+	trace_t downTrace = gi.trace(origin, mins, maxs, origin + (down * 4.0f), nullptr, MASK_MONSTERSOLID);
+	if (downTrace.allSolid)
+		return false;
+
 	return true;
 }
 
-//
-// CheckGroundSpawnPoint
-//
-// PMM - used for walking monsters
-//  checks:
-//		1)	is there a ground within the specified height of the origin?
-//		2)	is the ground non-water?
-//		3)	is the ground flat enough to walk on?
-//
+/*
+=============
+ComputeGravityExtents
 
-bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const Vector3& entMaxs, float height, float gravity) {
-	if (!CheckSpawnPoint(origin, entMins, entMaxs))
-		return false;
+Calculates extents along the gravity-aligned axes for slope validation.
+=============
+*/
+static void ComputeGravityExtents(const Vector3& mins, const Vector3& maxs, const Vector3& down, const Vector3& right, const Vector3& forward, float& maxDown, float& maxRight, float& maxForward) {
+	maxDown = -std::numeric_limits<float>::infinity();
+	maxRight = 0.0f;
+	maxForward = 0.0f;
 
-	if (M_CheckBottom_Fast_Generic(origin + entMins, origin + entMaxs, false))
-		return true;
+	for (int x = 0; x < 2; x++)
+		for (int y = 0; y < 2; y++)
+			for (int z = 0; z < 2; z++) {
+				Vector3 corner = {
+					x ? maxs.x : mins.x,
+					y ? maxs.y : mins.y,
+					z ? maxs.z : mins.z
+				};
 
-	if (M_CheckBottom_Slow_Generic(origin, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, false, false))
-		return true;
-
-	return false;
+				maxDown = std::max(maxDown, corner.dot(down));
+				maxRight = std::max(maxRight, fabsf(corner.dot(right)));
+				maxForward = std::max(maxForward, fabsf(corner.dot(forward)));
+			}
 }
 
+/*
+=============
+CheckSlopeSupport
+
+Confirms the surface under the spawn volume is flat enough along gravity.
+=============
+*/
+static bool CheckSlopeSupport(const Vector3& origin, const Vector3& mins, const Vector3& maxs, const Vector3& down, const Vector3& right, const Vector3& forward) {
+	float maxDown, maxRight, maxForward;
+	ComputeGravityExtents(mins, maxs, down, right, forward, maxDown, maxRight, maxForward);
+
+	Vector3 baseStart = origin + (down * maxDown);
+	Vector3 offsets[4] = {
+		right * maxRight + forward * maxForward,
+		right * maxRight - forward * maxForward,
+		-right * maxRight + forward * maxForward,
+		-right * maxRight - forward * maxForward
+	};
+
+	auto TraceDepth = [&](const Vector3& start) -> std::optional<float> {
+		Vector3 end = start + (down * 256.0f);
+		trace_t trace = gi.trace(start, vec3_origin, vec3_origin, end, nullptr, MASK_MONSTERSOLID);
+
+		if (trace.fraction == 1.0f)
+			return std::nullopt;
+
+		return down.dot(start - trace.endPos);
+	};
+
+	std::optional<float> centerDepth = TraceDepth(baseStart);
+	if (!centerDepth)
+		return false;
+
+	for (const Vector3& offset : offsets) {
+		std::optional<float> depth = TraceDepth(baseStart + offset);
+		if (!depth)
+			return false;
+
+		if (fabsf(*centerDepth - *depth) > STEPSIZE)
+			return false;
+	}
+
+	return true;
+}
+
+/*
+=============
+CheckGroundSpawnPoint
+
+Validates ground-based monster spawns against gravity-aware surfaces.
+=============
+*/
+bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const Vector3& entMaxs, float height, Vector3 gravityVector) {
+	gravityVector = NormalizeGravityVector(gravityVector);
+	Vector3 down, right, forward;
+	BuildGravityAxes(gravityVector, down, right, forward);
+
+	if (!CheckSpawnPoint(origin, entMins, entMaxs, gravityVector))
+		return false;
+
+	Vector3 target = origin + (down * height);
+	trace_t groundTrace = gi.trace(origin, entMins, entMaxs, target, nullptr, MASK_MONSTERSOLID | MASK_WATER);
+
+	if (groundTrace.fraction == 1.0f || !(groundTrace.contents & MASK_MONSTERSOLID))
+		return false;
+
+	if (groundTrace.contents & MASK_WATER)
+		return false;
+
+	return CheckSlopeSupport(origin, entMins, entMaxs, down, right, forward);
+}
+#ifndef UNIT_TEST
 // ****************************
 // SPAWNGROW stuff
 // ****************************
@@ -360,3 +536,4 @@ void Widowlegs_Spawn(const Vector3& startpos, const Vector3& angles) {
 	ent->nextThink = level.time + 10_hz;
 	gi.linkEntity(ent);
 }
+#endif // UNIT_TEST
