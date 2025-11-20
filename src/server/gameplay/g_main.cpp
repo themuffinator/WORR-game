@@ -103,6 +103,7 @@ cvar_t* ai_allow_dm_spawn;
 cvar_t* ai_damage_scale;
 cvar_t* ai_model_scale;
 cvar_t* ai_movement_disabled;
+cvar_t* ai_widow_roof_spawn;
 cvar_t* bob_pitch;
 cvar_t* bob_roll;
 cvar_t* bob_up;
@@ -950,6 +951,7 @@ static void InitGame() {
 	ai_damage_scale = gi.cvar("ai_damage_scale", "1", CVAR_NOFLAGS);
 	ai_model_scale = gi.cvar("ai_model_scale", "0", CVAR_NOFLAGS);
 	ai_movement_disabled = gi.cvar("ai_movement_disabled", "0", CVAR_NOFLAGS);
+	ai_widow_roof_spawn = gi.cvar("ai_widow_roof_spawn", "0", CVAR_NOFLAGS);
 
 	bot_name_prefix = gi.cvar("bot_name_prefix", "B|", CVAR_NOFLAGS);
 	g_airAccelerate = gi.cvar("g_air_accelerate", "0", CVAR_NOFLAGS);

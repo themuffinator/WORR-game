@@ -3535,6 +3535,7 @@ extern cvar_t* ai_allow_dm_spawn;
 extern cvar_t* ai_damage_scale;
 extern cvar_t* ai_model_scale;
 extern cvar_t* ai_movement_disabled;
+extern cvar_t* ai_widow_roof_spawn;
 
 extern cvar_t* bot_debug_follow_actor;
 extern cvar_t* bot_debug_move_to_point;
@@ -4571,12 +4572,12 @@ gentity_t* CreateMonster(const Vector3& origin, const Vector3& angles, const cha
 gentity_t* CreateFlyMonster(const Vector3& origin, const Vector3& angles, const Vector3& mins, const Vector3& maxs,
 	const char* className);
 gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, const Vector3& mins, const Vector3& maxs,
-	const char* className, float height);
+	const char* className, float height, bool ceiling = false);
 bool	 FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint,
-	float maxMoveUp, bool drop = true);
+	float maxMoveUp, bool drop = true, bool ceiling = false);
 bool	 CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& maxs);
 bool	 CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const Vector3& entMaxs, float height,
-	float gravity);
+	bool ceiling = false);
 void	 SpawnGrow_Spawn(const Vector3& startpos, float start_size, float end_size);
 void	 Widowlegs_Spawn(const Vector3& startpos, const Vector3& angles);
 

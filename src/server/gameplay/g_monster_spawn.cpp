@@ -36,9 +36,14 @@
 
 // FIXME - for the black widow, if we want the stalkers coming in on the roof, we'll have to tweak some things
 
-//
-// CreateMonster
-//
+/*
+=============
+CreateMonster
+
+Spawns and initializes a monster entity at the given origin/angles, marking
+it as not counting toward kill totals.
+=============
+*/
 gentity_t* CreateMonster(const Vector3& origin, const Vector3& angles, const char* className) {
 	gentity_t* newEnt;
 
@@ -56,6 +61,11 @@ gentity_t* CreateMonster(const Vector3& origin, const Vector3& angles, const cha
 	return newEnt;
 }
 
+/*
+=============
+CreateFlyMonster
+=============
+*/
 gentity_t* CreateFlyMonster(const Vector3& origin, const Vector3& angles, const Vector3& mins, const Vector3& maxs, const char* className) {
 	if (!CheckSpawnPoint(origin, mins, maxs))
 		return nullptr;
@@ -66,11 +76,16 @@ gentity_t* CreateFlyMonster(const Vector3& origin, const Vector3& angles, const 
 // This is just a wrapper for CreateMonster that looks down height # of CMUs and sees if there
 // are bad things down there or not
 
-gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, const Vector3& entMins, const Vector3& entMaxs, const char* className, float height) {
+/*
+=============
+CreateGroundMonster
+=============
+*/
+gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, const Vector3& entMins, const Vector3& entMaxs, const char* className, float height, bool ceiling) {
 	gentity_t* newEnt;
 
 	// check the ground to make sure it's there, it's relatively flat, and it's not toxic
-	if (!CheckGroundSpawnPoint(origin, entMins, entMaxs, height, -1.f))
+	if (!CheckGroundSpawnPoint(origin, entMins, entMaxs, height, ceiling))
 		return nullptr;
 
 	newEnt = CreateMonster(origin, angles, className);
@@ -84,25 +99,43 @@ gentity_t* CreateGroundMonster(const Vector3& origin, const Vector3& angles, con
 // PMM - this is used by the medic commander (possibly by the carrier) to find a good spawn point
 // if the startpoint is bad, try above the startpoint for a bit
 
-bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint, float maxMoveUp, bool drop) {
+/*
+=============
+FindSpawnPoint
+=============
+*/
+bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector3& maxs, Vector3& spawnpoint, float maxMoveUp, bool drop, bool ceiling) {
+	auto TryDrop = [mins, maxs, drop, ceiling](const Vector3& point, Vector3& out) {
+		out = point;
+
+		if (drop)
+			return M_droptofloor_generic(out, mins, maxs, ceiling, nullptr, MASK_MONSTERSOLID, false);
+
+		return CheckSpawnPoint(out, mins, maxs);
+	};
+
 	spawnpoint = startpoint;
 
-	// drop first
-	if (!drop || !M_droptofloor_generic(spawnpoint, mins, maxs, false, nullptr, MASK_MONSTERSOLID, false)) {
-		spawnpoint = startpoint;
+	if (TryDrop(spawnpoint, spawnpoint))
+		return true;
 
-		// fix stuck if we couldn't drop initially
-		if (G_FixStuckObject_Generic(spawnpoint, mins, maxs, [](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-			return gi.trace(start, mins, maxs, end, nullptr, MASK_MONSTERSOLID);
-			}) == StuckResult::NoGoodPosition)
-			return false;
+	spawnpoint = startpoint;
 
-		// fixed, so drop again
-		if (drop && !M_droptofloor_generic(spawnpoint, mins, maxs, false, nullptr, MASK_MONSTERSOLID, false))
-			return false; // ???
+	if (G_FixStuckObject_Generic(spawnpoint, mins, maxs, [](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+		return gi.trace(start, mins, maxs, end, nullptr, MASK_MONSTERSOLID);
+	}) == StuckResult::GoodPosition && TryDrop(spawnpoint, spawnpoint))
+		return true;
+
+	const Vector3 moveDir = ceiling ? Vector3{ 0, 0, -1 } : Vector3{ 0, 0, 1 };
+
+	for (float move = 16.0f; move <= maxMoveUp; move += 16.0f) {
+		Vector3 candidate = startpoint + (moveDir * move);
+
+		if (TryDrop(candidate, spawnpoint))
+			return true;
 	}
 
-	return true;
+	return false;
 }
 
 // FIXME - all of this needs to be tweaked to handle the new gravity rules
@@ -115,6 +148,11 @@ bool FindSpawnPoint(const Vector3& startpoint, const Vector3& mins, const Vector
 //
 // This is all fliers should need
 
+/*
+=============
+CheckSpawnPoint
+=============
+*/
 bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& maxs) {
 	trace_t tr;
 
@@ -131,7 +169,6 @@ bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& 
 	return true;
 }
 
-//
 // CheckGroundSpawnPoint
 //
 // PMM - used for walking monsters
@@ -141,14 +178,27 @@ bool CheckSpawnPoint(const Vector3& origin, const Vector3& mins, const Vector3& 
 //		3)	is the ground flat enough to walk on?
 //
 
-bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const Vector3& entMaxs, float height, float gravity) {
+/*
+=============
+CheckGroundSpawnPoint
+=============
+*/
+bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const Vector3& entMaxs, float height, bool ceiling) {
 	if (!CheckSpawnPoint(origin, entMins, entMaxs))
 		return false;
 
-	if (M_CheckBottom_Fast_Generic(origin + entMins, origin + entMaxs, false))
+	Vector3 end = origin;
+	end[2] += ceiling ? height : -height;
+
+	trace_t support = gi.trace(origin, entMins, entMaxs, end, nullptr, MASK_MONSTERSOLID);
+
+	if (support.startSolid || support.allSolid || support.fraction == 1.0f || support.ent != world)
+		return false;
+
+	if (M_CheckBottom_Fast_Generic(support.endPos + entMins, support.endPos + entMaxs, ceiling))
 		return true;
 
-	if (M_CheckBottom_Slow_Generic(origin, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, false, false))
+	if (M_CheckBottom_Slow_Generic(support.endPos, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, ceiling, false))
 		return true;
 
 	return false;
@@ -261,83 +311,91 @@ void ThrowSmallStuff(gentity_t* self, const Vector3& point);
 void ThrowWidowGibLoc(gentity_t* self, const char* gibname, int damage, gib_type_t type, const Vector3* startpos, bool fade);
 void ThrowWidowGibSized(gentity_t* self, const char* gibname, int damage, gib_type_t type, const Vector3* startpos, int hitsound, bool fade);
 
+/*
+=============
+widowlegs_think
+
+Drives the timing and effects for the widow leg death animation, spawning
+explosions and debris before removing the placeholder entity.
+=============
+*/
 static THINK(widowlegs_think) (gentity_t* self) -> void {
 	Vector3 offset;
 	Vector3 point;
 	Vector3 f, r, u;
 
 	if (self->s.frame == 17) {
-		offset = { 11.77f, -7.24f, 23.31f };
-		AngleVectors(self->s.angles, f, r, u);
-		point = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_EXPLOSION1);
-		gi.WritePosition(point);
-		gi.multicast(point, MULTICAST_ALL, false);
-		ThrowSmallStuff(self, point);
+	offset = { 11.77f, -7.24f, 23.31f };
+	AngleVectors(self->s.angles, f, r, u);
+	point = G_ProjectSource2(self->s.origin, offset, f, r, u);
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1);
+	gi.WritePosition(point);
+	gi.multicast(point, MULTICAST_ALL, false);
+	ThrowSmallStuff(self, point);
 	}
 
 	if (self->s.frame < MAX_LEGSFRAME) {
-		self->s.frame++;
-		self->nextThink = level.time + 10_hz;
-		return;
+	self->s.frame++;
+	self->nextThink = level.time + 10_hz;
+	return;
 	}
 	else if (self->wait == 0) {
-		self->wait = (level.time + LEG_WAIT_TIME).seconds();
+	self->wait = (level.time + LEG_WAIT_TIME).seconds();
 	}
 
 	if (level.time > GameTime::from_sec(self->wait)) {
-		AngleVectors(self->s.angles, f, r, u);
+	AngleVectors(self->s.angles, f, r, u);
 
-		offset = { -65.6f, -8.44f, 28.59f };
-		point = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_EXPLOSION1);
-		gi.WritePosition(point);
-		gi.multicast(point, MULTICAST_ALL, false);
-		ThrowSmallStuff(self, point);
+	offset = { -65.6f, -8.44f, 28.59f };
+	point = G_ProjectSource2(self->s.origin, offset, f, r, u);
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1);
+	gi.WritePosition(point);
+	gi.multicast(point, MULTICAST_ALL, false);
+	ThrowSmallStuff(self, point);
 
-		ThrowWidowGibSized(self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
-		ThrowWidowGibSized(self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
+	ThrowWidowGibSized(self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
+	ThrowWidowGibSized(self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
 
-		offset = { -1.04f, -51.18f, 7.04f };
-		point = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_EXPLOSION1);
-		gi.WritePosition(point);
-		gi.multicast(point, MULTICAST_ALL, false);
-		ThrowSmallStuff(self, point);
+	offset = { -1.04f, -51.18f, 7.04f };
+	point = G_ProjectSource2(self->s.origin, offset, f, r, u);
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1);
+	gi.WritePosition(point);
+	gi.multicast(point, MULTICAST_ALL, false);
+	ThrowSmallStuff(self, point);
 
-		ThrowWidowGibSized(self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
-		ThrowWidowGibSized(self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
-		ThrowWidowGibSized(self, "models/monsters/blackwidow/gib3/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
+	ThrowWidowGibSized(self, "models/monsters/blackwidow/gib1/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
+	ThrowWidowGibSized(self, "models/monsters/blackwidow/gib2/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
+	ThrowWidowGibSized(self, "models/monsters/blackwidow/gib3/tris.md2", 80 + (int)frandom(20.0f), GIB_METALLIC, &point, 0, true);
 
-		FreeEntity(self);
-		return;
+	FreeEntity(self);
+	return;
 	}
 
 	if ((level.time > GameTime::from_sec(self->wait - 0.5f)) && (self->count == 0)) {
-		self->count = 1;
-		AngleVectors(self->s.angles, f, r, u);
+	self->count = 1;
+	AngleVectors(self->s.angles, f, r, u);
 
-		offset = { 31, -88.7f, 10.96f };
-		point = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_EXPLOSION1);
-		gi.WritePosition(point);
-		gi.multicast(point, MULTICAST_ALL, false);
-		//		ThrowSmallStuff (self, point);
+	offset = { 31, -88.7f, 10.96f };
+	point = G_ProjectSource2(self->s.origin, offset, f, r, u);
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1);
+	gi.WritePosition(point);
+	gi.multicast(point, MULTICAST_ALL, false);
+	//		ThrowSmallStuff (self, point);
 
-		offset = { -12.67f, -4.39f, 15.68f };
-		point = G_ProjectSource2(self->s.origin, offset, f, r, u);
-		gi.WriteByte(svc_temp_entity);
-		gi.WriteByte(TE_EXPLOSION1);
-		gi.WritePosition(point);
-		gi.multicast(point, MULTICAST_ALL, false);
-		//		ThrowSmallStuff (self, point);
+	offset = { -12.67f, -4.39f, 15.68f };
+	point = G_ProjectSource2(self->s.origin, offset, f, r, u);
+	gi.WriteByte(svc_temp_entity);
+	gi.WriteByte(TE_EXPLOSION1);
+	gi.WritePosition(point);
+	gi.multicast(point, MULTICAST_ALL, false);
+	//		ThrowSmallStuff (self, point);
 
-		self->nextThink = level.time + 10_hz;
-		return;
+	self->nextThink = level.time + 10_hz;
+	return;
 	}
 
 	self->nextThink = level.time + 10_hz;
