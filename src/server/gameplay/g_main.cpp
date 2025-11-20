@@ -23,6 +23,7 @@
 #include "../g_local.hpp"
 #include "../bots/bot_includes.hpp"
 #include "../../shared/char_array_utils.hpp"
+#include "../../shared/logger.hpp"
 #include "../commands/commands.hpp"
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
@@ -51,6 +52,7 @@ GameLocals  game;
 LevelLocals level;
 
 local_game_import_t  gi;
+game_import_t        base_import;
 
 /*static*/ char local_game_import_t::print_buffer[0x10000];
 
@@ -71,6 +73,20 @@ cvar_t* deathmatch;
 cvar_t* ctf;
 cvar_t* teamplay;
 cvar_t* g_gametype;
+
+/*
+=============
+InitServerLogging
+
+Configure shared logging for the server game module.
+=============
+*/
+static void InitServerLogging()
+{
+	base_import = gi;
+	worr::InitLogger("server", base_import.Com_Print, base_import.Com_Error);
+	gi.Com_Print = worr::LoggerPrint;
+}
 
 cvar_t* coop;
 
@@ -1202,6 +1218,8 @@ and global variables
 */
 Q2GAME_API game_export_t* GetGameAPI(game_import_t* import) {
 	gi = *import;
+
+	InitServerLogging();
 
 	FRAME_TIME_S = FRAME_TIME_MS = GameTime::from_ms(gi.frameTimeMs);
 

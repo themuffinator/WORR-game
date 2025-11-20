@@ -20,9 +20,26 @@
 
 #include "cg_local.hpp"
 #include "../server/monsters/m_flash.hpp"
+#include "../shared/logger.hpp"
 
 cgame_import_t cgi;
 cgame_export_t cglobals;
+
+static cgame_import_t base_cgi;
+
+/*
+=============
+InitClientLogging
+
+Configure shared logging for the client game module.
+=============
+*/
+static void InitClientLogging()
+{
+	base_cgi = cgi;
+	worr::InitLogger("client", base_cgi.Com_Print, base_cgi.Com_Error);
+	cgi.Com_Print = worr::LoggerPrint;
+}
 
 static void* CG_GetExtension(const char* name) {
 	return nullptr;
@@ -106,7 +123,9 @@ and global variables
 =================
 */
 Q2GAME_API cgame_export_t* GetCGameAPI(cgame_import_t* import) {
-	cgi = *import;
+cgi = *import;
+
+InitClientLogging();
 
 	cglobals.apiVersion = CGAME_API_VERSION;
 	cglobals.Init = InitCGame;
