@@ -2783,7 +2783,7 @@ std::array<gentity_t*, 4> outOfBounds{};
 	GameTime		ctf_last_flag_capture = 0_ms;
 	Team		ctf_last_capture_team = Team::None;
 
-	std::array<int, LAST_WEAPON - FIRST_WEAPON> weaponCount;
+	std::array<int, LAST_WEAPON - FIRST_WEAPON + 1> weaponCount;
 
 	GameTime		no_players_time = 0_ms;
 
