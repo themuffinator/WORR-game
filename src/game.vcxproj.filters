@@ -4,6 +4,99 @@
     <ClInclude Include="server\g_local.hpp" />
     <ClInclude Include="server\gameplay\client_config.hpp" />
     <ClInclude Include="server\gameplay\g_statusbar.hpp" />
+    <ClInclude Include="shared\bg_local.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\char_array_utils.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\map_validation.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\string_compat.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\version.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\version_autogen.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="shared\weapon_pref_utils.hpp">
+      <Filter>shared</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\args.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\base.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\chrono.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\color.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\compile.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\core.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\format-inl.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\format.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\os.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\ostream.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\printf.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\ranges.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\std.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\xchar.h">
+      <Filter>external\fmt</Filter>
+    </ClInclude>
+    <ClInclude Include="json\allocator.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\assertions.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\config.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\forwards.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\json_features.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\reader.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\value.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\version.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
+    <ClInclude Include="json\writer.h">
+      <Filter>external\json</Filter>
+    </ClInclude>
     <ClInclude Include="server\client\client_session_service_impl.hpp">
       <Filter>clients</Filter>
     </ClInclude>
@@ -249,6 +342,15 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fmt.cc">
+      <Filter>external\\fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="format.cc">
+      <Filter>external\\fmt</Filter>
+    </ClCompile>
+    <ClCompile Include="os.cc">
+      <Filter>external\\fmt</Filter>
+    </ClCompile>
     <ClCompile Include="server\gameplay\g_combat.cpp" />
     <ClCompile Include="server\gameplay\g_main.cpp" />
     <ClCompile Include="server\gameplay\g_misc.cpp" />
@@ -629,6 +731,15 @@
     </Filter>
     <Filter Include="shared">
       <UniqueIdentifier>{3266378f-a3e5-4bcd-a249-ecd26ad921a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external">
+      <UniqueIdentifier>{08f06e40-7543-4ca7-947b-d5e8cb7eeb1b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\fmt">
+      <UniqueIdentifier>{1ae14261-df3e-4d17-b4c8-3a30741330c7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="external\json">
+      <UniqueIdentifier>{7e3f8dfd-d927-4cf2-a763-c2b8425f2ec6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
