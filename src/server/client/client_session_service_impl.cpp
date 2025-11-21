@@ -471,15 +471,19 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
-	
+
 	if (!ent)
 		return false;
-	
+
+	// ensure client pointer is initialized before any access
+	ent->client = game.clients + (ent - g_entities - 1);
+
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
 
 	if (!userInfo)
 		userInfo = const_cast<char*>("");
+
 
 	ent->client->sess.is_a_bot = isBot;
 	ent->client->sess.consolePlayer = false;
@@ -498,9 +502,6 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
-	// they can connect
-	ent->client = game.clients + (ent - g_entities - 1);
-	
 	// set up userInfo early
 	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
