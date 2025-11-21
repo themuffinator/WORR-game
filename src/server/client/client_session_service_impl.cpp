@@ -407,6 +407,20 @@ static void ClientCheckPermissions(GameLocals& game, gentity_t* ent, const char*
 
 namespace worr::server::client {
 
+static ClientSessionServiceImpl::ClientBeginServerFrameFreezeHook clientBeginServerFrameFreezeHook = nullptr;
+
+/*
+=============
+ClientSessionServiceImpl::SetClientBeginServerFrameFreezeHookForTests
+
+Registers a test-only hook that can short-circuit freeze-tag processing inside
+ClientBeginServerFrame.
+=============
+*/
+void ClientSessionServiceImpl::SetClientBeginServerFrameFreezeHookForTests(ClientBeginServerFrameFreezeHook hook) {
+	clientBeginServerFrameFreezeHook = hook;
+}
+
 /*
 =============
 ClientSessionServiceImpl::ClientSessionServiceImpl
@@ -1342,32 +1356,39 @@ weapon think, and bot updates.
 */
 void ClientSessionServiceImpl::ClientBeginServerFrame(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent) {
-	gclient_t* client;
+	gclient_t* client = ent->client;
 
-	if (gi.ServerFrame() != ent->client->stepFrame)
+	if (gi.ServerFrame() != client->stepFrame)
 		ent->s.renderFX &= ~RF_STAIR_STEP;
 
-	if (level.intermission.time)
+	if (level.intermission.time) {
+		client->latchedButtons = BUTTON_NONE;
 		return;
-
-	client = ent->client;
+	}
 
 	if (FreezeTag_IsActive() && client->eliminated) {
 		if (client->freeze.thawTime && level.time >= client->freeze.thawTime) {
+			client->latchedButtons = BUTTON_NONE;
+			if (clientBeginServerFrameFreezeHook && clientBeginServerFrameFreezeHook(ent))
+				return;
 			worr::server::client::FreezeTag_ThawPlayer(nullptr, ent, false, true);
 			return;
 		}
 
-		if (worr::server::client::FreezeTag_UpdateThawHold(ent))
+		if (worr::server::client::FreezeTag_UpdateThawHold(ent)) {
+			client->latchedButtons = BUTTON_NONE;
+			if (clientBeginServerFrameFreezeHook && clientBeginServerFrameFreezeHook(ent))
+				return;
 			return;
+		}
 	}
 
 	if (client->awaitingRespawn) {
+		client->latchedButtons = BUTTON_NONE;
 		if ((level.time.milliseconds() % 500) == 0)
 			ClientSpawn(ent);
 		return;
 	}
-
 	if ((ent->svFlags & SVF_BOT) != 0) {
 		Bot_BeginFrame(ent);
 	}
