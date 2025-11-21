@@ -434,26 +434,29 @@ callers can transition away from the procedural entry point.
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
 gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-local_game_import_t& gi = gi_;
+	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
+	
+	if (!ent)
+		return false;
+	
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
-
+	
+	ent->client = game.clients + (ent - g_entities - 1);
+	
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
-			return false;
-
+		return false;
+	
 		ClientCheckPermissions(game, ent, safeSocialID);
 	}
-
+	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
-
-	// they can connect
-	ent->client = game.clients + (ent - g_entities - 1);
-
+	
 	// set up userInfo early
-ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
