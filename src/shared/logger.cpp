@@ -107,8 +107,8 @@ std::string FormatMessage(LogLevel level, std::string_view message)
 	std::string_view level_label = prefixes[std::min(prefix_index, prefixes.size() - 1)];
 
 	std::string formatted = std::format("[WORR][{}] {} {}", g_module_name, level_label, message);
-	if (!formatted.empty() && formatted.back() != '\\n')
-		formatted.push_back('\\n');
+	if (!formatted.empty() && formatted.back() != '\n')
+		formatted.push_back('\n');
 
 	return formatted;
 }
