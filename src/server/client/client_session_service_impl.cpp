@@ -433,12 +433,18 @@ callers can transition away from the procedural entry point.
 =============
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
-gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-local_game_import_t& gi = gi_;
+	gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
+	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
+
+	ent->client->sess.is_a_bot = isBot;
+	ent->client->sess.consolePlayer = false;
+	ent->client->sess.admin = false;
+	ent->client->sess.banned = false;
+	ent->client->sess.is_888 = false;
 
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
@@ -453,7 +459,7 @@ local_game_import_t& gi = gi_;
 	ent->client = game.clients + (ent - g_entities - 1);
 
 	// set up userInfo early
-ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
@@ -481,7 +487,6 @@ ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	if (isBot) {
 		ent->svFlags |= SVF_BOT;
-		ent->client->sess.is_a_bot = true;
 
 		if (bot_name_prefix->string[0] && *bot_name_prefix->string) {
 			std::array<char, MAX_NETNAME> oldName = {};
