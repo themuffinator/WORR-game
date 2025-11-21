@@ -922,6 +922,9 @@ void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 	if (st.arena) {
 		ent->arena = st.arena;
 	}
+	else if (!st.was_key_specified("arena")) {
+		ent->arena = 0;
+	}
 }
 
 /*
