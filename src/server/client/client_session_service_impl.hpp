@@ -35,17 +35,17 @@ class ClientSessionServiceImpl : public ClientSessionService {
 	void SetClientBeginServerFrameFreezeHookForTests(ClientBeginServerFrameFreezeHook hook);
 
 	private:
-	local_game_import_t& gi_;
+		local_game_import_t& gi_;
 		GameLocals& game_;
 		LevelLocals& level_;
 		ClientConfigStore& configStore_;
 		ClientStatsService& statsService_;
-		void OnDisconnect(gentity_t* ent);
+		void OnDisconnect(local_game_import_t& gi, gentity_t* ent);
 };
 
 
 void InitializeClientSessionService(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
-ClientConfigStore& configStore, ClientStatsService& statsService);
+		ClientConfigStore& configStore, ClientStatsService& statsService);
 void InitializeClientSessionService(local_game_import_t& gi, GameLocals& game, LevelLocals& level);
 ClientSessionServiceImpl& GetClientSessionService();
 

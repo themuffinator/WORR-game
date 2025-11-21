@@ -6,6 +6,8 @@
 #include "server/g_local.hpp"
 
 cvar_t* g_gametype;
+cvar_t* deathmatch;
+cvar_t* match_doForceRespawn;
 static bool freezeHookCalled = false;
 
 namespace worr::server::client {
@@ -38,7 +40,7 @@ public:
 main
 
 Verifies latched buttons are cleared before early exits during intermission,
-freeze-tag handling, and respawn waiting.
+freeze-tag handling, respawn waiting, menu navigation, and death states.
 =============
 */
 int main() {
@@ -46,22 +48,22 @@ int main() {
 	gi.ServerFrame = []() -> uint32_t { return 0U; };
 	gi.Com_Error = +[](const char*) {};
 	gi.Loc_Print = +[](gentity_t*, print_type_t, const char*, const char**, size_t) {};
-	
+
 	GameLocals game{};
 	LevelLocals level{};
 	ClientConfigStore configStore(gi, "");
 	worr::server::client::StubClientStatsService statsService{};
 	worr::server::client::ClientSessionServiceImpl service(gi, game, level, configStore, statsService);
-	
+
 	gentity_t ent{};
 	gclient_t client{};
 	ent.client = &client;
-	
+
 	client.latchedButtons = BUTTON_ATTACK;
 	level.intermission.time = 1_sec;
 	service.ClientBeginServerFrame(gi, game, level, &ent);
 	assert(client.latchedButtons == BUTTON_NONE);
-	
+
 	cvar_t freezeType{};
 	freezeType.integer = static_cast<int>(GameType::FreezeTag);
 	g_gametype = &freezeType;
@@ -72,19 +74,40 @@ int main() {
 	client.latchedButtons = BUTTON_USE;
 	freezeHookCalled = false;
 	service.SetClientBeginServerFrameFreezeHookForTests(+[](gentity_t*) -> bool {
-	freezeHookCalled = true;
-	return true;
+		freezeHookCalled = true;
+		return true;
 	});
 	service.ClientBeginServerFrame(gi, game, level, &ent);
 	assert(freezeHookCalled);
 	assert(client.latchedButtons == BUTTON_NONE);
 	service.SetClientBeginServerFrameFreezeHookForTests(nullptr);
-	
+
+	client = {};
+	ent.client = &client;
+
 	client.awaitingRespawn = true;
 	client.latchedButtons = BUTTON_ATTACK;
 	level.time = 1_ms;
 	service.ClientBeginServerFrame(gi, game, level, &ent);
 	assert(client.latchedButtons == BUTTON_NONE);
-	
+
+	cvar_t deathmatchVar{};
+	cvar_t forceRespawnVar{};
+	deathmatch = &deathmatchVar;
+	match_doForceRespawn = &forceRespawnVar;
+	client = {};
+	ent.client = &client;
+	client.latchedButtons = BUTTON_USE;
+	client.menu.current = std::make_shared<Menu>();
+	service.ClientBeginServerFrame(gi, game, level, &ent);
+	assert(client.latchedButtons == BUTTON_NONE);
+
+	client.deadFlag = true;
+	client.latchedButtons = BUTTON_USE;
+	client.respawnMaxTime = 10_sec;
+	deathmatch->integer = 1;
+	service.ClientBeginServerFrame(gi, game, level, &ent);
+	assert(client.latchedButtons == BUTTON_NONE);
+
 	return 0;
 }
