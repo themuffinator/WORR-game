@@ -1455,16 +1455,20 @@ gentity_t* ent) {
 		client->weapon.thunk = false;
 
 	if (ent->client->menu.current) {
-		if ((client->latchedButtons & BUTTON_ATTACK)) {
+		const button_t latchedButtons = client->latchedButtons;
+		client->latchedButtons = BUTTON_NONE;
+
+		if ((latchedButtons & BUTTON_ATTACK))
 			ActivateSelectedMenuItem(ent);
-			client->latchedButtons = BUTTON_NONE;
-		}
 		return;
 	}
 	else if (ent->deadFlag) {
+		const button_t latchedButtons = client->latchedButtons;
+		client->latchedButtons = BUTTON_NONE;
+
 		//wor: add minimum delay in dm
 		if (deathmatch->integer && client->respawnMinTime && level.time > client->respawnMinTime && level.time <= client->respawnMaxTime && !level.intermission.queued) {
-			if ((client->latchedButtons & BUTTON_ATTACK)) {
+			if ((latchedButtons & BUTTON_ATTACK)) {
 				ClientRespawn(ent);
 				client->latchedButtons = BUTTON_NONE;
 			}
@@ -1474,7 +1478,7 @@ gentity_t* ent) {
 			// check for coop handling
 			if (!G_LimitedLivesRespawn(ent)) {
 				// in deathmatch, only wait for attack button
-				if ((client->latchedButtons & (deathmatch->integer ? BUTTON_ATTACK : -1)) ||
+				if ((latchedButtons & (deathmatch->integer ? BUTTON_ATTACK : -1)) ||
 					(deathmatch->integer && match_doForceRespawn->integer)) {
 					ClientRespawn(ent);
 					client->latchedButtons = BUTTON_NONE;
