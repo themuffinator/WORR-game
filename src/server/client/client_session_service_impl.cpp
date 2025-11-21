@@ -878,26 +878,31 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 
 	P_SaveGhostSlot(ent);
 
-		gi_.unlinkEntity(ent);
-		ent->s.modelIndex = 0;
-		ent->solid = SOLID_NOT;
-		ent->inUse = false;
-		ent->sv.init = false;
-		ent->className = "disconnected";
-		cl->pers.connected = false;
-		cl->sess.inGame = false;
-		cl->sess.matchWins = 0;
-		cl->sess.matchLosses = 0;
-		cl->pers.limitedLivesPersist = false;
-		cl->pers.limitedLivesStash = 0;
-		const bool wasSpawned = cl->pers.spawned;
-		cl->pers.spawned = false;
-		ent->timeStamp = level_.time + 1_sec;
+	const bool wasSpawned = cl->pers.spawned;
+	MatchStatsContext statsContext{};
 
-		if (wasSpawned) {
-			const auto statsContext = BuildMatchStatsContext(level_);
-			statsService_.SaveStatsForDisconnect(statsContext, ent);
-		}
+	if (wasSpawned) {
+		statsContext = BuildMatchStatsContext(level_);
+	}
+
+	gi_.unlinkEntity(ent);
+	ent->s.modelIndex = 0;
+	ent->solid = SOLID_NOT;
+	ent->inUse = false;
+	ent->sv.init = false;
+	ent->className = "disconnected";
+	cl->pers.connected = false;
+	cl->sess.inGame = false;
+	cl->sess.matchWins = 0;
+	cl->sess.matchLosses = 0;
+	cl->pers.limitedLivesPersist = false;
+	cl->pers.limitedLivesStash = 0;
+	cl->pers.spawned = false;
+	ent->timeStamp = level_.time + 1_sec;
+
+	if (wasSpawned) {
+		statsService_.SaveStatsForDisconnect(statsContext, ent);
+	}
 
 		if (deathmatch->integer) {
 			CalculateRanks();
