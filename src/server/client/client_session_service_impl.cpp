@@ -452,9 +452,6 @@ local_game_import_t& gi = gi_;
 	// they can connect
 	ent->client = game.clients + (ent - g_entities - 1);
 
-	// set up userInfo early
-ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
-
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
 	if (ent->inUse == false) {
@@ -491,8 +488,11 @@ ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 			Q_strlcpy(newName.data(), bot_name_prefix->string, newName.size());
 			Q_strlcat(newName.data(), oldName.data(), newName.size());
 			gi.Info_SetValueForKey(userInfo, "name", newName.data());
-		}
 	}
+	}
+
+	// set up userInfo early
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
