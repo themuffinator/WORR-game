@@ -610,15 +610,17 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 
 	// count current clients and rank for scoreboard
 	CalculateRanks();
-
 	ent->client->pers.connected = true;
-
-	ent->client->sess.inGame = true;
+	ent->client->sess.inGame = false;
 
 	// [Paril-KEX] force a state update
 	ent->sv.init = false;
 
-	return true;}/*=============ClientSessionServiceImpl::ClientBegin
+	return true;
+}
+
+/*=============
+ClientSessionServiceImpl::ClientBegin
 
 Fully manages the transition from connection to active play, including
 initialization, spawn handling, and intermission placement.
@@ -628,6 +630,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	gclient_t* cl = game.clients + (ent - g_entities - 1);
 	cl->awaitingRespawn = false;
 	cl->respawn_timeout = 0_ms;
+	const bool initialJoin = !cl->sess.inGame;
 
 	// set inactivity timer
 	GameTime cv = GameTime::from_sec(g_inactivity->integer);
@@ -642,6 +645,9 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 
 	if (deathmatch->integer) {
 		worr::server::client::ClientBeginDeathmatch(ent);
+
+		if (initialJoin)
+			cl->sess.inGame = true;
 
 		if (game.marathon.active && level.matchState >= MatchState::In_Progress)
 			Marathon_RegisterClientBaseline(ent->client);
@@ -676,8 +682,11 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 		worr::server::client::ClientCompleteSpawn(ent);
 		cl->coopRespawn.spawnBegin = false;
 
-		if (!cl->sess.inGame)
-		BroadcastTeamChange(ent, Team::None, false, false);
+		if (initialJoin) {
+			BroadcastTeamChange(ent, Team::None, false, false);
+			if (developer->integer)
+				gi.Com_PrintFmt("{}: initial join broadcast for client {}\n", __FUNCTION__, ent->s.number);
+		}
 	}
 
 	// make sure we have a known default
@@ -706,8 +715,8 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	// *in* the level
 	worr::server::client::G_SetLevelEntry();
 
-	cl->sess.inGame = true;}
-
+	cl->sess.inGame = true;
+}
 /*
 =============
 ClientSessionServiceImpl::ClientUserinfoChanged
