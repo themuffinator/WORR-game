@@ -39,15 +39,17 @@ int main()
 
 	std::vector<std::string> accepted;
 	std::vector<std::string> rejectedReasons;
+	std::string reason;
 
 	for (const auto& entry : root["maps"]) {
 		const std::string bspName = entry["bsp"].asString();
 		std::string sanitized;
-		std::string reason;
 		if (G_SanitizeMapPoolFilename(bspName, sanitized, reason)) {
+			assert(reason.empty());
 			accepted.push_back(sanitized);
 		}
 		else {
+			assert(!reason.empty());
 			rejectedReasons.push_back(reason);
 		}
 	}
