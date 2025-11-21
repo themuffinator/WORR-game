@@ -395,15 +395,30 @@ lists.
 ================
 */
 static void ClientCheckPermissions(GameLocals& game, gentity_t* ent, const char* socialID) {
-	if (!socialID || !*socialID)
+	if (!socialID || !*socialID) {
+		ent->client->sess.banned = false;
+		ent->client->sess.admin = false;
 		return;
+	}
 
 	std::string id(socialID);
 
 	ent->client->sess.banned = game.bannedIDs.contains(id);
-	ent->client->sess.admin = game.adminIDs.contains(id);}
+	ent->client->sess.admin = game.adminIDs.contains(id);
+}
 
 } // namespace
+
+/*
+=============
+ClientCheckPermissionsForTesting
+
+Delegates to ClientCheckPermissions so tests can validate permission resets.
+=============
+*/
+void ClientCheckPermissionsForTesting(GameLocals& game, gentity_t* ent, const char* socialID) {
+	ClientCheckPermissions(game, ent, socialID);
+}
 
 namespace worr::server::client {
 
