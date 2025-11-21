@@ -437,6 +437,10 @@ bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, 
 	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
+	
+	if (!ent)
+		return false;
+	
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
 
@@ -446,18 +450,21 @@ bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, 
 	ent->client->sess.banned = false;
 	ent->client->sess.is_888 = false;
 
+	
+	ent->client = game.clients + (ent - g_entities - 1);
+	
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
-			return false;
-
+		return false;
+	
 		ClientCheckPermissions(game, ent, safeSocialID);
 	}
-
+	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
 	// they can connect
 	ent->client = game.clients + (ent - g_entities - 1);
-
+	
 	// set up userInfo early
 	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
@@ -496,8 +503,11 @@ bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, 
 			Q_strlcpy(newName.data(), bot_name_prefix->string, newName.size());
 			Q_strlcat(newName.data(), oldName.data(), newName.size());
 			gi.Info_SetValueForKey(userInfo, "name", newName.data());
-		}
 	}
+	}
+
+	// set up userInfo early
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
