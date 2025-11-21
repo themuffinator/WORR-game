@@ -481,13 +481,14 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	if (!userInfo)
 		userInfo = const_cast<char*>("");
 
+	// they can connect
+	ent->client = game.clients + (ent - g_entities - 1);
+
 	ent->client->sess.is_a_bot = isBot;
 	ent->client->sess.consolePlayer = false;
 	ent->client->sess.admin = false;
 	ent->client->sess.banned = false;
 	ent->client->sess.is_888 = false;
-  
-	//ent->client = game.clients + (ent - g_entities - 1);
 	
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
@@ -497,9 +498,6 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	}
 	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
-
-	// they can connect
-	ent->client = game.clients + (ent - g_entities - 1);
 	
 	// set up userInfo early
 	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
