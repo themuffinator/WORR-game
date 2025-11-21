@@ -77,5 +77,14 @@ int main()
 			assert(reason == expectedReason);
 	}
 
+	{
+		std::string sanitized = "persist";
+		std::string reason = "previous error";
+		const bool acceptedEntry = G_SanitizeMapPoolFilename("  q2dm3  ", sanitized, reason);
+		assert(acceptedEntry);
+		assert(sanitized == "q2dm3");
+		assert(reason.empty());
+	}
+
 	return 0;
 }
