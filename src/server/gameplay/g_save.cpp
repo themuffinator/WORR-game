@@ -1689,9 +1689,11 @@ static void read_save_type_json(const Json::Value& json, void* data, const save_
 			const char* name = json.asCString();
 			auto link = list_str_hash.find(name);
 
-			if (link == list_str_hash.end())
+			if (link == list_str_hash.end()) {
 				json_print_error(
 					field, G_Fmt("unknown pointer {} in list {}", name, type->tag).data(), false);
+				(*reinterpret_cast<save_void_t*>(data)) = nullptr;
+			}
 			else
 				(*reinterpret_cast<save_void_t*>(data)) = save_void_t(link->second);
 		}
