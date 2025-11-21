@@ -77,6 +77,7 @@ inline bool G_SanitizeMapPoolFilename(std::string_view rawName, std::string& san
 	}
 
 	sanitized = std::move(candidate);
+	rejectReason.clear();
 	return true;
 }
 /*
