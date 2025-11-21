@@ -5,6 +5,7 @@
 #include <cassert>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 /*
@@ -59,6 +60,22 @@ int main()
 	assert(rejectedReasons.size() == 2);
 	assert(rejectedReasons[0] == "contains path separators");
 	assert(rejectedReasons[1] == "contains traversal tokens");
+
+	const std::vector<std::pair<std::string, std::string>> invalidCases = {
+			{ "   	", "is empty" },
+			{ "bad/idea", "contains path separators" },
+			{ "..\\sneaky", "contains traversal tokens" },
+			{ "bad$name", "contains illegal characters" }
+	};
+
+	for (const auto& [raw, expectedReason] : invalidCases) {
+			std::string sanitized = "persist";
+			std::string reason;
+			const bool acceptedEntry = G_SanitizeMapPoolFilename(raw, sanitized, reason);
+			assert(!acceptedEntry);
+			assert(sanitized.empty());
+			assert(reason == expectedReason);
+	}
 
 	return 0;
 }
