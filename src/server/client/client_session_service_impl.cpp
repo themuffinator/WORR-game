@@ -395,15 +395,30 @@ lists.
 ================
 */
 static void ClientCheckPermissions(GameLocals& game, gentity_t* ent, const char* socialID) {
-	if (!socialID || !*socialID)
+	if (!socialID || !*socialID) {
+		ent->client->sess.banned = false;
+		ent->client->sess.admin = false;
 		return;
+	}
 
 	std::string id(socialID);
 
 	ent->client->sess.banned = game.bannedIDs.contains(id);
-	ent->client->sess.admin = game.adminIDs.contains(id);}
+	ent->client->sess.admin = game.adminIDs.contains(id);
+}
 
 } // namespace
+
+/*
+=============
+ClientCheckPermissionsForTesting
+
+Delegates to ClientCheckPermissions so tests can validate permission resets.
+=============
+*/
+void ClientCheckPermissionsForTesting(GameLocals& game, gentity_t* ent, const char* socialID) {
+	ClientCheckPermissions(game, ent, socialID);
+}
 
 namespace worr::server::client {
 
@@ -437,26 +452,38 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
+	
+	if (!ent)
+		return false;
+	
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
 
 	if (!userInfo)
 		userInfo = const_cast<char*>("");
 
+	ent->client->sess.is_a_bot = isBot;
+	ent->client->sess.consolePlayer = false;
+	ent->client->sess.admin = false;
+	ent->client->sess.banned = false;
+	ent->client->sess.is_888 = false;
+  
+	//ent->client = game.clients + (ent - g_entities - 1);
+	
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
-			return false;
-
+		return false;
+	
 		ClientCheckPermissions(game, ent, safeSocialID);
 	}
-
+	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
 	// they can connect
 	ent->client = game.clients + (ent - g_entities - 1);
-
+	
 	// set up userInfo early
-ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
@@ -484,7 +511,6 @@ ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	if (isBot) {
 		ent->svFlags |= SVF_BOT;
-		ent->client->sess.is_a_bot = true;
 
 		if (bot_name_prefix->string[0] && *bot_name_prefix->string) {
 			std::array<char, MAX_NETNAME> oldName = {};
@@ -494,8 +520,11 @@ ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 			Q_strlcpy(newName.data(), bot_name_prefix->string, newName.size());
 			Q_strlcat(newName.data(), oldName.data(), newName.size());
 			gi.Info_SetValueForKey(userInfo, "name", newName.data());
-		}
 	}
+	}
+
+	// set up userInfo early
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
