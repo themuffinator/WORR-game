@@ -434,11 +434,14 @@ callers can transition away from the procedural entry point.
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
 gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-local_game_import_t& gi = gi_;
+	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
+
+	if (!userInfo)
+		userInfo = const_cast<char*>("");
 
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
