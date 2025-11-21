@@ -249,30 +249,191 @@ void DefaultClientStatsService::PersistMatchResults(const MatchStatsContext& con
 		GetClientConfigStore().SaveStatsForGhost(*sortedGhosts[i], i == 0);
 	}
 }
-		/*
-		=============
-		DefaultClientStatsService::SaveStatsForDisconnect
+/*
+=============
+DefaultClientStatsService::SaveStatsForDisconnect
 
-		Persists the player's current match stats when they disconnect.
-		=============
-		*/
-		void DefaultClientStatsService::SaveStatsForDisconnect(const MatchStatsContext& context, gentity_t* ent) {
-		if (!ent || !ent->client)
+Persists the player's current match stats when they disconnect.
+=============
+*/
+void DefaultClientStatsService::SaveStatsForDisconnect(const MatchStatsContext& context, gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
+
+	std::optional<int> defaultSkillRating;
+	auto defaultSkillRatingForClient = [&]() {
+		if (!defaultSkillRating.has_value())
+			defaultSkillRating = GetClientConfigStore().DefaultSkillRating();
+
+		return *defaultSkillRating;
+	};
+
+	auto ensureSkillRating = [&](gentity_t* player) {
+		if (!player || !player->client)
 			return;
 
-		(void)context;
+		if (std::isnan(player->client->sess.skillRating))
+			player->client->sess.skillRating = static_cast<float>(defaultSkillRatingForClient());
+	};
 
+	for (auto* participant : context.participants)
+		ensureSkillRating(participant);
+
+	if (std::isnan(ent->client->sess.skillRating))
+		ent->client->sess.skillRating = static_cast<float>(defaultSkillRatingForClient());
+
+	if (!context.allowSkillAdjustments) {
 		GetClientConfigStore().SaveStats(ent->client, false);
+		return;
+	}
+
+	if (context.mode == GameType::Duel && context.participants.size() == 2) {
+		gentity_t* opponent = nullptr;
+
+		if (context.participants[0] == ent)
+			opponent = context.participants[1];
+		else if (context.participants[1] == ent)
+			opponent = context.participants[0];
+
+		if (opponent && opponent->client) {
+			float quitterRating = ent->client->sess.skillRating;
+			float opponentRating = opponent->client->sess.skillRating;
+			float expectedQuitter = EloExpected(quitterRating, opponentRating);
+			float expectedOpponent = 1.0f - expectedQuitter;
+			float quitterDelta = SKILL_K * (0.0f - expectedQuitter);
+			float opponentDelta = SKILL_K * (1.0f - expectedOpponent);
+
+			ent->client->sess.skillRating += quitterDelta;
+			opponent->client->sess.skillRating += opponentDelta;
+			ent->client->sess.skillRatingChange = static_cast<int>(quitterDelta);
+			opponent->client->sess.skillRatingChange = static_cast<int>(opponentDelta);
+
+			GetClientConfigStore().SaveStats(ent->client, false);
+			GetClientConfigStore().SaveStats(opponent->client, true);
+
+			for (auto* ghost : context.ghosts) {
+				if (!ghost || !*ghost->socialID)
+					continue;
+
+				if (Q_strcasecmp(ghost->socialID, ent->client->sess.socialID) == 0) {
+					ghost->skillRating += quitterDelta;
+					ghost->skillRatingChange = static_cast<int>(quitterDelta);
+					GetClientConfigStore().SaveStatsForGhost(*ghost, false);
+				}
+				else if (Q_strcasecmp(ghost->socialID, opponent->client->sess.socialID) == 0) {
+					ghost->skillRating += opponentDelta;
+					ghost->skillRatingChange = static_cast<int>(opponentDelta);
+					GetClientConfigStore().SaveStatsForGhost(*ghost, true);
+				}
+			}
 		}
 
-		/*
-		=============
-		BuildMatchStatsContext
+		return;
+	}
 
-		Collects the current match state into a structure that the client stats service
-		can consume.
-		=============
-		*/
+	if (context.isTeamMode && context.participants.size() >= 2) {
+		std::vector<gentity_t*> red;
+		std::vector<gentity_t*> blue;
+
+		for (auto* participant : context.participants) {
+			if (!participant || !participant->client)
+				continue;
+
+			if (participant->client->sess.team == Team::Red)
+				red.push_back(participant);
+			else if (participant->client->sess.team == Team::Blue)
+				blue.push_back(participant);
+		}
+
+		if (red.empty() || blue.empty()) {
+			GetClientConfigStore().SaveStats(ent->client, false);
+			return;
+		}
+
+		const auto avg = [](const std::vector<gentity_t*>& players) {
+			float sum = 0.0f;
+			for (auto* player : players)
+				sum += player->client->sess.skillRating;
+			return sum / static_cast<float>(players.size());
+		};
+
+		float redAverage = avg(red);
+		float blueAverage = avg(blue);
+		float expectedRed = EloExpected(redAverage, blueAverage);
+		float expectedBlue = 1.0f - expectedRed;
+		bool redIsAhead = context.redScore > context.blueScore;
+		bool isDraw = context.redScore == context.blueScore;
+		Team quitterTeam = ent->client->sess.team;
+		float score = isDraw ? 0.5f : ((quitterTeam == Team::Red) ? (redIsAhead ? 1.0f : 0.0f) : (redIsAhead ? 0.0f : 1.0f));
+		float expected = (quitterTeam == Team::Red) ? expectedRed : expectedBlue;
+		float quitterDelta = SKILL_K * (score - expected);
+
+		ent->client->sess.skillRating += quitterDelta;
+		ent->client->sess.skillRatingChange = static_cast<int>(quitterDelta);
+
+		GetClientConfigStore().SaveStats(ent->client, score > 0.5f);
+		return;
+	}
+
+	std::vector<gentity_t*> players = context.participants;
+
+	if (players.size() <= 1) {
+		GetClientConfigStore().SaveStats(ent->client, true);
+		return;
+	}
+
+	std::sort(players.begin(), players.end(), [](gentity_t* a, gentity_t* b) {
+		return a->client->resp.score > b->client->resp.score;
+	});
+
+	int quitterIndex = -1;
+	for (int i = 0; i < static_cast<int>(players.size()); ++i) {
+		if (players[i] == ent) {
+			quitterIndex = i;
+			break;
+		}
+	}
+
+	if (quitterIndex == -1) {
+		GetClientConfigStore().SaveStats(ent->client, false);
+		return;
+	}
+
+	const int n = static_cast<int>(players.size());
+	std::vector<float> R(n);
+	std::vector<float> S(n);
+	std::vector<float> E(n, 0.0f);
+
+	for (int i = 0; i < n; ++i) {
+		R[i] = players[i]->client->sess.skillRating;
+		S[i] = 1.0f - static_cast<float>(i) / static_cast<float>(n - 1);
+	}
+
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < n; ++j) {
+			if (i == j)
+				continue;
+			E[i] += EloExpected(R[i], R[j]);
+		}
+		E[i] /= static_cast<float>(n - 1);
+	}
+
+	float quitterDelta = SKILL_K * (S[quitterIndex] - E[quitterIndex]);
+
+	ent->client->sess.skillRating += quitterDelta;
+	ent->client->sess.skillRatingChange = static_cast<int>(quitterDelta);
+
+	GetClientConfigStore().SaveStats(ent->client, quitterIndex == 0);
+}
+
+/*
+=============
+BuildMatchStatsContext
+
+Collects the current match state into a structure that the client stats service
+can consume.
+=============
+*/
 MatchStatsContext BuildMatchStatsContext(LevelLocals& level) {
 	MatchStatsContext context{};
 	context.mode = Game::GetCurrentType();
@@ -300,6 +461,7 @@ MatchStatsContext BuildMatchStatsContext(LevelLocals& level) {
 
 	return context;
 }
+
 
 /*
 =============
