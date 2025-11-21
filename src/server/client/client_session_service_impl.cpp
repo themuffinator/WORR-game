@@ -192,6 +192,9 @@ static bool ClientInactivityTimer(gentity_t* ent) {
 
 	// Timeout reached, remove player
 	if (level.time > cl->sess.inactivityTime) {
+		cl->sess.inactiveStatus = true;
+		cl->sess.inactivityWarning = false;
+		cl->sess.inactivityTime = 0_sec;
 		gi.LocClient_Print(ent, PRINT_CENTER, "You have been removed from the match\ndue to inactivity.\n");
 		SetTeam(ent, Team::Spectator, true, true, false);
 		return false;
@@ -204,7 +207,8 @@ static bool ClientInactivityTimer(gentity_t* ent) {
 		gi.localSound(ent, CHAN_AUTO, gi.soundIndex("world/fish.wav"), 1, ATTN_NONE, 0);
 	}
 
-	return true;}
+	return true;
+}
 
 /*
 =================
