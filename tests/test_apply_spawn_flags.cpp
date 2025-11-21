@@ -51,22 +51,27 @@ int main() {
 
 	gentity_t ent{};
 	ent.flags = FL_FLASHLIGHT | FL_NO_BOTS;
+	ent.arena = 7;
 
 	st = {};
 	service.ApplySpawnFlags(&ent);
 	assert(ent.flags & FL_NO_BOTS);
 	assert(ent.flags & FL_FLASHLIGHT);
 	assert((ent.flags & FL_NO_HUMANS) == 0);
+	assert(ent.arena == 0);
 
 	st = {};
 	st.keys_specified.insert("noBots");
 	st.keys_specified.insert("noHumans");
 	st.noBots = true;
 	st.noHumans = true;
+	st.keys_specified.insert("arena");
+	st.arena = 3;
 	service.ApplySpawnFlags(&ent);
 	assert(ent.flags & FL_NO_BOTS);
 	assert(ent.flags & FL_NO_HUMANS);
 	assert(ent.flags & FL_FLASHLIGHT);
+	assert(ent.arena == 3);
 
 	st = {};
 	st.keys_specified.insert("noBots");
@@ -75,6 +80,7 @@ int main() {
 	assert(!(ent.flags & FL_NO_BOTS));
 	assert(ent.flags & FL_NO_HUMANS);
 	assert(ent.flags & FL_FLASHLIGHT);
+	assert(ent.arena == 0);
 
 	return 0;
 }
