@@ -102,18 +102,27 @@ int main()
 	SetGameDirectory("");
 	const MapPoolLocation baseLocation = G_ResolveMapPoolPath();
 	assert(baseLocation.path == basePool.string());
+	assert(baseLocation.exists);
 	assert(!baseLocation.loadedFromMod);
 
 	SetGameDirectory("custom_mod");
 	WritePoolFile(modPool);
 	const MapPoolLocation modLocation = G_ResolveMapPoolPath();
 	assert(modLocation.path == modPool.string());
+	assert(modLocation.exists);
 	assert(modLocation.loadedFromMod);
 
 	std::filesystem::remove(modPool);
 	const MapPoolLocation fallbackLocation = G_ResolveMapPoolPath();
 	assert(fallbackLocation.path == basePool.string());
+	assert(fallbackLocation.exists);
 	assert(!fallbackLocation.loadedFromMod);
+
+	std::filesystem::remove(basePool);
+	const MapPoolLocation missingLocation = G_ResolveMapPoolPath();
+	assert(!missingLocation.exists);
+	assert(missingLocation.path == basePool.string());
+	assert(!missingLocation.loadedFromMod);
 
 	std::filesystem::current_path(originalWorkingDir);
 	std::filesystem::remove_all(tempRoot);
