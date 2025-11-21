@@ -50,9 +50,10 @@ path separators, traversal tokens, or other illegal characters.
 */
 inline bool G_SanitizeMapPoolFilename(std::string_view rawName, std::string& sanitized, std::string& rejectReason)
 {
+	sanitized.clear();
+
 	const size_t start = rawName.find_first_not_of(" \t\r\n");
 	if (start == std::string_view::npos) {
-		sanitized.clear();
 		rejectReason = "is empty";
 		return false;
 	}
@@ -78,7 +79,6 @@ inline bool G_SanitizeMapPoolFilename(std::string_view rawName, std::string& san
 	sanitized = std::move(candidate);
 	return true;
 }
-
 /*
 =============
 G_SanitizeMapConfigFilename
