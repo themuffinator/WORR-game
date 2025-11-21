@@ -515,6 +515,11 @@ void LoadMapPool(gentity_t* ent) {
 		existingRuntime.emplace(map.filename, std::make_pair(map.lastPlayed, map.isCycleable));
 
 	MapPoolLocation location = G_ResolveMapPoolPath();
+	if (!location.exists) {
+		if (entClient)
+			gi.LocClient_Print(ent, PRINT_HIGH, "[MapPool] Map pool file not found: {}\n", location.path.c_str());
+		return;
+	}
 
 	std::ifstream file(location.path, std::ifstream::binary);
 	if (!file.is_open()) {

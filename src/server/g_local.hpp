@@ -2062,6 +2062,7 @@ extern cvar_t* g_maps_mymap_queue_limit;
 struct MapPoolLocation {
 	std::string path;
 	bool loadedFromMod = false;
+	bool exists = false;
 };
 
 extern cvar_t* g_maps_pool_file;
@@ -2075,6 +2076,7 @@ Selects the map pool JSON path, preferring the active gamedir when it
 contains the configured file and falling back to GAMEVERSION otherwise.
 =============
 */
+
 inline MapPoolLocation G_ResolveMapPoolPath()
 {
 	const char* defaultPoolFile = "mapdb.json";
@@ -2084,7 +2086,7 @@ inline MapPoolLocation G_ResolveMapPoolPath()
 	std::string rejectReason;
 	if (!G_SanitizeMapConfigFilename(poolFile, sanitizedPoolFile, rejectReason)) {
 		gi.Com_PrintFmt("{}: invalid g_maps_pool_file \"{}\" ({}) falling back to {}\n",
-			__FUNCTION__, poolFile, rejectReason.c_str(), defaultPoolFile);
+				__FUNCTION__, poolFile, rejectReason.c_str(), defaultPoolFile);
 		sanitizedPoolFile = defaultPoolFile;
 	}
 
@@ -2096,11 +2098,18 @@ inline MapPoolLocation G_ResolveMapPoolPath()
 			const std::string modPath = std::string(gameCvar->string) + "/" + sanitizedPoolFile;
 			std::ifstream file(modPath, std::ifstream::binary);
 			if (file.is_open())
-				return { modPath, true };
+				return { modPath, true, true };
 		}
 	}
 
-	return { basePath, false };
+	std::ifstream baseFile(basePath, std::ifstream::binary);
+	if (!baseFile.is_open()) {
+		gi.Com_PrintFmt("{}: map pool file '{}' not found.\n",
+				__FUNCTION__, basePath.c_str());
+		return { basePath, false, false };
+	}
+
+	return { basePath, false, true };
 }
 
 /*
