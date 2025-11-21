@@ -454,6 +454,9 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	}
 	
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
+
+	// they can connect
+	ent->client = game.clients + (ent - g_entities - 1);
 	
 	// set up userInfo early
 	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
@@ -494,8 +497,11 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 			Q_strlcpy(newName.data(), bot_name_prefix->string, newName.size());
 			Q_strlcat(newName.data(), oldName.data(), newName.size());
 			gi.Info_SetValueForKey(userInfo, "name", newName.data());
-		}
 	}
+	}
+
+	// set up userInfo early
+	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
