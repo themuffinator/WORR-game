@@ -448,7 +448,7 @@ callers can transition away from the procedural entry point.
 =============
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
-	gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
+gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
@@ -459,14 +459,16 @@ bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, 
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
 
+	if (!userInfo)
+		userInfo = const_cast<char*>("");
+
 	ent->client->sess.is_a_bot = isBot;
 	ent->client->sess.consolePlayer = false;
 	ent->client->sess.admin = false;
 	ent->client->sess.banned = false;
 	ent->client->sess.is_888 = false;
-
-	
-	ent->client = game.clients + (ent - g_entities - 1);
+  
+	//ent->client = game.clients + (ent - g_entities - 1);
 	
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
