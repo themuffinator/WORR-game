@@ -1819,7 +1819,6 @@ static void read_save_type_json(const Json::Value& json, void* data, const save_
 				list_ptr->next_reinforcement %= list_ptr->num_reinforcements;
 		}
 		return;
-}
 	default:
 		gi.Com_ErrorFmt("Can't read type ID {}", (int32_t)type->id);
 		break;
@@ -2313,7 +2312,7 @@ void read_save_struct_json(const Json::Value& json, void* data, const save_struc
 		const Json::Value& value = *it;
 		const auto field = std::find_if(structure->fields.begin(), structure->fields.end(), [key](const save_field_t& candidate) {
 			return candidate.name && strcmp(key, candidate.name) == 0;
-		});
+			});
 
 		if (field == structure->fields.end()) {
 			json_print_error(key, "unknown field", false);

@@ -397,7 +397,7 @@ namespace
 	{
 		gi.LocBroadcast_Print(PRINT_HIGH, "$g_map_ended_by_server");
 		Match_End();
-
+	}
 } // anonymous namespace
 
 /*
