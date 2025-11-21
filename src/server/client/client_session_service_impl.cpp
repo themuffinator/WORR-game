@@ -827,6 +827,7 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 		ent->sv.init = false;
 		ent->className = "disconnected";
 		cl->pers.connected = false;
+		cl->sess.inGame = false;
 		cl->sess.matchWins = 0;
 		cl->sess.matchLosses = 0;
 		cl->pers.limitedLivesPersist = false;
@@ -1422,11 +1423,13 @@ messaging, and broadcasting.
 =============
 */
 ReadyResult ClientSessionServiceImpl::OnReadyToggled(gentity_t* ent, bool state, bool toggle) {
-		if (!ReadyConditions(ent, false)) {
-			return ReadyResult::NoConditions;
-		}
-
-		client_persistant_t* pers = &ent->client->pers;
+	if (!ent || !ent->client) {
+		return ReadyResult::NoConditions;
+	}
+	if (!ReadyConditions(ent, false)) {
+		return ReadyResult::NoConditions;
+	}
+	client_persistant_t* pers = &ent->client->pers;
 
 		if (toggle) {
 			pers->readyStatus = !pers->readyStatus;
