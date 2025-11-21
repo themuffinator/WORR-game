@@ -433,7 +433,7 @@ callers can transition away from the procedural entry point.
 =============
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
-gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
+	gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	local_game_import_t& gi = gi_;
 	GameLocals& game = game_;
 	LevelLocals& level = level_;
@@ -443,6 +443,13 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
+
+	ent->client->sess.is_a_bot = isBot;
+	ent->client->sess.consolePlayer = false;
+	ent->client->sess.admin = false;
+	ent->client->sess.banned = false;
+	ent->client->sess.is_888 = false;
+
 	
 	ent->client = game.clients + (ent - g_entities - 1);
 	
@@ -487,7 +494,6 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 
 	if (isBot) {
 		ent->svFlags |= SVF_BOT;
-		ent->client->sess.is_a_bot = true;
 
 		if (bot_name_prefix->string[0] && *bot_name_prefix->string) {
 			std::array<char, MAX_NETNAME> oldName = {};
