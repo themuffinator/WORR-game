@@ -466,15 +466,12 @@ Implements the legacy ClientConnect logic behind the service seam so future
 callers can transition away from the procedural entry point.
 =============
 */
-bool ClientSessionServiceImpl::ClientConnect(local_game_import_t&, GameLocals&, LevelLocals&,
+bool ClientSessionServiceImpl::ClientConnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-	local_game_import_t& gi = gi_;
-	GameLocals& game = game_;
-	LevelLocals& level = level_;
-	
+
 	if (!ent)
 		return false;
-	
+
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
 	auto& configStore = configStore_;
 
@@ -486,23 +483,23 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	ent->client->sess.admin = false;
 	ent->client->sess.banned = false;
 	ent->client->sess.is_888 = false;
-  
+
 	//ent->client = game.clients + (ent - g_entities - 1);
-	
+
 	if (!isBot) {
 		if (CheckBanned(gi, level, ent, userInfo, safeSocialID))
 		return false;
-	
+
 		ClientCheckPermissions(game, ent, safeSocialID);
 	}
-	
+
 	ent->client->sess.team = deathmatch->integer ? Team::None : Team::Free;
 
 	// they can connect
 	ent->client = game.clients + (ent - g_entities - 1);
-	
+
 	// set up userInfo early
-	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
+	ClientUserinfoChanged(gi, game, level, ent, userInfo);
 
 	// if there is already a body waiting for us (a loadgame), just
 	// take it, otherwise spawn one from scratch
@@ -543,7 +540,7 @@ gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
 	}
 
 	// set up userInfo early
-	ClientUserinfoChanged(gi_, game_, level_, ent, userInfo);
+	ClientUserinfoChanged(gi, game, level, ent, userInfo);
 
 	Q_strlcpy(ent->client->sess.socialID, safeSocialID, sizeof(ent->client->sess.socialID));
 
@@ -822,61 +819,60 @@ the player's state is torn down and other systems are notified appropriately
 while reporting status via DisconnectResult.
 =============
 */
+
 DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level, gentity_t* ent) {
-		(void)gi;
-		(void)game;
-		(void)level;
+	if (!ent || !ent->client) {
+		return DisconnectResult::InvalidEntity;
+	}
 
-		if (!ent || !ent->client) {
-			return DisconnectResult::InvalidEntity;
+	(void)game;
+
+	gclient_t* cl = ent->client;
+	const int64_t now = GetCurrentRealTimeMillis();
+	cl->sess.playEndRealTime = now;
+	worr::server::client::P_AccumulateMatchPlayTime(cl, now);
+
+	OnDisconnect(gi, ent);
+
+	if (cl->trackerPainTime) {
+		RemoveAttackingPainDaemons(ent);
+	}
+
+	if (cl->ownedSphere) {
+		if (cl->ownedSphere->inUse) {
+			FreeEntity(cl->ownedSphere);
 		}
+		cl->ownedSphere = nullptr;
+	}
 
-		gclient_t* cl = ent->client;
-		const int64_t now = GetCurrentRealTimeMillis();
-		cl->sess.playEndRealTime = now;
-		worr::server::client::P_AccumulateMatchPlayTime(cl, now);
+	PlayerTrail_Destroy(ent);
 
-		OnDisconnect(ent);
+	ProBall::HandleCarrierDisconnect(ent);
+	Harvester_HandlePlayerDisconnect(ent);
 
-		if (cl->trackerPainTime) {
-			RemoveAttackingPainDaemons(ent);
+	HeadHunters::DropHeads(ent, nullptr);
+	HeadHunters::ResetPlayerState(cl);
+
+	if (!(ent->svFlags & SVF_NOCLIENT)) {
+		TossClientItems(ent);
+
+		gi.WriteByte(svc_muzzleflash);
+		gi.WriteEntity(ent);
+		gi.WriteByte(MZ_LOGOUT);
+		gi.multicast(ent->s.origin, MULTICAST_PVS, false);
+	}
+
+	if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot) {
+		if (cl->sess.netName[0]) {
+			gi.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
 		}
-
-		if (cl->ownedSphere) {
-			if (cl->ownedSphere->inUse) {
-				FreeEntity(cl->ownedSphere);
-			}
-			cl->ownedSphere = nullptr;
-		}
-
-		PlayerTrail_Destroy(ent);
-
-		ProBall::HandleCarrierDisconnect(ent);
-		Harvester_HandlePlayerDisconnect(ent);
-
-		HeadHunters::DropHeads(ent, nullptr);
-		HeadHunters::ResetPlayerState(cl);
-
-		if (!(ent->svFlags & SVF_NOCLIENT)) {
-			TossClientItems(ent);
-
-			gi_.WriteByte(svc_muzzleflash);
-			gi_.WriteEntity(ent);
-			gi_.WriteByte(MZ_LOGOUT);
-			gi_.multicast(ent->s.origin, MULTICAST_PVS, false);
-		}
-
-		if (cl->pers.connected && cl->sess.initialised && !cl->sess.is_a_bot) {
-			if (cl->sess.netName[0]) {
-				gi_.LocBroadcast_Print(PRINT_HIGH, "{} disconnected.", cl->sess.netName);
-			}
-		}
+	}
 
 	FreeClientFollowers(ent);
 
 	const int clientIndex = ent->s.number - 1;
-	MapSelector_ClearVote(level_, clientIndex);
-	MapSelector_SyncVotes(level_);
+	MapSelector_ClearVote(level, clientIndex);
+	MapSelector_SyncVotes(level);
 
 	G_RevertVote(cl);
 
@@ -886,10 +882,10 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 	MatchStatsContext statsContext{};
 
 	if (wasSpawned) {
-		statsContext = BuildMatchStatsContext(level_);
+		statsContext = BuildMatchStatsContext(level);
 	}
 
-	gi_.unlinkEntity(ent);
+	gi.unlinkEntity(ent);
 	ent->s.modelIndex = 0;
 	ent->solid = SOLID_NOT;
 	ent->inUse = false;
@@ -902,23 +898,24 @@ DisconnectResult ClientSessionServiceImpl::ClientDisconnect(local_game_import_t&
 	cl->pers.limitedLivesPersist = false;
 	cl->pers.limitedLivesStash = 0;
 	cl->pers.spawned = false;
-	ent->timeStamp = level_.time + 1_sec;
+	ent->timeStamp = level.time + 1_sec;
 
 	if (wasSpawned) {
 		statsService_.SaveStatsForDisconnect(statsContext, ent);
 	}
 
-		if (deathmatch->integer) {
-			CalculateRanks();
+	if (deathmatch->integer) {
+		CalculateRanks();
 
-			for (auto ec : active_clients()) {
-				if (ec->client->showScores) {
-					ec->client->menu.updateTime = level_.time;
-				}
+		for (auto ec : active_clients()) {
+			if (ec->client->showScores) {
+				ec->client->menu.updateTime = level.time;
 			}
 		}
+	}
 
-		return DisconnectResult::Success;}
+	return DisconnectResult::Success;
+}
 
 
 /*
@@ -929,7 +926,8 @@ Validates that the player's ready state can be cleared and, when appropriate,
 broadcasts the change before the rest of the disconnect teardown executes.
 =============
 */
-void ClientSessionServiceImpl::OnDisconnect(gentity_t* ent) {
+
+void ClientSessionServiceImpl::OnDisconnect(local_game_import_t& gi, gentity_t* ent) {
 	if (!ent || !ent->client) {
 		return;
 	}
@@ -944,10 +942,11 @@ void ClientSessionServiceImpl::OnDisconnect(gentity_t* ent) {
 	cl->pers.readyStatus = false;
 
 	if (canUpdateReady && cl->sess.netName[0]) {
-		gi_.LocBroadcast_Print(PRINT_CENTER,
-			"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is NOT ready.",
-			cl->sess.netName);
-	}}
+		gi.LocBroadcast_Print(PRINT_CENTER,
+				"%bind:+wheel2:Use Compass to toggle your ready status.%.MATCH IS IN WARMUP\n{} is NOT ready.",
+				cl->sess.netName);
+	}
+}
 
 /*
 =============
