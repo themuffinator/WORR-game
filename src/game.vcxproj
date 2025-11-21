@@ -118,6 +118,7 @@
   <ItemGroup>
     <ClInclude Include="shared\bg_local.hpp" />
     <ClInclude Include="shared\char_array_utils.hpp" />
+    <ClInclude Include="shared\logger.hpp" />
     <ClInclude Include="shared\version.hpp" />
     <ClInclude Include="shared\map_validation.hpp" />
     <ClInclude Include="shared\string_compat.hpp" />
@@ -237,6 +238,7 @@
     <ClCompile Include="server\bots\bot_exports.cpp" />
     <ClCompile Include="server\bots\bot_think.cpp" />
     <ClCompile Include="server\bots\bot_utils.cpp" />
+    <ClCompile Include="shared\logger.cpp" />
     <ClCompile Include="client\cg_main.cpp" />
     <ClCompile Include="client\cg_screen.cpp" />
     <ClCompile Include="server\client\client_stats_service.cpp" />
