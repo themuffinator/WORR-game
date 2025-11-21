@@ -53,17 +53,40 @@ service so legacy entry points can delegate to the shared implementation.
 =============
 */
 namespace {
-struct ClientSessionServiceDependencies {
-local_game_import_t* gi;
-		GameLocals* game;
-		LevelLocals* level;
-		ClientConfigStore* configStore;
-		ClientStatsService* statsService;
-	};
+	struct ClientSessionServiceDependencies {
+	local_game_import_t* gi;
+	GameLocals* game;
+	LevelLocals* level;
+	ClientConfigStore* configStore;
+	ClientStatsService* statsService;
+};
 
 	ClientSessionServiceDependencies g_clientSessionServiceDependencies{ &gi, &game, &level, nullptr, nullptr };
 	std::unique_ptr<ClientSessionServiceImpl> g_clientSessionServiceInstance;
-}
+
+/*
+=============
+	EnsureClientSessionServiceDependencies
+
+Initializes any missing dependency pointers with the default globals so the
+lazy construction path can't dereference null values when tests override only a
+subset of the references.
+=============
+*/
+	void EnsureClientSessionServiceDependencies()
+	{
+	if (!g_clientSessionServiceDependencies.gi)
+		g_clientSessionServiceDependencies.gi = &gi;
+	if (!g_clientSessionServiceDependencies.game)
+		g_clientSessionServiceDependencies.game = &game;
+	if (!g_clientSessionServiceDependencies.level)
+		g_clientSessionServiceDependencies.level = &level;
+	if (!g_clientSessionServiceDependencies.configStore)
+		g_clientSessionServiceDependencies.configStore = &GetClientConfigStore();
+	if (!g_clientSessionServiceDependencies.statsService)
+		g_clientSessionServiceDependencies.statsService = &GetClientStatsService();
+	}
+	}
 
 /*
 =============
@@ -107,17 +130,14 @@ service so legacy entry points can delegate to the shared implementation.
 */
 ClientSessionServiceImpl& GetClientSessionService() {
 	if (!g_clientSessionServiceInstance) {
-		if (!g_clientSessionServiceDependencies.configStore)
-			g_clientSessionServiceDependencies.configStore = &GetClientConfigStore();
-		if (!g_clientSessionServiceDependencies.statsService)
-			g_clientSessionServiceDependencies.statsService = &GetClientStatsService();
+	EnsureClientSessionServiceDependencies();
 		g_clientSessionServiceInstance = std::make_unique<ClientSessionServiceImpl>(
-				*g_clientSessionServiceDependencies.gi,
-				*g_clientSessionServiceDependencies.game,
-				*g_clientSessionServiceDependencies.level,
-				*g_clientSessionServiceDependencies.configStore,
-				*g_clientSessionServiceDependencies.statsService);
-	}
+		*g_clientSessionServiceDependencies.gi,
+		*g_clientSessionServiceDependencies.game,
+		*g_clientSessionServiceDependencies.level,
+		*g_clientSessionServiceDependencies.configStore,
+		*g_clientSessionServiceDependencies.statsService);
+}
 	return *g_clientSessionServiceInstance;
 }
 
