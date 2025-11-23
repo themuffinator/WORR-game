@@ -1770,52 +1770,6 @@ static void FS_Read(void* buffer, int len, FILE* f) {
 }
 
 
-/*
-==============
-VerifyEntityString
-==============
-*/
-static bool VerifyEntityString(const char* entities) {
-	const char* or_token;
-	gentity_t* or_ent = nullptr;
-	const char* or_buf = entities;
-	bool		or_error = false;
-
-	while (1) {
-		// parse the opening brace
-		or_token = COM_Parse(&or_buf);
-		if (!or_buf)
-			break;
-		if (or_token[0] != '{') {
-			gi.Com_PrintFmt("{}: Found \"{}\" when expecting {{ in override.\n", __FUNCTION__, or_token);
-			return false;
-		}
-
-		while (1) {
-			// parse key
-			or_token = COM_Parse(&or_buf);
-			if (or_token[0] == '}')
-				break;
-			if (!or_buf) {
-				gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
-				return false;
-			}
-			// parse value
-			or_token = COM_Parse(&or_buf);
-			if (!or_buf) {
-				gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
-				return false;
-			}
-			if (or_token[0] == '}') {
-				gi.Com_ErrorFmt("{}: Closing brace without data.\n", __FUNCTION__);
-				return false;
-			}
-		}
-
-	}
-	return true;
-}
-
 static void PrecacheForRandomRespawn() {
 	for (auto& item : itemList) {
 		if (!item.flags || (item.flags & (IF_NOT_GIVEABLE | IF_TECH | IF_NOT_RANDOM)) || !item.pickup || !item.worldModel)

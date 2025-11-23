@@ -593,6 +593,75 @@ public:
 
 extern local_game_import_t  gi;
 
+/*
+=============
+VerifyEntityString
+
+Validates that an entity string's braces are balanced and that parsing does
+not encounter unexpected end-of-file conditions.
+=============
+*/
+inline bool VerifyEntityString(const char* entities) {
+	const char* or_token;
+	const char* or_buf = entities;
+	int braceDepth = 0;
+	bool parsedEntity = false;
+
+	while (1) {
+		or_token = COM_Parse(&or_buf);
+		if (!or_buf) {
+			if (braceDepth > 0) {
+				gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
+				return false;
+			}
+			if (!parsedEntity) {
+				gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
+				return false;
+			}
+			break;
+		}
+
+		if (braceDepth == 0) {
+			if (or_token[0] == '\0')
+				break;
+			if (or_token[0] != '{') {
+				gi.Com_PrintFmt("{}: Found \"{}\" when expecting {{ in override.\n", __FUNCTION__, or_token);
+				return false;
+			}
+
+			braceDepth = 1;
+			parsedEntity = true;
+			continue;
+		}
+
+		if (or_token[0] == '}') {
+			if (--braceDepth < 0) {
+				gi.Com_ErrorFmt("{}: Closing brace without opening brace.\n", __FUNCTION__);
+				return false;
+			}
+			continue;
+		}
+
+		or_token = COM_Parse(&or_buf);
+		if (!or_buf) {
+			gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
+			return false;
+		}
+		if (or_token[0] == '}') {
+			gi.Com_ErrorFmt("{}: Closing brace without data.\n", __FUNCTION__);
+			return false;
+		}
+	}
+
+	if (braceDepth != 0) {
+		gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
+		return false;
+	}
+
+	return true;
+}
+
+
 // =================================================================
 
 // A template class to manage bitflags for any enum type.
