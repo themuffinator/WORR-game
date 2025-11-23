@@ -357,10 +357,10 @@ static gentity_t* G_UnsafeSpawnPosition(Vector3 spot, bool check_players) {
 	// If still embedded in non-client geometry, try the generic un-stuck helper
 	if (tr.startSolid && (!tr.ent || !tr.ent->client)) {
 		const StuckResult fix = G_FixStuckObject_Generic(
-			spot, PLAYER_MINS, PLAYER_MAXS,
-			[mask](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
-				return gi.trace(start, mins, maxs, end, nullptr, mask);
-			}
+				spot, PLAYER_MINS, PLAYER_MAXS,
+				[mask](const Vector3& start, const Vector3& mins, const Vector3& maxs, const Vector3& end) {
+					return gi.trace(start, mins, maxs, end, nullptr, mask);
+				}
 		);
 
 		if (fix == StuckResult::NoGoodPosition) {
@@ -378,12 +378,8 @@ static gentity_t* G_UnsafeSpawnPosition(Vector3 spot, bool check_players) {
 		return nullptr;
 	}
 
-	// If we hit a client and we are checking players, report them
-	if (check_players && tr.ent && tr.ent->client) {
-		return tr.ent;
-	}
-
-	return nullptr;
+	// Any hit is unsafe; prefer the blocking entity, or world if missing
+	return tr.ent ? tr.ent : world;
 }
 
 /*
