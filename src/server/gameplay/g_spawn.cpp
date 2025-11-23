@@ -69,6 +69,34 @@ static std::string LogEntityLabel(const gentity_t* ent)
 	return std::format("#{} ({})", ent_num, class_name);
 }
 
+/*
+=============
+EnsureWorldspawnPresent
+
+Verifies that the world entity is present and initialized, spawning a
+fallback worldspawn when parsing fails to create one.
+=============
+*/
+static bool EnsureWorldspawnPresent()
+{
+	if (world->inUse && world->className && !Q_strcasecmp(world->className, "worldspawn"))
+	return true;
+
+	worr::Log(worr::LogLevel::Warn, "worldspawn missing after entity parse; generating fallback");
+
+	st = {};
+	std::memset(world, 0, sizeof(*world));
+	world->s.number = 0;
+	world->className = "worldspawn";
+	world->gravityVector = { 0.0f, 0.0f, -1.0f };
+
+	ED_CallSpawn(world);
+	MapPostProcess(world);
+	world->s.renderFX |= RF_IR_VISIBLE;
+
+	return world->inUse && world->className && !Q_strcasecmp(world->className, "worldspawn");
+}
+
 } // namespace
 
 const spawn_temp_t& ED_GetSpawnTemp()
@@ -1251,7 +1279,7 @@ static void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
 		return;
 	}
 
-worr::Logf(worr::LogLevel::Trace, "{}: unknown spawn key \"{}\" for {}", __FUNCTION__, key, LogEntityLabel(ent));
+	worr::Logf(worr::LogLevel::Trace, "{}: unknown spawn key \"{}\" for {}", __FUNCTION__, key, LogEntityLabel(ent));
 }
 
 /*
@@ -1988,8 +2016,12 @@ ProBall::ClearState();
 	}
 
 	if (inhibited > 0 && g_verbose->integer) {
-		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-	}
+	gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+}
+
+	if (!EnsureWorldspawnPresent()) {
+	gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity parse.\n", __FUNCTION__);
+}
 
 	// Level post-processing and setup
 	PrecacheStartItems();
@@ -2294,8 +2326,12 @@ bool G_ResetWorldEntitiesFromSavedString() {
 	}
 
 	if (inhibited > 0 && g_verbose->integer) {
-		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-	}
+	gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+}
+
+	if (!EnsureWorldspawnPresent()) {
+	gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity reload.\n", __FUNCTION__);
+}
 
 	PrecacheStartItems();
 	PrecacheInventoryItems();
