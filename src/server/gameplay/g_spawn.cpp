@@ -1291,8 +1291,10 @@ ed should be a properly initialized empty entity.
 ====================
 */
 static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
-	bool  init;
-	char  keyname[256];
+	bool		init;
+	char		keyname[256];
+	char		value[MAX_TOKEN_CHARS];
+	bool		truncated = false;
 	const char* com_token;
 
 	init = false;
@@ -1304,16 +1306,20 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 	// go through all the dictionary pairs
 	while (1) {
 		// parse key
-		com_token = COM_Parse(&data);
+		truncated = false;
+		com_token = COM_Parse(&data, keyname, sizeof(keyname), &truncated);
+		if (truncated)
+			gi.Com_ErrorFmt("{}: key token exceeded {} chars.\n", __FUNCTION__, sizeof(keyname) - 1);
 		if (com_token[0] == '}')
 			break;
 		if (!data)
 			gi.Com_Error("ED_ParseEntity: EOF without closing brace");
 
-		Q_strlcpy(keyname, com_token, sizeof(keyname));
-
 		// parse value
-		com_token = COM_Parse(&data);
+		truncated = false;
+		com_token = COM_Parse(&data, value, sizeof(value), &truncated);
+		if (truncated)
+			gi.Com_ErrorFmt("{}: value for key \"{}\" exceeded {} chars.\n", __FUNCTION__, keyname, sizeof(value) - 1);
 		if (!data)
 			gi.Com_Error("ED_ParseEntity: EOF without closing brace");
 
@@ -1336,14 +1342,13 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 	}
 
 	if (!init)
-	memset(ent, 0, sizeof(*ent));
+		memset(ent, 0, sizeof(*ent));
 
 	const char* parsed_class = ent->className ? ent->className : "<unset>";
 	worr::Logf(worr::LogLevel::Trace, "{}: parsed entity #{} as {} ({} keys)", __FUNCTION__, ent_num, parsed_class, st.keys_specified.size());
 
 	return data;
 }
-
 /*
 ================
 G_FindTeams
@@ -1777,23 +1782,32 @@ VerifyEntityString
 */
 static bool VerifyEntityString(const char* entities) {
 	const char* or_token;
-	gentity_t* or_ent = nullptr;
 	const char* or_buf = entities;
-	bool		or_error = false;
+	char		token[MAX_TOKEN_CHARS];
+	bool		truncated = false;
 
 	while (1) {
 		// parse the opening brace
-		or_token = COM_Parse(&or_buf);
+		or_token = COM_Parse(&or_buf, token, sizeof(token), &truncated);
+		if (truncated) {
+			gi.Com_ErrorFmt("{}: token exceeded {} chars in override header.\n", __FUNCTION__, sizeof(token) - 1);
+			return false;
+		}
 		if (!or_buf)
 			break;
 		if (or_token[0] != '{') {
-			gi.Com_PrintFmt("{}: Found \"{}\" when expecting {{ in override.\n", __FUNCTION__, or_token);
+			gi.Com_PrintFmt("{}: Found \"{}\" when expecting { in override.\n", __FUNCTION__, or_token);
 			return false;
 		}
 
 		while (1) {
 			// parse key
-			or_token = COM_Parse(&or_buf);
+			truncated = false;
+			or_token = COM_Parse(&or_buf, token, sizeof(token), &truncated);
+			if (truncated) {
+				gi.Com_ErrorFmt("{}: override key exceeded {} chars.\n", __FUNCTION__, sizeof(token) - 1);
+				return false;
+			}
 			if (or_token[0] == '}')
 				break;
 			if (!or_buf) {
@@ -1801,7 +1815,12 @@ static bool VerifyEntityString(const char* entities) {
 				return false;
 			}
 			// parse value
-			or_token = COM_Parse(&or_buf);
+			truncated = false;
+			or_token = COM_Parse(&or_buf, token, sizeof(token), &truncated);
+			if (truncated) {
+				gi.Com_ErrorFmt("{}: override value for key \"{}\" exceeded {} chars.\n", __FUNCTION__, token, sizeof(token) - 1);
+				return false;
+			}
 			if (!or_buf) {
 				gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
 				return false;
