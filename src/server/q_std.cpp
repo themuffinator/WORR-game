@@ -41,13 +41,20 @@ COM_ParseEx
 Parse a token out of a string
 ==============
 */
-char* COM_ParseEx(const char** data_p, const char* seps, char* buffer, size_t buffer_size) {
-	static char com_token[MAX_TOKEN_CHARS];
+char* COM_ParseEx(const char** data_p, const char* seps, char* buffer, size_t buffer_size, bool* truncated) {
+	thread_local char	com_token[MAX_TOKEN_CHARS];
+	bool			local_truncated = false;
+
+	if (truncated)
+		*truncated = false;
 
 	if (!buffer) {
 		buffer = com_token;
 		buffer_size = MAX_TOKEN_CHARS;
 	}
+
+	if (!buffer_size)
+		gi.Com_ErrorFmt("{}: called with zero buffer size.\n", __FUNCTION__);
 
 	int			c;
 	int			len;
@@ -85,38 +92,53 @@ skipwhite:
 		while (1) {
 			c = *data++;
 			if (c == '\"' || !c) {
-				const size_t endPos = std::min<size_t>(len, buffer_size - 1); // [KEX] avoid overflow
-				buffer[endPos] = '\0';
+				const size_t end_pos = std::min<size_t>(static_cast<size_t>(len), buffer_size - 1);
+				buffer[end_pos] = '\0';
+
+				if (local_truncated) {
+					gi.Com_PrintFmt("Token exceeded {} chars, truncated.\n", buffer_size - 1);
+					if (truncated)
+						*truncated = true;
+				}
+
 				*data_p = data;
 				return buffer;
 			}
-			if (len < buffer_size) {
+			if (static_cast<size_t>(len + 1) < buffer_size) {
 				buffer[len] = c;
-				len++;
 			}
+			else {
+				local_truncated = true;
+			}
+			len++;
 		}
 	}
 
 	// parse a regular word
 	do {
-		if (len < buffer_size) {
+		if (static_cast<size_t>(len + 1) < buffer_size) {
 			buffer[len] = c;
-			len++;
 		}
+		else {
+			local_truncated = true;
+		}
+		len++;
 		data++;
 		c = *data;
 	} while (!COM_IsSeparator(c, seps));
 
-	if (len == buffer_size) {
-		gi.Com_PrintFmt("Token exceeded {} chars, discarded.\n", buffer_size);
-		len = 0;
+	const size_t end_pos = std::min<size_t>(static_cast<size_t>(len), buffer_size - 1);
+	buffer[end_pos] = '\0';
+
+	if (local_truncated) {
+		gi.Com_PrintFmt("Token exceeded {} chars, truncated.\n", buffer_size - 1);
+		if (truncated)
+			*truncated = true;
 	}
-	buffer[len] = '\0';
 
 	*data_p = data;
 	return buffer;
 }
-
 /*
 ============================================================================
 

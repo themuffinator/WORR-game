@@ -187,11 +187,11 @@ LerpAngle
 
 //=============================================
 
-char* COM_ParseEx(const char** data_p, const char* seps, char* buffer = nullptr, size_t buffer_size = 0);
+char* COM_ParseEx(const char** data_p, const char* seps, char* buffer = nullptr, size_t buffer_size = 0, bool* truncated = nullptr);
 
 // data is an in/out parm, returns a parsed out token
-inline char* COM_Parse(const char** data_p, char* buffer = nullptr, size_t buffer_size = 0) {
-	return COM_ParseEx(data_p, "\r\n\t ", buffer, buffer_size);
+inline char* COM_Parse(const char** data_p, char* buffer = nullptr, size_t buffer_size = 0, bool* truncated = nullptr) {
+	return COM_ParseEx(data_p, "\r\n\t ", buffer, buffer_size, truncated);
 }
 
 //=============================================
