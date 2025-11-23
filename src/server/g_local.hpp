@@ -2512,8 +2512,8 @@ struct ShadowLightInfo {
 	shadow_light_data_t	shadowlight;
 };
 
-constexpr int NUM_SPAWN_SPOTS = MAX_ENTITIES;
-constexpr int SPAWN_SPOT_INTERMISSION = NUM_SPAWN_SPOTS - 1;
+constexpr size_t NUM_SPAWN_SPOTS = 1024; // keep your existing cap or adjust
+constexpr size_t SPAWN_SPOT_INTERMISSION = NUM_SPAWN_SPOTS - 1;
 
 // ----------------------------------------------------------------------------
 // New spawn containers
@@ -2599,11 +2599,10 @@ struct LevelLocals {
 	// Modern spawn registry
 	SpawnLists spawn;
 
-	// ------------------------------------------------------------------------
-	// Legacy compatibility (optional, keep while migrating old call sites)
-	// ------------------------------------------------------------------------
-	static constexpr size_t NUM_SPAWN_SPOTS = 1024; // keep your existing cap or adjust
-	std::array<gentity_t*, NUM_SPAWN_SPOTS> spawnSpots{}; // flat view of all non-intermission spawns
+// ------------------------------------------------------------------------
+// Legacy compatibility (optional, keep while migrating old call sites)
+// ------------------------------------------------------------------------
+std::array<gentity_t*, NUM_SPAWN_SPOTS> spawnSpots{}; // flat view of all non-intermission spawns
 
 	int32_t		picHealth = 0;
 	int32_t		picPing = 0;
