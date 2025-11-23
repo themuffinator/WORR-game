@@ -1,6 +1,7 @@
 #pragma once
 
 #include <format>
+#include <functional>
 #include <string_view>
 
 namespace worr {
@@ -19,7 +20,7 @@ namespace worr {
 	Initialize the logger with module metadata and output sinks.
 	=============
 	*/
-	void InitLogger(std::string_view module_name, void (*print_sink)(const char*), void (*error_sink)(const char*));
+void InitLogger(std::string_view module_name, std::function<void(std::string_view)> print_sink, std::function<void(std::string_view)> error_sink);
 
 	/*
 	=============

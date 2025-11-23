@@ -37,7 +37,14 @@ Configure shared logging for the client game module.
 static void InitClientLogging()
 {
 	base_cgi = cgi;
-	worr::InitLogger("client", base_cgi.Com_Print, base_cgi.Com_Error);
+	const auto print_sink = [print_fn = base_cgi.Com_Print](std::string_view message) {
+		print_fn(message.data());
+	};
+	const auto error_sink = [error_fn = base_cgi.Com_Error](std::string_view message) {
+		error_fn(message.data());
+	};
+
+	worr::InitLogger("client", print_sink, error_sink);
 	cgi.Com_Print = worr::LoggerPrint;
 }
 

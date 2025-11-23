@@ -85,7 +85,14 @@ Configure shared logging for the server game module.
 static void InitServerLogging()
 {
 	base_import = gi;
-	worr::InitLogger("server", base_import.Com_Print, base_import.Com_Error);
+	const auto print_sink = [print_fn = base_import.Com_Print](std::string_view message) {
+		print_fn(message.data());
+	};
+	const auto error_sink = [error_fn = base_import.Com_Error](std::string_view message) {
+		error_fn(message.data());
+	};
+
+	worr::InitLogger("server", print_sink, error_sink);
 	gi.Com_Print = worr::LoggerPrint;
 }
 

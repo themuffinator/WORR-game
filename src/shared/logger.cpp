@@ -5,6 +5,7 @@
 #include <cctype>
 #include <cstdlib>
 #include <format>
+#include <functional>
 #include <string>
 #include <string_view>
 
@@ -13,8 +14,8 @@ namespace {
 
 std::string g_module_name;
 LogLevel g_log_level = LogLevel::Info;
-void (*g_print_sink)(const char*) = nullptr;
-void (*g_error_sink)(const char*) = nullptr;
+std::function<void(std::string_view)> g_print_sink;
+std::function<void(std::string_view)> g_error_sink;
 
 /*
 =============
@@ -87,10 +88,10 @@ EnsureSink
 Call the provided sink if it exists.
 =============
 */
-void EnsureSink(void (*sink)(const char*), const std::string& message)
+void EnsureSink(const std::function<void(std::string_view)>& sink, std::string_view message)
 {
 	if (sink)
-		sink(message.c_str());
+		sink(message);
 }
 
 /*
@@ -122,11 +123,11 @@ InitLogger
 Initialize the logger with module metadata and output sinks.
 =============
 */
-void InitLogger(std::string_view module_name, void (*print_sink)(const char*), void (*error_sink)(const char*))
+void InitLogger(std::string_view module_name, std::function<void(std::string_view)> print_sink, std::function<void(std::string_view)> error_sink)
 {
 	g_module_name = module_name;
-	g_print_sink = print_sink;
-	g_error_sink = error_sink;
+	g_print_sink = std::move(print_sink);
+	g_error_sink = std::move(error_sink);
 	g_log_level = ReadLogLevelFromEnv();
 }
 
