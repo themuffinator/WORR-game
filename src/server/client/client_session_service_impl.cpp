@@ -468,8 +468,18 @@ callers can transition away from the procedural entry point.
 */
 bool ClientSessionServiceImpl::ClientConnect(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, char* userInfo, const char* socialID, bool isBot) {
-
 	if (!ent)
+		return false;
+
+	if (!g_entities || !game.clients || globals.numEntities <= 0)
+		return false;
+
+	const ptrdiff_t entIndex = ent - g_entities;
+
+	if (entIndex < 1 || entIndex >= globals.numEntities)
+		return false;
+
+	if (entIndex - 1 >= game.maxClients)
 		return false;
 
 	const char* safeSocialID = (socialID && *socialID) ? socialID : "";
