@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
+#include <ranges>
 
 namespace std {
 	using ::sinf;
@@ -130,33 +131,44 @@ void Menu::Render(gentity_t* ent) const {
 	const int maxOffset = std::max(0, totalScrollable - MAX_VISIBLE_LINES);
 	const int offset = std::clamp(scrollOffset, 0, maxOffset);
 
-	int skipScrollable = offset;
+	const auto scrollableView = entries | std::views::filter([](const MenuEntry& entry) {
+		return entry.scrollable;
+	});
+
+	const bool hasAbove = (std::ranges::distance(scrollableView | std::views::take(offset)) > 0);
+	const bool hasBelow = (std::ranges::distance(scrollableView | std::views::drop(offset + MAX_VISIBLE_LINES)) > 0);
+
+	const auto afterOffsetView = entries | std::views::drop_while([skipScrollable = offset](const MenuEntry& entry) mutable {
+		if (!entry.scrollable)
+			return skipScrollable > 0;
+
+		if (skipScrollable > 0) {
+			--skipScrollable;
+			return true;
+		}
+
+		return false;
+	});
+
 	int visibleScrollable = 0;
-	bool hasBelow = false;
-	std::vector<const MenuEntry*> visibleEntries;
+	const auto visibleEntriesView = afterOffsetView
+		| std::views::filter([&](const MenuEntry& entry) mutable {
+			if (entry.scrollable) {
+				if (visibleScrollable < MAX_VISIBLE_LINES) {
+					++visibleScrollable;
+					return true;
+				}
 
-	for (const auto& entry : entries) {
-		if (entry.scrollable) {
-			if (skipScrollable > 0) {
-				--skipScrollable;
-				continue;
+				return false;
 			}
 
-			if (visibleScrollable < MAX_VISIBLE_LINES) {
-				visibleEntries.push_back(&entry);
-				++visibleScrollable;
-			}
-			else {
-				hasBelow = true;
-			}
-		}
-		else if (skipScrollable == 0) {
-			if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
-				visibleEntries.push_back(&entry);
-		}
-	}
+			return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
+		})
+		| std::views::transform([](const MenuEntry& entry) {
+			return &entry;
+		});
 
-	const bool hasAbove = (offset > 0);
+	std::vector<const MenuEntry*> visibleEntries(std::ranges::begin(visibleEntriesView), std::ranges::end(visibleEntriesView));
 	int y = 32;
 
 	if (hasAbove) {
