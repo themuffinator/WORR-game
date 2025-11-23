@@ -5,7 +5,9 @@
 #include "../monsters/m_player.hpp"
 #include "bot_utils.hpp"
 
-constexpr int Team_Coop_Monster = 0;
+#include <algorithm>
+
+	constexpr int Team_Coop_Monster = 0;
 
 /*
 ================
@@ -32,13 +34,16 @@ static void Player_UpdateState(gentity_t *player) {
 		player->sv.entFlags |= SVFL_IS_CROUCHING;
 	}
 
-        if (player->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
-                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-        } else if (player->client->PowerupTimer(PowerupTimer::Haste) > level.time) {
-                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-        } else if (player->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
-                player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
-        }
+	const bool hasDamageBoost = std::any_of(
+		DamageBoostTimers.begin(),
+		DamageBoostTimers.end(),
+		[player](const PowerupTimer timer) {
+			return player->client->PowerupTimer(timer) > level.time;
+		});
+
+	if (hasDamageBoost) {
+		player->sv.entFlags |= SVFL_HAS_DMG_BOOST;
+	}
 
         if (player->client->PowerupTimer(PowerupTimer::BattleSuit) > level.time) {
                 player->sv.entFlags |= SVFL_HAS_PROTECTION;
@@ -417,7 +422,7 @@ void SP_info_nav_lock(gentity_t *self) {
 FindLocalPlayer
 ================
 */
-const gentity_t *FindLocalPlayer() {
+	const gentity_t *FindLocalPlayer() {
 	const gentity_t *localPlayer = nullptr;
 
 	const gentity_t *ent = &g_entities[0];
@@ -442,7 +447,7 @@ const gentity_t *FindLocalPlayer() {
 FindFirstBot
 ================
 */
-const gentity_t *FindFirstBot() {
+	const gentity_t *FindFirstBot() {
 	const gentity_t *firstBot = nullptr;
 
 	const gentity_t *ent = &g_entities[0];
@@ -471,7 +476,7 @@ const gentity_t *FindFirstBot() {
 FindFirstMonster
 ================
 */
-const gentity_t *FindFirstMonster() {
+	const gentity_t *FindFirstMonster() {
 	const gentity_t *firstMonster = nullptr;
 
 	const gentity_t *ent = &g_entities[0];
@@ -498,7 +503,7 @@ FindFirstMonster
 "Actors" are either players or monsters - i.e. something alive and thinking.
 ================
 */
-const gentity_t *FindActorUnderCrosshair(const gentity_t *player) {
+	const gentity_t *FindActorUnderCrosshair(const gentity_t *player) {
 	if (player == nullptr || !player->inUse) {
 		return nullptr;
 	}
