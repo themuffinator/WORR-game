@@ -32,6 +32,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <span>
 
 using LevelMatchTransition = MatchStateTransition<LevelLocals>;
 
@@ -76,47 +77,60 @@ match countdown begins from a consistent world layout.
 =============
 */
 static void CalmTriggerableMovers() {
-	for (size_t i = static_cast<size_t>(game.maxClients) + 1; i < globals.numEntities; ++i) {
-		gentity_t* ent = &g_entities[i];
-		if (!ent->inUse)
+	const size_t startIndex = static_cast<size_t>(game.maxClients) + 1;
+	if (startIndex >= globals.numEntities)
+		return;
+
+	const auto entities = std::span{g_entities + startIndex, globals.numEntities - startIndex};
+	const auto isTriggerableMover = [](const gentity_t& ent) {
+		return (ent.moveType == MoveType::Push || ent.moveType == MoveType::Stop) && ent.className;
+	};
+	const auto isDoor = [](const gentity_t& ent) {
+		return Q_strcasecmp(ent.className, "func_door") == 0 ||
+			Q_strcasecmp(ent.className, "func_door_rotating") == 0 ||
+			Q_strcasecmp(ent.className, "func_door_secret") == 0 ||
+			Q_strcasecmp(ent.className, "func_water") == 0;
+	};
+	const auto isPlat = [](const gentity_t& ent) {
+		return Q_strcasecmp(ent.className, "func_plat") == 0;
+	};
+	const auto isPlat2 = [](const gentity_t& ent) {
+		return Q_strcasecmp(ent.className, "func_plat2") == 0;
+	};
+
+	for (gentity_t& ent : entities) {
+		if (!ent.inUse)
 			continue;
-		if ((ent->moveType != MoveType::Push && ent->moveType != MoveType::Stop) || !ent->className)
+		if (!isTriggerableMover(ent))
 			continue;
 
-		const bool isDoor = Q_strcasecmp(ent->className, "func_door") == 0 ||
-			Q_strcasecmp(ent->className, "func_door_rotating") == 0 ||
-			Q_strcasecmp(ent->className, "func_door_secret") == 0 ||
-			Q_strcasecmp(ent->className, "func_water") == 0;
-		const bool isPlat = Q_strcasecmp(ent->className, "func_plat") == 0;
-		const bool isPlat2 = Q_strcasecmp(ent->className, "func_plat2") == 0;
-
-		if (isDoor) {
-			if (ent->moveInfo.state != MoveState::Bottom)
-				door_go_down(ent);
+		if (isDoor(ent)) {
+			if (ent.moveInfo.state != MoveState::Bottom)
+				door_go_down(&ent);
 			continue;
 		}
 
-		if (isPlat) {
-			if (ent->moveInfo.state != MoveState::Bottom)
-				plat_go_down(ent);
+		if (isPlat(ent)) {
+			if (ent.moveInfo.state != MoveState::Bottom)
+				plat_go_down(&ent);
 			continue;
 		}
 
-		if (isPlat2) {
-			if (ent->moveInfo.state != MoveState::Bottom)
-				plat2_go_down(ent);
+		if (isPlat2(ent)) {
+			if (ent.moveInfo.state != MoveState::Bottom)
+				plat2_go_down(&ent);
 			continue;
 		}
 
-		ent->velocity = {};
-		ent->aVelocity = {};
-		ent->s.sound = 0;
-		ent->moveInfo.currentSpeed = 0.0f;
-		ent->moveInfo.remainingDistance = 0.0f;
-		ent->moveInfo.state = MoveState::Bottom;
-		ent->think = nullptr;
-		ent->nextThink = 0_ms;
-		gi.linkEntity(ent);
+		ent.velocity = {};
+		ent.aVelocity = {};
+		ent.s.sound = 0;
+		ent.moveInfo.currentSpeed = 0.0f;
+		ent.moveInfo.remainingDistance = 0.0f;
+		ent.moveInfo.state = MoveState::Bottom;
+		ent.think = nullptr;
+		ent.nextThink = 0_ms;
+		gi.linkEntity(&ent);
 	}
 }
 
@@ -142,34 +156,40 @@ countdown phase.
 =============
 */
 static void CalmMonsters() {
-	for (size_t i = static_cast<size_t>(game.maxClients) + 1; i < globals.numEntities; ++i) {
-		gentity_t* ent = &g_entities[i];
-		if (!ent->inUse)
-			continue;
-		if (!(ent->svFlags & SVF_MONSTER))
+	const size_t startIndex = static_cast<size_t>(game.maxClients) + 1;
+	if (startIndex >= globals.numEntities)
+		return;
+
+	const auto entities = std::span{g_entities + startIndex, globals.numEntities - startIndex};
+	const auto isMonster = [](const gentity_t& ent) {
+		return ent.inUse && (ent.svFlags & SVF_MONSTER);
+	};
+
+	for (gentity_t& ent : entities) {
+		if (!isMonster(ent))
 			continue;
 
-		ent->enemy = nullptr;
-		ent->oldEnemy = nullptr;
-		ent->goalEntity = nullptr;
-		ent->moveTarget = nullptr;
-		ent->monsterInfo.attackFinished = level.time;
-		ent->monsterInfo.pauseTime = 0_ms;
-		ent->monsterInfo.trailTime = 0_ms;
-		ent->monsterInfo.blind_fire_delay = 0_ms;
-		ent->monsterInfo.savedGoal = ent->s.origin;
-		ent->monsterInfo.lastSighting = ent->s.origin;
-		ent->monsterInfo.aiFlags &= ~(AI_SOUND_TARGET | AI_TARGET_ANGER | AI_COMBAT_POINT |
+		ent.enemy = nullptr;
+		ent.oldEnemy = nullptr;
+		ent.goalEntity = nullptr;
+		ent.moveTarget = nullptr;
+		ent.monsterInfo.attackFinished = level.time;
+		ent.monsterInfo.pauseTime = 0_ms;
+		ent.monsterInfo.trailTime = 0_ms;
+		ent.monsterInfo.blind_fire_delay = 0_ms;
+		ent.monsterInfo.savedGoal = ent.s.origin;
+		ent.monsterInfo.lastSighting = ent.s.origin;
+		ent.monsterInfo.aiFlags &= ~(AI_SOUND_TARGET | AI_TARGET_ANGER | AI_COMBAT_POINT |
 			AI_PURSUE_NEXT | AI_PURSUE_TEMP | AI_PURSUIT_LAST_SEEN |
 			AI_TEMP_STAND_GROUND | AI_STAND_GROUND | AI_CHARGING);
-		ent->velocity = {};
-		ent->aVelocity = {};
-		ent->s.sound = 0;
+		ent.velocity = {};
+		ent.aVelocity = {};
+		ent.s.sound = 0;
 
-		if (ent->monsterInfo.stand)
-			ent->monsterInfo.stand(ent);
-		else if (ent->monsterInfo.idle)
-			ent->monsterInfo.idle(ent);
+		if (ent.monsterInfo.stand)
+			ent.monsterInfo.stand(&ent);
+		else if (ent.monsterInfo.idle)
+			ent.monsterInfo.idle(&ent);
 	}
 }
 
