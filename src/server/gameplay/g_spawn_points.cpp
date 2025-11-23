@@ -116,6 +116,15 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		return true;
 	}
 
+	// Single-player start points are registered for deathmatch fallbacks
+	// Coop-specific starts are intentionally excluded so deathmatch never
+	// selects them.
+	if (IEquals(suffix, "start")) {
+		ent->fteam = Team::Free;
+		level.spawn.ffa.push_back(ent);
+		return true;
+	}
+
 	// Deathmatch (FFA)
 	if (IEquals(suffix, "deathmatch")) {
 		ent->fteam = Team::Free;
