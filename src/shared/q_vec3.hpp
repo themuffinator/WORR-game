@@ -17,35 +17,101 @@
 //   tasks, such as `VectorToAngles`, `AngleVectors`, and `G_ProjectSource`.
 
 #pragma once
+#include <array>
 #include <cmath>
 #include <stdexcept>
 #include <type_traits>
+#include <utility>
 
 using nullptr_t = std::nullptr_t;
 
 struct Vector3 {
-	float x = 0, y = 0, z = 0;
+	std::array<float, 3> components{ 0.0f, 0.0f, 0.0f };
+	float& x;
+	float& y;
+	float& z;
 
+	/*
+	=============
+	Vector3
+
+	Constructs a zero vector with component references bound to the backing array.
+	=============
+	*/
+	constexpr Vector3() : components{ 0.0f, 0.0f, 0.0f }, x(components[0]), y(components[1]), z(components[2]) {}
+
+	/*
+	=============
+	Vector3
+
+	Constructs a vector with explicit components.
+	=============
+	*/
+	constexpr Vector3(float xIn, float yIn, float zIn) : components{ xIn, yIn, zIn }, x(components[0]), y(components[1]), z(components[2]) {}
+
+	/*
+	=============
+	Vector3
+
+	Copy constructs a vector while rebinding component references to local storage.
+	=============
+	*/
+	constexpr Vector3(const Vector3& other) : components{ other.components }, x(components[0]), y(components[1]), z(components[2]) {}
+
+	/*
+	=============
+	Vector3
+
+	Move constructs a vector while rebinding component references to local storage.
+	=============
+	*/
+	constexpr Vector3(Vector3&& other) noexcept : components{ std::move(other.components) }, x(components[0]), y(components[1]), z(components[2]) {}
+
+	/*
+	=============
+	operator=
+
+	Copy assigns component values.
+	=============
+	*/
+	constexpr Vector3& operator=(const Vector3& other) {
+		components = other.components;
+		return *this;
+	}
+
+	/*
+	=============
+	operator=
+
+	Move assigns component values.
+	=============
+	*/
+	constexpr Vector3& operator=(Vector3&& other) noexcept {
+		components = std::move(other.components);
+		return *this;
+	}
+
+	/*
+	=============
+	operator[]
+
+	Provides checked const access to vector components.
+	=============
+	*/
 	[[nodiscard]] constexpr const float& operator[](size_t i) const {
-		if (i == 0)
-			return x;
-		else if (i == 1)
-			return y;
-		else if (i == 2)
-			return z;
-		throw std::out_of_range("i");
+		return components.at(i);
 	}
 
+	/*
+	=============
+	operator[]
+
+	Provides checked mutable access to vector components.
+	=============
+	*/
 	[[nodiscard]] constexpr float& operator[](size_t i) {
-		if (i == 0)
-			return x;
-		else if (i == 1)
-			return y;
-		else if (i == 2)
-			return z;
-		throw std::out_of_range("i");
+		return components.at(i);
 	}
-
 	// comparison
 	[[nodiscard]] constexpr bool equals(const Vector3& v) const {
 		return x == v.x && y == v.y && z == v.z;
