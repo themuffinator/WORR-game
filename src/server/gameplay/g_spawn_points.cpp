@@ -199,6 +199,10 @@ static void G_SpawnSpots_FlattenLegacy() {
 	push_all(level.spawn.ffa);
 	push_all(level.spawn.red);
 	push_all(level.spawn.blue);
+
+	if (level.spawn.intermission) {
+		level.spawnSpots[SPAWN_SPOT_INTERMISSION] = level.spawn.intermission;
+	}
 }
 
 /*
