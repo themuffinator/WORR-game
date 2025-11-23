@@ -2191,6 +2191,11 @@ static bool write_save_type_json(const void* data, const save_type_t* type, bool
 		return true;
 	}
 	case SaveTypeID::Data: {
+		if (!data) {
+			output = Json::Value::nullSingleton();
+			return true;
+		}
+
 		const save_void_t& ptr = *reinterpret_cast<const save_void_t*>(data);
 
 		if (null_for_empty && TYPED_DATA_IS_EMPTY(type, !ptr))
