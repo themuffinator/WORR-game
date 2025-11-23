@@ -1780,25 +1780,39 @@ static void FS_Read(void* buffer, int len, FILE* f) {
 VerifyEntityString
 ==============
 */
-static bool VerifyEntityString(const char* entities) {
+bool VerifyEntityString(const char* entities) {
 	const char* or_token;
 	const char* or_buf = entities;
 	char		token[MAX_TOKEN_CHARS];
 	bool		truncated = false;
+	int		braceDepth = 0;
 
 	while (1) {
+		while (or_buf && (*or_buf == ' ' || *or_buf == '\t' || *or_buf == '\r' || *or_buf == '\n')) {
+			or_buf++;
+		}
+
+		if (!or_buf || !*or_buf) {
+			gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
+			return false;
+		}
+
 		// parse the opening brace
 		or_token = COM_Parse(&or_buf, token, sizeof(token), &truncated);
 		if (truncated) {
 			gi.Com_ErrorFmt("{}: token exceeded {} chars in override header.\n", __FUNCTION__, sizeof(token) - 1);
 			return false;
 		}
-		if (!or_buf)
-			break;
+		if (!or_buf) {
+			gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
+			return false;
+		}
 		if (or_token[0] != '{') {
 			gi.Com_PrintFmt("{}: Found \"{}\" when expecting { in override.\n", __FUNCTION__, or_token);
 			return false;
 		}
+
+		braceDepth++;
 
 		while (1) {
 			// parse key
@@ -1808,8 +1822,10 @@ static bool VerifyEntityString(const char* entities) {
 				gi.Com_ErrorFmt("{}: override key exceeded {} chars.\n", __FUNCTION__, sizeof(token) - 1);
 				return false;
 			}
-			if (or_token[0] == '}')
+			if (or_token[0] == '}') {
+				braceDepth--;
 				break;
+			}
 			if (!or_buf) {
 				gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
 				return false;
@@ -1831,18 +1847,20 @@ static bool VerifyEntityString(const char* entities) {
 			}
 		}
 
+		if (braceDepth < 0) {
+			gi.Com_ErrorFmt("{}: Mismatched closing brace in override.\n", __FUNCTION__);
+			return false;
+		}
 	}
+
+	if (braceDepth != 0) {
+		gi.Com_ErrorFmt("{}: EOF without closing brace.\n", __FUNCTION__);
+		return false;
+	}
+
 	return true;
 }
 
-static void PrecacheForRandomRespawn() {
-	for (auto& item : itemList) {
-		if (!item.flags || (item.flags & (IF_NOT_GIVEABLE | IF_TECH | IF_NOT_RANDOM)) || !item.pickup || !item.worldModel)
-			continue;
-
-		PrecacheItem(&item);
-	}
-}
 
 /*
 ==============
