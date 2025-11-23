@@ -21,12 +21,14 @@
 
 #include "../g_local.hpp"
 #include "../../shared/map_validation.hpp"
+#include "../../shared/logger.hpp"
 #include "g_headhunters.hpp"
 #include "g_proball.hpp"
 #include "../monsters/m_actor.hpp"
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
 #include <algorithm>	// for std::fill
+#include <format>
 #include <new>
 #include <type_traits>
 #include <utility>
@@ -49,6 +51,22 @@ assignment operator.
 void ResetLevelLocals() {
 	level.~LevelLocals();
 	new (&level) LevelLocals();
+}
+
+/*
+=============
+LogEntityLabel
+
+Builds a concise label for logging spawn activity, including entity number and
+classname when available.
+=============
+*/
+static std::string LogEntityLabel(const gentity_t* ent)
+{
+	const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
+	const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
+
+	return std::format("#{} ({})", ent_num, class_name);
 }
 
 } // namespace
@@ -674,8 +692,10 @@ Finds the spawn function for the entity and calls it
 */
 void ED_CallSpawn(gentity_t* ent) {
 
+	worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn for {}", __FUNCTION__, LogEntityLabel(ent));
+
 	if (!ent->className) {
-		gi.Com_PrintFmt("{}: nullptr className\n", __FUNCTION__);
+		worr::Logf(worr::LogLevel::Warn, "{}: entity {} has no classname; freeing", __FUNCTION__, LogEntityLabel(ent));
 		FreeEntity(ent);
 		return;
 	}
@@ -696,6 +716,7 @@ void ED_CallSpawn(gentity_t* ent) {
 		}
 	}
 #endif
+	const char* original_class_name = ent->className;
 	// FIXME - PMM classnames hack
 	if (!strcmp(ent->className, "weapon_nailgun"))
 		ent->className = GetItemByIndex(IT_WEAPON_ETF_RIFLE)->className;
@@ -732,6 +753,9 @@ void ED_CallSpawn(gentity_t* ent) {
 	}
 	// pmm
 
+	if (ent->className != original_class_name)
+		worr::Logf(worr::LogLevel::Trace, "{}: remapped classname {} -> {} for {}", __FUNCTION__, original_class_name, ent->className, LogEntityLabel(ent));
+
 	SpawnEnt_MapFixes(ent);
 
 	// check item spawn functions
@@ -749,10 +773,12 @@ void ED_CallSpawn(gentity_t* ent) {
 				if (new_item) {
 					item = GetItemByIndex(new_item);
 					ent->className = item->className;
+					worr::Logf(worr::LogLevel::Debug, "{}: random respawn mapped to {} for {}", __FUNCTION__, ent->className, LogEntityLabel(ent));
 				}
 			}
 
 			SpawnItem(ent, item);
+			worr::Logf(worr::LogLevel::Trace, "{}: spawned item {}", __FUNCTION__, LogEntityLabel(ent));
 			return;
 		}
 	}
@@ -760,6 +786,7 @@ void ED_CallSpawn(gentity_t* ent) {
 	// check normal spawn functions
 	for (auto& s : spawns) {
 		if (!strcmp(s.name, ent->className)) { // found it
+			worr::Logf(worr::LogLevel::Trace, "{}: calling spawn function {} for {}", __FUNCTION__, s.name, LogEntityLabel(ent));
 			s.spawn(ent);
 
 			if (strcmp(ent->className, s.name) == 0)
@@ -785,6 +812,7 @@ void ED_CallSpawn(gentity_t* ent) {
 				};
 				ent->saved = spawn;
 			}
+			worr::Logf(worr::LogLevel::Debug, "{}: completed spawn for {}", __FUNCTION__, LogEntityLabel(ent));
 			return;
 		}
 	}
@@ -796,11 +824,12 @@ void ED_CallSpawn(gentity_t* ent) {
 		}
 		else {
 			FreeEntity(ent);
+			worr::Logf(worr::LogLevel::Warn, "{}: discarded orphaned item_ball for {}", __FUNCTION__, LogEntityLabel(ent));
 		}
 		return;
 	}
 
-	gi.Com_PrintFmt("{}: {} doesn't have a spawn function.\n", __FUNCTION__, *ent);
+	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityLabel(ent));
 	FreeEntity(ent);
 }
 
@@ -1222,7 +1251,7 @@ static void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
 		return;
 	}
 
-	//gi.Com_PrintFmt("{} is not a valid field\n", key);
+worr::Logf(worr::LogLevel::Trace, "{}: unknown spawn key \"{}\" for {}", __FUNCTION__, key, LogEntityLabel(ent));
 }
 
 /*
@@ -1240,6 +1269,9 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 
 	init = false;
 	st = {};
+
+	const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
+	worr::Logf(worr::LogLevel::Trace, "{}: parsing entity #{}", __FUNCTION__, ent_num);
 
 	// go through all the dictionary pairs
 	while (1) {
@@ -1276,7 +1308,10 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 	}
 
 	if (!init)
-		memset(ent, 0, sizeof(*ent));
+	memset(ent, 0, sizeof(*ent));
+
+	const char* parsed_class = ent->className ? ent->className : "<unset>";
+	worr::Logf(worr::LogLevel::Trace, "{}: parsed entity #{} as {} ({} keys)", __FUNCTION__, ent_num, parsed_class, st.keys_specified.size());
 
 	return data;
 }
@@ -1934,9 +1969,11 @@ ProBall::ClearState();
 		firstEntity = false;
 
 		entities = ED_ParseEntity(entities, ent);
+		worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), ent->spawnFlags);
 
 		if (ent != g_entities) {
 			if (G_InhibitEntity(ent)) {
+				worr::Logf(worr::LogLevel::Debug, "{}: inhibited {} based on ruleset", __FUNCTION__, LogEntityLabel(ent));
 				FreeEntity(ent);
 				++inhibited;
 				continue;

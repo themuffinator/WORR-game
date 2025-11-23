@@ -9,6 +9,7 @@
 #include "../monsters/m_player.hpp"
 #include "../bots/bot_includes.hpp"
 #include "../player/p_client_shared.hpp"
+#include "../../shared/logger.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,6 +18,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <format>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -35,7 +37,23 @@ current flags and gravity scaling.
 */
 static bool G_SpawnHasGravity(const gentity_t* ent)
 {
-	return !(ent->flags & FL_FLY) && ent->gravity != 0.0f;
+return !(ent->flags & FL_FLY) && ent->gravity != 0.0f;
+}
+
+/*
+=============
+ClientLogLabel
+
+Build a concise label for client logging, including entity number and display name.
+=============
+*/
+static std::string ClientLogLabel(const gentity_t* ent)
+{
+	if (!ent || !ent->client)
+		return "#-1 (<no client>)";
+
+	const char* name = ent->client->sess.netName[0] ? ent->client->sess.netName : "<unnamed>";
+	return std::format("#{} ({})", ent->s.number, name);
 }
 
 /*
@@ -196,6 +214,7 @@ static bool ClientInactivityTimer(gentity_t* ent) {
 		cl->sess.inactivityWarning = false;
 		cl->sess.inactivityTime = 0_sec;
 		gi.LocClient_Print(ent, PRINT_CENTER, "You have been removed from the match\ndue to inactivity.\n");
+		worr::Logf(worr::LogLevel::Warn, "{}: dropping {} for inactivity", __FUNCTION__, ClientLogLabel(ent));
 		SetTeam(ent, Team::Spectator, true, true, false);
 		return false;
 	}
@@ -205,6 +224,7 @@ static bool ClientInactivityTimer(gentity_t* ent) {
 		cl->sess.inactivityWarning = true;
 		gi.LocClient_Print(ent, PRINT_CENTER, "Ten seconds until inactivity trigger!\n");
 		gi.localSound(ent, CHAN_AUTO, gi.soundIndex("world/fish.wav"), 1, ATTN_NONE, 0);
+		worr::Logf(worr::LogLevel::Trace, "{}: inactivity warning sent to {}", __FUNCTION__, ClientLogLabel(ent));
 	}
 
 	return true;
@@ -640,6 +660,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	cl->awaitingRespawn = false;
 	cl->respawn_timeout = 0_ms;
 	const bool initialJoin = !cl->sess.inGame;
+	worr::Logf(worr::LogLevel::Debug, "{}: begin for {} (initial:{}, deathmatch:{})", __FUNCTION__, ClientLogLabel(ent), initialJoin, !!deathmatch->integer);
 
 	// set inactivity timer
 	GameTime cv = GameTime::from_sec(g_inactivity->integer);
@@ -654,6 +675,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 
 	if (deathmatch->integer) {
 		worr::server::client::ClientBeginDeathmatch(ent);
+		worr::Logf(worr::LogLevel::Trace, "{}: deathmatch begin for {}", __FUNCTION__, ClientLogLabel(ent));
 
 		if (initialJoin)
 			cl->sess.inGame = true;
@@ -679,6 +701,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 		// state when the game is saved, so we need to compensate
 		// with deltaangles
 		cl->ps.pmove.deltaAngles = cl->ps.viewAngles;
+		worr::Logf(worr::LogLevel::Trace, "{}: reusing persisted entity state for {}", __FUNCTION__, ClientLogLabel(ent));
 	}
 	else {
 		// a spawn point will completely reinitialize the entity
@@ -690,6 +713,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 		cl->coopRespawn.spawnBegin = true;
 		worr::server::client::ClientCompleteSpawn(ent);
 		cl->coopRespawn.spawnBegin = false;
+		worr::Logf(worr::LogLevel::Debug, "{}: fresh spawn initialization complete for {}", __FUNCTION__, ClientLogLabel(ent));
 
 		if (initialJoin) {
 			BroadcastTeamChange(ent, Team::None, false, false);
@@ -701,12 +725,14 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 	ent->svFlags |= SVF_PLAYER;
 
 	if (level.intermission.time) {
+		worr::Logf(worr::LogLevel::Trace, "{}: moving {} to intermission", __FUNCTION__, ClientLogLabel(ent));
 		MoveClientToIntermission(ent);
 	}
 	else {
 		// send effect if in a multiplayer game
 		if (game.maxClients > 1 && !(ent->svFlags & SVF_NOCLIENT))
 			gi.LocBroadcast_Print(PRINT_HIGH, "$g_entered_game", cl->sess.netName);
+		worr::Logf(worr::LogLevel::Debug, "{}: {} entered active play", __FUNCTION__, ClientLogLabel(ent));
 	}
 
 	level.campaign.coopScalePlayers++;
@@ -725,6 +751,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 
 	cl->sess.inGame = true;
 }
+
 /*
 =============
 ClientSessionServiceImpl::ClientUserinfoChanged
@@ -757,6 +784,8 @@ gentity_t* ent, const char* userInfo) {
 
 	std::string iconPath = G_Fmt("/players/{}_i", ent->client->sess.skinName).data();
 	ent->client->sess.skinIconIndex = gi.imageIndex(iconPath.c_str());
+
+	worr::Logf(worr::LogLevel::Trace, "{}: userinfo updated for {} (name:{} skin:{})", __FUNCTION__, ClientLogLabel(ent), ent->client->sess.netName, ent->client->sess.skinName);
 
 	int playernum = ent - g_entities - 1;
 

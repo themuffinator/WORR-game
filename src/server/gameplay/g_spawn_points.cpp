@@ -22,8 +22,23 @@
 
 #include "../g_local.hpp"
 #include "g_headhunters.hpp"
+#include "../../shared/logger.hpp"
 #include <algorithm>
 #include <cstring>
+#include <format>
+
+/*
+===============
+LogEntityLabel
+
+Return a concise label for spawn logging that includes entity number and classname.
+===============
+*/
+static std::string LogEntityLabel(const gentity_t* ent)
+{
+	const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
+	return std::format("#{} ({})", ent ? ent->s.number : -1, class_name);
+}
 
 // -----------------------------------------------------------------------------
 // Modern spawn registration
@@ -112,6 +127,7 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 			level.spawn.intermission = ent;
 			ent->fteam = Team::Free;
 			// Intermission view handling is finalized in FinalizeIntermissionView
+			worr::Logf(worr::LogLevel::Trace, "{}: registered intermission at {}", __FUNCTION__, LogEntityLabel(ent));
 		}
 		return true;
 	}
@@ -120,6 +136,7 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 	if (IEquals(suffix, "start") || IEquals(suffix, "coop") || IEquals(suffix, "coop_lava")) {
 		ent->fteam = Team::Free;
 		level.spawn.ffa.push_back(ent);
+		worr::Logf(worr::LogLevel::Trace, "{}: registered coop/solo spawn {}", __FUNCTION__, LogEntityLabel(ent));
 		return true;
 	}
 
@@ -128,6 +145,7 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		ent->fteam = Team::Free;
 		ent->count = 1; // not an initial spawn point
 		level.spawn.ffa.push_back(ent);
+		worr::Logf(worr::LogLevel::Trace, "{}: registered FFA spawn {}", __FUNCTION__, LogEntityLabel(ent));
 		return true;
 	}
 
@@ -136,6 +154,7 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		ent->fteam = Team::Red;
 		ent->count = 1;
 		level.spawn.red.push_back(ent);
+		worr::Logf(worr::LogLevel::Trace, "{}: registered Red spawn {}", __FUNCTION__, LogEntityLabel(ent));
 		return true;
 	}
 
@@ -144,6 +163,7 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		ent->fteam = Team::Blue;
 		ent->count = 1;
 		level.spawn.blue.push_back(ent);
+		worr::Logf(worr::LogLevel::Trace, "{}: registered Blue spawn {}", __FUNCTION__, LogEntityLabel(ent));
 		return true;
 	}
 
@@ -230,6 +250,13 @@ void G_LocateSpawnSpots() {
 
 	// Optional: keep legacy fields in sync while you migrate call sites.
 	G_SpawnSpots_FlattenLegacy();
+
+	const size_t ffa_count = level.spawn.ffa.size();
+	const size_t red_count = level.spawn.red.size();
+	const size_t blue_count = level.spawn.blue.size();
+	const size_t total_count = ffa_count + red_count + blue_count;
+	worr::Logf(worr::LogLevel::Debug, "{}: spawn spot totals -> ffa:{} red:{} blue:{} intermission:{}", __FUNCTION__, ffa_count, red_count, blue_count, level.spawn.intermission ? 1 : 0);
+	worr::Logf(worr::LogLevel::Trace, "{}: processed {} spawn points this map", __FUNCTION__, total_count);
 }
 
 // ==============================================================================
