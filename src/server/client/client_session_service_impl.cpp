@@ -683,8 +683,7 @@ void ClientSessionServiceImpl::ClientBegin(local_game_import_t& gi, GameLocals& 
 
 		if (initialJoin) {
 			BroadcastTeamChange(ent, Team::None, false, false);
-			if (developer->integer)
-				gi.Com_PrintFmt("{}: initial join broadcast for client {}\n", __FUNCTION__, ent->s.number);
+			gi.Com_PrintFmt("{}: initial join broadcast for client {}\n", __FUNCTION__, ent->s.number);
 		}
 	}
 
