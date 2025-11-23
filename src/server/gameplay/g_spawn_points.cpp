@@ -116,6 +116,13 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		return true;
 	}
 
+	// Single-player / coop start points are registered for fallbacks
+	if (IEquals(suffix, "start") || IEquals(suffix, "coop") || IEquals(suffix, "coop_lava")) {
+		ent->fteam = Team::Free;
+		level.spawn.ffa.push_back(ent);
+		return true;
+	}
+
 	// Deathmatch (FFA)
 	if (IEquals(suffix, "deathmatch")) {
 		ent->fteam = Team::Free;
