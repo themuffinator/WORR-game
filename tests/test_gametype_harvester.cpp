@@ -3,17 +3,25 @@
 #include <cmath>
 #include <memory>
 
-namespace std { using ::sinf; }
 #include "server/g_local.hpp"
+
+using std::sinf;
 
 std::mt19937 mt_rand{};
 GameLocals game{};
 LevelLocals level{};
 game_export_t globals{};
 local_game_import_t gi{};
-cvar_t* g_gametype = nullptr;
+	cvar_t* g_gametype = nullptr;
 
 
+/*
+=============
+main
+
+Validates that the Harvester gametype exposes the expected flags and state helpers.
+=============
+*/
 int main() {
 	cvar_t gametype{};
 	g_gametype = &gametype;

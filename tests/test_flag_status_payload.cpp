@@ -1,12 +1,13 @@
 #include <array>
 #include <cassert>
+#include <cmath>
 #include <string>
 
 #include "server/gameplay/g_capture.hpp"
 
 std::string BuildFlagStatusPayload(bool captureTheFlagMode, const std::array<FlagStatus, 3>& statuses);
 
-namespace std { using ::sinf; }
+using std::sinf;
 
 /*
 =============
