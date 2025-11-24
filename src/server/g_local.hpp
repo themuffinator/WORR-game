@@ -5028,6 +5028,7 @@ struct gclient_t {
 
 	GameTime			pickupMessageTime = 0_ms;
 
+	GameTime			harvesterReminderTime = 0_ms;
 	GameTime			respawnMinTime = 0_ms;		// minimum time delay before we can respawn
 	GameTime			respawnMaxTime = 0_ms;		// maximum time before we are forced to respawn
 

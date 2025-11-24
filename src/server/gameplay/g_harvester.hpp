@@ -28,6 +28,7 @@ gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtF
 void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback);
 void Harvester_RegisterBase(gentity_t* ent, Team team);
 void Harvester_RegisterGenerator(gentity_t* ent);
+void Harvester_SendMissingObjectiveReminder(gentity_t* ent, bool harvesterMode, bool oneFlagMode);
 bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other);
 void Harvester_Reset();
 void Harvester_HandlePlayerDeath(gentity_t* victim);

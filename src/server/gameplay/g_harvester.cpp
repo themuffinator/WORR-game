@@ -8,6 +8,7 @@ extern gentity_t* neutralObelisk;
 
 namespace {
 	constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
+	constexpr GameTime HARVESTER_REMINDER_COOLDOWN = 2_sec;
 	constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
 	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
 	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
@@ -36,6 +37,36 @@ namespace {
 		}
 	}
 
+
+	/*
+	=============
+	Harvester_SendMissingObjectiveReminder
+
+	Sends a short, localized reminder when a player tries to score without a required objective.
+	=============
+	*/
+	void Harvester_SendMissingObjectiveReminder(gentity_t* ent, bool harvesterMode, bool oneFlagMode) {
+		if ((!harvesterMode && !oneFlagMode) || !ent || !ent->client) {
+			return;
+		}
+
+		GameTime& nextReminderTime = ent->client->harvesterReminderTime;
+		if (level.time < nextReminderTime) {
+			return;
+		}
+
+		nextReminderTime = level.time + HARVESTER_REMINDER_COOLDOWN;
+		const char* message = harvesterMode ? "$g_harvester_need_skulls" : "$g_oneflag_need_flag";
+		gi.LocClient_Print(ent, PRINT_HIGH, message);
+	}
+
+	/*
+	=============
+	Harvester_BaseTouch
+
+	Handles scoring interactions for Harvester and OneFlag gametypes.
+	=============
+	*/
 	TOUCH(Harvester_BaseTouch)(gentity_t* ent, gentity_t* other, const trace_t&, bool)->void {
 		const bool harvester = Harvester_Active();
 		const bool oneFlag = Game::Is(GameType::OneFlag);
@@ -59,6 +90,7 @@ namespace {
 		if (harvester) {
 			const int tokens = other->client->ps.stats[STAT_GAMEPLAY_CARRIED];
 			if (tokens <= 0) {
+				Harvester_SendMissingObjectiveReminder(other, true, false);
 				return;
 			}
 
@@ -82,6 +114,7 @@ namespace {
 		}
 
 		if (!other->client->pers.inventory[IT_FLAG_NEUTRAL]) {
+			Harvester_SendMissingObjectiveReminder(other, false, true);
 			return;
 		}
 
