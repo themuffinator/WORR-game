@@ -1815,8 +1815,7 @@ bool VerifyEntityString(const char* entities) {
 		}
 
 		if (!or_buf || !*or_buf) {
-			gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
-			return false;
+			break;
 		}
 
 		// parse the opening brace
