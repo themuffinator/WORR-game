@@ -54,8 +54,8 @@ namespace {
 			clamped = true;
 		}
 
-		if (clamped)
-			gi.Com_PrintFmt("Domination: clamping g_domination_tick_interval to {:.2f} seconds\n", seconds);
+			if (adjusted)
+				gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
 
 		return interval;
 	}
@@ -110,8 +110,8 @@ namespace {
 			adjusted = true;
 		}
 
-		if (adjusted && gi.Com_PrintFmt)
-			gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
+			if (adjusted)
+				gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
 
 		return captureTime;
 	}
