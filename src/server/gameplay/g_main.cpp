@@ -27,6 +27,7 @@
 #include "../commands/commands.hpp"
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
+#include "g_harvester.hpp"
 #include <algorithm>
 #include <cstring>
 #include <array>
@@ -2083,8 +2084,10 @@ static inline void G_RunFrame_(bool main_loop) {
 					cl.coopRespawnState = CoopRespawn::None;
 				}
 			}
-		}
-	}
+}
+}
+
+	Harvester_ProcessDeferredDrops();
 
 	// --- Entity Loop ---
 	gentity_t* ent = world;

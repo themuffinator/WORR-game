@@ -5,6 +5,8 @@
 struct gentity_t;
 enum class Team : uint8_t;
 
+using HarvesterSpawnCallback = gentity_t* (*)(Team, const Vector3&, bool);
+
 [[nodiscard]] inline Vector3 Harvester_ComputeSkullOrigin(
 	const Vector3& generatorOrigin,
 	const Vector3& fallback,
@@ -26,6 +28,10 @@ Vector3 Harvester_GeneratorOrigin(const Vector3& fallback);
 void Harvester_PositionOnFloor(gentity_t* ent);
 gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback);
 void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback);
+void Harvester_ProcessDeferredDrops();
+int Harvester_GetMaxSkullsPerDrop();
+GameTime Harvester_GetDeferredDropInterval();
+void Harvester_SetSpawnCallback(HarvesterSpawnCallback callback);
 void Harvester_RegisterBase(gentity_t* ent, Team team);
 void Harvester_RegisterGenerator(gentity_t* ent);
 bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other);

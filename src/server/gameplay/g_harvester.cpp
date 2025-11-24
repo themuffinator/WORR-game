@@ -3,15 +3,60 @@
 #include "g_teamplay.hpp"
 #include "g_headhunters.hpp"
 #include "g_harvester.hpp"
+#include <deque>
 
 extern gentity_t* neutralObelisk;
 
 namespace {
-	constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
-	constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
-	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
-	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
-	constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
+		constexpr GameTime HARVESTER_SKULL_LIFETIME = 30_sec;
+		constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
+		constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
+		constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
+		constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
+		constexpr int HARVESTER_MAX_SKULLS_PER_DROP = 16;
+		constexpr GameTime HARVESTER_SKULL_DEFER_INTERVAL = 50_ms;
+
+		struct HarvesterDeferredDrop {
+			Team team = Team::Free;
+			int remaining = 0;
+			Vector3 fallback = vec3_origin;
+			bool dropAtFallback = false;
+			GameTime nextSpawnTime = 0_ms;
+		};
+
+		std::deque<HarvesterDeferredDrop> harvesterDeferredDrops;
+		HarvesterSpawnCallback harvesterSpawnCallback = nullptr;
+
+/*
+=============
+Harvester_GetSpawnCallback
+
+Returns the current spawn callback, defaulting to the production spawner.
+=============
+*/
+		static HarvesterSpawnCallback Harvester_GetSpawnCallback() {
+			if (!harvesterSpawnCallback) {
+				harvesterSpawnCallback = Harvester_SpawnSkull;
+			}
+			return harvesterSpawnCallback;
+		}
+
+/*
+=============
+Harvester_QueueDeferredDrop
+
+Adds an additional drop request to the deferred queue.
+=============
+*/
+		static void Harvester_QueueDeferredDrop(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
+			HarvesterDeferredDrop request{};
+			request.team = team;
+			request.remaining = count;
+			request.fallback = fallback;
+			request.dropAtFallback = dropAtFallback;
+			request.nextSpawnTime = level.time + HARVESTER_SKULL_DEFER_INTERVAL;
+			harvesterDeferredDrops.push_back(request);
+		}
 
 	THINK(Harvester_SkullExpire)(gentity_t* ent)->void {
 		if (!ent) {
@@ -98,26 +143,73 @@ namespace {
 		CTF_ResetTeamFlag(Team::Free);
 	}
 
-	void Harvester_AssignRandomOrigin(gentity_t* skull, const Vector3& fallback, bool dropAtFallback) {
+void Harvester_AssignRandomOrigin(gentity_t* skull, const Vector3& fallback, bool dropAtFallback) {
 		const float horizontalRandomX = crandom();
 		const float horizontalRandomY = crandom();
 		const float verticalRandom = crandom();
 		const Vector3 base = Harvester_GeneratorOrigin(fallback);
 		Vector3 origin = Harvester_ComputeSkullOrigin(
-			base,
-			fallback,
-			dropAtFallback,
-			horizontalRandomX,
-			horizontalRandomY,
-			verticalRandom);
+				base,
+				fallback,
+				dropAtFallback,
+				horizontalRandomX,
+				horizontalRandomY,
+				verticalRandom);
 		skull->s.origin = origin;
-	}
+}
 }
 
+/*
+=============
+Harvester_GetMaxSkullsPerDrop
+
+Returns the maximum number of skulls that can be spawned immediately.
+=============
+*/
+int Harvester_GetMaxSkullsPerDrop() {
+	return HARVESTER_MAX_SKULLS_PER_DROP;
+}
+
+/*
+=============
+Harvester_GetDeferredDropInterval
+
+Returns the delay between deferred skull batches.
+=============
+*/
+GameTime Harvester_GetDeferredDropInterval() {
+	return HARVESTER_SKULL_DEFER_INTERVAL;
+}
+
+/*
+=============
+Harvester_SetSpawnCallback
+
+Overrides the spawn callback for testing or instrumentation.
+=============
+*/
+void Harvester_SetSpawnCallback(HarvesterSpawnCallback callback) {
+	harvesterSpawnCallback = callback ? callback : Harvester_SpawnSkull;
+}
+
+/*
+=============
+Harvester_Active
+
+Checks whether the Harvester gametype is active.
+=============
+*/
 bool Harvester_Active() {
 	return Game::Is(GameType::Harvester);
 }
 
+/*
+=============
+Harvester_GeneratorOrigin
+
+Retrieves the current generator origin, falling back when unavailable.
+=============
+*/
 Vector3 Harvester_GeneratorOrigin(const Vector3& fallback) {
 	if (level.harvester.generator && level.harvester.generator->inUse) {
 		return level.harvester.generator->s.origin;
@@ -125,10 +217,22 @@ Vector3 Harvester_GeneratorOrigin(const Vector3& fallback) {
 	return fallback;
 }
 
+/*
+=============
+Harvester_PositionOnFloor
+=============
+*/
 void Harvester_PositionOnFloor(gentity_t* ent) {
 	Harvester_PositionOnFloor_Internal(ent);
 }
 
+/*
+=============
+Harvester_SpawnSkull
+
+Spawns a skull entity and applies initial velocity and visuals.
+=============
+*/
 static void Harvester_SetupSkullEntity(gentity_t* skull, Item* item, Team team) {
 	skull->className = item->className;
 	skull->item = item;
@@ -153,6 +257,13 @@ static void Harvester_SetupSkullEntity(gentity_t* skull, Item* item, Team team) 
 	skull->fteam = team;
 }
 
+/*
+=============
+Harvester_SpawnSkull
+
+Creates a skull entity when the gametype is active.
+=============
+*/
 gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback) {
 	if (!Harvester_Active()) {
 		return nullptr;
@@ -172,25 +283,82 @@ gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtF
 	Harvester_AssignRandomOrigin(skull, fallback, dropAtFallback);
 
 	skull->velocity = {
-		crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
-		crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
-		HARVESTER_SKULL_VERTICAL_TOSS + frandom() * HARVESTER_SKULL_VERTICAL_TOSS };
+			crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
+			crandom() * HARVESTER_SKULL_HORIZONTAL_TOSS,
+			HARVESTER_SKULL_VERTICAL_TOSS + frandom() * HARVESTER_SKULL_VERTICAL_TOSS };
 
 	gi.setModel(skull, item->worldModel);
 	gi.linkEntity(skull);
 	return skull;
 }
 
+/*
+=============
+Harvester_ProcessDeferredDrops
+
+Processes queued skull batches, spreading spawns across frames.
+=============
+*/
+void Harvester_ProcessDeferredDrops() {
+	if (!Harvester_Active()) {
+		return;
+	}
+
+	auto spawn = Harvester_GetSpawnCallback();
+	std::deque<HarvesterDeferredDrop> pending;
+	while (!harvesterDeferredDrops.empty()) {
+		auto request = harvesterDeferredDrops.front();
+		harvesterDeferredDrops.pop_front();
+		if (request.nextSpawnTime > level.time) {
+			pending.push_back(request);
+			continue;
+		}
+
+		const int batch = std::min(request.remaining, HARVESTER_MAX_SKULLS_PER_DROP);
+		for (int i = 0; i < batch; ++i) {
+			spawn(request.team, request.fallback, request.dropAtFallback);
+		}
+
+		request.remaining -= batch;
+		if (request.remaining > 0) {
+			request.nextSpawnTime = level.time + HARVESTER_SKULL_DEFER_INTERVAL;
+			pending.push_back(request);
+		}
+	}
+
+	harvesterDeferredDrops = std::move(pending);
+}
+
+/*
+=============
+Harvester_DropSkulls
+
+Drops skulls with clamping and deferred batching when necessary.
+=============
+*/
 void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
 	if (!Teamplay_IsPrimaryTeam(team) || count <= 0) {
 		return;
 	}
 
-	for (int i = 0; i < count; ++i) {
-		Harvester_SpawnSkull(team, fallback, dropAtFallback);
+	const int immediate = std::min(count, HARVESTER_MAX_SKULLS_PER_DROP);
+	const int deferred = count - immediate;
+
+	if (deferred > 0) {
+		gi.Com_PrintFmt("Harvester drop clamped to {} skulls; deferring {} additional spawns.\n",
+				immediate,
+				deferred);
+	}
+
+	auto spawn = Harvester_GetSpawnCallback();
+	for (int i = 0; i < immediate; ++i) {
+		spawn(team, fallback, dropAtFallback);
+	}
+
+	if (deferred > 0) {
+		Harvester_QueueDeferredDrop(team, deferred, fallback, dropAtFallback);
 	}
 }
-
 void Harvester_RegisterBase(gentity_t* ent, Team team) {
 	if (!ent) {
 		return;
@@ -229,6 +397,14 @@ void Harvester_RegisterGenerator(gentity_t* ent) {
 	level.harvester.generator = ent;
 }
 
+
+/*
+=============
+Harvester_TakeSkull
+
+Handles a player picking up a skull entity.
+=============
+*/
 bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other) {
 	if (!ent || !other || !other->client) {
 		return false;
@@ -257,9 +433,18 @@ bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other) {
 	return true;
 }
 
+/*
+=============
+Harvester_Reset
+
+Clears all Harvester state and active skull entities.
+=============
+*/
 void Harvester_Reset() {
 	level.harvester.generator = nullptr;
 	level.harvester.bases.fill(nullptr);
+	harvesterDeferredDrops.clear();
+	harvesterSpawnCallback = nullptr;
 
 	for (size_t i = 0; i < globals.numEntities; ++i) {
 		gentity_t* ent = &g_entities[i];
