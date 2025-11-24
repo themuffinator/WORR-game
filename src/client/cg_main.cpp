@@ -21,7 +21,9 @@
 #include "cg_local.hpp"
 #include "../server/monsters/m_flash.hpp"
 #include "../shared/logger.hpp"
+#include <array>
 #include <charconv>
+#include <cstdio>
 #include <cstring>
 #include <span>
 #include <system_error>
@@ -73,10 +75,40 @@ static void InitClientLogging()
 /*
 =============
 CG_GetExtension
+
+Fetch a named extension interface from the client module. Currently no extensions
+are exposed; unknown requests are logged to aid engine integration.
 =============
 */
 static void* CG_GetExtension(const char* name)
 {
+	struct extension_entry_t {
+		const char* name;
+		void* interface_ptr;
+	};
+	
+	static constexpr std::array<extension_entry_t, 0> extensions{};
+	
+	if (!name)
+		return nullptr;
+	
+	for (const auto& extension : extensions)
+	{
+		if (std::strcmp(name, extension.name) == 0)
+			return extension.interface_ptr;
+	}
+	
+	if (cgi.Com_Print)
+	{
+		char message_buffer[256] = {};
+		std::snprintf(
+			message_buffer,
+			sizeof(message_buffer),
+			"CG_GetExtension: requested unknown extension '%s' (no client extensions are exposed)\n",
+			name);
+		cgi.Com_Print(message_buffer);
+	}
+	
 	return nullptr;
 }
 
