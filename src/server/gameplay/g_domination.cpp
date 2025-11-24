@@ -143,6 +143,11 @@ namespace {
 			return;
 		}
 
+		if (point.owner == Team::None) {
+			FreePointBeam(point);
+			return;
+		}
+
 		gentity_t*& beam = point.beam;
 
 		if (!beam) {
@@ -175,6 +180,7 @@ namespace {
 
 		gi.linkEntity(beam);
 	}
+
 
 	/*
 	=============
@@ -492,6 +498,9 @@ Resets domination state and frees transient entities.
 void Domination_ClearState() {
 	for (auto& point : level.domination.points) {
 		FreePointBeam(point);
+		point.ent = nullptr;
+		point.owner = Team::None;
+		point.spawnCount = 0;
 	}
 
 	level.domination = {};
