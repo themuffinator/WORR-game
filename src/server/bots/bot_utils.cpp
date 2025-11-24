@@ -2,6 +2,7 @@
 // Licensed under the GNU General Public License 2.0.
 
 #include "../g_local.hpp"
+#include "../gameplay/g_capture.hpp"
 #include "../monsters/m_player.hpp"
 #include "bot_utils.hpp"
 
@@ -256,7 +257,26 @@ static void Item_UpdateState(gentity_t *item) {
 	const item_id_t itemID = item->item->id;
 	if (itemID == IT_FLAG_RED || itemID == IT_FLAG_BLUE) {
 		item->sv.entFlags |= SVFL_IS_OBJECTIVE;
-		// TODO: figure out if the objective is dropped/carried/home...
+
+		const Team flagTeam = (itemID == IT_FLAG_RED) ? Team::Red : Team::Blue;
+		const FlagStatus flagStatus = GetFlagStatus(flagTeam);
+
+		item->sv.entFlags &= ~(SVFL_OBJECTIVE_AT_BASE | SVFL_OBJECTIVE_TAKEN | SVFL_OBJECTIVE_DROPPED);
+		switch (flagStatus) {
+		case FlagStatus::AtBase:
+			item->sv.entFlags |= SVFL_OBJECTIVE_AT_BASE;
+			break;
+		case FlagStatus::Dropped:
+			item->sv.entFlags |= SVFL_OBJECTIVE_DROPPED;
+			break;
+		case FlagStatus::Taken:
+		case FlagStatus::TakenRed:
+		case FlagStatus::TakenBlue:
+			item->sv.entFlags |= SVFL_OBJECTIVE_TAKEN;
+			break;
+		default:
+			break;
+		}
 	}
 
 	// always need to update these for items, since random item spawning

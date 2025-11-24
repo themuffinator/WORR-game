@@ -981,6 +981,17 @@ bool SetFlagStatus(Team team, FlagStatus status) {
 
 /*
 =============
+GetFlagStatus
+
+External entry point to read flag status for a team.
+=============
+*/
+FlagStatus GetFlagStatus(Team team) {
+	return Flags().GetStatus(team);
+}
+
+/*
+=============
 AwardFlagCapture
 
 Awards a player and team for capturing a flag.
