@@ -535,6 +535,31 @@ bool gt_teams_on = false;
 GameType gt_check = GameType::None;
 
 /*
+=============
+MapSupportsGametype
+
+Uses map pool metadata to determine whether the current map supports a
+requested gametype.
+=============
+*/
+static bool MapSupportsGametype(GameType gt) {
+	const MapEntry* map = game.mapSystem.GetMapEntry(level.mapName.data());
+	if (!map)
+		return true;
+
+	const GameFlags flags = Game::GetInfo(gt).flags;
+
+	if (HasFlag(flags, GameFlags::CTF))
+		return map->preferredCTF;
+	if (HasFlag(flags, GameFlags::OneVOne))
+		return map->preferredDuel;
+	if (HasFlag(flags, GameFlags::Teams))
+		return map->preferredTDM;
+
+	return true;
+}
+
+/*
 ============
 Match_SetGameType
 
@@ -542,6 +567,13 @@ Applies the pending gametype change and resets the current map from the cached e
 ============
 */
 static void Match_SetGameType(GameType gt) {
+	if (!MapSupportsGametype(gt)) {
+		gi.LocBroadcast_Print(PRINT_HIGH, "Map '{}' does not support {}.\n", level.mapName.data(), Game::GetInfo(gt).long_name);
+		gi.Com_PrintFmt("{}: Map {} incompatible with {}, using {} fallback.\n", __FUNCTION__, level.mapName.data(), Game::GetInfo(gt).long_name, (g_allowVoting && g_allowVoting->integer) ? "mapvote" : "nextmap");
+		gi.AddCommandString((g_allowVoting && g_allowVoting->integer) ? "mapvote\n" : "nextmap\n");
+		return;
+	}
+
 	gi.cvarForceSet("g_gametype", G_Fmt("{}", (int)gt).data());
 	gt_g_gametype = g_gametype->modifiedCount;
 	gt_check = gt;
