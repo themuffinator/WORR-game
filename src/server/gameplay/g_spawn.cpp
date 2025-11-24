@@ -74,6 +74,13 @@ static std::string LogEntityLabel(const gentity_t* ent)
 
 /*
 =============
+MapPostProcess
+=============
+*/
+static void MapPostProcess(gentity_t* ent);
+
+/*
+=============
 EnsureWorldspawnPresent
 
 Verifies that the world entity is present and initialized, spawning a
@@ -1558,6 +1565,23 @@ void PrecacheInventoryItems() {
 	}
 }
 
+/*
+=============
+PrecacheForRandomRespawn
+
+Ensures all potential random respawn items are precached so replacements load safely.
+=============
+*/
+static void PrecacheForRandomRespawn()
+{
+	for (item_id_t id = IT_NULL; id != IT_TOTAL; id = static_cast<item_id_t>(id + 1)) {
+		if (id == IT_NULL)
+			continue;
+
+		PrecacheItem(GetItemByIndex(id));
+	}
+}
+
 static void PrecacheStartItems() {
 	const char* raw = g_start_items && g_start_items->string ? g_start_items->string : "";
 	if (*raw == '\0') {
@@ -1810,10 +1834,10 @@ bool VerifyEntityString(const char* entities) {
 			gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
 			return false;
 		}
-		if (or_token[0] != '{') {
-			gi.Com_PrintFmt("{}: Found \"{}\" when expecting { in override.\n", __FUNCTION__, or_token);
-			return false;
-		}
+			if (or_token[0] != '{') {
+				gi.Com_PrintFmt("{}: Found \"{}\" when expecting {{ in override.\n", __FUNCTION__, or_token);
+				return false;
+			}
 
 		braceDepth++;
 
@@ -2038,7 +2062,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		firstEntity = false;
 
 		entities = ED_ParseEntity(entities, ent);
-		worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), ent->spawnFlags);
+		worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
 
 		if (ent != g_entities) {
 			if (G_InhibitEntity(ent)) {

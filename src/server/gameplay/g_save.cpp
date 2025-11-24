@@ -901,7 +901,7 @@ static bool edict_t_gravity_is_empty(const void* data) {
 }
 
 static bool edict_t_gravityVector_is_empty(const void* data) {
-	constexpr Vector3 up_vector = { 0, 0, -1 };
+	static constexpr Vector3 up_vector = { 0, 0, -1 };
 	return *(const Vector3*)data == up_vector;
 }
 
