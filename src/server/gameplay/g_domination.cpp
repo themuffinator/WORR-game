@@ -8,6 +8,7 @@ extern const spawn_temp_t& ED_GetSpawnTemp();
 
 namespace {
 	constexpr GameTime kDominationMinScoreInterval = 100_ms;
+	constexpr GameTime kDominationMaxScoreInterval = GameTime::from_sec(10.0f);
 	constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
 	constexpr int32_t kDominationDefaultPointsPerTick = 1;
 	constexpr float kDominationDefaultCaptureSeconds = 3.0f;
@@ -31,8 +32,18 @@ namespace {
 		}
 
 		GameTime interval = GameTime::from_sec(seconds);
-		if (!interval || interval < kDominationMinScoreInterval)
+		if (!interval || interval < kDominationMinScoreInterval) {
+			gi.Com_PrintFmt(
+				"Domination: clamping g_domination_tick_interval to minimum of {} ms (requested {} seconds).\n",
+				kDominationMinScoreInterval.milliseconds(), seconds);
 			interval = kDominationMinScoreInterval;
+		}
+		else if (interval > kDominationMaxScoreInterval) {
+			gi.Com_PrintFmt(
+				"Domination: clamping g_domination_tick_interval to maximum of {} ms (requested {} seconds).\n",
+				kDominationMaxScoreInterval.milliseconds(), seconds);
+			interval = kDominationMaxScoreInterval;
+		}
 
 		return interval;
 	}

@@ -4,6 +4,8 @@
 #include <random>
 #include <cstring>
 #include <type_traits>
+#include <string>
+#include <vector>
 
 namespace std {
 	using ::sinf;
@@ -18,21 +20,104 @@ namespace std {
 
 #include <cassert>
 
-static void TestComPrint(const char*) {}
+static std::vector<std::string> g_comPrintMessages{};
+
+/*
+=============
+TestComPrint
+
+Captures server print output for assertions.
+=============
+*/
+static void TestComPrint(const char* message) {
+	g_comPrintMessages.emplace_back(message ? message : "");
+}
+
+/*
+=============
+TestBroadcast
+=============
+*/
 static void TestBroadcast(print_type_t, const char*) {}
+
+/*
+=============
+TestClientPrint
+=============
+*/
 static void TestClientPrint(gentity_t*, print_type_t, const char*) {}
+
+/*
+=============
+TestCenterPrint
+=============
+*/
 static void TestCenterPrint(gentity_t*, const char*) {}
+
+/*
+=============
+TestSound
+=============
+*/
 static void TestSound(gentity_t*, soundchan_t, int, float, float, float) {}
+
+/*
+=============
+TestPositionedSound
+=============
+*/
 static void TestPositionedSound(const Vector3&, gentity_t*, soundchan_t, int, float, float, float) {}
+
+/*
+=============
+TestSoundIndex
+=============
+*/
 static int TestSoundIndex(const char*) { return 0; }
+
+/*
+=============
+TestLink
+=============
+*/
 static void TestLink(gentity_t*) {}
+
+/*
+=============
+TestUnlink
+=============
+*/
 static void TestUnlink(gentity_t*) {}
+
+/*
+=============
+TestBotUnregister
+=============
+*/
 static void TestBotUnregister(const gentity_t*) {}
+
+/*
+=============
+TestComError
+=============
+*/
 static void TestComError(const char*) { assert(false && "Com_Error called"); }
+
+/*
+=============
+TestLocPrint
+=============
+*/
 static void TestLocPrint(gentity_t*, print_type_t, const char*, const char**, size_t) {}
+
+/*
+=============
+TestTrace
+=============
+*/
 static trace_t TestTrace(const Vector3&, const Vector3&, const Vector3&, const Vector3&, const gentity_t*, contents_t) {
-		race_t tr{};
-return tr;
+	trace_t tr{};
+	return tr;
 }
 
 game_export_t globals{};
@@ -80,32 +165,67 @@ cvar_t* g_domination_points_per_tick = &g_domination_points_per_tick_storage;
 static cvar_t g_domination_capture_time_storage{};
 cvar_t* g_domination_capture_time = &g_domination_capture_time_storage;
 
+/*
+=============
+ScoringIsDisabled
+=============
+*/
 bool ScoringIsDisabled() {
-        return level.matchState != MatchState::In_Progress;
+	return level.matchState != MatchState::In_Progress;
 }
 
+/*
+=============
+G_AdjustTeamScore
+=============
+*/
 void G_AdjustTeamScore(Team team, int32_t offset) {
 	if (team == Team::Red || team == Team::Blue)
-				level.teamScores[static_cast<int>(team)] += offset;
+		level.teamScores[static_cast<int>(team)] += offset;
 }
 
+/*
+=============
+ClientIsPlaying
+=============
+*/
 bool ClientIsPlaying(gclient_t*) {
 	return true;
 }
 
+/*
+=============
+Spawn
+=============
+*/
 gentity_t* Spawn() {
-static std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)> storage;
-auto* ent = reinterpret_cast<gentity_t*>(&storage);
-std::memset(ent, 0, sizeof(gentity_t));
-return ent;
+	static std::aligned_storage_t<sizeof(gentity_t), alignof(gentity_t)> storage;
+	auto* ent = reinterpret_cast<gentity_t*>(&storage);
+	std::memset(ent, 0, sizeof(gentity_t));
+	return ent;
 }
 
+/*
+=============
+FreeEntity
+=============
+*/
 void FreeEntity(gentity_t*) {}
 
+/*
+=============
+Teams
+=============
+*/
 bool Teams() {
 	return Game::Has(GameFlags::Teams);
 }
 
+/*
+=============
+Teams_TeamName
+=============
+*/
 const char* Teams_TeamName(Team team) {
 	switch (team) {
 	case Team::Red:
@@ -117,6 +237,11 @@ const char* Teams_TeamName(Team team) {
 	}
 }
 
+/*
+=============
+ED_GetSpawnTemp
+=============
+*/
 const spawn_temp_t& ED_GetSpawnTemp() {
 	static spawn_temp_t temp{};
 	return temp;
@@ -124,6 +249,11 @@ const spawn_temp_t& ED_GetSpawnTemp() {
 
 #include "server/gameplay/g_domination.cpp"
 
+/*
+=============
+main
+=============
+*/
 int main() {
 	const auto& info = Game::GetInfo(GameType::Domination);
 	assert(info.type == GameType::Domination);
@@ -156,6 +286,22 @@ int main() {
 	gi.Loc_Print = TestLocPrint;
 	gi.trace = TestTrace;
 	gi.frameTimeMs = 100;
+
+	g_comPrintMessages.clear();
+	g_domination_tick_interval_storage.value = -1.0f;
+	g_domination_tick_interval_storage.integer = -1;
+	const GameTime minimumInterval = DominationTickInterval();
+	assert(minimumInterval == kDominationMinScoreInterval);
+	assert(!g_comPrintMessages.empty());
+	assert(g_comPrintMessages.back().find("minimum") != std::string::npos);
+
+	g_comPrintMessages.clear();
+	g_domination_tick_interval_storage.value = 50.0f;
+	g_domination_tick_interval_storage.integer = 50;
+	const GameTime maximumInterval = DominationTickInterval();
+	assert(maximumInterval == kDominationMaxScoreInterval);
+	assert(!g_comPrintMessages.empty());
+	assert(g_comPrintMessages.back().find("maximum") != std::string::npos);
 
 	deathmatchVar.integer = 0;
 	deathmatchVar.value = 0.0f;
