@@ -1073,11 +1073,12 @@ void CTF_ScoreBonuses(gentity_t* targ, gentity_t*, gentity_t* attacker) {
 
 	Vector3 v1 = targ->s.origin - (*flagEntity)->s.origin;
 	Vector3 v2 = attacker->s.origin - (*flagEntity)->s.origin;
+	const float targetDistance = v1.length();
+	const float attackerDistance = v2.length();
+	const bool flagHasLineOfSight = LocCanSee(*flagEntity, targ) || LocCanSee(*flagEntity, attacker);
+	const bool bothNearFlag = targetDistance < CTF::TARGET_PROTECT_RADIUS && attackerDistance < CTF::TARGET_PROTECT_RADIUS;
 
-	if ((v1.length() < CTF::TARGET_PROTECT_RADIUS ||
-		v2.length() < CTF::TARGET_PROTECT_RADIUS ||
-		LocCanSee(*flagEntity, targ) || LocCanSee(*flagEntity, attacker)) &&
-		attacker->client->sess.team != targetTeam) {
+	if ((flagHasLineOfSight || bothNearFlag) && attacker->client->sess.team != targetTeam) {
 		AwardBaseDefense(attacker);
 		return;
 	}
