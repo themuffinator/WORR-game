@@ -28,6 +28,34 @@ struct LoggerState {
 
 /*
 =============
+EnsureSink
+
+Call the provided sink if it exists.
+=============
+*/
+void EnsureSink(const std::function<void(std::string_view)>& sink, std::string_view message)
+{
+	if (sink)
+		sink(message);
+}
+
+/*
+=============
+SnapshotLoggerState
+
+Retrieve a thread-safe snapshot of logger configuration.
+=============
+*/
+LoggerState SnapshotLoggerState()
+{
+	std::lock_guard lock(g_logger_mutex);
+	return LoggerState{ g_module_name, g_print_sink, g_error_sink };
+}
+
+} // namespace
+
+/*
+=============
 ParseLogLevel
 
 Parse the provided environment value into a LogLevel.
@@ -92,19 +120,6 @@ int LevelWeight(LogLevel level)
 
 /*
 =============
-EnsureSink
-
-Call the provided sink if it exists.
-=============
-*/
-void EnsureSink(const std::function<void(std::string_view)>& sink, std::string_view message)
-{
-	if (sink)
-		sink(message);
-}
-
-/*
-=============
 FormatMessage
 
 Build a structured log message for output.
@@ -122,21 +137,6 @@ std::string FormatMessage(LogLevel level, std::string_view module_name, std::str
 
 	return formatted;
 }
-
-/*
-=============
-SnapshotLoggerState
-
-Retrieve a thread-safe snapshot of logger configuration.
-=============
-*/
-LoggerState SnapshotLoggerState()
-{
-	std::lock_guard lock(g_logger_mutex);
-	return LoggerState{ g_module_name, g_print_sink, g_error_sink };
-}
-
-} // namespace
 
 /*
 =============

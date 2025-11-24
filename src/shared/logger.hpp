@@ -2,16 +2,53 @@
 
 #include <format>
 #include <functional>
+#include <string>
 #include <string_view>
 
 namespace worr {
 	enum class LogLevel {
-		Trace = 0,
-		Debug,
-		Info,
-		Warn,
-		Error
+	Trace = 0,
+	Debug,
+	Info,
+	Warn,
+	Error
 	};
+
+	/*
+	=============
+	ParseLogLevel
+
+	Parse the provided environment value into a LogLevel.
+	=============
+	*/
+	LogLevel ParseLogLevel(std::string_view value);
+
+	/*
+	=============
+	ReadLogLevelFromEnv
+
+	Retrieve the log level from WORR_LOG_LEVEL or return the default.
+	=============
+	*/
+	LogLevel ReadLogLevelFromEnv();
+
+	/*
+	=============
+	LevelWeight
+
+	Assign a numeric weight to a log level for comparison.
+	=============
+	*/
+	int LevelWeight(LogLevel level);
+
+	/*
+	=============
+	FormatMessage
+
+	Build a structured log message for output.
+	=============
+	*/
+	std::string FormatMessage(LogLevel level, std::string_view module_name, std::string_view message);
 
 	/*
 	=============
@@ -20,7 +57,7 @@ namespace worr {
 	Initialize the logger with module metadata and output sinks.
 	=============
 	*/
-void InitLogger(std::string_view module_name, std::function<void(std::string_view)> print_sink, std::function<void(std::string_view)> error_sink);
+	void InitLogger(std::string_view module_name, std::function<void(std::string_view)> print_sink, std::function<void(std::string_view)> error_sink);
 
 	/*
 	=============
