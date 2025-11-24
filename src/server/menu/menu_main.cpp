@@ -131,43 +131,48 @@ void Menu::Render(gentity_t* ent) const {
 	const int maxOffset = std::max(0, totalScrollable - MAX_VISIBLE_LINES);
 	const int offset = std::clamp(scrollOffset, 0, maxOffset);
 
-	const auto scrollableView = entries | std::views::filter([](const MenuEntry& entry) {
-		return entry.scrollable;
-	});
-
-	const bool hasAbove = (std::ranges::distance(scrollableView | std::views::take(offset)) > 0);
-	const bool hasBelow = (std::ranges::distance(scrollableView | std::views::drop(offset + MAX_VISIBLE_LINES)) > 0);
-
-	const auto afterOffsetView = entries | std::views::drop_while([skipScrollable = offset](const MenuEntry& entry) mutable {
+	const auto scrollablePredicate = [](const MenuEntry& entry) {
+	return entry.scrollable;
+	};
+	
+	const std::ranges::filter_view scrollableView(entries, scrollablePredicate);
+	
+	const std::ranges::take_view scrollableAbove(scrollableView, offset);
+	const std::ranges::drop_view scrollableBelow(scrollableView, offset + MAX_VISIBLE_LINES);
+	
+	const bool hasAbove = (std::ranges::distance(scrollableAbove) > 0);
+	const bool hasBelow = (std::ranges::distance(scrollableBelow) > 0);
+	
+	const std::ranges::drop_while_view afterOffsetView(entries, [skipScrollable = offset](const MenuEntry& entry) mutable {
 		if (!entry.scrollable)
-			return skipScrollable > 0;
-
+		return skipScrollable > 0;
+		
 		if (skipScrollable > 0) {
-			--skipScrollable;
-			return true;
+		--skipScrollable;
+		return true;
 		}
-
+		
 		return false;
 	});
-
+	
 	int visibleScrollable = 0;
-	const auto visibleEntriesView = afterOffsetView
-		| std::views::filter([&](const MenuEntry& entry) mutable {
-			if (entry.scrollable) {
-				if (visibleScrollable < MAX_VISIBLE_LINES) {
-					++visibleScrollable;
-					return true;
-				}
-
-				return false;
-			}
-
-			return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
-		})
-		| std::views::transform([](const MenuEntry& entry) {
-			return &entry;
-		});
-
+	const std::ranges::filter_view visibleFiltered(afterOffsetView, [&](const MenuEntry& entry) mutable {
+		if (entry.scrollable) {
+		if (visibleScrollable < MAX_VISIBLE_LINES) {
+		++visibleScrollable;
+		return true;
+		}
+		
+		return false;
+		}
+		
+		return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
+	});
+	
+	const std::ranges::transform_view visibleEntriesView(visibleFiltered, [](const MenuEntry& entry) {
+		return &entry;
+	});
+	
 	std::vector<const MenuEntry*> visibleEntries(std::ranges::begin(visibleEntriesView), std::ranges::end(visibleEntriesView));
 	int y = 32;
 
