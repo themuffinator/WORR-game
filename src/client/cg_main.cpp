@@ -22,6 +22,8 @@
 #include "../server/monsters/m_flash.hpp"
 #include "../shared/logger.hpp"
 
+#include <span>
+
 cgame_import_t cgi;
 cgame_export_t cglobals;
 
@@ -41,6 +43,13 @@ static void InitClientLogging()
 	cgi.Com_Print = worr::LoggerPrint;
 }
 
+/*
+=============
+CG_GetExtension
+
+Returns nullptr for unsupported extensions.
+=============
+*/
 static void* CG_GetExtension(const char* name) {
 	return nullptr;
 }
@@ -64,16 +73,60 @@ void CG_DrawHUD(int32_t isplit, const cg_server_data_t* data, vrect_t hud_vrect,
 void CG_TouchPics();
 layout_flags_t CG_LayoutFlags(const player_state_t* ps);
 
+/*
+=============
+CG_GetAmmoStatsSpan
+
+Returns a span view over the compressed ammo stats block.
+=============
+*/
+static std::span<const uint16_t> CG_GetAmmoStatsSpan(const player_state_t* ps) {
+	const auto stats_span = std::span<const int16_t>{ps->stats};
+	const auto ammo_span = stats_span.subspan(STAT_AMMO_INFO_START, NUM_AMMO_STATS);
+
+	return std::span<const uint16_t>{reinterpret_cast<const uint16_t*>(ammo_span.data()), ammo_span.size()};
+}
+
+/*
+=============
+CG_GetPowerupStatsSpan
+
+Returns a span view over the compressed powerup stats block.
+=============
+*/
+static std::span<const uint16_t> CG_GetPowerupStatsSpan(const player_state_t* ps) {
+	const auto stats_span = std::span<const int16_t>{ps->stats};
+	const auto powerup_span = stats_span.subspan(STAT_POWERUP_INFO_START, NUM_POWERUP_STATS);
+
+	return std::span<const uint16_t>{reinterpret_cast<const uint16_t*>(powerup_span.data()), powerup_span.size()};
+}
+
+/*
+=============
+CG_GetActiveWeaponWheelWeapon
+=============
+*/
 static int32_t CG_GetActiveWeaponWheelWeapon(const player_state_t* ps) {
 	return ps->stats[STAT_ACTIVE_WHEEL_WEAPON];
 }
 
+/*
+=============
+CG_GetOwnedWeaponWheelWeapons
+=============
+*/
 static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t* ps) {
 	return ((uint32_t)(uint16_t)ps->stats[STAT_WEAPONS_OWNED_1]) | ((uint32_t)(uint16_t)(ps->stats[STAT_WEAPONS_OWNED_2]) << 16);
 }
 
+/*
+=============
+CG_GetWeaponWheelAmmoCount
+=============
+*/
 static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammoID) {
-	uint16_t ammo = GetAmmoStat((uint16_t*)&ps->stats[STAT_AMMO_INFO_START], ammoID);
+	const auto ammo_stats = CG_GetAmmoStatsSpan(ps);
+	const uint16_t ammo = GetAmmoStat(ammo_stats.data(), ammoID);
 
 	if (ammo == AMMO_VALUE_INFINITE)
 		return -1;
@@ -81,21 +134,39 @@ static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammo
 	return ammo;
 }
 
+/*
+=============
+CG_GetPowerupWheelCount
+=============
+*/
 static int16_t CG_GetPowerupWheelCount(const player_state_t* ps, int32_t powerup_id) {
-	return GetPowerupStat((uint16_t*)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
+	const auto powerup_stats = CG_GetPowerupStatsSpan(ps);
+
+	return GetPowerupStat(powerup_stats.data(), powerup_id);
 }
 
+/*
+=============
+CG_GetHitMarkerDamage
+=============
+*/
 static int16_t CG_GetHitMarkerDamage(const player_state_t* ps) {
 	return ps->stats[STAT_HIT_MARKER];
 }
 
+/*
+=============
+CG_ParseConfigString
+
+Updates cached configuration values when configstrings change.
+=============
+*/
 static void CG_ParseConfigString(int32_t i, const char* s) {
 	if (i == CONFIG_N64_PHYSICS_MEDAL)
 		pm_config.n64Physics = !!strtoul(s, nullptr, 10);
 	else if (i == CS_AIRACCEL)
 		pm_config.airAccel = strtoul(s, nullptr, 10);
 }
-
 void CG_ParseCenterPrint(const char* str, int isplit, bool instant);
 void CG_ClearNotify(int32_t isplit);
 void CG_ClearCenterprint(int32_t isplit);

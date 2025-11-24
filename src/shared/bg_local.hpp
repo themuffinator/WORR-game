@@ -162,12 +162,12 @@ constexpr void set_compressed_integer(uint16_t* start, uint8_t id, uint16_t coun
 }
 
 template<size_t bits_per_value>
-constexpr uint16_t get_compressed_integer(uint16_t* start, uint8_t id) {
+constexpr uint16_t get_compressed_integer(const uint16_t* start, uint8_t id) {
 	uint16_t bit_offset = bits_per_value * id;
 	uint16_t byte = bit_offset / 8;
 	uint16_t bit_shift = bit_offset % 8;
 	uint16_t mask = (bit_v<bits_per_value> -1) << bit_shift;
-	uint16_t* base = (uint16_t*)((uint8_t*)start + byte);
+	const uint16_t* base = reinterpret_cast<const uint16_t*>(reinterpret_cast<const uint8_t*>(start) + byte);
 	return (*base & mask) >> bit_shift;
 }
 
@@ -180,7 +180,7 @@ constexpr void SetAmmoStat(uint16_t* start, uint8_t ammoID, uint16_t count) {
 	set_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID, count);
 }
 
-constexpr uint16_t GetAmmoStat(uint16_t* start, uint8_t ammoID) {
+constexpr uint16_t GetAmmoStat(const uint16_t* start, uint8_t ammoID) {
 	return get_compressed_integer<NUM_BITS_FOR_AMMO>(start, ammoID);
 }
 
@@ -194,7 +194,7 @@ constexpr void SetPowerupStat(uint16_t* start, uint8_t powerup_id, uint16_t coun
 	set_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id, count);
 }
 
-constexpr uint16_t GetPowerupStat(uint16_t* start, uint8_t powerup_id) {
+constexpr uint16_t GetPowerupStat(const uint16_t* start, uint8_t powerup_id) {
 	return get_compressed_integer<NUM_BITS_PER_POWERUP>(start, powerup_id);
 }
 
