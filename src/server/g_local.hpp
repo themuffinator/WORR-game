@@ -366,9 +366,19 @@ namespace Game {
 		});
 	}
 
-	// Finds a gametype by its short or long name (case-insensitive).
+	/*
+	=============
+	FromString
+
+	Finds a gametype by its short or long name (case-insensitive) while skipping
+	placeholder or non-multiplayer entries.
+	=============
+	*/
 	inline std::optional<GameType> FromString(std::string_view name) {
 		for (const auto& mode_info : GAME_MODES) {
+			if (mode_info.type == GameType::None)
+				continue;
+
 			if (AreStringsEqualIgnoreCase(name, mode_info.short_name) ||
 				AreStringsEqualIgnoreCase(name, mode_info.long_name)) {
 				return mode_info.type;
