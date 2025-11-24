@@ -9,6 +9,7 @@
 #include "command_registration.hpp"
 #include <algorithm>
 #include <numeric>
+#include <ranges>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -58,48 +59,69 @@ namespace Commands {
 
 	// --- Helper Function Definitions ---
 
-	static bool ValidateSocialIDFormat(std::string_view id) {
-		size_t sep = id.find(':');
-		if (sep == std::string_view::npos || sep == 0 || sep + 1 >= id.length())
-			return false;
+		/*
+		=============
+		ValidateSocialIDFormat
 
-		std::string_view prefix = id.substr(0, sep);
-		std::string_view value = id.substr(sep + 1);
+		Validates the structure and characters of a social ID.
+		=============
+		*/
+		static bool ValidateSocialIDFormat(std::string_view id) {
+			size_t sep = id.find(':');
+			if (sep == std::string_view::npos || sep == 0 || sep + 1 >= id.length())
+					return false;
 
-		if (prefix == "EOS") {
-			return value.length() == 32 && std::all_of(value.begin(), value.end(), [](char c) {
+			std::string_view prefix = id.substr(0, sep);
+			std::string_view value = id.substr(sep + 1);
+
+			auto isDigit = [](char c) {
+				return std::isdigit(static_cast<unsigned char>(c));
+			};
+
+			auto isHexDigit = [](char c) {
 				return std::isxdigit(static_cast<unsigned char>(c));
-				});
-		}
-		if (prefix == "Galaxy" || prefix == "NX") {
-			return (value.length() >= 17 && value.length() <= 20) && std::all_of(value.begin(), value.end(), ::isdigit);
-		}
-		if (prefix == "GDK") {
-			return (value.length() >= 15 && value.length() <= 17) && std::all_of(value.begin(), value.end(), ::isdigit);
-		}
-		if (prefix == "PSN") {
-			return !value.empty() && std::all_of(value.begin(), value.end(), ::isdigit);
-		}
-		if (prefix == "Steamworks") {
-			return value.starts_with("7656119") && std::all_of(value.begin(), value.end(), ::isdigit);
-		}
-		return false;
-	}
+			};
 
-	const char* ResolveSocialID(const char* rawArg, gentity_t*& foundClient) {
-		std::string_view arg(rawArg);
-		foundClient = ClientEntFromString(rawArg);
-		if (foundClient && foundClient->client) {
-			return foundClient->client->sess.socialID;
+			if (prefix == "EOS") {
+				return value.length() == 32 && std::ranges::all_of(value, isHexDigit);
+			}
+			if (prefix == "Galaxy" || prefix == "NX") {
+				return (value.length() >= 17 && value.length() <= 20) && std::ranges::all_of(value, isDigit);
+			}
+			if (prefix == "GDK") {
+				return (value.length() >= 15 && value.length() <= 17) && std::ranges::all_of(value, isDigit);
+			}
+			if (prefix == "PSN") {
+				return !value.empty() && std::ranges::all_of(value, isDigit);
+			}
+			if (prefix == "Steamworks") {
+				return value.starts_with("7656119") && std::ranges::all_of(value, isDigit);
+			}
+			return false;
 		}
 
-		if (ValidateSocialIDFormat(arg)) {
-			return rawArg;
+		/*
+		=============
+		ResolveSocialID
+
+		Resolves a social ID argument to a client or returns the validated raw value.
+		=============
+		*/
+		const char* ResolveSocialID(const char* rawArg, gentity_t*& foundClient) {
+			std::string_view arg(rawArg);
+			foundClient = ClientEntFromString(rawArg);
+			if (foundClient && foundClient->client) {
+					return foundClient->client->sess.socialID;
+			}
+
+			if (ValidateSocialIDFormat(arg)) {
+					return rawArg;
+			}
+
+			foundClient = nullptr;
+			return nullptr;
 		}
 
-		foundClient = nullptr;
-		return nullptr;
-	}
 
 
 	/*
