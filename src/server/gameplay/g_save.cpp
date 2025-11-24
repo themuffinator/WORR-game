@@ -2334,6 +2334,7 @@ void read_save_struct_json(const Json::Value& json, void* data, const save_struc
 
 #include <fstream>
 #include <memory>
+#include <cstring>
 
 static Json::Value parseJson(const char* jsonString) {
 	Json::CharReaderBuilder reader;
@@ -2351,18 +2352,87 @@ static Json::Value parseJson(const char* jsonString) {
 	return json;
 }
 
+class CountingStreamBuf : public std::streambuf {
+public:
+	CountingStreamBuf() : count(0) {}
+
+	size_t Count() const {
+		return count;
+	}
+
+protected:
+	std::streamsize xsputn(const char* s, std::streamsize n) override {
+		count += static_cast<size_t>(n);
+		return n;
+	}
+
+	int overflow(int ch) override {
+		if (ch != traits_type::eof()) {
+			++count;
+			return ch;
+		}
+
+		return traits_type::eof();
+	}
+
+private:
+	size_t count;
+};
+
+class FixedBufferStreamBuf : public std::streambuf {
+public:
+	FixedBufferStreamBuf(char* buffer, size_t size) {
+		setp(buffer, buffer + size);
+	}
+
+	size_t Written() const {
+		return static_cast<size_t>(pptr() - pbase());
+	}
+
+protected:
+	std::streamsize xsputn(const char* s, std::streamsize n) override {
+		if (pptr() + n > epptr())
+			n = epptr() - pptr();
+
+		memcpy(pptr(), s, static_cast<size_t>(n));
+		pbump(static_cast<int>(n));
+		return n;
+	}
+
+	int overflow(int ch) override {
+		if (ch != traits_type::eof() && pptr() < epptr()) {
+			*pptr() = static_cast<char>(ch);
+			pbump(1);
+			return ch;
+		}
+
+		return traits_type::eof();
+	}
+};
+
+/*
+=============
+saveJson
+=============
+*/
 static char* saveJson(const Json::Value& json, size_t* out_size) {
 	Json::StreamWriterBuilder builder;
 	builder["indentation"] = "\t";
 	builder["useSpecialFloats"] = true;
 	const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
-	std::stringstream						  ss(std::ios_base::out | std::ios_base::binary);
-	writer->write(json, &ss);
-	*out_size = ss.tellp();
+
+	CountingStreamBuf counting_buf;
+	std::ostream counting_stream(&counting_buf);
+	writer->write(json, &counting_stream);
+
+	*out_size = counting_buf.Count();
 	char* const out = static_cast<char*>(gi.TagMalloc(*out_size + 1, TAG_GAME));
-	// FIXME: some day...
-	std::string v = ss.str();
-	memcpy(out, v.c_str(), *out_size);
+
+	FixedBufferStreamBuf buffer(out, *out_size);
+	std::ostream output_stream(&buffer);
+	writer->write(json, &output_stream);
+
+	*out_size = buffer.Written();
 	out[*out_size] = '\0';
 	return out;
 }
