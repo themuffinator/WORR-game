@@ -477,9 +477,20 @@ namespace {
 			});
 	}
 
+	/*
+	=============
+	ApplyCaptureRewards
+
+	Handles post-capture scoring, assists, and medal awards.
+	=============
+	*/
 	void ApplyCaptureRewards(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam) {
-		if (!flagEntity || !scorer || !scorer->client) {
+		if (!scorer || !scorer->client) {
 			return;
+		}
+
+		if (flagEntity) {
+			// Placeholder for any entity-dependent logic.
 		}
 
 		Flags().RecordCapture(level.time, scoringTeam);
