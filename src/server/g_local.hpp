@@ -278,10 +278,22 @@ extern cvar_t* g_gametype;
 // This namespace encapsulates game state logic and provides safe, inline
 // functions to replace the old macros.
 namespace Game {
+	/*
+	=============
+	NormalizeTypeValue
+
+	Clamps a requested gametype into the valid range, reporting when adjustments occur.
+	=============
+	*/
 	inline GameType NormalizeTypeValue(int type_value) {
-		if (type_value < static_cast<int>(GT_FIRST) || type_value > static_cast<int>(GT_LAST))
-			return GT_FIRST;
-		return static_cast<GameType>(type_value);
+		const int min_value = static_cast<int>(GT_FIRST);
+		const int max_value = static_cast<int>(GT_LAST);
+		const int clamped_value = std::clamp(type_value, min_value, max_value);
+
+		if (clamped_value != type_value)
+			gi.Com_PrintFmt("g_gametype {} out of range, clamped to {}\n", type_value, clamped_value);
+
+		return static_cast<GameType>(clamped_value);
 	}
 
 	// This function would get the current game type from your game's state,
