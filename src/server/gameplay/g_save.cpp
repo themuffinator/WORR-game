@@ -900,10 +900,12 @@ static bool edict_t_gravity_is_empty(const void* data) {
 	return *((const float*)data) == 1.f;
 }
 
+static constexpr Vector3 GRAVITY_UP_VECTOR = { 0, 0, -1 };
+
 static bool edict_t_gravityVector_is_empty(const void* data) {
-	constexpr Vector3 up_vector = { 0, 0, -1 };
-	return *(const Vector3*)data == up_vector;
+	return *(const Vector3*)data == GRAVITY_UP_VECTOR;
 }
+
 
 // clang-format off
 #define DECLARE_SAVE_STRUCT gentity_t

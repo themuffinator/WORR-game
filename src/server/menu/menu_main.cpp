@@ -135,8 +135,8 @@ void Menu::Render(gentity_t* ent) const {
 		return entry.scrollable;
 	});
 
-	const bool hasAbove = (std::ranges::distance(scrollableView | std::views::take(offset)) > 0);
-	const bool hasBelow = (std::ranges::distance(scrollableView | std::views::drop(offset + MAX_VISIBLE_LINES)) > 0);
+	const bool hasAbove = offset > 0;
+	const bool hasBelow = (offset + MAX_VISIBLE_LINES) < totalScrollable;
 
 	const auto afterOffsetView = entries | std::views::drop_while([skipScrollable = offset](const MenuEntry& entry) mutable {
 		if (!entry.scrollable)

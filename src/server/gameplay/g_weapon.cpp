@@ -1653,7 +1653,7 @@ constexpr DamageFlags DISRUPTOR_IMPACT_FLAGS = (DamageFlags::NoPowerArmor | Dama
 constexpr GameTime DISRUPTOR_DAMAGE_TIME = 500_ms;
 
 static THINK(disruptor_pain_daemon_think) (gentity_t* self) -> void {
-	constexpr Vector3 pain_normal = { 0, 0, 1 };
+	static constexpr Vector3 pain_normal = { 0, 0, 1 };
 	int				 hurt;
 
 	if (!self->inUse)

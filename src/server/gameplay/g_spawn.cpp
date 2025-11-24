@@ -66,11 +66,13 @@ classname when available.
 */
 static std::string LogEntityLabel(const gentity_t* ent)
 {
-	const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
-	const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
+const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
+const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
 
-	return std::format("#{} ({})", ent_num, class_name);
+return std::format("#{} ({})", ent_num, class_name);
 }
+
+static void MapPostProcess(gentity_t* ent);
 
 /*
 =============
@@ -1555,6 +1557,19 @@ void PrecacheInventoryItems() {
 		for (item_id_t id = IT_NULL; id != IT_TOTAL; id = static_cast<item_id_t>(id + 1))
 			if (ce->client->pers.inventory[id])
 				PrecacheItem(GetItemByIndex(id));
+	}
+}
+
+/*
+=============
+PrecacheForRandomRespawn
+
+Ensure every item definition is precached when random respawn is enabled.
+=============
+*/
+static void PrecacheForRandomRespawn() {
+	for (item_id_t id = static_cast<item_id_t>(IT_NULL + 1); id < IT_TOTAL; id = static_cast<item_id_t>(id + 1)) {
+		PrecacheItem(GetItemByIndex(id));
 	}
 }
 
