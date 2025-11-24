@@ -2045,8 +2045,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	char tokenBuffer[MAX_TOKEN_CHARS];
 
 	while (true) {
-		const char* token = COM_Parse(&entities, tokenBuffer, sizeof(tokenBuffer));
-		if (!entities)
+		const char* token = COM_Parse(&entities);
+		if (!entities || token[0] == '\0')
 			break;
 
 		if (token[0] != '{') {
