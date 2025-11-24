@@ -9,6 +9,8 @@
 #include "command_registration.hpp"
 #include <unordered_map>
 #include <string>
+#include <span>
+#include <ranges>
 
 // The central registry for all client commands.
 static std::unordered_map<std::string, Command, StringViewHash, std::equal_to<>> s_clientCommands;
@@ -134,26 +136,70 @@ namespace Commands {
 	}
 }
 
+/*
+=============
+WrapFloodIndex
+
+Returns a wrapped index into the flood message circular buffer.
+=============
+*/
+static size_t WrapFloodIndex(size_t index, size_t bufferSize) {
+	return bufferSize ? index % bufferSize : 0U;
+}
+
+/*
+=============
+CheckFlood
+
+Validates whether a client is currently exceeding allowed chat frequency.
+=============
+*/
 bool CheckFlood(gentity_t* ent) {
 	if (!flood_msgs->integer)
 		return false;
+
 	gclient_t* cl = ent->client;
 	if (level.time < cl->flood.lockUntil) {
 		gi.LocClient_Print(ent, PRINT_HIGH, "$g_flood_cant_talk",
 			(cl->flood.lockUntil - level.time).seconds<int32_t>());
 		return true;
 	}
+
 	const size_t maxMsgs = static_cast<size_t>(flood_msgs->integer);
-	const size_t bufferSize = std::size(cl->flood.messageTimes);
-	size_t i = (static_cast<size_t>(cl->flood.time) + bufferSize - maxMsgs + 1) % bufferSize;
-	if (cl->flood.messageTimes[i] && (level.time - cl->flood.messageTimes[i] < GameTime::from_sec(flood_persecond->value))) {
+	const std::span<GameTime> messageSpan(cl->flood.messageTimes);
+	const size_t bufferSize = messageSpan.size();
+	const size_t boundedMsgs = std::min(maxMsgs, bufferSize);
+
+	const size_t startIndex = WrapFloodIndex(
+		static_cast<size_t>(cl->flood.time) + bufferSize - boundedMsgs + 1,
+		bufferSize
+	);
+
+	const auto recentMessages = std::views::iota(size_t{ 0 }, boundedMsgs) | std::views::transform([
+		startIndex,
+		bufferSize,
+		&messageSpan
+	](size_t offset) -> const GameTime& {
+		return messageSpan[WrapFloodIndex(startIndex + offset, bufferSize)];
+	});
+
+	size_t recentCount = 0;
+	const GameTime perSecondWindow = GameTime::from_sec(flood_persecond->value);
+	for (const GameTime& messageTime : recentMessages) {
+		if (messageTime && (level.time - messageTime < perSecondWindow)) {
+			++recentCount;
+		}
+	}
+
+	if (recentCount >= boundedMsgs) {
 		cl->flood.lockUntil = level.time + GameTime::from_sec(flood_waitdelay->value);
 		gi.LocClient_Print(ent, PRINT_CHAT, "$g_flood_cant_talk", flood_waitdelay->integer);
 		return true;
 	}
+
 	cl->flood.time = static_cast<int>(
-		(static_cast<size_t>(cl->flood.time) + 1) % bufferSize
-		);
+		WrapFloodIndex(static_cast<size_t>(cl->flood.time) + 1, bufferSize)
+	);
 	cl->flood.messageTimes[cl->flood.time] = level.time;
 	return false;
 }
