@@ -186,19 +186,34 @@ static void Harvester_SetupSkullEntity(gentity_t* skull, Item* item, Team team) 
 	skull->fteam = team;
 }
 
-gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback) {
+/*
+=============
+Harvester_SpawnSkull
+
+Attempts to spawn a skull entity and returns the spawn result status.
+=============
+*/
+HarvesterSpawnResult Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback) {
+	HarvesterSpawnResult result;
+
 	if (!Harvester_Active()) {
-		return nullptr;
+		return result;
 	}
 
 	Item* item = GetItemByIndex(IT_HARVESTER_SKULL);
 	if (!item) {
-		return nullptr;
+		++level.harvester.spawnFailureCount;
+		gi.Com_PrintFmt("{}: missing harvester skull item for {} team.\n", __FUNCTION__, Teams_TeamName(team));
+		result.status = HarvesterSpawnStatus::MissingItem;
+		return result;
 	}
 
 	gentity_t* skull = Spawn();
 	if (!skull) {
-		return nullptr;
+		++level.harvester.spawnFailureCount;
+		gi.Com_PrintFmt("{}: failed to allocate skull entity for {} team.\n", __FUNCTION__, Teams_TeamName(team));
+		result.status = HarvesterSpawnStatus::AllocationFailed;
+		return result;
 	}
 
 	Harvester_SetupSkullEntity(skull, item, team);
@@ -211,17 +226,53 @@ gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtF
 
 	gi.setModel(skull, item->worldModel);
 	gi.linkEntity(skull);
-	return skull;
+
+	result.status = HarvesterSpawnStatus::Success;
+	result.entity = skull;
+	return result;
 }
 
-void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
-	if (!Teamplay_IsPrimaryTeam(team) || count <= 0) {
-		return;
+/*
+=============
+Harvester_DropSkulls
+
+Spawns requested skulls while tracking pending failures to keep totals consistent.
+=============
+*/
+int Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
+	const size_t teamIndex = static_cast<size_t>(team);
+	int pending = level.harvester.pendingDrops.at(teamIndex) + count;
+
+	if (!Teamplay_IsPrimaryTeam(team) || pending <= 0) {
+		return 0;
 	}
 
-	for (int i = 0; i < count; ++i) {
-		Harvester_SpawnSkull(team, fallback, dropAtFallback);
+	level.harvester.pendingDrops.at(teamIndex) = 0;
+	int spawned = 0;
+
+	for (int i = 0; i < pending; ++i) {
+		const HarvesterSpawnResult result = Harvester_SpawnSkull(team, fallback, dropAtFallback);
+		if (result.status == HarvesterSpawnStatus::Success && result.entity) {
+			++spawned;
+			continue;
+		}
+
+		const int remaining = pending - i;
+		level.harvester.pendingDrops.at(teamIndex) = remaining;
+
+		if (result.status != HarvesterSpawnStatus::Inactive) {
+			const char* reason = result.status == HarvesterSpawnStatus::MissingItem ? "missing skull item" : "skull allocation failed";
+			gi.Com_PrintFmt("{}: deferring {} {} skull drop(s) due to {}. Pending total: {}\n",
+			__FUNCTION__,
+			remaining,
+			Teams_TeamName(team),
+			reason,
+			level.harvester.pendingDrops.at(teamIndex));
+		}
+		break;
 	}
+
+	return spawned;
 }
 
 void Harvester_RegisterBase(gentity_t* ent, Team team) {
@@ -290,9 +341,18 @@ bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other) {
 	return true;
 }
 
+/*
+=============
+Harvester_Reset
+
+Clears harvester structures, active skulls, and pending drop bookkeeping.
+=============
+*/
 void Harvester_Reset() {
 	level.harvester.generator = nullptr;
 	level.harvester.bases.fill(nullptr);
+	level.harvester.pendingDrops.fill(0);
+	level.harvester.spawnFailureCount = 0;
 
 	for (size_t i = 0; i < globals.numEntities; ++i) {
 		gentity_t* ent = &g_entities[i];

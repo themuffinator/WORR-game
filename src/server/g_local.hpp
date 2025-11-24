@@ -2797,6 +2797,8 @@ std::array<gentity_t*, 4> outOfBounds{};
 	struct HarvesterState {
 		gentity_t* generator = nullptr;
 		std::array<gentity_t*, static_cast<size_t>(Team::Total)> bases{};
+		std::array<int, static_cast<size_t>(Team::Total)> pendingDrops{};
+		int spawnFailureCount = 0;
 	} harvester{};
 
 	MatchState	matchState = MatchState::None;
