@@ -157,14 +157,71 @@ namespace Commands {
 		});
 	}
 
+
+	static constexpr GameTime kTeamShuffleGraceDuration = 3_sec;
+
 	/*
 	=============
-	ToggleTeam
+	BroadcastShuffleAnnouncement
+
+	Sends consistent broadcast and center notifications for skill-based team
+	shuffles so admins, votes, and automated triggers share the same phrasing.
 	=============
 	*/
-        static Team ToggleTeam(Team currentTeam) {
-                return (currentTeam == Team::Red) ? Team::Blue : Team::Red;
-        }
+	static void BroadcastShuffleAnnouncement(bool matchInProgress, GameTime graceDuration) {
+		const char* phaseLabel = matchInProgress ? "mid-match" : "pre-game";
+		const char* actionLabel = matchInProgress ? "rebalance" : "shuffle";
+		const int32_t graceSeconds = std::max(graceDuration.seconds<int32_t>(), 0);
+
+		gi.LocBroadcast_Print(PRINT_HIGH, "[SHUFFLE]: Skill-based {} ({}) - respawning in {}s.\n", actionLabel, phaseLabel, graceSeconds);
+		gi.LocBroadcast_Print(PRINT_CENTER, ".Skill-based {} ({})\n.Respawning in {} seconds...\n", actionLabel, phaseLabel, graceSeconds);
+	}
+
+	/*
+	=============
+	ApplyShuffleGrace
+
+	Respawns active players onto their new teams and holds movement briefly so
+	they can adjust loadouts before play resumes.
+	=============
+	*/
+	static void ApplyShuffleGrace(GameTime graceDuration, bool matchInProgress) {
+		const GameTime resumeTime = level.time + graceDuration;
+		const uint16_t holdMs = static_cast<uint16_t>(std::clamp<int64_t>(graceDuration.milliseconds(), 0, std::numeric_limits<uint16_t>::max()));
+		const bool shuffleRedRover = Game::Is(GameType::RedRover) && matchInProgress;
+
+		for (auto ec : active_clients()) {
+			if (!ec->client || !ClientIsPlaying(ec->client))
+				continue;
+
+			const Team originalTeam = ec->client->sess.team;
+			ClientRespawn(ec);
+			if (shuffleRedRover) {
+				ec->client->sess.team = originalTeam;
+				ec->client->ps.teamID = static_cast<int>(originalTeam);
+				AssignPlayerSkin(ec, ec->client->sess.skinName);
+			}
+
+			ec->client->respawnMinTime = std::max(ec->client->respawnMinTime, resumeTime);
+			ec->client->respawnMaxTime = std::max(ec->client->respawnMaxTime, resumeTime);
+			ec->client->respawn_timeout = std::max(ec->client->respawn_timeout, resumeTime);
+
+			ec->client->ps.pmove.pmFlags |= PMF_TIME_KNOCKBACK;
+			ec->client->ps.pmove.pmTime = std::max<uint16_t>(ec->client->ps.pmove.pmTime, holdMs);
+			ec->client->latchedButtons = BUTTON_NONE;
+			ec->client->buttons = BUTTON_NONE;
+			ec->client->oldButtons = BUTTON_NONE;
+		}
+	}
+
+		/*
+		=============
+		ToggleTeam
+		=============
+		*/
+		static Team ToggleTeam(Team currentTeam) {
+			return (currentTeam == Team::Red) ? Team::Blue : Team::Red;
+		}
 
 	/*
 	=============
@@ -192,13 +249,13 @@ namespace Commands {
 		}
 	}
 
-        /*
-        =============
-        TeamSkillShuffle
+	/*
+	=============
+	TeamSkillShuffle
 
-        Shuffles active players between teams based on descending skill rating.
-        =============
-        */
+	Shuffles active players between teams based on descending skill rating.
+	=============
+	*/
 	bool TeamSkillShuffle() {
 		if (!Teams()) return false;
 
@@ -225,10 +282,8 @@ namespace Commands {
 		ApplyTeamShuffleAssignments(assignments, matchInProgress);
 
 		CalculateRanks();
-
-		const char* message = matchInProgress ? "Teams have been rebalanced based on skill.\n" :
-		"Teams have been shuffled based on skill.\n";
-		gi.Broadcast_Print(PRINT_HIGH, message);
+		ApplyShuffleGrace(kTeamShuffleGraceDuration, matchInProgress);
+		BroadcastShuffleAnnouncement(matchInProgress, kTeamShuffleGraceDuration);
 		return true;
 	}
 
