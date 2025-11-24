@@ -124,13 +124,27 @@ MONSTERINFO_RUN(berserk_run) (gentity_t* self) -> void {
 		M_SetAnimation(self, &berserk_move_run1);
 }
 
+/*
+=============
+berserk_attack_spike
+
+Executes the spike melee strike and sets a debounce timer on a miss.
+=============
+*/
 static void berserk_attack_spike(gentity_t* self) {
-	constexpr Vector3 aim = { MELEE_DISTANCE, 0, -24 };
+	const Vector3 aim = { MELEE_DISTANCE, 0, -24 };
 
 	if (!fire_hit(self, aim, irandom(5, 11), 80)) //	Faster attack -- upwards and backwards
 		self->monsterInfo.melee_debounce_time = level.time + 1.2_sec;
 }
 
+/*
+=============
+berserk_swing
+
+Plays the swing sound for the berserk melee attack.
+=============
+*/
 static void berserk_swing(gentity_t* self) {
 	gi.sound(self, CHAN_WEAPON, sound_punch, 1, ATTN_NORM, 0);
 }
