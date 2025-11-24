@@ -8,6 +8,7 @@ extern const spawn_temp_t& ED_GetSpawnTemp();
 
 namespace {
 	constexpr GameTime kDominationMinScoreInterval = 100_ms;
+	constexpr GameTime kDominationMinCaptureTime = 250_ms;
 	constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
 	constexpr int32_t kDominationDefaultPointsPerTick = 1;
 	constexpr float kDominationDefaultCaptureSeconds = 3.0f;
@@ -65,23 +66,37 @@ namespace {
 	*/
 	GameTime DominationCaptureTime() {
 		float seconds = kDominationDefaultCaptureSeconds;
+		bool adjusted = false;
 
 		if (g_domination_capture_time) {
 			const float configured = g_domination_capture_time->value;
 			if (std::isfinite(configured))
 				seconds = configured;
+			else
+				adjusted = true;
 		}
 
-		if (seconds <= 0.0f)
-			return 0_ms;
+		if (!(seconds > 0.0f)) {
+			seconds = kDominationMinCaptureTime.seconds<float>();
+			adjusted = true;
+		}
 
-		return GameTime::from_sec(seconds);
+		GameTime captureTime = GameTime::from_sec(seconds);
+		if (!captureTime || captureTime < kDominationMinCaptureTime) {
+			seconds = std::max(seconds, kDominationMinCaptureTime.seconds<float>());
+			captureTime = kDominationMinCaptureTime;
+			adjusted = true;
+		}
+
+		if (adjusted && gi.Com_PrintFmt)
+			gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
+
+		return captureTime;
 	}
-
 	/*
 	=============
 	DominationOccupantGrace
-
+	
 	Returns the grace period a player remains registered inside a point volume between touch events.
 	=============
 	*/
