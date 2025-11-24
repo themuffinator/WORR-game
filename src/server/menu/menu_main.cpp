@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <ranges>
 
 namespace std {
 	using ::sinf;
@@ -130,50 +129,33 @@ void Menu::Render(gentity_t* ent) const {
 	const int totalScrollable = CountScrollableEntries(entries);
 	const int maxOffset = std::max(0, totalScrollable - MAX_VISIBLE_LINES);
 	const int offset = std::clamp(scrollOffset, 0, maxOffset);
-
-	const auto scrollablePredicate = [](const MenuEntry& entry) {
-	return entry.scrollable;
-	};
 	
-	const std::ranges::filter_view scrollableView(entries, scrollablePredicate);
+	const bool hasAbove = (offset > 0);
 	
-	const std::ranges::take_view scrollableAbove(scrollableView, offset);
-	const std::ranges::drop_view scrollableBelow(scrollableView, offset + MAX_VISIBLE_LINES);
-	
-	const bool hasAbove = (std::ranges::distance(scrollableAbove) > 0);
-	const bool hasBelow = (std::ranges::distance(scrollableBelow) > 0);
-	
-	const std::ranges::drop_while_view afterOffsetView(entries, [skipScrollable = offset](const MenuEntry& entry) mutable {
-		if (!entry.scrollable)
-		return skipScrollable > 0;
-		
-		if (skipScrollable > 0) {
-		--skipScrollable;
-		return true;
-		}
-		
-		return false;
-	});
-	
+	int skipScrollable = offset;
 	int visibleScrollable = 0;
-	const std::ranges::filter_view visibleFiltered(afterOffsetView, [&](const MenuEntry& entry) mutable {
+	std::vector<const MenuEntry*> visibleEntries;
+	visibleEntries.reserve(entries.size());
+	
+	for (const MenuEntry& entry : entries) {
 		if (entry.scrollable) {
-		if (visibleScrollable < MAX_VISIBLE_LINES) {
-		++visibleScrollable;
-		return true;
+			if (skipScrollable > 0) {
+				--skipScrollable;
+				continue;
+			}
+
+			if (visibleScrollable >= MAX_VISIBLE_LINES)
+				continue;
+
+			++visibleScrollable;
+			visibleEntries.push_back(&entry);
 		}
-		
-		return false;
+		else if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset) {
+			visibleEntries.push_back(&entry);
 		}
-		
-		return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
-	});
-	
-	const std::ranges::transform_view visibleEntriesView(visibleFiltered, [](const MenuEntry& entry) {
-		return &entry;
-	});
-	
-	std::vector<const MenuEntry*> visibleEntries(std::ranges::begin(visibleEntriesView), std::ranges::end(visibleEntriesView));
+	}
+
+	const bool hasBelow = (offset + visibleScrollable) < totalScrollable;
 	int y = 32;
 
 	if (hasAbove) {
