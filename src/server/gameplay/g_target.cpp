@@ -2183,7 +2183,7 @@ void SP_target_achievement(gentity_t* self) {
 
 static USE(use_target_story) (gentity_t* self, gentity_t* other, gentity_t* activator) -> void {
 	level.campaign.story_active = !!(self->message && *self->message);
-	gi.configString(CONFIG_STORY_SCORELIMIT, self->message ? self->message : "");
+	gi.configString(CONFIG_STORY, self->message ? self->message : "");
 }
 
 void SP_target_story(gentity_t* self) {

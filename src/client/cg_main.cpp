@@ -23,6 +23,7 @@
 #include "../shared/logger.hpp"
 #include <array>
 #include <charconv>
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <span>
@@ -129,17 +130,8 @@ static void InitCGame()
 
 	cgame_init_time = cgi.CL_ClientRealTime();
 
-	uint32_t config_value = 0;
-	if (!ParseUnsignedInteger(cgi.get_configString(CONFIG_N64_PHYSICS_MEDAL), config_value))
-	cgi.Com_Error("Invalid CONFIG_N64_PHYSICS_MEDAL configstring");
-
-	pm_config.n64Physics = config_value != 0;
-
-	config_value = 0;
-	if (!ParseUnsignedInteger(cgi.get_configString(CS_AIRACCEL), config_value))
-	cgi.Com_Error("Invalid CS_AIRACCEL configstring");
-
-	pm_config.airAccel = static_cast<int32_t>(config_value);
+	pm_config.n64Physics = std::atoi(cgi.get_configString(CONFIG_N64_PHYSICS)) != 0;
+	pm_config.airAccel = std::atoi(cgi.get_configString(CS_AIRACCEL));
 }
 
 /*
@@ -276,24 +268,16 @@ CG_ParseConfigString
 */
 static void CG_ParseConfigString(int32_t i, const char* s)
 {
-	uint32_t config_value = 0;
-
 	switch (i) {
-		case CONFIG_N64_PHYSICS_MEDAL:
-		if (!ParseUnsignedInteger(s, config_value))
-		cgi.Com_Error("Invalid CONFIG_N64_PHYSICS_MEDAL configstring");
-
-		pm_config.n64Physics = config_value != 0;
+	case CONFIG_N64_PHYSICS:
+		pm_config.n64Physics = std::atoi(s) != 0;
 		break;
 
-		case CS_AIRACCEL:
-		if (!ParseUnsignedInteger(s, config_value))
-		cgi.Com_Error("Invalid CS_AIRACCEL configstring");
-
-		pm_config.airAccel = static_cast<int32_t>(config_value);
+	case CS_AIRACCEL:
+		pm_config.airAccel = std::atoi(s);
 		break;
 
-		default:
+	default:
 		break;
 	}
 }

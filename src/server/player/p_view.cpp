@@ -1482,9 +1482,9 @@ void ClientEndServerFrame(gentity_t* ent) {
 
 	if (deathmatch->integer) {
 		int limit = GT_ScoreLimit();
-		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configString(CONFIG_STORY_SCORELIMIT), nullptr, 10)) {
-			ent->client->ps.stats[STAT_SCORELIMIT] = CONFIG_STORY_SCORELIMIT;
-			gi.configString(CONFIG_STORY_SCORELIMIT, limit ? G_Fmt("{}", limit).data() : "");
+		if (!ent->client->ps.stats[STAT_SCORELIMIT] || limit != strtoul(gi.get_configString(CONFIG_STORY), nullptr, 10)) {
+			ent->client->ps.stats[STAT_SCORELIMIT] = CONFIG_STORY;
+			gi.configString(CONFIG_STORY, limit ? G_Fmt("{}", limit).data() : "");
 		}
 	}
 

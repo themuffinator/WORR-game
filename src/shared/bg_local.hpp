@@ -73,10 +73,10 @@ enum {
 	CONFIG_COOP_RESPAWN_STRING_END = CONFIG_COOP_RESPAWN_STRING + (static_cast<int>(CoopRespawn::Total) - 1),
 
 	// [Paril-KEX] if 1, n64 player physics apply
-	CONFIG_N64_PHYSICS_MEDAL,	// this is also used for medal display in dm
+	CONFIG_N64_PHYSICS,
 	CONFIG_HEALTH_BAR_NAME, // active health bar name
 
-	CONFIG_STORY_SCORELIMIT,	// this is also used for scorelimit display in dm
+	CONFIG_STORY,
 
 	CONFIG_LAST
 };
