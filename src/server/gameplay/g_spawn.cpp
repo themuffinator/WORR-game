@@ -2042,19 +2042,22 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	}
 
 	int inhibited = 0;
-	bool firstEntity = true;
+	gentity_t* ent = nullptr;
+	char tokenBuffer[MAX_TOKEN_CHARS];
 
 	while (true) {
-		const char* token = COM_Parse(&entities);
-		if (!entities || token[0] == '\0')
+		const char* token = COM_Parse(&entities, tokenBuffer, sizeof(tokenBuffer));
+		if (!entities)
 			break;
 
 		if (token[0] != '{') {
 			gi.Com_ErrorFmt("{}: Found \"{}\" when expecting {{ in entity string.\n", __FUNCTION__, token);
 		}
 
-		gentity_t* ent = firstEntity ? g_entities : Spawn();
-		firstEntity = false;
+		if (!ent)
+			ent = g_entities;
+		else
+			ent = Spawn();
 
 		entities = ED_ParseEntity(entities, ent);
 		worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
@@ -2069,19 +2072,20 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 			ent->spawnFlags &= ~SPAWNFLAG_EDITOR_MASK;
 		}
 
+		if (!ent)
+			gi.Com_Error("invalid/empty entity string!\n");
+
 		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-ED_CallSpawn(ent);
-ApplyMapPostProcess(ent);
+		ED_CallSpawn(ent);
+		ApplyMapPostProcess(ent);
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
-	if (inhibited > 0 && g_verbose->integer) {
-	gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-}
+	if (inhibited > 0 && g_verbose->integer)
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
 
-	if (!EnsureWorldspawnPresent()) {
-	gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity parse.\n", __FUNCTION__);
-}
+	if (!EnsureWorldspawnPresent())
+		gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity parse.\n", __FUNCTION__);
 
 	// Level post-processing and setup
 	PrecacheStartItems();
@@ -2091,9 +2095,8 @@ ApplyMapPostProcess(ent);
 	Tech_SetupSpawn();
 
 	if (deathmatch->integer) {
-		if (g_dm_random_items->integer) {
+		if (g_dm_random_items->integer)
 			PrecacheForRandomRespawn();
-		}
 		game.item_inhibit_pu = 0;
 		game.item_inhibit_pa = 0;
 		game.item_inhibit_ht = 0;
@@ -2114,7 +2117,7 @@ ApplyMapPostProcess(ent);
 
 	level.init = true;
 
-	globals.serverFlags &= ~SERVER_FLAG_LOADING;
+globals.serverFlags &= ~SERVER_FLAG_LOADING;
 }
 
 /*
