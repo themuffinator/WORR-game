@@ -4609,6 +4609,7 @@ void PushAward(gentity_t* ent, PlayerMedal medal);
 void P_SaveGhostSlot(gentity_t* ent);
 void P_RestoreFromGhostSlot(gentity_t* ent);
 bool InitPlayerTeam(gentity_t* ent);
+void ClientSetReadyStatus(gentity_t& ent, bool state, bool toggle);
 void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle);
 
 constexpr SpawnFlags SPAWNFLAG_LANDMARK_KEEP_Z = 1_spawnflag;
