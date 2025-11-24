@@ -117,11 +117,19 @@ Sections are omitted when insufficient room remains in the layout buffer.
 ===============
 */
 static void AddScoreboardHeaderAndFooter(std::string& layout, gentity_t* viewer, bool includeFooter = true) {
+	const char* limitLabel = "Score Limit";
+	if (Game::Has(GameFlags::Rounds) || Game::Has(GameFlags::Elimination)) {
+		limitLabel = "Round Limit";
+	}
+	else if (Game::Has(GameFlags::CTF)) {
+		limitLabel = "Capture Limit";
+	}
+	
 	// Header: map and gametype
 	if (!AppendFormat(layout,
-		"xv 0 yv -40 cstring2 \"{} on '{}'\" "
-		"xv 0 yv -30 cstring2 \"Score Limit: {}\" ",
-		level.gametype_name.data(), level.longName.data(), GT_ScoreLimit()))
+			"xv 0 yv -40 cstring2 \"{} on '{}'\" "
+			"xv 0 yv -30 cstring2 \"{}: {}\" ",
+			level.gametype_name.data(), level.longName.data(), limitLabel, GT_ScoreLimit()))
 		return;
 
 	if (hostname->string[0] && *hostname->string)
