@@ -23,6 +23,7 @@
 #include "../shared/logger.hpp"
 #include <charconv>
 #include <cstring>
+#include <span>
 #include <system_error>
 
 cgame_import_t cgi;
@@ -145,12 +146,70 @@ static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t* ps)
 
 /*
 =============
+CG_GetAmmoStatsSpan
+
+Build a span over the packed ammo statistics in the player state.
+=============
+*/
+static std::span<uint16_t> CG_GetAmmoStatsSpan(const player_state_t* ps)
+{
+	auto stats_span = std::span<const int16_t>{ps->stats};
+	auto ammo_info = stats_span.subspan(STAT_AMMO_INFO_START, NUM_AMMO_STATS);
+
+	return std::span<uint16_t>{const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(ammo_info.data())), ammo_info.size()};
+}
+
+/*
+=============
+CG_GetPowerupStatsSpan
+
+Build a span over the packed powerup statistics in the player state.
+=============
+*/
+static std::span<uint16_t> CG_GetPowerupStatsSpan(const player_state_t* ps)
+{
+	auto stats_span = std::span<const int16_t>{ps->stats};
+	auto powerup_info = stats_span.subspan(STAT_POWERUP_INFO_START, NUM_POWERUP_STATS);
+
+	return std::span<uint16_t>{const_cast<uint16_t*>(reinterpret_cast<const uint16_t*>(powerup_info.data())), powerup_info.size()};
+}
+
+/*
+=============
+CG_GetAmmoStatValue
+
+Retrieve a packed ammo statistic from the player state.
+=============
+*/
+static uint16_t CG_GetAmmoStatValue(const player_state_t* ps, int32_t ammoID)
+{
+	std::span<uint16_t> ammo_stats = CG_GetAmmoStatsSpan(ps);
+
+	return GetAmmoStat(ammo_stats.data(), ammoID);
+}
+
+/*
+=============
+CG_GetPowerupStatValue
+
+Retrieve a packed powerup statistic from the player state.
+=============
+*/
+static uint16_t CG_GetPowerupStatValue(const player_state_t* ps, int32_t powerup_id)
+{
+	std::span<uint16_t> powerup_stats = CG_GetPowerupStatsSpan(ps);
+
+	return GetPowerupStat(powerup_stats.data(), powerup_id);
+}
+
+/*
+=============
 CG_GetWeaponWheelAmmoCount
 =============
 */
 static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammoID)
 {
-	uint16_t ammo = GetAmmoStat((uint16_t*)&ps->stats[STAT_AMMO_INFO_START], ammoID);
+	uint16_t ammo = CG_GetAmmoStatValue(ps, ammoID);
 
 	if (ammo == AMMO_VALUE_INFINITE)
 	return -1;
@@ -165,7 +224,7 @@ CG_GetPowerupWheelCount
 */
 static int16_t CG_GetPowerupWheelCount(const player_state_t* ps, int32_t powerup_id)
 {
-	return GetPowerupStat((uint16_t*)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
+	return CG_GetPowerupStatValue(ps, powerup_id);
 }
 
 /*
