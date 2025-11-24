@@ -739,6 +739,15 @@ namespace {
 			targetTeam = Team::Red;
 			announcerKey = "blue_flag_taken";
 			break;
+		case Team::Free:
+			if (Flags().GetStatus(Team::Free) != FlagStatus::AtBase &&
+				Flags().GetTakenTime(Team::Free) > level.time - 5_sec) {
+				return;
+			}
+			Flags().SetTakenTime(Team::Free, level.time);
+			targetTeam = Team::Free;
+			announcerKey = "enemy_flag_taken";
+			break;
 		default:
 			return;
 		}
