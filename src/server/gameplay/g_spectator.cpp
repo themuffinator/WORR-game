@@ -23,6 +23,13 @@
 #include <cctype>
 #include <cstddef>
 
+/*
+=============
+FreeFollower
+
+Releases spectator follow state and clears any transient view artifacts.
+=============
+*/
 void FreeFollower(gentity_t* ent) {
 	if (!ent)
 		return;
@@ -45,6 +52,13 @@ void FreeFollower(gentity_t* ent) {
 	ent->client->ps.rdFlags = RDF_NONE;
 }
 
+/*
+=============
+FreeClientFollowers
+
+Clears the follow state from any client currently watching the given entity.
+=============
+*/
 void FreeClientFollowers(gentity_t* ent) {
 	if (!ent)
 		return;
@@ -58,9 +72,62 @@ void FreeClientFollowers(gentity_t* ent) {
 }
 
 /*
-========================
+=============
+IsValidFollowTarget
+
+Determines whether the candidate can be followed by the spectator, respecting
+team and elimination rules.
+=============
+*/
+static bool IsValidFollowTarget(const gentity_t* spectator, const gentity_t* candidate) {
+	if (!spectator || !candidate || !candidate->inUse || !candidate->client)
+		return false;
+
+	if (!ClientIsPlaying(candidate->client) || candidate->client->eliminated)
+		return false;
+
+	if (spectator->client->eliminated && spectator->client->sess.team != candidate->client->sess.team)
+		return false;
+
+	return true;
+}
+
+/*
+=============
+AdvanceFollowTarget
+
+Steps through client slots in the specified direction and returns the next
+available follow target.
+=============
+*/
+static gentity_t* AdvanceFollowTarget(const gentity_t* spectator, ptrdiff_t startIndex, int direction) {
+	if (!spectator || direction == 0)
+		return nullptr;
+
+	ptrdiff_t index = startIndex;
+
+	for (size_t checked = 0; checked < game.maxClients; ++checked) {
+		index += direction;
+		if (index < 1)
+			index = game.maxClients;
+		if (index > game.maxClients)
+			index = 1;
+
+		gentity_t* candidate = g_entities + index;
+		if (IsValidFollowTarget(spectator, candidate))
+			return candidate;
+	}
+
+	return nullptr;
+}
+
+/*
+=============
 ClientUpdateFollowers
-========================
+
+Synchronizes a spectator's position and view state with their follow target,
+supporting both eyecam and third-person chase cameras.
+=============
 */
 void ClientUpdateFollowers(gentity_t* ent) {
 	if (!ent || !ent->client)
@@ -70,7 +137,11 @@ void ClientUpdateFollowers(gentity_t* ent) {
 
 	// Is our follow target invalid or gone?
 	if (!targ || !targ->inUse || !targ->client || !ClientIsPlaying(targ->client) || targ->client->eliminated) {
-		FreeClientFollowers(targ);
+		if (targ)
+			FreeClientFollowers(targ);
+
+		FreeFollower(ent);
+		GetFollowTarget(ent);
 		return;
 	}
 
@@ -283,65 +354,74 @@ static int ClientNumberFromString(gentity_t* to, char* s) {
 	return -1;
 }
 
+/*
+=============
+FollowNext
+
+Cycles the spectator to the next valid follow target, wrapping across slots.
+=============
+*/
 void FollowNext(gentity_t* ent) {
-	ptrdiff_t i;
-	gentity_t* e;
-
-	if (!ent->client->follow.target)
+	if (!ent || !ent->client)
 		return;
 
-	i = ent->client->follow.target - g_entities;
-	do {
-		i++;
-		if (i > game.maxClients)
-			i = 1;
-		e = g_entities + i;
-		if (!e->inUse)
-			continue;
-		if (ent->client->eliminated && ent->client->sess.team != e->client->sess.team)
-			continue;
-		if (ClientIsPlaying(e->client) && !e->client->eliminated)
-			break;
-	} while (e != ent->client->follow.target);
-
-	ent->client->follow.target = e;
-	ent->client->follow.update = true;
-}
-
-void FollowPrev(gentity_t* ent) {
-	int		 i;
-	gentity_t* e;
-
-	if (!ent->client->follow.target)
+	if (!ent->client->follow.target) {
+		GetFollowTarget(ent);
 		return;
-
-	i = ent->client->follow.target - g_entities;
-	do {
-		i--;
-		if (i < 1)
-			i = game.maxClients;
-		e = g_entities + i;
-		if (!e->inUse)
-			continue;
-		if (ent->client->eliminated && ent->client->sess.team != e->client->sess.team)
-			continue;
-		if (ClientIsPlaying(e->client) && !e->client->eliminated)
-			break;
-	} while (e != ent->client->follow.target);
-
-	ent->client->follow.target = e;
-	ent->client->follow.update = true;
-}
-
-void GetFollowTarget(gentity_t* ent) {
-	for (auto ec : active_clients()) {
-		if (ec->inUse && ClientIsPlaying(ec->client) && !ec->client->eliminated) {
-			if (ent->client->eliminated && ent->client->sess.team != ec->client->sess.team)
-				continue;
-			ent->client->follow.target = ec;
-			ent->client->follow.update = true;
-			ClientUpdateFollowers(ent);
-			return;
-		}
 	}
+
+	const ptrdiff_t startIndex = ent->client->follow.target - g_entities;
+	gentity_t* next = AdvanceFollowTarget(ent, startIndex, 1);
+
+	if (next) {
+		ent->client->follow.target = next;
+		ent->client->follow.update = true;
+		ClientUpdateFollowers(ent);
+	}
+}
+
+/*
+=============
+FollowPrev
+
+Cycles the spectator to the previous valid follow target, wrapping across slots.
+=============
+*/
+void FollowPrev(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
+
+	if (!ent->client->follow.target) {
+		GetFollowTarget(ent);
+		return;
+	}
+
+	const ptrdiff_t startIndex = ent->client->follow.target - g_entities;
+	gentity_t* previous = AdvanceFollowTarget(ent, startIndex, -1);
+
+	if (previous) {
+		ent->client->follow.target = previous;
+		ent->client->follow.update = true;
+		ClientUpdateFollowers(ent);
+	}
+}
+
+/*
+=============
+GetFollowTarget
+
+Finds the first valid follow candidate for the spectator and attaches to it.
+=============
+*/
+void GetFollowTarget(gentity_t* ent) {
+	if (!ent || !ent->client)
+		return;
+
+	gentity_t* target = AdvanceFollowTarget(ent, 0, 1);
+	if (!target)
+		return;
+
+	ent->client->follow.target = target;
+	ent->client->follow.update = true;
+	ClientUpdateFollowers(ent);
 }
