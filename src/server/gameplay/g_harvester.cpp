@@ -11,6 +11,7 @@ namespace {
 	constexpr GameTime HARVESTER_REMINDER_COOLDOWN = 2_sec;
 	constexpr float HARVESTER_SKULL_HORIZONTAL_TOSS = 60.0f;
 	constexpr float HARVESTER_SKULL_VERTICAL_TOSS = 90.0f;
+	constexpr int HARVESTER_MAX_SKULLS_PER_DROP = 16;
 	constexpr Vector3 HARVESTER_BASE_MINS{ -24.0f, -24.0f, 0.0f };
 	constexpr Vector3 HARVESTER_BASE_MAXS{ 24.0f, 24.0f, 64.0f };
 
@@ -241,33 +242,45 @@ Spawns requested skulls while tracking pending failures to keep totals consisten
 */
 int Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback) {
 	const size_t teamIndex = static_cast<size_t>(team);
-	int pending = level.harvester.pendingDrops.at(teamIndex) + count;
+	const int requested = level.harvester.pendingDrops.at(teamIndex) + count;
 
-	if (!Teamplay_IsPrimaryTeam(team) || pending <= 0) {
+	if (!Teamplay_IsPrimaryTeam(team) || requested <= 0) {
 		return 0;
 	}
 
-	level.harvester.pendingDrops.at(teamIndex) = 0;
+	const int toSpawn = std::min(requested, HARVESTER_MAX_SKULLS_PER_DROP);
+	const int deferred = requested - toSpawn;
+	if (deferred > 0) {
+		gi.Com_PrintFmt("{}: clamping {} {} skull drop(s) to {} per tick ({} deferred). Pending total: {}\n",
+			__FUNCTION__,
+			requested,
+			Teams_TeamName(team),
+			HARVESTER_MAX_SKULLS_PER_DROP,
+			deferred,
+			deferred);
+	}
+
+	level.harvester.pendingDrops.at(teamIndex) = deferred;
 	int spawned = 0;
 
-	for (int i = 0; i < pending; ++i) {
+	for (int i = 0; i < toSpawn; ++i) {
 		const HarvesterSpawnResult result = Harvester_SpawnSkull(team, fallback, dropAtFallback);
 		if (result.status == HarvesterSpawnStatus::Success && result.entity) {
 			++spawned;
 			continue;
 		}
 
-		const int remaining = pending - i;
-		level.harvester.pendingDrops.at(teamIndex) = remaining;
+		const int remaining = toSpawn - i;
+		level.harvester.pendingDrops.at(teamIndex) = deferred + remaining;
 
 		if (result.status != HarvesterSpawnStatus::Inactive) {
 			const char* reason = result.status == HarvesterSpawnStatus::MissingItem ? "missing skull item" : "skull allocation failed";
 			gi.Com_PrintFmt("{}: deferring {} {} skull drop(s) due to {}. Pending total: {}\n",
-			__FUNCTION__,
-			remaining,
-			Teams_TeamName(team),
-			reason,
-			level.harvester.pendingDrops.at(teamIndex));
+				__FUNCTION__,
+				remaining,
+				Teams_TeamName(team),
+				reason,
+				level.harvester.pendingDrops.at(teamIndex));
 		}
 		break;
 	}
