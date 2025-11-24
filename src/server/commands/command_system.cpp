@@ -162,17 +162,43 @@ namespace Commands {
 	ToggleTeam
 	=============
 	*/
-	static Team ToggleTeam(Team currentTeam) {
-		return (currentTeam == Team::Red) ? Team::Blue : Team::Red;
-	}
+        static Team ToggleTeam(Team currentTeam) {
+                return (currentTeam == Team::Red) ? Team::Blue : Team::Red;
+        }
 
 	/*
 	=============
-	TeamSkillShuffle
+	ApplyTeamShuffleAssignments
 
-	Shuffles active players between teams based on descending skill rating.
+	Applies shuffled team targets for each client while respecting the current match context.
 	=============
 	*/
+	static void ApplyTeamShuffleAssignments(const std::vector<std::pair<int, Team>>& assignments, bool matchInProgress) {
+		for (const auto& [clientNum, targetTeam] : assignments) {
+			if (clientNum < 0 || clientNum >= static_cast<int>(game.maxClients))
+				continue;
+
+			gentity_t* ent = &g_entities[clientNum + 1];
+			if (!ent->inUse || !ent->client)
+				continue;
+
+			if (ent->client->sess.team == targetTeam)
+				continue;
+
+			SetTeam(ent, targetTeam, false, true, true);
+
+			if (!matchInProgress)
+				ent->client->pers.readyStatus = false;
+		}
+	}
+
+        /*
+        =============
+        TeamSkillShuffle
+
+        Shuffles active players between teams based on descending skill rating.
+        =============
+        */
 	bool TeamSkillShuffle() {
 		if (!Teams()) return false;
 
@@ -186,14 +212,23 @@ namespace Commands {
 			return game.clients[clientNum].sess.skillRating;
 		});
 
+		std::vector<std::pair<int, Team>> assignments;
+		assignments.reserve(playerIndices.size());
+
 		Team currentTeam = Team::Red;
 		for (const int clientNum : playerIndices) {
-			game.clients[clientNum].sess.team = currentTeam;
+			assignments.emplace_back(clientNum, currentTeam);
 			currentTeam = ToggleTeam(currentTeam);
 		}
 
-		gi.Broadcast_Print(PRINT_HIGH, "Teams have been shuffled based on skill.\n");
-		Match_Reset();
+		const bool matchInProgress = level.matchState == MatchState::In_Progress;
+		ApplyTeamShuffleAssignments(assignments, matchInProgress);
+
+		CalculateRanks();
+
+		const char* message = matchInProgress ? "Teams have been rebalanced based on skill.\n" :
+		"Teams have been shuffled based on skill.\n";
+		gi.Broadcast_Print(PRINT_HIGH, message);
 		return true;
 	}
 
