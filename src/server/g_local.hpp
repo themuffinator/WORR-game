@@ -275,130 +275,6 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 } };
 
 extern cvar_t* g_gametype;
-// This namespace encapsulates game state logic and provides safe, inline
-// functions to replace the old macros.
-namespace Game {
-	/*
-	=============
-	NormalizeTypeValue
-
-	Clamps a requested gametype into the valid range, reporting when adjustments occur.
-	=============
-	*/
-	inline GameType NormalizeTypeValue(int type_value) {
-		const int min_value = static_cast<int>(GT_FIRST);
-		const int max_value = static_cast<int>(GT_LAST);
-		const int clamped_value = std::clamp(type_value, min_value, max_value);
-
-		if (clamped_value != type_value)
-			gi.Com_PrintFmt("g_gametype {} out of range, clamped to {}\n", type_value, clamped_value);
-
-		return static_cast<GameType>(clamped_value);
-	}
-
-	// This function would get the current game type from your game's state,
-	// for example, a cvar like `g_gametype`.
-	inline GameType GetCurrentType() {
-		if (!g_gametype)
-			return GT_FIRST;
-
-		return NormalizeTypeValue(g_gametype->integer);
-	}
-
-	inline const GameTypeInfo& GetInfo(GameType type) {
-		const int raw_value = static_cast<int>(type);
-		if (raw_value < static_cast<int>(GameType::None) || raw_value >= static_cast<int>(GameType::Total)) {
-			return GAME_MODES[static_cast<size_t>(GT_FIRST)];
-		}
-		return GAME_MODES[static_cast<size_t>(raw_value)];
-	}
-
-	inline const GameTypeInfo& GetInfo(int type_value) {
-		return GetInfo(NormalizeTypeValue(type_value));
-	}
-
-	// Returns all information for the currently active gametype.
-	inline const GameTypeInfo& GetCurrentInfo() {
-		if (!g_gametype)
-			return GetInfo(GT_FIRST);
-
-		return GetInfo(g_gametype->integer);
-	}
-
-	// Checks if the current gametype is a specific type.
-	// Replaces: Game::Is(GameType::TeamDeathmatch)
-	inline bool Is(GameType type) {
-		return GetCurrentType() == type;
-	}
-
-	// Checks if the current gametype is NOT a specific type.
-	// Replaces: Game::IsNot(GameType::TeamDeathmatch)
-	inline bool IsNot(GameType type) {
-		return GetCurrentType() != type;
-	}
-
-	// Checks if the current gametype has a specific property flag.
-	// Replaces: Game::Has(GTF_TEAMS)
-	inline bool Has(GameFlags flag) {
-		return HasFlag(GetCurrentInfo().flags, flag);
-	}
-
-	// Checks if the current gametype does NOT have a specific property flag.
-	// Replaces: !Game::Has(GTF_TEAMS)
-	inline bool DoesNotHave(GameFlags flag) {
-		return !HasFlag(GetCurrentInfo().flags, flag);
-	}
-
-	inline bool IsCurrentTypeValid() {
-		if (!g_gametype)
-			return false;
-
-		const int type_value = g_gametype->integer;
-		return type_value >= static_cast<int>(GT_FIRST) && type_value <= static_cast<int>(GT_LAST);
-	}
-
-	inline char ToLowerASCII(char ch) {
-		return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-	}
-
-	/*
-	=============
-	AreStringsEqualIgnoreCase
-
-	Helper for case-insensitive string_view comparison.
-	=============
-	*/
-	inline bool AreStringsEqualIgnoreCase(std::string_view a, std::string_view b) {
-		if (a.size() != b.size()) {
-			return false;
-		}
-
-		return std::ranges::equal(a, b, [](char a_char, char b_char) {
-			return ToLowerASCII(a_char) == ToLowerASCII(b_char);
-		});
-	}
-
-	/*
-	=============
-	FromString
-
-	Finds a gametype by its short, long, or spawn name (case-insensitive).
-	=============
-	*/
-	inline std::optional<GameType> FromString(std::string_view name) {
-		for (const auto& mode_info : GAME_MODES) {
-			if (mode_info.type == GameType::None)
-				continue;
-
-			if (AreStringsEqualIgnoreCase(name, mode_info.short_name) ||
-					AreStringsEqualIgnoreCase(name, mode_info.long_name) ||
-					AreStringsEqualIgnoreCase(name, mode_info.spawn_name)) {
-				return mode_info.type;
-			}
-		}
-		return std::nullopt; // Return an empty optional if no match is found.
-	}
-}
 
 enum class MatchState : uint8_t {
 	None,
@@ -623,6 +499,131 @@ public:
 };
 
 extern local_game_import_t  gi;
+
+// This namespace encapsulates game state logic and provides safe, inline
+// functions to replace the old macros.
+namespace Game {
+	/*
+	=============
+	NormalizeTypeValue
+
+	Clamps a requested gametype into the valid range, reporting when adjustments occur.
+	=============
+	*/
+	inline GameType NormalizeTypeValue(int type_value) {
+	const int min_value = static_cast<int>(GT_FIRST);
+	const int max_value = static_cast<int>(GT_LAST);
+	const int clamped_value = std::clamp(type_value, min_value, max_value);
+
+	if (clamped_value != type_value)
+	gi.Com_PrintFmt("g_gametype {} out of range, clamped to {}\n", type_value, clamped_value);
+
+	return static_cast<GameType>(clamped_value);
+	}
+
+	// This function would get the current game type from your game's state,
+	// for example, a cvar like `g_gametype`.
+	inline GameType GetCurrentType() {
+	if (!g_gametype)
+	return GT_FIRST;
+
+	return NormalizeTypeValue(g_gametype->integer);
+	}
+
+	inline const GameTypeInfo& GetInfo(GameType type) {
+	const int raw_value = static_cast<int>(type);
+	if (raw_value < static_cast<int>(GameType::None) || raw_value >= static_cast<int>(GameType::Total)) {
+	return GAME_MODES[static_cast<size_t>(GT_FIRST)];
+	}
+	return GAME_MODES[static_cast<size_t>(raw_value)];
+	}
+
+	inline const GameTypeInfo& GetInfo(int type_value) {
+	return GetInfo(NormalizeTypeValue(type_value));
+	}
+
+	// Returns all information for the currently active gametype.
+	inline const GameTypeInfo& GetCurrentInfo() {
+	if (!g_gametype)
+	return GetInfo(GT_FIRST);
+
+	return GetInfo(g_gametype->integer);
+	}
+
+	// Checks if the current gametype is a specific type.
+	// Replaces: Game::Is(GameType::TeamDeathmatch)
+	inline bool Is(GameType type) {
+	return GetCurrentType() == type;
+	}
+
+	// Checks if the current gametype is NOT a specific type.
+	// Replaces: Game::IsNot(GameType::TeamDeathmatch)
+	inline bool IsNot(GameType type) {
+	return GetCurrentType() != type;
+	}
+
+	// Checks if the current gametype has a specific property flag.
+	// Replaces: Game::Has(GTF_TEAMS)
+	inline bool Has(GameFlags flag) {
+	return HasFlag(GetCurrentInfo().flags, flag);
+	}
+
+	// Checks if the current gametype does NOT have a specific property flag.
+	// Replaces: !Game::Has(GTF_TEAMS)
+	inline bool DoesNotHave(GameFlags flag) {
+	return !HasFlag(GetCurrentInfo().flags, flag);
+	}
+
+	inline bool IsCurrentTypeValid() {
+	if (!g_gametype)
+	return false;
+
+	const int type_value = g_gametype->integer;
+	return type_value >= static_cast<int>(GT_FIRST) && type_value <= static_cast<int>(GT_LAST);
+	}
+
+	inline char ToLowerASCII(char ch) {
+	return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+	}
+
+	/*
+	=============
+	AreStringsEqualIgnoreCase
+
+	Helper for case-insensitive string_view comparison.
+	=============
+	*/
+	inline bool AreStringsEqualIgnoreCase(std::string_view a, std::string_view b) {
+	if (a.size() != b.size()) {
+	return false;
+	}
+
+	return std::ranges::equal(a, b, [](char a_char, char b_char) {
+	return ToLowerASCII(a_char) == ToLowerASCII(b_char);
+	});
+	}
+
+	/*
+	=============
+	FromString
+
+	Finds a gametype by its short, long, or spawn name (case-insensitive).
+	=============
+	*/
+	inline std::optional<GameType> FromString(std::string_view name) {
+	for (const auto& mode_info : GAME_MODES) {
+	if (mode_info.type == GameType::None)
+	continue;
+
+	if (AreStringsEqualIgnoreCase(name, mode_info.short_name) ||
+	AreStringsEqualIgnoreCase(name, mode_info.long_name) ||
+	AreStringsEqualIgnoreCase(name, mode_info.spawn_name)) {
+	return mode_info.type;
+	}
+	}
+	return std::nullopt; // Return an empty optional if no match is found.
+	}
+}
 
 // =================================================================
 

@@ -41,28 +41,6 @@ namespace {
 
 	/*
 	=============
-	Harvester_SendMissingObjectiveReminder
-
-	Sends a short, localized reminder when a player tries to score without a required objective.
-	=============
-	*/
-	void Harvester_SendMissingObjectiveReminder(gentity_t* ent, bool harvesterMode, bool oneFlagMode) {
-		if ((!harvesterMode && !oneFlagMode) || !ent || !ent->client) {
-			return;
-		}
-
-		GameTime& nextReminderTime = ent->client->harvesterReminderTime;
-		if (level.time < nextReminderTime) {
-			return;
-		}
-
-		nextReminderTime = level.time + HARVESTER_REMINDER_COOLDOWN;
-		const char* message = harvesterMode ? "$g_harvester_need_skulls" : "$g_oneflag_need_flag";
-		gi.LocClient_Print(ent, PRINT_HIGH, message);
-	}
-
-	/*
-	=============
 	Harvester_BaseTouch
 
 	Handles scoring interactions for Harvester and OneFlag gametypes.
@@ -156,6 +134,28 @@ namespace {
 			verticalRandom);
 		skull->s.origin = origin;
 	}
+}
+
+/*
+=============
+Harvester_SendMissingObjectiveReminder
+
+Sends a short, localized reminder when a player tries to score without a required objective.
+=============
+*/
+void Harvester_SendMissingObjectiveReminder(gentity_t* ent, bool harvesterMode, bool oneFlagMode) {
+	if ((!harvesterMode && !oneFlagMode) || !ent || !ent->client) {
+		return;
+	}
+
+	GameTime& nextReminderTime = ent->client->harvesterReminderTime;
+	if (level.time < nextReminderTime) {
+		return;
+	}
+
+	nextReminderTime = level.time + HARVESTER_REMINDER_COOLDOWN;
+	const char* message = harvesterMode ? "$g_harvester_need_skulls" : "$g_oneflag_need_flag";
+	gi.LocClient_Print(ent, PRINT_HIGH, message);
 }
 
 bool Harvester_Active() {
