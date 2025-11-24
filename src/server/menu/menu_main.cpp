@@ -29,12 +29,26 @@ namespace std {
 
 namespace {
 
+/*
+=============
+CountScrollableEntries
+
+Returns the total number of scrollable menu entries in the provided list.
+=============
+*/
 	int CountScrollableEntries(const std::vector<MenuEntry>& entries) {
 		return static_cast<int>(std::count_if(entries.begin(), entries.end(), [](const MenuEntry& entry) {
 			return entry.scrollable;
-			}));
+		}));
 	}
 
+/*
+=============
+ScrollableIndexFor
+
+Converts an entry index into its corresponding scrollable index position.
+=============
+*/
 	int ScrollableIndexFor(const std::vector<MenuEntry>& entries, int index) {
 		int count = 0;
 		for (int i = 0; i < index && i < static_cast<int>(entries.size()); ++i) {
@@ -42,6 +56,42 @@ namespace {
 				++count;
 		}
 		return count;
+	}
+
+/*
+=============
+CollectVisibleEntries
+
+Builds the list of entries that should be rendered based on the current
+scroll offset.
+=============
+*/
+	std::vector<const MenuEntry*> CollectVisibleEntries(const std::vector<MenuEntry>& entries, int offset, int maxOffset) {
+		int skippedScrollable = offset;
+		int visibleScrollable = 0;
+		std::vector<const MenuEntry*> visibleEntries;
+		visibleEntries.reserve(entries.size());
+
+		for (const MenuEntry& entry : entries) {
+			if (entry.scrollable) {
+				if (skippedScrollable > 0) {
+					--skippedScrollable;
+					continue;
+				}
+
+				if (visibleScrollable >= MAX_VISIBLE_LINES)
+					continue;
+
+				++visibleScrollable;
+				visibleEntries.push_back(&entry);
+				continue;
+			}
+
+			if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
+				visibleEntries.push_back(&entry);
+		}
+
+		return visibleEntries;
 	}
 
 } // namespace
@@ -133,29 +183,7 @@ void Menu::Render(gentity_t* ent) const {
 	const bool hasAbove = (offset > 0);
 	const bool hasBelow = (offset < maxOffset);
 
-	int skippedScrollable = offset;
-	int visibleScrollable = 0;
-	std::vector<const MenuEntry*> visibleEntries;
-	visibleEntries.reserve(entries.size());
-
-	for (const MenuEntry& entry : entries) {
-		if (entry.scrollable) {
-			if (skippedScrollable > 0) {
-				--skippedScrollable;
-				continue;
-			}
-
-			if (visibleScrollable >= MAX_VISIBLE_LINES)
-				continue;
-
-			++visibleScrollable;
-			visibleEntries.push_back(&entry);
-			continue;
-		}
-
-		if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
-			visibleEntries.push_back(&entry);
-	}
+	std::vector<const MenuEntry*> visibleEntries = CollectVisibleEntries(entries, offset, maxOffset);
 
 	int y = 32;
 
