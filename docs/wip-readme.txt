@@ -4,7 +4,7 @@
 **WORR** is an advanced gameplay expansion and server mod for **QUAKE II Rerelease**, designed to bring a richer, more dynamic single-player and multiplayer experience.
 It dramatically extends entity and gameplay support, integrates modern competitive systems, and refines the core feel of QUAKE II while preserving its fast-paced essence.
 
-It is a successor to my previous project, [Muff Mode](github.com/themuffinator/muffmode).
+It is a successor to my previous project, [Muff Mode](https://github.com/themuffinator/muffmode).
 
 ---
 
