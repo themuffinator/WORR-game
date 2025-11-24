@@ -21,11 +21,32 @@
 #include "cg_local.hpp"
 #include "../server/monsters/m_flash.hpp"
 #include "../shared/logger.hpp"
+#include <charconv>
+#include <cstring>
+#include <system_error>
 
 cgame_import_t cgi;
 cgame_export_t cglobals;
 
 static cgame_import_t base_cgi;
+
+/*
+=============
+ParseUnsignedInteger
+
+Parse an unsigned integer from the provided C-string using std::from_chars.
+=============
+*/
+static bool ParseUnsignedInteger(const char* text, uint32_t& value)
+{
+	if (!text)
+	return false;
+
+	const char* end = text + std::strlen(text);
+	auto result = std::from_chars(text, end, value, 10);
+
+	return result.ec == std::errc() && result.ptr == end;
+}
 
 /*
 =============
@@ -41,7 +62,13 @@ static void InitClientLogging()
 	cgi.Com_Print = worr::LoggerPrint;
 }
 
-static void* CG_GetExtension(const char* name) {
+/*
+=============
+CG_GetExtension
+=============
+*/
+static void* CG_GetExtension(const char* name)
+{
 	return nullptr;
 }
 
@@ -49,51 +76,128 @@ void CG_InitScreen();
 
 uint64_t cgame_init_time = 0;
 
-static void InitCGame() {
+/*
+=============
+InitCGame
+
+Initialize client-side systems and cache configuration values.
+=============
+*/
+static void InitCGame()
+{
 	CG_InitScreen();
 
 	cgame_init_time = cgi.CL_ClientRealTime();
 
-	pm_config.n64Physics = !!strtoul(cgi.get_configString(CONFIG_N64_PHYSICS_MEDAL), nullptr, 10);
-	pm_config.airAccel = strtoul(cgi.get_configString(CS_AIRACCEL), nullptr, 10);
+	uint32_t config_value = 0;
+	if (!ParseUnsignedInteger(cgi.get_configString(CONFIG_N64_PHYSICS_MEDAL), config_value))
+	cgi.Com_Error("Invalid CONFIG_N64_PHYSICS_MEDAL configstring");
+
+	pm_config.n64Physics = config_value != 0;
+
+	config_value = 0;
+	if (!ParseUnsignedInteger(cgi.get_configString(CS_AIRACCEL), config_value))
+	cgi.Com_Error("Invalid CS_AIRACCEL configstring");
+
+	pm_config.airAccel = static_cast<int32_t>(config_value);
 }
 
-static void ShutdownCGame() {}
+/*
+=============
+ShutdownCGame
+=============
+*/
+static void ShutdownCGame()
+{
+
+}
 
 void CG_DrawHUD(int32_t isplit, const cg_server_data_t* data, vrect_t hud_vrect, vrect_t hud_safe, int32_t scale, int32_t playernum, const player_state_t* ps);
 void CG_TouchPics();
 layout_flags_t CG_LayoutFlags(const player_state_t* ps);
 
-static int32_t CG_GetActiveWeaponWheelWeapon(const player_state_t* ps) {
+/*
+=============
+CG_GetActiveWeaponWheelWeapon
+=============
+*/
+static int32_t CG_GetActiveWeaponWheelWeapon(const player_state_t* ps)
+{
 	return ps->stats[STAT_ACTIVE_WHEEL_WEAPON];
 }
 
-static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t* ps) {
+/*
+=============
+CG_GetOwnedWeaponWheelWeapons
+=============
+*/
+static uint32_t CG_GetOwnedWeaponWheelWeapons(const player_state_t* ps)
+{
 	return ((uint32_t)(uint16_t)ps->stats[STAT_WEAPONS_OWNED_1]) | ((uint32_t)(uint16_t)(ps->stats[STAT_WEAPONS_OWNED_2]) << 16);
 }
 
-static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammoID) {
+/*
+=============
+CG_GetWeaponWheelAmmoCount
+=============
+*/
+static int16_t CG_GetWeaponWheelAmmoCount(const player_state_t* ps, int32_t ammoID)
+{
 	uint16_t ammo = GetAmmoStat((uint16_t*)&ps->stats[STAT_AMMO_INFO_START], ammoID);
 
 	if (ammo == AMMO_VALUE_INFINITE)
-		return -1;
+	return -1;
 
 	return ammo;
 }
 
-static int16_t CG_GetPowerupWheelCount(const player_state_t* ps, int32_t powerup_id) {
+/*
+=============
+CG_GetPowerupWheelCount
+=============
+*/
+static int16_t CG_GetPowerupWheelCount(const player_state_t* ps, int32_t powerup_id)
+{
 	return GetPowerupStat((uint16_t*)&ps->stats[STAT_POWERUP_INFO_START], powerup_id);
 }
 
-static int16_t CG_GetHitMarkerDamage(const player_state_t* ps) {
+/*
+=============
+CG_GetHitMarkerDamage
+=============
+*/
+static int16_t CG_GetHitMarkerDamage(const player_state_t* ps)
+{
 	return ps->stats[STAT_HIT_MARKER];
 }
 
-static void CG_ParseConfigString(int32_t i, const char* s) {
-	if (i == CONFIG_N64_PHYSICS_MEDAL)
-		pm_config.n64Physics = !!strtoul(s, nullptr, 10);
-	else if (i == CS_AIRACCEL)
-		pm_config.airAccel = strtoul(s, nullptr, 10);
+/*
+=============
+CG_ParseConfigString
+=============
+*/
+static void CG_ParseConfigString(int32_t i, const char* s)
+{
+	uint32_t config_value = 0;
+
+	switch (i) {
+		case CONFIG_N64_PHYSICS_MEDAL:
+		if (!ParseUnsignedInteger(s, config_value))
+		cgi.Com_Error("Invalid CONFIG_N64_PHYSICS_MEDAL configstring");
+
+		pm_config.n64Physics = config_value != 0;
+		break;
+
+		case CS_AIRACCEL:
+		if (!ParseUnsignedInteger(s, config_value))
+		cgi.Com_Error("Invalid CS_AIRACCEL configstring");
+
+		pm_config.airAccel = static_cast<int32_t>(config_value);
+		break;
+
+		default:
+		break;
+	}
 }
 
 void CG_ParseCenterPrint(const char* str, int isplit, bool instant);
@@ -109,7 +213,7 @@ CG_GetMonsterFlashOffset
 static void CG_GetMonsterFlashOffset(MonsterMuzzleFlashID id, gvec3_ref_t offset) {
 	const auto index = static_cast<unsigned int>(id);
 	if (index >= std::size(monster_flash_offset))
-		cgi.Com_Error("Bad muzzle flash offset");
+	cgi.Com_Error("Bad muzzle flash offset");
 
 	offset = monster_flash_offset[index];
 }
@@ -123,9 +227,9 @@ and global variables
 =================
 */
 Q2GAME_API cgame_export_t* GetCGameAPI(cgame_import_t* import) {
-cgi = *import;
+	cgi = *import;
 
-InitClientLogging();
+	InitClientLogging();
 
 	cglobals.apiVersion = CGAME_API_VERSION;
 	cglobals.Init = InitCGame;
