@@ -7,8 +7,11 @@
 
 #include "command_system.hpp"
 #include "command_registration.hpp"
-#include <unordered_map>
+#include <algorithm>
+#include <numeric>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 // The central registry for all client commands.
 static std::unordered_map<std::string, Command, StringViewHash, std::equal_to<>> s_clientCommands;
@@ -98,40 +101,80 @@ namespace Commands {
 		return nullptr;
 	}
 
-	bool TeamSkillShuffle() {
-		if (!Teams()) return false;
 
-		std::vector<int> playerIndices;
-		int totalSkill = 0;
+	/*
+	=============
+	CollectEligibleClientIndices
 
+	Collects client indices for active players within the valid client range.
+	=============
+	*/
+	static std::vector<int> CollectEligibleClientIndices() {
+		std::vector<int> clientIndices;
 		for (auto p_ent : active_players()) {
 			const int clientIndex = p_ent->s.number - 1;
 			if (clientIndex < 0 || clientIndex >= static_cast<int>(game.maxClients)) {
 				continue;
 			}
 
-			playerIndices.push_back(clientIndex);
-			totalSkill += p_ent->client->sess.skillRating;
+			clientIndices.push_back(clientIndex);
 		}
+		return clientIndices;
+	}
+
+	/*
+	=============
+	ComputeSkillTotal
+
+	Calculates the combined skill rating for the provided client indices.
+	=============
+	*/
+	static int ComputeSkillTotal(const std::vector<int>& clientIndices) {
+		return std::accumulate(clientIndices.begin(), clientIndices.end(), 0, [](int total, int clientNum) {
+			return total + game.clients[clientNum].sess.skillRating;
+		});
+	}
+
+	/*
+	=============
+	ToggleTeam
+	=============
+	*/
+	static Team ToggleTeam(Team currentTeam) {
+		return (currentTeam == Team::Red) ? Team::Blue : Team::Red;
+	}
+
+	/*
+	=============
+	TeamSkillShuffle
+
+	Shuffles active players between teams based on descending skill rating.
+	=============
+	*/
+	bool TeamSkillShuffle() {
+		if (!Teams()) return false;
+
+		auto playerIndices = CollectEligibleClientIndices();
+		const int totalSkill = ComputeSkillTotal(playerIndices);
+		(void)totalSkill;
 
 		if (playerIndices.size() < 2) return false;
 
-		// Sort players by skill rating, descending
 		std::ranges::sort(playerIndices, std::greater{}, [](int clientNum) {
 			return game.clients[clientNum].sess.skillRating;
-			});
+		});
 
-		// Distribute players into teams like picking for a schoolyard game
 		Team currentTeam = Team::Red;
-		for (int clientNum : playerIndices) {
+		for (const int clientNum : playerIndices) {
 			game.clients[clientNum].sess.team = currentTeam;
-			currentTeam = (currentTeam == Team::Red) ? Team::Blue : Team::Red;
+			currentTeam = ToggleTeam(currentTeam);
 		}
 
 		gi.Broadcast_Print(PRINT_HIGH, "Teams have been shuffled based on skill.\n");
 		Match_Reset();
 		return true;
 	}
+
 }
 
 bool CheckFlood(gentity_t* ent) {
