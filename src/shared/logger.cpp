@@ -1,11 +1,13 @@
 #include "logger.hpp"
 
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cctype>
 #include <cstdlib>
 #include <format>
 #include <functional>
+#include <mutex>
 #include <string>
 #include <string_view>
 
@@ -13,9 +15,16 @@ namespace worr {
 namespace {
 
 std::string g_module_name;
-LogLevel g_log_level = LogLevel::Info;
+std::atomic<LogLevel> g_log_level = LogLevel::Info;
 std::function<void(std::string_view)> g_print_sink;
 std::function<void(std::string_view)> g_error_sink;
+std::mutex g_logger_mutex;
+
+struct LoggerState {
+	std::string module_name;
+	std::function<void(std::string_view)> print_sink;
+	std::function<void(std::string_view)> error_sink;
+};
 
 /*
 =============
@@ -101,17 +110,30 @@ FormatMessage
 Build a structured log message for output.
 =============
 */
-std::string FormatMessage(LogLevel level, std::string_view message)
+std::string FormatMessage(LogLevel level, std::string_view module_name, std::string_view message)
 {
 	static constexpr std::array prefixes{ "[TRACE]", "[DEBUG]", "[INFO]", "[WARN]", "[ERROR]" };
 	const size_t prefix_index = static_cast<size_t>(LevelWeight(level));
 	std::string_view level_label = prefixes[std::min(prefix_index, prefixes.size() - 1)];
 
-	std::string formatted = std::format("[WORR][{}] {} {}", g_module_name, level_label, message);
+	std::string formatted = std::format("[WORR][{}] {} {}", module_name, level_label, message);
 	if (!formatted.empty() && formatted.back() != '\n')
 		formatted.push_back('\n');
 
 	return formatted;
+}
+
+/*
+=============
+SnapshotLoggerState
+
+Retrieve a thread-safe snapshot of logger configuration.
+=============
+*/
+LoggerState SnapshotLoggerState()
+{
+	std::lock_guard lock(g_logger_mutex);
+	return LoggerState{ g_module_name, g_print_sink, g_error_sink };
 }
 
 } // namespace
@@ -125,10 +147,14 @@ Initialize the logger with module metadata and output sinks.
 */
 void InitLogger(std::string_view module_name, std::function<void(std::string_view)> print_sink, std::function<void(std::string_view)> error_sink)
 {
-	g_module_name = module_name;
-	g_print_sink = std::move(print_sink);
-	g_error_sink = std::move(error_sink);
-	g_log_level = ReadLogLevelFromEnv();
+	{
+		std::lock_guard lock(g_logger_mutex);
+		g_module_name = module_name;
+		g_print_sink = std::move(print_sink);
+		g_error_sink = std::move(error_sink);
+	}
+
+	g_log_level.store(ReadLogLevelFromEnv(), std::memory_order_relaxed);
 }
 
 /*
@@ -140,7 +166,7 @@ Override the current logging level programmatically.
 */
 void SetLogLevel(LogLevel level)
 {
-	g_log_level = level;
+	g_log_level.store(level, std::memory_order_relaxed);
 }
 
 /*
@@ -152,7 +178,7 @@ Fetch the currently active log level.
 */
 LogLevel GetLogLevel()
 {
-	return g_log_level;
+	return g_log_level.load(std::memory_order_relaxed);
 }
 
 /*
@@ -164,7 +190,7 @@ Return whether the provided log level should emit output.
 */
 bool IsLogLevelEnabled(LogLevel level)
 {
-	return LevelWeight(level) >= LevelWeight(g_log_level);
+	return LevelWeight(level) >= LevelWeight(g_log_level.load(std::memory_order_relaxed));
 }
 
 /*
@@ -189,8 +215,13 @@ Hook-compatible error printer that always emits output.
 */
 void LoggerError(const char* message)
 {
-	Log(LogLevel::Error, message);
-	EnsureSink(g_error_sink, FormatMessage(LogLevel::Error, message));
+	const LoggerState state = SnapshotLoggerState();
+	const std::string formatted = FormatMessage(LogLevel::Error, state.module_name, message);
+
+	if (IsLogLevelEnabled(LogLevel::Error))
+		EnsureSink(state.print_sink, formatted);
+
+	EnsureSink(state.error_sink, formatted);
 }
 
 /*
@@ -205,7 +236,8 @@ void Log(LogLevel level, std::string_view message)
 	if (!IsLogLevelEnabled(level))
 		return;
 
-	EnsureSink(g_print_sink, FormatMessage(level, message));
+	const LoggerState state = SnapshotLoggerState();
+	EnsureSink(state.print_sink, FormatMessage(level, state.module_name, message));
 }
 
 /*
