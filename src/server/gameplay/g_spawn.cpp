@@ -56,8 +56,7 @@ assignment operator.
 void ResetLevelLocals() {
 	level.~LevelLocals();
 	new (&level) LevelLocals();
-}
-
+	}
 /*
 =============
 LogEntityLabel
@@ -72,8 +71,7 @@ static std::string LogEntityLabel(const gentity_t* ent)
 	const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
 
 	return std::format("#{} ({})", ent_num, class_name);
-}
-
+	}
 /*
 =============
 EnsureWorldspawnPresent
@@ -100,15 +98,13 @@ static bool EnsureWorldspawnPresent()
 	world->s.renderFX |= RF_IR_VISIBLE;
 
 	return world->inUse && world->className && !Q_strcasecmp(world->className, "worldspawn");
-}
-
+	}
 } // namespace
 
 const spawn_temp_t& ED_GetSpawnTemp()
 {
 	return st;
-}
-
+	}
 void SP_ambient_suck_wind(gentity_t* ent);
 void SP_ambient_drone(gentity_t* ent);
 void SP_ambient_flouro_buzz(gentity_t* ent);
@@ -712,13 +708,12 @@ static void SpawnEnt_MapFixes(gentity_t* ent) {
 			return;
 		}
 	}
-}
-
+	}
 // ----------
 
 /*
 ===============
-ED_CallSpawn
+		ED_CallSpawn
 
 Finds the spawn function for the entity and calls it
 ===============
@@ -864,8 +859,7 @@ void ED_CallSpawn(gentity_t* ent) {
 
 	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityLabel(ent));
 	FreeEntity(ent);
-}
-
+	}
 /*
 =============
 ED_NewString
@@ -895,8 +889,7 @@ char* ED_NewString(const char* string) {
 	}
 
 	return newb;
-}
-
+	}
 //
 // fields are used for spawning from the entity string
 //
@@ -1009,8 +1002,7 @@ static int32_t ED_LoadColor(const char* value) {
 
 	// integral
 	return atoi(value);
-}
-
+	}
 #define FIELD_COLOR(n, x) \
 	{ n, [](gentity_t *e, const char *s) { \
 		e->x = ED_LoadColor(s); \
@@ -1285,8 +1277,7 @@ static void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
 	}
 
 	worr::Logf(worr::LogLevel::Trace, "{}: unknown spawn key \"{}\" for {}", __FUNCTION__, key, LogEntityLabel(ent));
-}
-
+	}
 /*
 ====================
 ED_ParseEntity
@@ -1353,10 +1344,9 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 	worr::Logf(worr::LogLevel::Trace, "{}: parsed entity #{} as {} ({} keys)", __FUNCTION__, ent_num, parsed_class, st.keys_specified.size());
 
 	return data;
-}
-/*
+	}/*
 ================
-G_FindTeams
+	G_FindTeams
 
 Chain together all entities with a matching team field.
 
@@ -1410,8 +1400,7 @@ static void G_FixTeams() {
 
 	if (c)
 		gi.Com_PrintFmt("{}: {} entity team{} repaired.\n", __FUNCTION__, c, c != 1 ? "s" : "");
-}
-
+	}
 static void G_FindTeams() {
 	gentity_t* e1, * e2, * chain;
 	uint32_t i, j;
@@ -1452,8 +1441,7 @@ static void G_FindTeams() {
 
 	if (c1 && g_verbose->integer)
 		gi.Com_PrintFmt("{}: {} entity team{} found with a total of {} entit{}.\n", __FUNCTION__, c1, c1 != 1 ? "s" : "", c2, c2 != 1 ? "ies" : "y");
-}
-
+	}
 // inhibit entities from game based on cvars & spawnFlags
 static inline bool G_InhibitEntity(gentity_t* ent) {
 	if (ent->gametype) {
@@ -1544,8 +1532,7 @@ skip_not_ruleset:
 	return ((skill->integer == 0) && ent->spawnFlags.has(SPAWNFLAG_NOT_EASY)) ||
 		((skill->integer == 1) && ent->spawnFlags.has(SPAWNFLAG_NOT_MEDIUM)) ||
 		((skill->integer >= 2) && ent->spawnFlags.has(SPAWNFLAG_NOT_HARD));
-}
-
+	}
 void setup_shadow_lights();
 
 // [Paril-KEX]
@@ -1558,8 +1545,7 @@ void PrecacheInventoryItems() {
 			if (ce->client->pers.inventory[id])
 				PrecacheItem(GetItemByIndex(id));
 	}
-}
-
+	}
 /*
 =============
 PrecacheForRandomRespawn
@@ -1575,8 +1561,7 @@ static void PrecacheForRandomRespawn()
 
 		PrecacheItem(GetItemByIndex(id));
 	}
-}
-
+	}
 static void PrecacheStartItems() {
 	const char* raw = g_start_items && g_start_items->string ? g_start_items->string : "";
 	if (*raw == '\0') {
@@ -1644,8 +1629,7 @@ static void PrecacheStartItems() {
 
 		PrecacheItem(item);
 	}
-}
-
+	}
 static void PrecachePlayerSounds() {
 
 	gi.soundIndex("player/lava1.wav");
@@ -1695,8 +1679,7 @@ static void PrecachePlayerSounds() {
 	gi.soundIndex("*pain100_1.wav");
 	gi.soundIndex("*pain100_2.wav");
 	gi.soundIndex("*drown1.wav");
-}
-
+	}
 void GT_PrecacheAssets() {
 	if (Teams()) {
 		if (Game::IsNot(GameType::RedRover)) {
@@ -1720,8 +1703,7 @@ void GT_PrecacheAssets() {
 		mi_ctf_red_flag = gi.modelIndex("players/male/flag1.md2");
 		mi_ctf_blue_flag = gi.modelIndex("players/male/flag2.md2");
 	}
-}
-
+	}
 // [Paril-KEX]
 static void PrecacheAssets() {
 	if (!deathmatch->integer) {
@@ -1762,8 +1744,7 @@ static void PrecacheAssets() {
 	GT_PrecacheAssets();
 
 	gi.soundIndex("misc/talk1.wav");
-}
-
+	}
 constexpr int MAX_READ = 0x10000;		// read in blocks of 64k
 static void FS_Read(void* buffer, int len, FILE* f) {
 	int		block, remaining;
@@ -1794,8 +1775,7 @@ static void FS_Read(void* buffer, int len, FILE* f) {
 		remaining -= read;
 		buf += read;
 	}
-}
-
+	}
 
 /*
 ==============
@@ -1815,8 +1795,7 @@ bool VerifyEntityString(const char* entities) {
 		}
 
 		if (!or_buf || !*or_buf) {
-			gi.Com_ErrorFmt("{}: EOF while expecting opening brace.\n", __FUNCTION__);
-			return false;
+			break;
 		}
 
 		// parse the opening brace
@@ -1881,20 +1860,18 @@ bool VerifyEntityString(const char* entities) {
 	}
 
 	return true;
-}
-
+	}
 
 /*
 ==============
-ApplyMapPostProcess
+		ApplyMapPostProcess
 ==============
 */
 static void ApplyMapPostProcess(gentity_t* ent) {
 	if (!strcmp(level.mapName.data(), "bunk1") && !strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 		ent->wait = -1;
 	}
-}
-
+	}
 /*
 ==============
 TryLoadEntityOverride
@@ -1958,8 +1935,7 @@ static const char* TryLoadEntityOverride(const char* mapName, const char* defaul
 	}
 
 	return default_entities;
-}
-
+	}
 /*
 ===============
 SpawnEntities
@@ -1969,22 +1945,21 @@ parsing textual entity definitions out of an ent file.
 ===============
 */
 void SpawnEntities(const char* mapName, const char* entities, const char* spawnPoint) {
+	std::string entityStringStorage;
 	if (entities && *entities) {
 		bool overrideAllocated = false;
 		const char* loadedEntities = TryLoadEntityOverride(mapName, entities, overrideAllocated);
-		level.savedEntityString.assign(loadedEntities);
+		entityStringStorage.assign(loadedEntities);
 		if (overrideAllocated) {
 			gi.TagFree((void*)loadedEntities);
 		}
-		entities = level.savedEntityString.c_str();
 	}
 	else {
 		if (g_verbose->integer) {
 			gi.Com_PrintFmt("{}: Empty entity string for map \"{}\".\n", __FUNCTION__, mapName);
 		}
 
-		level.savedEntityString.clear();
-		entities = level.savedEntityString.c_str();
+		entityStringStorage.clear();
 	}
 
 	// Clamp skill level to valid range [0, 4]
@@ -2031,6 +2006,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	level.isN64 = mapView.starts_with("q64/");
 	level.campaign.coopScalePlayers = 0;
 	level.campaign.coopHealthScaling = std::clamp(g_coop_health_scaling->value, 0.0f, 1.0f);
+	level.savedEntityString = std::move(entityStringStorage);
+	entities = level.savedEntityString.c_str();
 
 	// Initialize all client structs
 	for (size_t i = 0; i < game.maxClients; ++i) {
@@ -2040,13 +2017,11 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		game.clients[i].pers.limitedLivesStash = 0;
 		game.clients[i].pers.spawned = false;
 	}
-
 	int inhibited = 0;
 	gentity_t* ent = nullptr;
-	char tokenBuffer[MAX_TOKEN_CHARS];
 
 	while (true) {
-		const char* token = COM_Parse(&entities, tokenBuffer, sizeof(tokenBuffer));
+		const char* token = COM_Parse(&entities);
 		if (!entities)
 			break;
 
@@ -2118,8 +2093,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	level.init = true;
 
 globals.serverFlags &= ~SERVER_FLAG_LOADING;
-}
-
+	}
 /*
 =============
 G_ResetWorldEntitiesFromSavedString
@@ -2361,7 +2335,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
 
 	while (true) {
 		const char* token = COM_Parse(&entities);
-		if (!entities || token[0] == '\0')
+		if (!entities)
 			break;
 
 		if (token[0] != '{') {
@@ -2383,19 +2357,17 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		}
 
 		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-ED_CallSpawn(ent);
-ApplyMapPostProcess(ent);
+		ED_CallSpawn(ent);
+		ApplyMapPostProcess(ent);
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
 	if (inhibited > 0 && g_verbose->integer) {
-	gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
-}
-
+		gi.Com_PrintFmt("{} entities inhibited.\n", inhibited);
+	}
 	if (!EnsureWorldspawnPresent()) {
-	gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity reload.\n", __FUNCTION__);
-}
-
+		gi.Com_ErrorFmt("{}: worldspawn failed to initialize after entity reload.\n", __FUNCTION__);
+	}
 	PrecacheStartItems();
 	PrecacheInventoryItems();
 	G_FindTeams();
@@ -2429,8 +2401,7 @@ ApplyMapPostProcess(ent);
 	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 
 	return true;
-}
-
+	}
 //===================================================================
 
 #include "g_statusbar.hpp"
@@ -2461,8 +2432,7 @@ static void AddCombatHUD(statusbar_t& sb) {
 
 	// Help icon
 	sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_HELPICON).xv(150).pic(STAT_HELPICON).endifstat().endifstat();
-}
-
+	}
 /*
 =========================
 AddPowerupsAndTech
@@ -2473,8 +2443,7 @@ static void AddPowerupsAndTech(statusbar_t& sb) {
 		.ifstat(STAT_POWERUP_ICON).xv(262).num(2, STAT_POWERUP_TIME).xv(296).pic(STAT_POWERUP_ICON).endifstat()
 		.ifstat(STAT_TECH).yb(-137).xr(-26).pic(STAT_TECH).endifstat()
 		.endifstat();
-}
-
+	}
 /*
 =========================
 AddCoopStatus
@@ -2497,8 +2466,7 @@ static void AddCoopStatus(statusbar_t& sb) {
 		chars = n > 99 ? 3 : n > 9 ? 2 : 1;
 		sb.ifstat(STAT_MONSTER_COUNT).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_MONSTER_COUNT).xr(0).yt(y += step).loc_rstring("Monsters").endifstat();
 	}
-}
-
+	}
 /*
 =========================
 AddSPExtras
@@ -2519,8 +2487,7 @@ static void AddSPExtras(statusbar_t& sb) {
 	sb.ifstat(STAT_HEALTH_BARS).yt(24).health_bars().endifstat();
 
 	sb.story();
-}
-
+	}
 /*
 =========================
 AddDeathmatchStatus
@@ -2548,8 +2515,7 @@ static void AddDeathmatchStatus(statusbar_t& sb) {
 
 	sb.ifstat(STAT_CROSSHAIR_ID_VIEW).xv(122).yb(-128).stat_pname(STAT_CROSSHAIR_ID_VIEW).endifstat();
 	sb.ifstat(STAT_CROSSHAIR_ID_VIEW_COLOR).xv(156).yb(-118).pic(STAT_CROSSHAIR_ID_VIEW_COLOR).endifstat();
-}
-
+	}
 /*
 =========================
 G_InitStatusbar
@@ -2574,8 +2540,7 @@ static void G_InitStatusbar() {
 	else AddDeathmatchStatus(sb);
 
 	gi.configString(CS_STATUSBAR, sb.sb.str().c_str());
-}
-
+	}
 /*
 =========================
 ApplyMapSettingOverrides
@@ -2627,8 +2592,7 @@ static void ApplyMapSettingOverrides() {
 
 	if (enableFlags & MAPFLAG_WS)   game.map.weaponsStay = true;
 	else if (disableFlags & MAPFLAG_WS)  game.map.weaponsStay = false;
-}
-
+	}
 /*
 ===================
 PickRandomArena
@@ -2639,8 +2603,7 @@ static int32_t PickRandomArena() {
 		return 1; // default fallback
 
 	return (irandom(level.arenaTotal) + 1); // irandom is 0-based
-}
-
+	}
 /*
 ==============
 AssignMapLongName
@@ -2723,8 +2686,7 @@ static void AssignMapLongName(const gentity_t* ent) {
 	// Fallback
 	Q_strlcpy(level.longName.data(), fallback, level.longName.size());
 	gi.configString(CS_NAME, level.longName.data());
-}
-
+	}
 /*QUAKED worldspawn (0 0 0) ?
 
 Only used for the world.
@@ -3020,4 +2982,4 @@ void SP_worldspawn(gentity_t* ent) {
 		gi.configString(CONFIG_COOP_RESPAWN_STRING + 3, "$g_coop_respawn_waiting");
 		gi.configString(CONFIG_COOP_RESPAWN_STRING + 4, "$g_coop_respawn_no_lives");
 	}
-}
+	}
