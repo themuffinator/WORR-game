@@ -463,7 +463,7 @@ MONSTERINFO_WALK(floater_walk) (gentity_t *self) -> void {
 }
 
 void floater_wham(gentity_t *self) {
-	constexpr Vector3 aim = { MELEE_DISTANCE, 0, 0 };
+	static const Vector3 aim{ MELEE_DISTANCE, 0, 0 };
 	gi.sound(self, CHAN_WEAPON, sound_attack3, 1, ATTN_NORM, 0);
 
 	if (!fire_hit(self, aim, irandom(5, 11), -50))

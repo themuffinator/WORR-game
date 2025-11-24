@@ -132,7 +132,7 @@ Executes the spike melee strike and sets a debounce timer on a miss.
 =============
 */
 static void berserk_attack_spike(gentity_t* self) {
-	const Vector3 aim = { MELEE_DISTANCE, 0, -24 };
+	static const Vector3 aim{ MELEE_DISTANCE, 0, -24 };
 
 	if (!fire_hit(self, aim, irandom(5, 11), 80)) //	Faster attack -- upwards and backwards
 		self->monsterInfo.melee_debounce_time = level.time + 1.2_sec;
