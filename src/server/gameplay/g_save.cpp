@@ -859,6 +859,7 @@ FIELD_AUTO(grenadeFinishedTime),
 FIELD_AUTO(weaponSound),
 
 FIELD_AUTO(pickupMessageTime),
+FIELD_AUTO(harvesterReminderTime),
 
 // flood stuff is dm only
 
