@@ -36,7 +36,7 @@
 
 extern gentity_t* neutralObelisk;
 
-static void MapPostProcess(gentity_t* ent);
+static void ApplyMapPostProcess(gentity_t* ent);
 
 struct spawn_t {
 	const char* name;
@@ -96,7 +96,7 @@ static bool EnsureWorldspawnPresent()
 	world->gravityVector = { 0.0f, 0.0f, -1.0f };
 
 	ED_CallSpawn(world);
-	MapPostProcess(world);
+	ApplyMapPostProcess(world);
 	world->s.renderFX |= RF_IR_VISIBLE;
 
 	return world->inUse && world->className && !Q_strcasecmp(world->className, "worldspawn");
@@ -1886,10 +1886,10 @@ bool VerifyEntityString(const char* entities) {
 
 /*
 ==============
-MapPostProcess
+ApplyMapPostProcess
 ==============
 */
-static void MapPostProcess(gentity_t* ent) {
+static void ApplyMapPostProcess(gentity_t* ent) {
 	if (!strcmp(level.mapName.data(), "bunk1") && !strcmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 		ent->wait = -1;
 	}
@@ -2070,8 +2070,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		}
 
 		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-		ED_CallSpawn(ent);
-		MapPostProcess(ent);
+ED_CallSpawn(ent);
+ApplyMapPostProcess(ent);
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
@@ -2380,8 +2380,8 @@ bool G_ResetWorldEntitiesFromSavedString() {
 		}
 
 		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-		ED_CallSpawn(ent);
-		MapPostProcess(ent);
+ED_CallSpawn(ent);
+ApplyMapPostProcess(ent);
 		ent->s.renderFX |= RF_IR_VISIBLE;
 	}
 
