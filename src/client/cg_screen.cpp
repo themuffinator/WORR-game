@@ -1680,7 +1680,7 @@ static void CG_ExecuteLayoutString(const char* s, vrect_t hud_vrect, vrect_t hud
 		}
 
 		if (!strcmp(token, "story")) {
-			const char* story_str = cgi.get_configString(CONFIG_STORY_SCORELIMIT);
+			const char* story_str = cgi.get_configString(CONFIG_STORY);
 
 			if (!*story_str)
 				continue;

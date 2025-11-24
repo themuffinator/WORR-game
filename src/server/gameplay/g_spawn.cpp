@@ -2860,7 +2860,7 @@ void SP_worldspawn(gentity_t* ent) {
 	gi.configString(CS_MAXCLIENTS, G_Fmt("{}", game.maxClients).data());
 
 	if (level.isN64 && !deathmatch->integer) {
-		gi.configString(CONFIG_N64_PHYSICS_MEDAL, "1");
+		gi.configString(CONFIG_N64_PHYSICS, "1");
 		pm_config.n64Physics = true;
 	}
 
