@@ -416,16 +416,18 @@ namespace HeadHunters {
 				receptacle = {};
 		}
 		RefreshReceptacleCount(state);
-		for (size_t i = 0; i < game.maxClients; ++i) {
-			gentity_t* player = &g_entities[i + 1];
-			if (!player->inUse || !player->client)
-				continue;
-			gclient_t* client = player->client;
-			if (!ClientIsPlaying(client) || client->eliminated) {
-				ClearAttachmentHeads(client);
-				continue;
-			}
-			const size_t desired = DesiredAttachmentCount(client);
+for (size_t i = 0; i < game.maxClients; ++i) {
+gentity_t* player = &g_entities[i + 1];
+if (!player->inUse || !player->client)
+continue;
+gclient_t* client = player->client;
+if (!ClientIsPlaying(client) || client->eliminated) {
+ClearAttachmentHeads(client);
+client->headhunter.carried = 0;
+SyncClient(client);
+continue;
+}
+const size_t desired = DesiredAttachmentCount(client);
 			EnsureAttachmentCount(player, desired);
 			if (desired)
 				UpdateAttachmentPositions(player);
