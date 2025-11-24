@@ -119,18 +119,28 @@ namespace {
 			return;
 		}
 
-			GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
-			if (!pickupTime) {
-				pickupTime = other->client->resp.ctf_flagsince;
-			}
-			other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
-			other->client->pers.teamState.flag_pickup_time = 0_ms;
-			other->client->resp.ctf_flagsince = 0_ms;
+		GameTime pickupTime = other->client->pers.teamState.flag_pickup_time;
+		if (!pickupTime) {
+			pickupTime = other->client->resp.ctf_flagsince;
+		}
+		other->client->pers.inventory[IT_FLAG_NEUTRAL] = 0;
+		other->client->pers.teamState.flag_pickup_time = 0_ms;
+		other->client->resp.ctf_flagsince = 0_ms;
 
 		AwardFlagCapture(ent, other, baseTeam, pickupTime);
 		SetFlagStatus(Team::Free, FlagStatus::AtBase);
 		CTF_ResetTeamFlag(Team::Free);
 	}
+
+	/*
+	=============
+	Harvester_GeneratorTouch
+
+	Intentional no-op touch handler to keep the generator trigger non-blocking while
+	documenting that overlaps are expected.
+	=============
+	*/
+	TOUCH(Harvester_GeneratorTouch)(gentity_t*, gentity_t*, const trace_t&, bool)->void {}
 
 	void Harvester_AssignRandomOrigin(gentity_t* skull, const Vector3& fallback, bool dropAtFallback) {
 		const float horizontalRandomX = crandom();
@@ -318,9 +328,9 @@ void Harvester_RegisterGenerator(gentity_t* ent) {
 	ent->mins = HARVESTER_BASE_MINS;
 	ent->maxs = HARVESTER_BASE_MAXS;
 	ent->solid = SOLID_TRIGGER;
-	ent->clipMask = MASK_SOLID;
+	ent->clipMask = MASK_PLAYERSOLID;
 	ent->moveType = MoveType::None;
-	ent->touch = nullptr;
+	ent->touch = Harvester_GeneratorTouch;
 	gi.linkEntity(ent);
 
 	level.harvester.generator = ent;
