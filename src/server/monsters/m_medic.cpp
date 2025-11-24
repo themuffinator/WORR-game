@@ -217,7 +217,7 @@ static void cleanupHeal(gentity_t *self, bool change_frame) {
 
 void abortHeal(gentity_t *self, bool change_frame, bool gib, bool mark) {
 	int				 hurt;
-	constexpr Vector3 pain_normal = { 0, 0, 1 };
+	static const Vector3 pain_normal{ 0, 0, 1 };
 
 	if (self->enemy && self->enemy->inUse) {
 		M_CleanupHealTarget(self->enemy);

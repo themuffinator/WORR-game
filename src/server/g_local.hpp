@@ -25,6 +25,9 @@ class Menu;
 #include <memory>
 #include <mutex>
 
+struct local_game_import_t;
+extern local_game_import_t gi;
+
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
 
@@ -496,8 +499,6 @@ public:
 		game_import_t::localSound(ent, nullptr, ent, channel, soundIndex, volume, attenuation, timeofs, dupe_key);
 	}
 };
-
-extern local_game_import_t  gi;
 
 // This namespace encapsulates game state logic and provides safe, inline
 // functions to replace the old macros.
