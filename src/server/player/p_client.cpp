@@ -151,16 +151,29 @@ Defers the ready state updates to the session service so the legacy logic can
 gradually migrate out of this translation unit.
 =============
 */
-void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
-	if (!ent) {
-		return;
-	}
-
-	const auto result = worr::server::client::GetClientSessionService().OnReadyToggled(ent, state, toggle);
+void ClientSetReadyStatus(gentity_t& ent, bool state, bool toggle) {
+	const auto result = worr::server::client::GetClientSessionService().OnReadyToggled(&ent, state, toggle);
 
 	if (result == worr::server::client::ReadyResult::AlreadySet) {
-		gi.LocClient_Print(ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT " );
-	}
+		gi.LocClient_Print(&ent, PRINT_HIGH, "You are already {}ready.\n", state ? "" : "NOT " );
+}
+}
+
+/*
+=============
+ClientSetReadyStatus
+
+Validates legacy nullable entry points and emits a diagnostic when invoked with
+invalid data before delegating to the non-nullable overload.
+=============
+*/
+void ClientSetReadyStatus(gentity_t* ent, bool state, bool toggle) {
+	if (!ent) {
+		gi.Com_PrintFmt("{}: called with nullptr ent.\n", __FUNCTION__);
+		return;
+}
+
+	ClientSetReadyStatus(*ent, state, toggle);
 }
 
 /*QUAKED info_player_start (1 0 0) (-16 -16 -24) (16 16 32) x x x x x x x x NOT_EASY NOT_MEDIUM NOT_HARD NOT_DM NOT_COOP
