@@ -28,10 +28,13 @@
 #include <sstream>	// for ent overrides
 #include <fstream>	// for ent overrides
 #include <algorithm>	// for std::fill
+
 #include <format>
 #include <new>
 #include <type_traits>
 #include <utility>
+
+extern gentity_t* neutralObelisk;
 
 struct spawn_t {
 	const char* name;
@@ -1980,8 +1983,9 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	gi.FreeTags(TAG_LEVEL);
 	ResetLevelLocals();
 	Domination_ClearState();
-HeadHunters::ClearState();
-ProBall::ClearState();
+	HeadHunters::ClearState();
+	ProBall::ClearState();
+	neutralObelisk = nullptr;
 	level.entityReloadGraceUntil = level.time + FRAME_TIME_MS * 2;
 	std::memset(g_entities, 0, sizeof(g_entities[0]) * game.maxEntities);
 	globals.numEntities = game.maxClients + 1;

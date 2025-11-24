@@ -27,6 +27,8 @@
 #include <ctime>
 #include <string_view>
 
+extern gentity_t* neutralObelisk;
+
 /*
 =============
 LocalTimeNow
@@ -444,6 +446,10 @@ Marks the entity as free
 =================
 */
 THINK(FreeEntity) (gentity_t* ed) -> void {
+	if (ed == neutralObelisk) {
+		neutralObelisk = nullptr;
+	}
+
 	// already freed
 	if (!ed->inUse)
 		return;
