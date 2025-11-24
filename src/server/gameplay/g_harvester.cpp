@@ -462,6 +462,13 @@ void Harvester_FlagSetup(gentity_t* ent) {
 }
 
 
+/*
+=============
+SP_team_redobelisk
+
+Registers the red obelisk spawn if the gametype requires it.
+=============
+*/
 void SP_team_redobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Red);
@@ -474,6 +481,13 @@ void SP_team_redobelisk(gentity_t* ent) {
 	FreeEntity(ent);
 }
 
+/*
+=============
+SP_team_blueobelisk
+
+Registers the blue obelisk spawn if the gametype requires it.
+=============
+*/
 void SP_team_blueobelisk(gentity_t* ent) {
 	if (Game::Is(GameType::Harvester) || Game::Is(GameType::OneFlag)) {
 		Harvester_RegisterBase(ent, Team::Blue);
@@ -486,13 +500,27 @@ void SP_team_blueobelisk(gentity_t* ent) {
 	FreeEntity(ent);
 }
 
+/*
+=============
+SP_team_neutralobelisk
+
+Handles the neutral obelisk spawn for Harvester and One Flag.
+=============
+*/
 void SP_team_neutralobelisk(gentity_t* ent) {
-	if (Game::Is(GameType::Harvester)) {
+	const bool harvester = Game::Is(GameType::Harvester);
+	const bool oneFlag = Game::Is(GameType::OneFlag);
+
+	if (!oneFlag) {
+		neutralObelisk = nullptr;
+	}
+
+	if (harvester) {
 		Harvester_RegisterGenerator(ent);
 		return;
 	}
 
-	if (Game::Is(GameType::OneFlag)) {
+	if (oneFlag) {
 		neutralObelisk = ent;
 		return;
 	}
