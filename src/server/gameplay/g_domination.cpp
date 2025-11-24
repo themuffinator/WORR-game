@@ -88,37 +88,37 @@ namespace {
 	*/
 	GameTime DominationCaptureTime() {
 		float seconds = kDominationDefaultCaptureSeconds;
-		bool adjusted = false;
+		bool clamped = false;
 
 		if (g_domination_capture_time) {
 			const float configured = g_domination_capture_time->value;
 			if (std::isfinite(configured))
 				seconds = configured;
 			else
-				adjusted = true;
+				clamped = true;
 		}
 
 		if (!(seconds > 0.0f)) {
 			seconds = kDominationMinCaptureTime.seconds<float>();
-			adjusted = true;
+			clamped = true;
 		}
 
 		GameTime captureTime = GameTime::from_sec(seconds);
 		if (!captureTime || captureTime < kDominationMinCaptureTime) {
 			seconds = std::max(seconds, kDominationMinCaptureTime.seconds<float>());
 			captureTime = kDominationMinCaptureTime;
-			adjusted = true;
+			clamped = true;
 		}
 
-			if (adjusted)
-				gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
+		if (clamped)
+			gi.Com_PrintFmt("Domination: clamping g_domination_capture_time to {:.2f} seconds\n", seconds);
 
 		return captureTime;
 	}
 	/*
 	=============
 	DominationOccupantGrace
-	
+
 	Returns the grace period a player remains registered inside a point volume between touch events.
 	=============
 	*/
