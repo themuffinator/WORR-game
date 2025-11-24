@@ -89,17 +89,29 @@ namespace HeadHunters {
 			state.spikeCount = writeIndex;
 		}
 
+		/*
+		=============
+		RegisterLooseHead
+
+		Tracks a loose head entity, cleaning up stale entries and handling overflow.
+		=============
+		*/
 		void RegisterLooseHead(gentity_t* ent) {
 			auto& state = State();
+			CleanupLooseHeads(state);
 			for (auto& slot : state.looseHeads) {
-				if (!slot || !slot->inUse) {
+				if (!slot) {
 					slot = ent;
 					CleanupLooseHeads(state);
 					return;
 				}
 			}
-			CleanupLooseHeads(state);
+			gi.Com_PrintFmt("HeadHunters: loose head overflow detected (max {}). Check map or configuration for excessive drops.\n",
+					state.looseHeads.size());
+			if (ent && ent->inUse)
+				FreeEntity(ent);
 		}
+
 
 		void UnregisterLooseHead(gentity_t* ent) {
 			auto& state = State();
