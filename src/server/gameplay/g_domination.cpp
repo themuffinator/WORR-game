@@ -189,6 +189,10 @@ namespace {
 
 		if (!beam) {
 			beam = Spawn();
+			if (!beam) {
+				gi.Com_PrintFmt("WARNING: {} failed to spawn domination point beam for point {}\n", __FUNCTION__, point.index);
+				return;
+			}
 			beam->className = "domination_point_beam";
 			beam->moveType = MoveType::None;
 			beam->solid = SOLID_NOT;
@@ -196,6 +200,7 @@ namespace {
 			beam->s.modelIndex = MODELINDEX_WORLD;
 			beam->s.frame = 4;
 		}
+
 
 		beam->owner = point.ent;
 		beam->count = static_cast<int32_t>(point.index);
