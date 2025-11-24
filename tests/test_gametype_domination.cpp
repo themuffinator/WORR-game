@@ -170,7 +170,29 @@ int main() {
 	gi.Loc_Print = TestLocPrint;
 	gi.trace = TestTrace;
 	gi.frameTimeMs = 100;
-	
+
+	g_comPrintCallCount = 0;
+	g_lastComPrintMessage.clear();
+
+	g_domination_tick_interval_storage.value = 0.0f;
+	g_domination_tick_interval_storage.integer = 0;
+
+	const GameTime clampedMinInterval = DominationTickInterval();
+	assert(clampedMinInterval == kDominationMinScoreInterval);
+	assert(g_comPrintCallCount > 0);
+	assert(g_lastComPrintMessage.find("g_domination_tick_interval") != std::string::npos);
+
+	g_comPrintCallCount = 0;
+	g_lastComPrintMessage.clear();
+
+	g_domination_tick_interval_storage.value = 30.0f;
+	g_domination_tick_interval_storage.integer = 30;
+
+	const GameTime clampedMaxInterval = DominationTickInterval();
+	assert(clampedMaxInterval == GameTime::from_sec(kDominationMaxTickIntervalSeconds));
+	assert(g_comPrintCallCount > 0);
+	assert(g_lastComPrintMessage.find("g_domination_tick_interval") != std::string::npos);
+
 	deathmatchVar.integer = 0;
 	deathmatchVar.value = 0.0f;
 	fragLimitVar.integer = 0;

@@ -10,6 +10,7 @@ namespace {
 	constexpr GameTime kDominationMinScoreInterval = 100_ms;
 	constexpr GameTime kDominationMinCaptureTime = 250_ms;
 	constexpr float kDominationDefaultTickIntervalSeconds = 1.0f;
+	constexpr float kDominationMaxTickIntervalSeconds = 10.0f;
 	constexpr int32_t kDominationDefaultPointsPerTick = 1;
 	constexpr float kDominationDefaultCaptureSeconds = 3.0f;
 	constexpr int32_t kDominationOccupantGraceMinMs = 50;
@@ -24,16 +25,37 @@ namespace {
 	*/
 	GameTime DominationTickInterval() {
 		float seconds = kDominationDefaultTickIntervalSeconds;
+		bool clamped = false;
 
 		if (g_domination_tick_interval) {
 			const float configured = g_domination_tick_interval->value;
-			if (std::isfinite(configured) && configured > 0.0f)
+			if (std::isfinite(configured))
 				seconds = configured;
+			else
+				clamped = true;
 		}
 
 		GameTime interval = GameTime::from_sec(seconds);
-		if (!interval || interval < kDominationMinScoreInterval)
+		if (!(seconds > 0.0f)) {
+			seconds = kDominationMinScoreInterval.seconds<float>();
 			interval = kDominationMinScoreInterval;
+			clamped = true;
+		}
+
+		const GameTime maxInterval = GameTime::from_sec(kDominationMaxTickIntervalSeconds);
+
+		if (!interval || interval < kDominationMinScoreInterval) {
+			interval = kDominationMinScoreInterval;
+			seconds = std::max(seconds, kDominationMinScoreInterval.seconds<float>());
+			clamped = true;
+		} else if (maxInterval && interval > maxInterval) {
+			interval = maxInterval;
+			seconds = std::min(seconds, kDominationMaxTickIntervalSeconds);
+			clamped = true;
+		}
+
+		if (clamped)
+			gi.Com_PrintFmt("Domination: clamping g_domination_tick_interval to {:.2f} seconds\n", seconds);
 
 		return interval;
 	}
