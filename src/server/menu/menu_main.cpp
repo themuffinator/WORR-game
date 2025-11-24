@@ -131,44 +131,33 @@ void Menu::Render(gentity_t* ent) const {
 	const int maxOffset = std::max(0, totalScrollable - MAX_VISIBLE_LINES);
 	const int offset = std::clamp(scrollOffset, 0, maxOffset);
 
-	const auto scrollableView = entries | std::views::filter([](const MenuEntry& entry) {
-		return entry.scrollable;
-	});
+	const bool hasAbove = (offset > 0 && totalScrollable > 0);
+	const bool hasBelow = ((offset + MAX_VISIBLE_LINES) < totalScrollable);
 
-	const bool hasAbove = (std::ranges::distance(scrollableView | std::views::take(offset)) > 0);
-	const bool hasBelow = (std::ranges::distance(scrollableView | std::views::drop(offset + MAX_VISIBLE_LINES)) > 0);
+	int remainingSkip = offset;
+	int visibleScrollable = 0;
+	std::vector<const MenuEntry*> visibleEntries;
 
-	const auto afterOffsetView = entries | std::views::drop_while([skipScrollable = offset](const MenuEntry& entry) mutable {
-		if (!entry.scrollable)
-			return skipScrollable > 0;
+	for (const MenuEntry& entry : entries) {
+		if (remainingSkip > 0) {
+			if (entry.scrollable)
+				--remainingSkip;
 
-		if (skipScrollable > 0) {
-			--skipScrollable;
-			return true;
+			continue;
 		}
 
-		return false;
-	});
+		if (entry.scrollable) {
+			if (visibleScrollable >= MAX_VISIBLE_LINES)
+				continue;
 
-	int visibleScrollable = 0;
-	const auto visibleEntriesView = afterOffsetView
-		| std::views::filter([&](const MenuEntry& entry) mutable {
-			if (entry.scrollable) {
-				if (visibleScrollable < MAX_VISIBLE_LINES) {
-					++visibleScrollable;
-					return true;
-				}
+			++visibleScrollable;
+			visibleEntries.push_back(&entry);
+			continue;
+		}
 
-				return false;
-			}
-
-			return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
-		})
-		| std::views::transform([](const MenuEntry& entry) {
-			return &entry;
-		});
-
-	std::vector<const MenuEntry*> visibleEntries(std::ranges::begin(visibleEntriesView), std::ranges::end(visibleEntriesView));
+		if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
+			visibleEntries.push_back(&entry);
+	}
 	int y = 32;
 
 	if (hasAbove) {

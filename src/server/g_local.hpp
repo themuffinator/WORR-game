@@ -275,6 +275,8 @@ constexpr std::array<GameTypeInfo, static_cast<size_t>(GameType::Total)> GAME_MO
 } };
 
 extern cvar_t* g_gametype;
+extern local_game_import_t  gi;
+
 // This namespace encapsulates game state logic and provides safe, inline
 // functions to replace the old macros.
 namespace Game {
@@ -621,8 +623,6 @@ public:
 		game_import_t::localSound(ent, nullptr, ent, channel, soundIndex, volume, attenuation, timeofs, dupe_key);
 	}
 };
-
-extern local_game_import_t  gi;
 
 // =================================================================
 
