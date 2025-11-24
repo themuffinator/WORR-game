@@ -2085,6 +2085,14 @@ void Weapon_Blaster(gentity_t* ent) {
 	Weapon_Generic(ent, 4, 8, 52, 55, pauseFrames, fireFrames, Weapon_Blaster_DoFire);
 }
 
+/*
+=============
+Weapon_HyperBlaster_Fire
+
+Handles the firing logic for the HyperBlaster, including animation, ammo checks,
+and shot execution.
+=============
+*/
 static void Weapon_HyperBlaster_Fire(gentity_t* ent) {
 	if (!ent || !ent->client)
 		return;
@@ -2132,7 +2140,7 @@ static void Weapon_HyperBlaster_Fire(gentity_t* ent) {
 		}
 
 		// Calculate rotating offset
-		Vector3 offset = { 0 };
+		Vector3 offset = { 0.f, 0.f, 0.f };
 		rotation = (client->ps.gunFrame - 5) * 2.0f * PIf / 6.0f;
 		offset[0] = -4.0f * std::sinf(rotation);
 		offset[1] = 4.0f * cosf(rotation);
@@ -2409,6 +2417,13 @@ SHOTGUN / SUPERSHOTGUN
 ======================================================================
 */
 
+/*
+=============
+Weapon_Shotgun_Fire
+
+Fires the shotgun, applying damage, spread, and animations for the player.
+=============
+*/
 static void Weapon_Shotgun_Fire(gentity_t* ent) {
 	// Calculate damage and kick
 	int damage = RS(Quake3Arena) ? 10 : 4;
@@ -2422,7 +2437,7 @@ static void Weapon_Shotgun_Fire(gentity_t* ent) {
 	const int pelletCount = RS(Quake3Arena) ? 11 : 12;
 
 	// Setup source and direction
-	constexpr Vector3 viewOffset = { 0.f, 0.f, -8.f };
+	const Vector3 viewOffset = { 0.f, 0.f, -8.f };
 	Vector3 start, dir;
 	P_ProjectSource(ent, ent->client->vAngle, viewOffset, start, dir);
 
@@ -2470,7 +2485,7 @@ static void Weapon_SuperShotgun_Fire(gentity_t* ent) {
 	}
 
 	// Prepare direction and starting positions
-	constexpr Vector3 viewOffset = { 0.f, 0.f, -8.f };
+	const Vector3 viewOffset = { 0.f, 0.f, -8.f };
 	Vector3 start, dir;
 
 	// Central shot uses original angle
@@ -2893,15 +2908,22 @@ DISRUPTOR
 ======================================================================
 */
 
+/*
+=============
+Weapon_Disruptor_Fire
+
+Fires the Disruptor projectile, handling lag compensation and collision checks.
+=============
+*/
 static void Weapon_Disruptor_Fire(gentity_t* ent) {
 	int damage = deathmatch->integer ? 45 : 135;
 	if (isQuad) {
 		damage *= damageMultiplier;
 	}
 
-	constexpr Vector3 kMins = { -16.f, -16.f, -16.f };
-	constexpr Vector3 kMaxs = { 16.f,  16.f,  16.f };
-	constexpr Vector3 kDistance = { 24.f, 8.f, -8.f };
+	const Vector3 kMins = { -16.f, -16.f, -16.f };
+	const Vector3 kMaxs = { 16.f,  16.f,  16.f };
+	const Vector3 kDistance = { 24.f, 8.f, -8.f };
 
 	Vector3 start, dir;
 	P_ProjectSource(ent, ent->client->vAngle, kDistance, start, dir);
@@ -3275,7 +3297,7 @@ static void Weapon_IonRipper_Fire(gentity_t* ent) {
 	constexpr float kRandomSpeed = 1800.f;
 	constexpr int kHSpread = 500; // horizontal spread in fire_lead style
 	constexpr int kVSpread = 500; // vertical spread in fire_lead style
-	constexpr Vector3 muzzleOffset = { 16.f, 7.f, -8.f };
+	const Vector3 muzzleOffset = { 16.f, 7.f, -8.f };
 	constexpr Effect effectFlags = EF_IONRIPPER;
 	constexpr int ammoNeeded = 10;
 
@@ -3350,11 +3372,18 @@ PHALANX
 ======================================================================
 */
 
+/*
+=============
+Weapon_Phalanx_Fire
+
+Launches a Phalanx projectile, adjusting damage for powerups and alternating barrels.
+=============
+*/
 static void Weapon_Phalanx_Fire(gentity_t* ent) {
 	constexpr int baseDamage = 80;
 	constexpr float splashRadius = 100.f;
 	constexpr int projectileSpeed = 725;
-	constexpr Vector3 offset = { 0.f, 8.f, -8.f };
+	const Vector3 offset = { 0.f, 8.f, -8.f };
 
 	int damage = baseDamage;
 	int splashDamage = baseDamage;
