@@ -9,6 +9,7 @@
 #include "command_registration.hpp"
 #include <unordered_map>
 #include <string>
+#include <ranges>
 
 // The central registry for all client commands.
 static std::unordered_map<std::string, Command, StringViewHash, std::equal_to<>> s_clientCommands;
@@ -55,30 +56,42 @@ namespace Commands {
 
 	// --- Helper Function Definitions ---
 
+	/*
+	=================
+	ValidateSocialIDFormat
+
+	Validates that the provided Social ID matches a supported prefix and
+	uses an appropriate digit or hexadecimal format.
+	=================
+	*/
 	static bool ValidateSocialIDFormat(std::string_view id) {
 		size_t sep = id.find(':');
 		if (sep == std::string_view::npos || sep == 0 || sep + 1 >= id.length())
-			return false;
+				return false;
 
 		std::string_view prefix = id.substr(0, sep);
 		std::string_view value = id.substr(sep + 1);
+		auto is_digit = [](char c) {
+				return std::isdigit(static_cast<unsigned char>(c));
+		};
+		auto is_hex_digit = [](char c) {
+				return std::isxdigit(static_cast<unsigned char>(c));
+		};
 
 		if (prefix == "EOS") {
-			return value.length() == 32 && std::all_of(value.begin(), value.end(), [](char c) {
-				return std::isxdigit(static_cast<unsigned char>(c));
-				});
+				return value.length() == 32 && std::ranges::all_of(value, is_hex_digit);
 		}
 		if (prefix == "Galaxy" || prefix == "NX") {
-			return (value.length() >= 17 && value.length() <= 20) && std::all_of(value.begin(), value.end(), ::isdigit);
+				return (value.length() >= 17 && value.length() <= 20) && std::ranges::all_of(value, is_digit);
 		}
 		if (prefix == "GDK") {
-			return (value.length() >= 15 && value.length() <= 17) && std::all_of(value.begin(), value.end(), ::isdigit);
+				return (value.length() >= 15 && value.length() <= 17) && std::ranges::all_of(value, is_digit);
 		}
 		if (prefix == "PSN") {
-			return !value.empty() && std::all_of(value.begin(), value.end(), ::isdigit);
+				return !value.empty() && std::ranges::all_of(value, is_digit);
 		}
 		if (prefix == "Steamworks") {
-			return value.starts_with("7656119") && std::all_of(value.begin(), value.end(), ::isdigit);
+				return value.starts_with("7656119") && std::ranges::all_of(value, is_digit);
 		}
 		return false;
 	}
