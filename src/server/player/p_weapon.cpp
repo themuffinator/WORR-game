@@ -2132,7 +2132,7 @@ static void Weapon_HyperBlaster_Fire(gentity_t* ent) {
 		}
 
 		// Calculate rotating offset
-		Vector3 offset = { 0 };
+Vector3 offset{};
 		rotation = (client->ps.gunFrame - 5) * 2.0f * PIf / 6.0f;
 		offset[0] = -4.0f * std::sinf(rotation);
 		offset[1] = 4.0f * cosf(rotation);

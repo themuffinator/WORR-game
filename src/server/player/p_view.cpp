@@ -188,9 +188,9 @@ static void P_DamageFeedback(gentity_t* player) {
 		client->feedback.damageAlpha = std::clamp(client->feedback.damageAlpha, 0.06f, 0.4f);
 	}
 
-	constexpr Vector3 armorColor = { 1.0f, 1.0f, 1.0f };
-	constexpr Vector3 powerColor = { 0.0f, 1.0f, 0.0f };
-	constexpr Vector3 bloodColor = { 1.0f, 0.0f, 0.0f };
+	static const Vector3 armorColor = { 1.0f, 1.0f, 1.0f };
+	static const Vector3 powerColor = { 0.0f, 1.0f, 0.0f };
+	static const Vector3 bloodColor = { 1.0f, 0.0f, 0.0f };
 
 	Vector3 blend{};
 	if (client->damage.powerArmor)
@@ -271,8 +271,8 @@ static void OffsetThirdPersonDeathView(gentity_t* ent) {
 	ent->svFlags &= ~SVF_NOCLIENT;
 	ent->flags &= ~FL_NOVISIBLE;
 
-	constexpr Vector3 mins = { -4.0f, -4.0f, -4.0f };
-	constexpr Vector3 maxs = { 4.0f, 4.0f, 4.0f };
+	static const Vector3 mins = { -4.0f, -4.0f, -4.0f };
+	static const Vector3 maxs = { 4.0f, 4.0f, 4.0f };
 	constexpr float focusDist = 512.0f;
 	constexpr float camRange = 80.0f;
 	constexpr float camAngleDeg = 0.0f;
@@ -691,7 +691,7 @@ static void G_CalcBlend(gentity_t* ent) {
 
 	// Drowning
 	if (ent->airFinished < level.time + 9_sec) {
-		constexpr Vector3 drown_color = { 0.1f, 0.1f, 0.2f };
+		static const Vector3 drown_color = { 0.1f, 0.1f, 0.2f };
 		constexpr float max_drown_alpha = 0.75f;
 		float alpha = (ent->airFinished < level.time) ? 1 : (1.f - ((ent->airFinished - level.time).seconds() / 9.0f));
 		G_AddBlend(drown_color[0], drown_color[1], drown_color[2], std::min(alpha, max_drown_alpha), ent->client->ps.damageBlend);
