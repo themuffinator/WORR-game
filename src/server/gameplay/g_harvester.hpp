@@ -5,10 +5,22 @@
 struct gentity_t;
 enum class Team : uint8_t;
 
+enum class HarvesterSpawnStatus : uint8_t {
+	Inactive,
+	MissingItem,
+	AllocationFailed,
+	Success
+};
+
+struct HarvesterSpawnResult {
+	HarvesterSpawnStatus status = HarvesterSpawnStatus::Inactive;
+	gentity_t* entity = nullptr;
+};
+
 [[nodiscard]] inline Vector3 Harvester_ComputeSkullOrigin(
-	const Vector3& generatorOrigin,
-	const Vector3& fallback,
-	bool dropAtFallback,
+const Vector3& generatorOrigin,
+const Vector3& fallback,
+bool dropAtFallback,
 	float horizontalRandomX,
 	float horizontalRandomY,
 	float verticalRandom) {
@@ -18,14 +30,14 @@ enum class Team : uint8_t;
 		origin.y += horizontalRandomY * 24.0f;
 	}
 	origin.z += 16.0f + std::fabs(verticalRandom * 12.0f);
-	return origin;
+return origin;
 }
 
 bool Harvester_Active();
 Vector3 Harvester_GeneratorOrigin(const Vector3& fallback);
 void Harvester_PositionOnFloor(gentity_t* ent);
-gentity_t* Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback);
-void Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback);
+HarvesterSpawnResult Harvester_SpawnSkull(Team team, const Vector3& fallback, bool dropAtFallback);
+int Harvester_DropSkulls(Team team, int count, const Vector3& fallback, bool dropAtFallback);
 void Harvester_RegisterBase(gentity_t* ent, Team team);
 void Harvester_RegisterGenerator(gentity_t* ent);
 bool Harvester_TakeSkull(gentity_t* ent, gentity_t* other);
