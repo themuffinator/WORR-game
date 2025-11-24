@@ -594,7 +594,22 @@ void LoadMapPool(gentity_t* ent) {
 		if (entry.isMember("title"))			map.longName = entry["title"].asString();
 		if (entry.isMember("min"))			map.minPlayers = entry["min"].asInt();
 		if (entry.isMember("max"))			map.maxPlayers = entry["max"].asInt();
-		if (entry.isMember("gametype"))		map.suggestedGametype = static_cast<GameType>(entry["gametype"].asInt());
+		if (entry.isMember("gametype")) {
+				if (!entry["gametype"].isInt()) {
+						LogSkippedEntry("invalid 'gametype' value (expected integer)", sanitizedName.c_str());
+						continue;
+				}
+
+				const int rawGametype = entry["gametype"].asInt();
+				const GameType normalizedGametype = Game::NormalizeTypeValue(rawGametype);
+
+				if (rawGametype != static_cast<int>(normalizedGametype)) {
+						LogSkippedEntry("invalid 'gametype' value (out of range)", sanitizedName.c_str());
+						continue;
+				}
+
+				map.suggestedGametype = normalizedGametype;
+		}
 		if (entry.isMember("ruleset"))		map.suggestedRuleset = Ruleset(entry["ruleset"].asInt());
 		if (entry.isMember("scorelimit"))		map.scoreLimit = entry["scorelimit"].asInt();
 		if (entry.isMember("timeLimit"))		map.timeLimit = entry["timeLimit"].asInt();
