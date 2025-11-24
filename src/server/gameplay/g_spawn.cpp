@@ -36,6 +36,8 @@
 
 extern gentity_t* neutralObelisk;
 
+static void MapPostProcess(gentity_t* ent);
+
 struct spawn_t {
 	const char* name;
 	void (*spawn)(gentity_t* ent);
@@ -71,13 +73,6 @@ static std::string LogEntityLabel(const gentity_t* ent)
 
 	return std::format("#{} ({})", ent_num, class_name);
 }
-
-/*
-=============
-MapPostProcess
-=============
-*/
-static void MapPostProcess(gentity_t* ent);
 
 /*
 =============
