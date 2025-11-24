@@ -21,7 +21,6 @@ class Menu;
 #include <utility>
 #include <vector>
 #include <algorithm>
-#include <ranges>
 #include <cctype>
 #include <memory>
 #include <mutex>
@@ -586,22 +585,25 @@ namespace Game {
 	return static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
 	}
 
-	/*
-	=============
-	AreStringsEqualIgnoreCase
+/*
+=============
+AreStringsEqualIgnoreCase
 
-	Helper for case-insensitive string_view comparison.
-	=============
-	*/
-	inline bool AreStringsEqualIgnoreCase(std::string_view a, std::string_view b) {
+Helper for case-insensitive string_view comparison.
+=============
+*/
+inline bool AreStringsEqualIgnoreCase(std::string_view a, std::string_view b) {
 	if (a.size() != b.size()) {
-	return false;
+		return false;
 	}
 
-	return std::ranges::equal(a, b, [](char a_char, char b_char) {
-	return ToLowerASCII(a_char) == ToLowerASCII(b_char);
-	});
+	for (size_t i = 0; i < a.size(); ++i) {
+		if (ToLowerASCII(a[i]) != ToLowerASCII(b[i]))
+			return false;
 	}
+
+	return true;
+}
 
 	/*
 	=============
