@@ -340,7 +340,6 @@ namespace {
 		return FlagStateManager::Instance();
 	}
 
-
 	/*
 	=============
 	SupportsCTF
@@ -1114,8 +1113,14 @@ void CTF_CheckHurtCarrier(gentity_t* targ, gentity_t* attacker) {
 	}
 
 	const item_id_t flagItem = targ->client->sess.team == Team::Red ? IT_FLAG_BLUE : IT_FLAG_RED;
+	const Team targetTeam = targ->client->sess.team;
+	const Team attackerTeam = attacker->client->sess.team;
+	if (!Teamplay_IsPrimaryTeam(targetTeam) || !Teamplay_IsPrimaryTeam(attackerTeam)) {
+		return;
+	}
+
 	if (targ->client->pers.inventory[flagItem] &&
-		targ->client->sess.team != attacker->client->sess.team) {
+		targetTeam != attackerTeam) {
 		attacker->client->resp.ctf_lasthurtcarrier = level.time;
 	}
 }
