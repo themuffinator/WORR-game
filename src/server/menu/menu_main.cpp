@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <ranges>
 
 namespace std {
 	using ::sinf;
@@ -134,37 +133,30 @@ void Menu::Render(gentity_t* ent) const {
 	const bool hasAbove = (offset > 0);
 	const bool hasBelow = (offset < maxOffset);
 
-	auto afterOffsetView = entries | std::views::drop_while([skipScrollable = offset](const MenuEntry& entry) mutable {
-		if (!entry.scrollable)
-			return skipScrollable > 0;
-
-		if (skipScrollable > 0) {
-			--skipScrollable;
-			return true;
-		}
-
-		return false;
-	});
-
+	int skippedScrollable = offset;
 	int visibleScrollable = 0;
-	auto visibleFiltered = afterOffsetView | std::views::filter([&](const MenuEntry& entry) mutable {
+	std::vector<const MenuEntry*> visibleEntries;
+	visibleEntries.reserve(entries.size());
+
+	for (const MenuEntry& entry : entries) {
 		if (entry.scrollable) {
-			if (visibleScrollable < MAX_VISIBLE_LINES) {
-				++visibleScrollable;
-				return true;
+			if (skippedScrollable > 0) {
+				--skippedScrollable;
+				continue;
 			}
 
-			return false;
+			if (visibleScrollable >= MAX_VISIBLE_LINES)
+				continue;
+
+			++visibleScrollable;
+			visibleEntries.push_back(&entry);
+			continue;
 		}
 
-		return visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset;
-	});
+		if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
+			visibleEntries.push_back(&entry);
+	}
 
-	auto visibleEntriesView = visibleFiltered | std::views::transform([](const MenuEntry& entry) {
-		return &entry;
-	});
-	
-	std::vector<const MenuEntry*> visibleEntries(std::ranges::begin(visibleEntriesView), std::ranges::end(visibleEntriesView));
 	int y = 32;
 
 	if (hasAbove) {
