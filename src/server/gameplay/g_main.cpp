@@ -1589,14 +1589,18 @@ static void TakeIntermissionScreenshot() {
 		const gentity_t* ent = &g_entities[1];
 		const gclient_t* followClient = ent->client->follow.target ? ent->client->follow.target->client : nullptr;
 		const char* name = "player";
+		GameType gameType = Game::GetCurrentType();
 
 		if (followClient && followClient->sess.netName[0])
 			name = followClient->sess.netName;
 		else if (ent->client->sess.netName[0])
 			name = ent->client->sess.netName;
 
+		if (g_gametype)
+			gameType = Game::NormalizeTypeValue(g_gametype->integer);
+
 		filename = G_Fmt("screenshot {}-{}-{}-{}\n",
-			GametypeIndexToString(static_cast<GameType>(g_gametype->integer)),
+			GametypeIndexToString(gameType),
 			name, level.mapName, timestamp);
 	}
 
