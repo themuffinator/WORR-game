@@ -1694,7 +1694,10 @@ enum sv_ent_flags_t : uint64_t {
 	SVFL_TRAP_DANGER = bit_v< 27 >,
 	SVFL_ACTIVE = bit_v< 28 >,
 	SVFL_IS_SPECTATOR = bit_v< 29 >,
-	SVFL_IN_TEAM = bit_v< 30 >
+	SVFL_IN_TEAM = bit_v< 30 >,
+	SVFL_OBJECTIVE_AT_BASE = bit_v< 31 >,
+	SVFL_OBJECTIVE_TAKEN = bit_v< 32 >,
+	SVFL_OBJECTIVE_DROPPED = bit_v< 33 >
 };
 MAKE_ENUM_BITFLAGS(sv_ent_flags_t);
 

@@ -13,6 +13,7 @@ enum class FlagStatus : int {
 
 void Team_CaptureFlagSound(Team team);
 bool SetFlagStatus(Team team, FlagStatus status);
+FlagStatus GetFlagStatus(Team team);
 void AwardFlagCapture(gentity_t* flagEntity, gentity_t* scorer, Team scoringTeam, GameTime pickupTime);
 bool CTF_ResetTeamFlag(Team team);
 void CTF_ResetFlags();
