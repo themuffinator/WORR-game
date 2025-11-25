@@ -1,23 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_ai.cpp (Game AI)
-// This file contains the core Artificial Intelligence (AI) logic for monsters.
-// It provides the fundamental building blocks for monster behavior, which are
-// then used by individual monster implementations.
-//
-// Key Responsibilities:
-// - Basic AI States: Implements the functions for core monster states like
-//   standing (`ai_stand`), walking (`ai_walk`), running/charging (`ai_run`),
-//   and turning (`ai_turn`).
-// - Target Acquisition: Manages the logic for how monsters find and react to
-//   targets (`FindTarget`, `FoundTarget`), including sight checks, sound
-//   detection, and reacting to being damaged.
-// - Attack Logic: Contains the primary function (`ai_checkattack`) that
-//   monsters call to decide whether they should perform a melee or ranged
-//   attack, or continue moving.
-// - Sensory Functions: Provides utility functions for visibility (`visible`),
-//   field of view (`infront`), and distance checking (`range_to`).
+g_ai.cpp (Game AI) This file contains the core Artificial Intelligence (AI) logic for monsters. It provides the fundamental building blocks for monster behavior, which are then used by individual monster implementations. Key Responsibilities: - Basic AI States: Implements the functions for core monster states like standing (`ai_stand`), walking (`ai_walk`), running/charging (`ai_run`), and turning (`ai_turn`). - Target Acquisition: Manages the logic for how monsters find and react to targets (`FindTarget`, `FoundTarget`), including sight checks, sound detection, and reacting to being damaged. - Attack Logic: Contains the primary function (`ai_checkattack`) that monsters call to decide whether they should perform a melee or ranged attack, or continue moving. - Sensory Functions: Provides utility functions for visibility (`visible`), field of view (`infront`), and distance checking (`range_to`).*/
 
 #include "../g_local.hpp"
 

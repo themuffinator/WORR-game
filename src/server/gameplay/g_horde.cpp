@@ -1,19 +1,7 @@
-// g_horde.cpp (Game Horde Mode)
-// This file contains the specific gameplay logic for the Horde game mode. It
-// is responsible for managing the waves of monsters, spawning them into the
-// world, and checking for the win/loss conditions of each round.
-//
-// Key Responsibilities:
-// - Monster Spawning: `Horde_RunSpawning` is called periodically to spawn new
-//   monsters into the map at valid deathmatch spawn points.
-// - Weighted Selection: Uses a weighted random selection system (`Horde_PickMonster`)
-//   to choose which type of monster to spawn based on the current wave number,
-//   making later waves more difficult.
-// - Item Drops: Similarly uses a weighted system (`Horde_PickItem`) to decide
-//   which item a monster should drop upon death.
-// - Wave Management: Tracks the number of monsters left to spawn and the
-//   number of monsters currently alive to determine when a wave has been
-//   successfully completed.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_horde.cpp (Game Horde Mode) This file contains the specific gameplay logic for the Horde game mode. It is responsible for managing the waves of monsters, spawning them into the world, and checking for the win/loss conditions of each round. Key Responsibilities: - Monster Spawning: `Horde_RunSpawning` is called periodically to spawn new monsters into the map at valid deathmatch spawn points. - Weighted Selection: Uses a weighted random selection system (`Horde_PickMonster`) to choose which type of monster to spawn based on the current wave number, making later waves more difficult. - Item Drops: Similarly uses a weighted system (`Horde_PickItem`) to decide which item a monster should drop upon death. - Wave Management: Tracks the number of monsters left to spawn and the number of monsters currently alive to determine when a wave has been successfully completed.*/
 
 #include "../g_local.hpp"
 

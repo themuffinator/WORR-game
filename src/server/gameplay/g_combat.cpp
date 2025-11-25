@@ -1,22 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_combat.cpp (Game Combat)
-// This file is central to all damage and combat interactions in the game. It
-// contains the core `Damage` function, which is the final authority for
-// processing everything from weapon hits to environmental hazards.
-//
-// Key Responsibilities:
-// - Damage Application: The `Damage` function calculates final damage after
-//   considering armor, powerups, friendly fire settings, and god mode.
-// - Armor and Protection: Implements the logic for both standard armor
-//   (`CheckArmor`) and power armor (`CheckPowerArmor`) to absorb damage.
-// - Knockback: `ApplyKnockback` calculates and applies the physical pushback
-//   effect from weapon impacts.
-// - Entity Death: The `Killed` function is called when an entity's health is
-//   reduced to zero, triggering its death sequence.
-// - Radius Damage: Implements `RadiusDamage` for explosions, calculating
-//   damage falloff and checking line-of-sight to affected entities.
+g_combat.cpp (Game Combat) This file is central to all damage and combat interactions in the game. It contains the core `Damage` function, which is the final authority for processing everything from weapon hits to environmental hazards. Key Responsibilities: - Damage Application: The `Damage` function calculates final damage after considering armor, powerups, friendly fire settings, and god mode. - Armor and Protection: Implements the logic for both standard armor (`CheckArmor`) and power armor (`CheckPowerArmor`) to absorb damage. - Knockback: `ApplyKnockback` calculates and applies the physical pushback effect from weapon impacts. - Entity Death: The `Killed` function is called when an entity's health is reduced to zero, triggering its death sequence. - Radius Damage: Implements `RadiusDamage` for explosions, calculating damage falloff and checking line-of-sight to affected entities.*/
 
 #include "../g_local.hpp"
 #include "freezetag_damage.hpp"

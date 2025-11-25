@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_team_balance_overflow.cpp implementation.*/
+
 #include <array>
 #include <cassert>
 #include <vector>

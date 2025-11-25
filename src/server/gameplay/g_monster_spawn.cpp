@@ -1,20 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_monster_spawn.cpp (Game Monster Spawning)
-// This file provides a set of utility functions specifically for spawning
-// monsters into the world, often used by other entities like the Carrier or
-// Medic Commander, or by game modes like Horde.
-//
-// Key Responsibilities:
-// - Spawn Point Validation: Implements `FindSpawnPoint`, `CheckSpawnPoint`, and
-//   `CheckGroundSpawnPoint` to find safe and valid locations on the ground or
-//   in the air for new monsters to appear without getting stuck in geometry.
-// - Monster Creation: Provides high-level wrapper functions like
-//   `CreateFlyMonster` and `CreateGroundMonster` that combine the spawn point
-//   validation with the actual entity creation process.
-// - Visual Effects: Contains the logic for the "spawngrow" effect, a visual
-//   cue that plays where a monster is about to materialize.
+g_monster_spawn.cpp (Game Monster Spawning) This file provides a set of utility functions specifically for spawning monsters into the world, often used by other entities like the Carrier or Medic Commander, or by game modes like Horde. Key Responsibilities: - Spawn Point Validation: Implements `FindSpawnPoint`, `CheckSpawnPoint`, and `CheckGroundSpawnPoint` to find safe and valid locations on the ground or in the air for new monsters to appear without getting stuck in geometry. - Monster Creation: Provides high-level wrapper functions like `CreateFlyMonster` and `CreateGroundMonster` that combine the spawn point validation with the actual entity creation process. - Visual Effects: Contains the logic for the "spawngrow" effect, a visual cue that plays where a monster is about to materialize.*/
 
 #include <cmath>
 

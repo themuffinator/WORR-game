@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_endmatch_grace.cpp implementation.*/
+
 #include "server/match/g_match_grace_scope.hpp"
 
 #include <cassert>

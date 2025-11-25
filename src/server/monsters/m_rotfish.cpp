@@ -1,18 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-FISH (inspired by FLIPPER structure)
-
-- Swim monster (water-native): walk/run are swimming speeds
-- Melee bite only
-- Idle/search/sight barks
-- Pain and death sets
-- Swim (fly) parameters tuned for close-range harassment
-
-==============================================================================
-*/
+============================================================================== FISH (inspired by FLIPPER structure) - Swim monster (water-native): walk/run are swimming speeds - Melee bite only - Idle/search/sight barks - Pain and death sets - Swim (fly) parameters tuned for close-range harassment ==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_rotfish.hpp"

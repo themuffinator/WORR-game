@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_g_clients_lifecycle.cpp implementation.*/
+
 #include "../src/server/gameplay/g_clients.hpp"
 
 #include <cassert>

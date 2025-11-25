@@ -1,23 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_weapon.cpp (Game Weapon Logic)
-// This file contains the server-side implementation for all player-usable
-// weapons. It is responsible for the mechanics of firing each weapon, spawning
-// the appropriate projectiles or performing hitscan traces, and applying damage.
-//
-// Key Responsibilities:
-// - Firing Functions: Implements the `fire_*` functions (e.g., `fire_rocket`,
-//   `fire_rail`, `fire_shotgun`) that are called when a player attacks.
-// - Projectile Spawning: Handles the creation and initialization of projectile
-//   entities, setting their velocity, damage, owner, and other properties.
-// - Hitscan Logic: Performs the trace line calculations for instant-hit
-//   weapons like the shotgun and machinegun.
-// - Damage and Effects: Calls the core `Damage` function to apply damage to
-//   targets and triggers visual and audio effects for weapon fire.
-// - Weapon State Machine: The `Weapon_Generic` function provides a state
-//   machine to handle the animation sequence of firing a weapon (ready, fire,
-//   idle, etc.).
+g_weapon.cpp (Game Weapon Logic) This file contains the server-side implementation for all player-usable weapons. It is responsible for the mechanics of firing each weapon, spawning the appropriate projectiles or performing hitscan traces, and applying damage. Key Responsibilities: - Firing Functions: Implements the `fire_*` functions (e.g., `fire_rocket`, `fire_rail`, `fire_shotgun`) that are called when a player attacks. - Projectile Spawning: Handles the creation and initialization of projectile entities, setting their velocity, damage, owner, and other properties. - Hitscan Logic: Performs the trace line calculations for instant-hit weapons like the shotgun and machinegun. - Damage and Effects: Calls the core `Damage` function to apply damage to targets and triggers visual and audio effects for weapon fire. - Weapon State Machine: The `Weapon_Generic` function provides a state machine to handle the animation sequence of firing a weapon (ready, fire, idle, etc.).*/
 
 #include "../g_local.hpp"
 #include "g_proball.hpp"

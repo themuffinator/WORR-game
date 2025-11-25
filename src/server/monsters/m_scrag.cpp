@@ -1,17 +1,8 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-SCRAG / WIZARD (Quake 1) - WOR Port
-Floating caster that fires poison spikes while hovering.
+============================================================================== SCRAG / WIZARD (Quake 1) - WOR Port Floating caster that fires poison spikes while hovering. Revised to mirror the Hover monster's structure and use supported AI callbacks from g_ai.cpp (ai_stand, ai_walk, ai_run, ai_charge, ai_turn). No behavior or stats changed. ==============================================================================*/
 
-Revised to mirror the Hover monster's structure and use supported AI
-callbacks from g_ai.cpp (ai_stand, ai_walk, ai_run, ai_charge, ai_turn).
-No behavior or stats changed.
-
-==============================================================================
-*/
 #include "../g_local.hpp"
 #include "m_scrag.hpp"
 #include "m_flash.hpp"

@@ -1,11 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// m_actor.cpp (AI Companion Actor)
-//
-// This file has been corrected to restore the functionality from the original
-// QuakeActor mod by Shaun 'Cyberslash' Wilson. The AI logic, weapon handling,
-// and scripting capabilities now mirror the original C implementation.
+m_actor.cpp (AI Companion Actor) This file has been corrected to restore the functionality from the original QuakeActor mod by Shaun 'Cyberslash' Wilson. The AI logic, weapon handling,*/
 
 #include "../g_local.hpp"
 #include "m_actor.hpp"

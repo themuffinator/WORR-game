@@ -1,17 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-OLD ONE (Shub-Niggurath)
-- Stationary commander-style boss that periodically spawns reinforcements.
-- Normally invulnerable; special triggers briefly expose a vulnerability window
-  or the player can telefrag the boss via classic Quake exits.
-- Ported from Ionized Quake's m_oldone implementation and adapted for the WORR
-  reinforcement & vulnerability systems.
-
-==============================================================================
-*/
+============================================================================== OLD ONE (Shub-Niggurath) - Stationary commander-style boss that periodically spawns reinforcements. - Normally invulnerable; special triggers briefly expose a vulnerability window or the player can telefrag the boss via classic Quake exits. - Ported from Ionized Quake's m_oldone implementation and adapted for the WORR reinforcement & vulnerability systems. ==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_shub.hpp"

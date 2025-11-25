@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+client_session_service_impl.cpp implementation.*/
+
 #include "client_session_service_impl.hpp"
 
 #include "../g_local.hpp"

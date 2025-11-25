@@ -1,15 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-black widow
-
-==============================================================================
-*/
-
-// self->timeStamp used to prevent rapid fire of railgun
-// self->plat2flags used for fire count (flashes)
+============================================================================== black widow ============================================================================== self->timeStamp used to prevent rapid fire of railgun self->plat2flags used for fire count (flashes)*/
 
 #include "../g_local.hpp"
 #include "m_widow.hpp"

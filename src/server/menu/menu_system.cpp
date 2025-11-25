@@ -1,19 +1,7 @@
-// menu_system.cpp (Menu System)
-// This file implements the core functionality for the modern, object-oriented
-// menu system. It defines the behavior of the `Menu` class and the `MenuSystem`
-// static class, which work together to manage the lifecycle of in-game menus.
-//
-// Key Responsibilities:
-// - Menu Navigation: Implements the `Menu::Next()` and `Menu::Prev()` methods
-//   for navigating between selectable menu items.
-// - Menu Action: The `Menu::Select()` method handles the execution of the
-//   callback function associated with the currently selected menu item.
-// - Menu Rendering: `Menu::Render()` constructs the layout string for the
-//   current menu state, which is then sent to the client for display. It
-//   supports scrolling for menus with more items than can be displayed at once.
-// - System Management: The `MenuSystem` class provides the main interface for
-//   opening (`Open`), closing (`Close`), and updating (`Update`) menus for a
-//   given player.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+menu_system.cpp (Menu System) This file implements the core functionality for the modern, object-oriented menu system. It defines the behavior of the `Menu` class and the `MenuSystem` static class, which work together to manage the lifecycle of in-game menus. Key Responsibilities: - Menu Navigation: Implements the `Menu::Next()` and `Menu::Prev()` methods for navigating between selectable menu items. - Menu Action: The `Menu::Select()` method handles the execution of the callback function associated with the currently selected menu item. - Menu Rendering: `Menu::Render()` constructs the layout string for the current menu state, which is then sent to the client for display. It supports scrolling for menus with more items than can be displayed at once. - System Management: The `MenuSystem` class provides the main interface for opening (`Open`), closing (`Close`), and updating (`Update`) menus for a given player.*/
 
 #include "../g_local.hpp"
 

@@ -1,16 +1,7 @@
-// menu_page_setup.cpp (Menu Page - Match Setup)
-// This file implements a multi-page wizard-style menu for setting up a custom
-// match. It guides the user through selecting a gametype, modifiers, player
-// count, and other options.
-//
-// Key Responsibilities:
-// - State Management: Uses a `MatchSetupState` struct to hold the user's
-//   selections as they navigate through the different setup pages.
-// - Wizard Flow: Each menu page (e.g., `OpenSetupGametypeMenu`,
-//   `OpenSetupModifierMenu`) handles one aspect of the setup and then calls
-//   the next function in the sequence, creating a step-by-step setup process.
-// - Finalization: The final step in the wizard calls `FinishMatchSetup`, which
-//   applies the chosen settings to the server and closes the menu.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+menu_page_setup.cpp (Menu Page - Match Setup) This file implements a multi-page wizard-style menu for setting up a custom match. It guides the user through selecting a gametype, modifiers, player count, and other options. Key Responsibilities: - State Management: Uses a `MatchSetupState` struct to hold the user's selections as they navigate through the different setup pages. - Wizard Flow: Each menu page (e.g., `OpenSetupGametypeMenu`, `OpenSetupModifierMenu`) handles one aspect of the setup and then calls the next function in the sequence, creating a step-by-step setup process. - Finalization: The final step in the wizard calls `FinishMatchSetup`, which applies the chosen settings to the server and closes the menu.*/
 
 #include "../g_local.hpp"
 

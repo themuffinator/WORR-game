@@ -1,22 +1,7 @@
-﻿// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_utilities.cpp (Game Utilities)
-// This file is a collection of miscellaneous utility and helper functions
-// that are used throughout the server-side game module. It contains common,
-// reusable code that doesn't belong to a more specific system like items or AI.
-//
-// Key Responsibilities:
-// - Entity Searching: Provides functions like `FindEntity`, `FindRadius`, and
-//   `PickTarget` for locating specific entities in the game world.
-// - Spawning and Linking: Contains the core `Spawn` and `FreeEntity` functions
-//   that manage the entity lifecycle.
-// - String and Text Manipulation: Includes functions for formatting strings,
-//   such as `TimeString` for displaying time.
-// - Team and Gametype Logic: Provides helper functions for team-based checks
-//   (`OnSameTeam`, `Teams_TeamName`) and gametype validation.
-// - World Interaction: Implements `KillBox` for killing entities within a
-//   volume and `TouchTriggers` for activating triggers.
+g_utilities.cpp (Game Utilities) This file is a collection of miscellaneous utility and helper functions that are used throughout the server-side game module. It contains common, reusable code that doesn't belong to a more specific system like items or AI. Key Responsibilities: - Entity Searching: Provides functions like `FindEntity`, `FindRadius`, and `PickTarget` for locating specific entities in the game world. - Spawning and Linking: Contains the core `Spawn` and `FreeEntity` functions that manage the entity lifecycle. - String and Text Manipulation: Includes functions for formatting strings, such as `TimeString` for displaying time. - Team and Gametype Logic: Provides helper functions for team-based checks (`OnSameTeam`, `Teams_TeamName`) and gametype validation. - World Interaction: Implements `KillBox` for killing entities within a volume and `TouchTriggers` for activating triggers.*/
 
 #include "../g_local.hpp"
 #include "team_balance.hpp"

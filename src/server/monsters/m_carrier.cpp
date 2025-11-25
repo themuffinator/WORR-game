@@ -1,16 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-/*
-==============================================================================
-
-carrier
-
-==============================================================================
-*/
-
-// self->timeStamp used for frame calculations in grenade & spawn code
-// self->monsterInfo.fireWait used to prevent rapid refire of rocket launcher
+============================================================================== carrier ============================================================================== self->timeStamp used for frame calculations in grenade & spawn code self->monsterInfo.fireWait used to prevent rapid refire of rocket launcher*/
 
 #include "../g_local.hpp"
 #include "m_carrier.hpp"

@@ -1,17 +1,7 @@
-// menu_page_admin.cpp (Menu Page - Admin)
-// This file implements the administrator-specific menu pages, allowing server
-// admins to manage match settings in real-time. It uses a shared context
-// struct (`AdminSettings`) to temporarily store changes before they are applied.
-//
-// Key Responsibilities:
-// - Admin Settings UI: `OpenAdminSettingsMenu` constructs the menu that allows
-//   admins to toggle settings like timelimit, weapons stay, and match lock.
-// - State Management: Uses a local struct (`AdminSettings`) to manage the
-//   state of the menu options, which are then applied to the server's cvars
-//   when the admin confirms the changes.
-// - Dynamic Updates: The `onUpdate` callback ensures that the text of the menu
-//   items (e.g., "weapons stay: Yes") reflects the current state of the settings
-//   as the admin makes changes.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+menu_page_admin.cpp (Menu Page - Admin) This file implements the administrator-specific menu pages, allowing server admins to manage match settings in real-time. It uses a shared context struct (`AdminSettings`) to temporarily store changes before they are applied. Key Responsibilities: - Admin Settings UI: `OpenAdminSettingsMenu` constructs the menu that allows admins to toggle settings like timelimit, weapons stay, and match lock. - State Management: Uses a local struct (`AdminSettings`) to manage the state of the menu options, which are then applied to the server's cvars when the admin confirms the changes. - Dynamic Updates: The `onUpdate` callback ensures that the text of the menu items (e.g., "weapons stay: Yes") reflects the current state of the settings as the admin makes changes.*/
 
 #include "../g_local.hpp"
 

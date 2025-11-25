@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_ip_filter_persistence.cpp implementation.*/
+
 #include "server/g_local.hpp"
 
 #include <cassert>

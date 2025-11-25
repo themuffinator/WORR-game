@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_ctf_protection.cpp implementation.*/
+
 #include <cassert>
 
 #include "server/g_local.hpp"

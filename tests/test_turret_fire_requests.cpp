@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_turret_fire_requests.cpp implementation.*/
+
 #include "../src/server/gameplay/g_turret.cpp"
 
 #include <cassert>

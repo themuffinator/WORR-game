@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+m_eel.cpp implementation.*/
+
 #include "../g_local.hpp"
 #include "m_eel.hpp"
 #include "q1_support.hpp"

@@ -1,17 +1,7 @@
-// g_combat_heatmap.cpp (Game Combat Heatmap)
-// This file implements a sophisticated heatmap system to track combat
-// intensity across the map in deathmatch modes. It records events like damage
-// and death, creating a "heat" value for different map areas. This data is
-// used by other systems to make more intelligent decisions.
-//
-// Key Responsibilities:
-// - Event Tracking: `HM_AddEvent` is called by combat functions to add "heat"
-//   to a specific location on the map, with a radial falloff effect.
-// - Data Management: Stores heat data in a grid-based spatial hash map and
-//   periodically decays the heat values over time in `HM_Think`.
-// - Spatial Queries: The `HM_Query` function allows other systems, like player
-//   spawning logic, to query the "danger level" of a specific area to avoid
-//   placing players in overly active combat zones.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_combat_heatmap.cpp (Game Combat Heatmap) This file implements a sophisticated heatmap system to track combat intensity across the map in deathmatch modes. It records events like damage and death, creating a "heat" value for different map areas. This data is used by other systems to make more intelligent decisions. Key Responsibilities: - Event Tracking: `HM_AddEvent` is called by combat functions to add "heat" to a specific location on the map, with a radial falloff effect. - Data Management: Stores heat data in a grid-based spatial hash map and periodically decays the heat values over time in `HM_Think`. - Spatial Queries: The `HM_Query` function allows other systems, like player spawning logic, to query the "danger level" of a specific area to avoid placing players in overly active combat zones.*/
 
 #include "../g_local.hpp"
 #include <unordered_map>

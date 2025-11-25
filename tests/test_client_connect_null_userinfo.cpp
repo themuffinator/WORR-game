@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_client_connect_null_userinfo.cpp implementation.*/
+
 #include "server/client/client_session_service_impl.hpp"
 #include "server/gameplay/client_config.hpp"
 #include "server/g_local.hpp"

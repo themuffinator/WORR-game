@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_team_join_capacity.cpp implementation.*/
+
 #include "../src/server/player/team_join_capacity.hpp"
 
 #include <cassert>

@@ -1,11 +1,7 @@
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
 
-QUAKE CENTROID - WORR Port
-
-==============================================================================
-*/
+============================================================================== QUAKE CENTROID - WORR Port ==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_centroid.hpp"

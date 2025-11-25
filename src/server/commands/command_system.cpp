@@ -1,9 +1,7 @@
-// Copyright (c) DarkMatter Projects 2023-2025
-// Licensed under the GNU General Public License 2.0.
-//
-// command_system.cpp - Core implementation of the command dispatcher.
-// This file contains the command map, the main dispatcher logic, and the
-// top-level registration function that calls into each command module.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+command_system.cpp - Core implementation of the command dispatcher. This file contains the command map, the main dispatcher logic, and the top-level registration function that calls into each command module.*/
 
 #include "command_system.hpp"
 #include "command_registration.hpp"

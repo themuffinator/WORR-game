@@ -1,8 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-	fixbot.c
-*/
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
+
+fixbot.c*/
 
 #include "../g_local.hpp"
 #include "m_fixbot.hpp"

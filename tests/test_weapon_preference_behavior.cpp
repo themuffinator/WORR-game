@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_weapon_preference_behavior.cpp implementation.*/
+
 #include "server/g_local.hpp"
 
 #include <cassert>

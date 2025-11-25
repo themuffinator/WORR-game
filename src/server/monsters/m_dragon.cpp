@@ -1,11 +1,7 @@
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
 
-QUAKE WYVERN / DRAGON (Ionized port)
-
-==============================================================================
-*/
+============================================================================== QUAKE WYVERN / DRAGON (Ionized port) ==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_dragon.hpp"

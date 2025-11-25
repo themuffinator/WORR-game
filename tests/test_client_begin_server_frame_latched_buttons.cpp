@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_client_begin_server_frame_latched_buttons.cpp implementation.*/
+
 #include <cassert>
 
 #include "server/client/client_session_service_impl.hpp"

@@ -1,7 +1,7 @@
-// Copyright (c) DarkMatter Projects 2023-2025
-// Licensed under the GNU General Public License 2.0.
-//
-// commands_cheats.cpp - Implementations for cheat and debug commands.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+commands_cheats.cpp - Implementations for cheat and debug commands.*/
 
 #include "../g_local.hpp"
 #include "command_registration.hpp"

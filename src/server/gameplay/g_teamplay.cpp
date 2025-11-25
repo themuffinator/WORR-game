@@ -1,7 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// Generic teamplay helpers shared across all team game modes.
+Generic teamplay helpers shared across all team game modes.*/
 
 #include "../g_local.hpp"
 #include "g_teamplay.hpp"

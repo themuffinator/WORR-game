@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_item_list.cpp implementation.*/
+
 #include "../g_local.hpp"
 void Drop_Ammo(gentity_t* ent, Item* item);
 void Drop_Ball(gentity_t* ent, Item* item);

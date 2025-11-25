@@ -1,23 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// cg_screen.cpp (Client Game Screen)
-// This file is responsible for all client-side screen rendering that is not
-// part of the 3D world view. It manages the Heads-Up Display (HUD), on-screen
-// notifications, and center-printed messages.
-//
-// Key Responsibilities:
-// - `CG_DrawHUD`: The main entry point for drawing the HUD, which it does by
-//   parsing a layout string received from the server.
-// - Center Print System: Manages a queue of messages to be displayed in the
-//   center of the screen, handling both instant and "typed-out" text reveals.
-// - Notification System: Manages a list of messages (like chat or game events)
-//   that appear in the top-left corner of the screen and fade out over time.
-// - `CG_DrawInventory`: Renders the full-screen inventory/item selection menu.
-// - Handles rendering of numerical stats (health, armor, ammo) using custom
-//   graphical number images.
-// - Manages accessibility features like high-contrast text backgrounds and
-//   alternate typefaces.
+cg_screen.cpp (Client Game Screen) This file is responsible for all client-side screen rendering that is not part of the 3D world view. It manages the Heads-Up Display (HUD), on-screen notifications, and center-printed messages. Key Responsibilities: - `CG_DrawHUD`: The main entry point for drawing the HUD, which it does by parsing a layout string received from the server. - Center Print System: Manages a queue of messages to be displayed in the center of the screen, handling both instant and "typed-out" text reveals. - Notification System: Manages a list of messages (like chat or game events) that appear in the top-left corner of the screen and fade out over time. - `CG_DrawInventory`: Renders the full-screen inventory/item selection menu. - Handles rendering of numerical stats (health, armor, ammo) using custom graphical number images. - Manages accessibility features like high-contrast text backgrounds and alternate typefaces.*/
 
 #include "cg_local.hpp"
 #include <sstream>  // for std::istringstream

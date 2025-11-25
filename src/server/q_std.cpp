@@ -1,21 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// q_std.cpp (Quake Standard Library Implementation)
-// This file provides the implementation for the custom standard library
-// functions declared in `q_std.hpp`. It contains low-level utility functions
-// for string manipulation and parsing.
-//
-// Key Responsibilities:
-// - String Parsing: Implements `COM_Parse` and `COM_ParseEx`, the core
-//   functions used throughout the codebase to parse tokenized strings from
-//   entity definitions, configuration files, and commands.
-// - Safe String Copying: Provides implementations for `Q_strlcpy` and
-//   `Q_strlcat`, which are safer alternatives to the standard C library's
-//   `strcpy` and `strcat` because they prevent buffer overflows by accepting
-//   the destination buffer size.
-// - String Comparison: Implements case-insensitive string comparison functions
-//   like `Q_strcasecmp` and `Q_strncasecmp`.
+q_std.cpp (Quake Standard Library Implementation) This file provides the implementation for the custom standard library functions declared in `q_std.hpp`. It contains low-level utility functions for string manipulation and parsing. Key Responsibilities: - String Parsing: Implements `COM_Parse` and `COM_ParseEx`, the core functions used throughout the codebase to parse tokenized strings from entity definitions, configuration files, and commands. - Safe String Copying: Provides implementations for `Q_strlcpy` and `Q_strlcat`, which are safer alternatives to the standard C library's `strcpy` and `strcat` because they prevent buffer overflows by accepting the destination buffer size. - String Comparison: Implements case-insensitive string comparison functions like `Q_strcasecmp` and `Q_strncasecmp`.*/
 
 #include "../server/g_local.hpp"
 
