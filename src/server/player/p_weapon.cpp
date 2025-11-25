@@ -35,16 +35,21 @@ uint8_t PlayerDamageModifier(gentity_t* ent) {
 	isQuad = false;
 	damageMultiplier = 0;
 
-	//WOR: make these stack but additive rather than multiplicative
+	struct PowerupCheck {
+		PowerupTimer timer;
+		uint8_t	multiplier;
+	};
 
-	if (ent->client->PowerupTimer(PowerupTimer::QuadDamage) > level.time) {
-		damageMultiplier += 4;
-		isQuad = true;
-	}
+	constexpr std::array<PowerupCheck, 2> kDamagePowerups{ {
+		{ PowerupTimer::QuadDamage, 4 },
+		{ PowerupTimer::DoubleDamage, 2 }
+	} };
 
-	if (ent->client->PowerupTimer(PowerupTimer::DoubleDamage) > level.time) {
-		damageMultiplier += 2;
-		isQuad = true;
+	for (const auto& [timer, mult] : kDamagePowerups) {
+		if (ent->client->PowerupTimer(timer) > level.time) {
+			damageMultiplier += mult;
+			isQuad = true;
+		}
 	}
 
 	if (ent->client->pers.inventory[IT_TECH_POWER_AMP])
