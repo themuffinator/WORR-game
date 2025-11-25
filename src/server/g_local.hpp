@@ -28,6 +28,8 @@ class Menu;
 struct local_game_import_t;
 extern local_game_import_t gi;
 
+struct gclient_t;
+
 // the "gameversion" client command will print this plus compile date
 const std::string GAMEVERSION = "baseq2";
 
@@ -4208,6 +4210,7 @@ void monster_fire_multigrenade(gentity_t* self, const Vector3& start, const Vect
 	MonsterMuzzleFlashID flashType, float rightAdjust, float upAdjust);
 void monster_fire_rocket(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
+Vector3 M_ProjectFlashSource(gentity_t* self, const Vector3& offset, const Vector3& forward, const Vector3& right);
 void monster_fire_homing_pod(gentity_t* self, const Vector3& start, const Vector3& dir, int damage, int speed,
 	MonsterMuzzleFlashID flashType);
 void monster_fire_railgun(gentity_t* self, const Vector3& start, const Vector3& aimDir, int damage, int kick,
