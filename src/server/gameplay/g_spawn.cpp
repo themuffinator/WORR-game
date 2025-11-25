@@ -1945,22 +1945,21 @@ parsing textual entity definitions out of an ent file.
 ===============
 */
 void SpawnEntities(const char* mapName, const char* entities, const char* spawnPoint) {
+	std::string entityStringStorage;
 	if (entities && *entities) {
 		bool overrideAllocated = false;
 		const char* loadedEntities = TryLoadEntityOverride(mapName, entities, overrideAllocated);
-		level.savedEntityString.assign(loadedEntities);
+		entityStringStorage.assign(loadedEntities);
 		if (overrideAllocated) {
 			gi.TagFree((void*)loadedEntities);
 		}
-		entities = level.savedEntityString.c_str();
 	}
 	else {
 		if (g_verbose->integer) {
 			gi.Com_PrintFmt("{}: Empty entity string for map \"{}\".\n", __FUNCTION__, mapName);
 		}
 
-		level.savedEntityString.clear();
-		entities = level.savedEntityString.c_str();
+		entityStringStorage.clear();
 	}
 
 	// Clamp skill level to valid range [0, 4]
@@ -2007,6 +2006,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 	level.isN64 = mapView.starts_with("q64/");
 	level.campaign.coopScalePlayers = 0;
 	level.campaign.coopHealthScaling = std::clamp(g_coop_health_scaling->value, 0.0f, 1.0f);
+	level.savedEntityString = std::move(entityStringStorage);
+	entities = level.savedEntityString.c_str();
 
 	// Initialize all client structs
 	for (size_t i = 0; i < game.maxClients; ++i) {
