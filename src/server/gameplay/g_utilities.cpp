@@ -1712,22 +1712,24 @@ void CalculateRanks() {
 			level.follow2 = clientNum;
 
 		if (teams) {
+			const bool eliminatedFromLives = ClientIsEliminatedFromLimitedLives(cl);
+
 			if (cl->sess.team == Team::Red) {
 				level.pop.num_playing_red++;
 				if (cl->pers.health > 0)
 					level.pop.num_living_red++;
-				else if (cl->eliminated)
+				else if (cl->eliminated || eliminatedFromLives)
 					level.pop.num_eliminated_red++;
 			}
 			else {
 				level.pop.num_playing_blue++;
 				if (cl->pers.health > 0)
 					level.pop.num_living_blue++;
-				else if (cl->eliminated)
+				else if (cl->eliminated || eliminatedFromLives)
 					level.pop.num_eliminated_blue++;
 			}
 		}
-	}
+}
 
 	// Phase 2: Collect valid and unique client indices
 	std::array<uint16_t, MAX_CLIENTS> sorted{}; // or int16_t
