@@ -658,6 +658,9 @@
     <ClCompile Include="server\gameplay\g_spawn.cpp">
       <Filter>world</Filter>
     </ClCompile>
+      <ClCompile Include="server\gameplay\g_statusbar.cpp">
+        <Filter>world</Filter>
+      </ClCompile>
     <ClCompile Include="server\gameplay\g_items.cpp">
       <Filter>world</Filter>
     </ClCompile>
