@@ -1,6 +1,7 @@
 #include "server/client/client_session_service_impl.hpp"
 #include "server/gameplay/client_config.hpp"
 #include "server/g_local.hpp"
+#include "client_session_service_impl_stubs.hpp"
 
 #include <array>
 #include <cassert>
@@ -159,7 +160,7 @@ int main()
 
 	g_entities[1].client = &clients[0];
 
-	worr::server::client::ClientConfigStore configStore(gi, ".");
+ClientConfigStore configStore(gi, ".");
 
 	class StubClientStatsService final : public worr::server::client::ClientStatsService {
 		public:

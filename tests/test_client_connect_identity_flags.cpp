@@ -1,6 +1,6 @@
 #include "server/client/client_session_service_impl.hpp"
-
 #include "server/g_local.hpp"
+#include "client_session_service_impl_stubs.hpp"
 
 #include <cassert>
 #include <string>

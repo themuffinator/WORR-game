@@ -10,19 +10,34 @@ std::mt19937 mt_rand{};
 
 /*
 =============
-MakeTestPlayer
+Entity_UpdateState
 
-Creates a minimal player entity for bot state updates.
+Sets the damage boost flag when any active boost timer extends beyond the
+current level time.
 =============
 */
+void Entity_UpdateState(gentity_t* ent) {
+	if (!ent || !ent->client) {
+		return;
+	}
+
+	ent->sv.entFlags &= ~SVFL_HAS_DMG_BOOST;
+	for (const PowerupTimer timer : DamageBoostTimers) {
+		if (ent->client->PowerupTimer(timer) > level.time) {
+			ent->sv.entFlags |= SVFL_HAS_DMG_BOOST;
+			break;
+		}
+	}
+}
+
 static gentity_t MakeTestPlayer(gclient_t &client) {
 	gentity_t player{};
-	player.client = &client;
-	player.solid = SOLID_BBOX;
-	player.sv.init = true;
-	player.takeDamage = false;
-	player.flags = 0;
-	return player;
+player.client = &client;
+player.solid = SOLID_BBOX;
+player.sv.init = true;
+player.takeDamage = false;
+player.flags = FL_NONE;
+return player;
 }
 
 /*

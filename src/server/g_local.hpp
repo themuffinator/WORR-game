@@ -684,27 +684,74 @@ public:
 // These will only be enabled for enums that specialize 'is_bitmask_enum'.
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
+/*
+=============
+EnumToValue
+
+Converts the provided enum to its underlying integral representation without
+relying on C++23's std::to_underlying so tests can compile under C++20.
+=============
+*/
+constexpr std::underlying_type_t<Enum> EnumToValue(Enum value) noexcept {
+	return static_cast<std::underlying_type_t<Enum>>(value);
+}
+
+
+template <typename Enum>
+	requires is_bitmask_enum<Enum>::value
+/*
+=============
+operator|
+
+Computes the union of two bitmask-enabled enums.
+=============
+*/
 constexpr BitFlags<Enum> operator|(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) | std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToValue(lhs) | EnumToValue(rhs));
 }
+
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
+/*
+=============
+operator&
+
+Computes the intersection of two bitmask-enabled enums.
+=============
+*/
 constexpr BitFlags<Enum> operator&(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) & std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToValue(lhs) & EnumToValue(rhs));
 }
+
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
+/*
+=============
+operator^
+
+Computes the symmetric difference of two bitmask-enabled enums.
+=============
+*/
 constexpr BitFlags<Enum> operator^(Enum lhs, Enum rhs) {
-	return BitFlags<Enum>(std::to_underlying(lhs) ^ std::to_underlying(rhs));
+	return BitFlags<Enum>(EnumToValue(lhs) ^ EnumToValue(rhs));
 }
+
 
 template <typename Enum>
 	requires is_bitmask_enum<Enum>::value
+/*
+=============
+operator~
+
+Flips all bits for a bitmask-enabled enum.
+=============
+*/
 constexpr BitFlags<Enum> operator~(Enum val) {
-	return BitFlags<Enum>(~std::to_underlying(val));
+	return BitFlags<Enum>(~EnumToValue(val));
 }
+
 
 // ==================================================================
 
@@ -1744,7 +1791,7 @@ constexpr const char* ITEM_CTF_FLAG_NEUTRAL = "item_flag_team_neutral";
 
 struct Item {
 	item_id_t		id;		   // matches item list index
-	const char* className; // spawning name
+	const char* className = nullptr; // spawning name
 	bool			(*pickup)(gentity_t* ent, gentity_t* other);
 	void			(*use)(gentity_t* ent, Item* item);
 	void			(*drop)(gentity_t* ent, Item* item);
@@ -2997,7 +3044,7 @@ struct spawn_temp_t {
 
 	Vector3				speeds = vec3_origin;		// oblivion
 	Vector3				rotate = vec3_origin;		// oblivion
-	const char* pathTarget;				// oblivion
+	const char* pathTarget = nullptr;				// oblivion
 	Vector3				mangle = vec3_origin;		// oblivion
 	float				duration = 0.0f;			// oblivion
 	Vector3				durations = vec3_origin;	// oblivion
@@ -3137,6 +3184,46 @@ struct MoveInfo {
 	size_t		curveFrame;
 	uint8_t		subFrame, numSubFrames;
 	size_t		numFramesDone;
+
+	/*
+	=============
+	MoveInfo::MoveInfo
+
+	Initializes movement bookkeeping and curve buffers to known defaults so
+	stack-allocated entities used in tests have predictable state.
+	=============
+	*/
+	MoveInfo() :
+		startOrigin{},
+		startAngles{},
+		endOrigin{},
+		endAngles{},
+		endAnglesReversed{},
+		sound_start(0),
+		sound_middle(0),
+		sound_end(0),
+		accel(0.0f),
+		speed(0.0f),
+		decel(0.0f),
+		distance(0.0f),
+		wait(0.0f),
+		state(MoveState::Top),
+		reversing(false),
+		dir{},
+		dest{},
+		currentSpeed(0.0f),
+		moveSpeed(0.0f),
+		nextSpeed(0.0f),
+		remainingDistance(0.0f),
+		decelDistance(0.0f),
+		endFunc(nullptr),
+		blocked(nullptr),
+		curveRef{},
+		curvePositions(nullptr, 0),
+		curveFrame(0),
+		subFrame(0),
+		numSubFrames(0),
+		numFramesDone(0) {}
 };
 
 struct MonsterFrame {
@@ -3261,7 +3348,7 @@ enum class CombatStyle : uint8_t {
 };
 
 struct reinforcement_t {
-	const char* className;
+	const char* className = nullptr;
 	int32_t strength;
 	Vector3 mins, maxs;
 };
@@ -4115,7 +4202,7 @@ void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int da
 bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDelay);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset, Vector3& start);
-Vector3 M_ProjectFlashSource(gentity_t* self, const Vector3& offset, const Vector3& forward, const Vector3& right);
+	Vector3		offset{};
 bool M_droptofloor_generic(Vector3& origin, const Vector3& mins, const Vector3& maxs, const Vector3& gravity, bool ceiling, gentity_t* ignore, contents_t mask, bool allow_partial);
 bool M_droptofloor(gentity_t* ent);
 void monster_think(gentity_t* self);
@@ -5245,248 +5332,264 @@ struct saved_spawn_t {
 	Vector3 origin;
 	Vector3 angles;
 	int32_t health;
-	int32_t dmg;
+	int32_t dmg{};
 	float scale;
-	const char* target;
-	const char* targetName;
+	const char* target = nullptr;
+	const char* targetName = nullptr;
 	SpawnFlags spawnFlags;
-	int32_t mass;
-	const char* className;
+	int32_t mass{};
+	const char* className = nullptr;
 	gvec3_t mins, maxs; // bounding box size
-	const char* model;
+	const char* model = nullptr;
 	void (*spawnFunc)(gentity_t*);
 };
 
 struct gentity_t {
-	gentity_t() = delete;
-	gentity_t(const gentity_t&) = delete;
-	gentity_t(gentity_t&&) = delete;
+	/*
+	=============
+	gentity_t::gentity_t
+
+	Value-initializes entity state so tests can instantiate lightweight entities
+	without relying on external allocation helpers.
+	=============
+	*/
+gentity_t() = default;
+gentity_t(const gentity_t&) = default;
+gentity_t(gentity_t&&) = default;
 
 	// shared with server; do not touch members until the "private" section
-	entity_state_t s;
-	gclient_t* client; // nullptr if not a player
+	entity_state_t s{};
+	gclient_t* client = nullptr; // nullptr if not a player
 	// the server expects the first part
 	// of gclient_t to be a player_state_t
 	// but the rest of it is opaque
 
-	sv_entity_t sv;	       // read only info about this entity for the server
+	sv_entity_t sv{};	       // read only info about this entity for the server
 
-	bool     inUse;
+	bool     inUse{};
 
 	// world linkage data
-	bool     linked;
-	int32_t	 linkCount;
-	int32_t  areaNum, areaNum2;
+	bool     linked{};
+	int32_t	 linkCount{};
+	int32_t  areaNum{};
+	int32_t  areaNum2{};
 
-	svflags_t  svFlags;
-	Vector3	   mins, maxs;
-	Vector3	   absMin, absMax, size;
-	solid_t	   solid;
-	contents_t clipMask;
-	gentity_t* owner;
+	svflags_t  svFlags{};
+	Vector3	   mins{};
+	Vector3	   maxs{};
+	Vector3	   absMin{};
+	Vector3	   absMax{};
+	Vector3	   size{};
+	solid_t	   solid{};
+	contents_t clipMask{};
+	gentity_t* owner = nullptr;
 
 	//================================
 
 	// private to game
-	int32_t spawn_count; // [Paril-KEX] used to differentiate different entities that may be in the same slot
+	int32_t spawn_count{}; // [Paril-KEX] used to differentiate different entities that may be in the same slot
 	MoveType	moveType;
-	ent_flags_t flags;
+	ent_flags_t flags{};
 
-	const char* model;
+	const char* model = nullptr;
 	GameTime		freeTime; // sv.time when the object was freed
 
 	//
 	// only used locally in game, not by server
 	//
-	const char* message;
-	const char* className;
+	const char* message = nullptr;
+	const char* className = nullptr;
 	SpawnFlags	spawnFlags;
 	bool		turretFireRequested{};
 
-	GameTime timeStamp;
+	GameTime timeStamp{};
 
 	float		angle; // set in qe3, -1 = up, -2 = down
-	const char* target;
-	const char* targetName;
-	const char* killTarget;
-	const char* team;
-	const char* pathTarget;
-	const char* deathTarget;
-	const char* healthTarget;
-	const char* itemTarget; // [Paril-KEX]
-	const char* combatTarget;
-	gentity_t* targetEnt;
+	const char* target = nullptr;
+	const char* targetName = nullptr;
+	const char* killTarget = nullptr;
+	const char* team = nullptr;
+	const char* pathTarget = nullptr;
+	const char* deathTarget = nullptr;
+	const char* healthTarget = nullptr;
+	const char* itemTarget = nullptr; // [Paril-KEX]
+	const char* combatTarget = nullptr;
+	gentity_t* targetEnt = nullptr;
 
 	float  speed, accel, decel;
-	Vector3 moveDir;
-	Vector3 pos1, pos2, pos3;
+	Vector3 moveDir{};
+	Vector3 pos1{};
+	Vector3 pos2{};
+	Vector3 pos3{};
 
 	Vector3	velocity;
 	Vector3	aVelocity;
-	int32_t mass;
-	GameTime airFinished;
+	int32_t mass{};
+	GameTime airFinished{};
 	float	gravity; // per entity gravity multiplier (1.0 is normal)
 	uint32_t	lastGravityModCount;
 	// use for lowgrav artifact, flares
 
-	gentity_t* goalEntity;
-	gentity_t* moveTarget;
-	float	 yawSpeed;
-	float	 ideal_yaw;
+	gentity_t* goalEntity = nullptr;
+	gentity_t* moveTarget = nullptr;
+	float	 yawSpeed{};
+	float	 ideal_yaw{};
 
-	GameTime nextThink;
-	save_prethink_t preThink;
-	save_prethink_t postThink;
-	save_think_t think;
-	save_touch_t touch;
-	save_use_t use;
-	save_pain_t pain;
-	save_die_t die;
+	GameTime nextThink{};
+	save_prethink_t preThink{};
+	save_prethink_t postThink{};
+	save_think_t think{};
+	save_touch_t touch{};
+	save_use_t use{};
+	save_pain_t pain{};
+	save_die_t die{};
 
-	GameTime touch_debounce_time; // are all these legit?  do we need more/less of them?
-	GameTime pain_debounce_time;
-	GameTime damage_debounce_time;
-	GameTime fly_sound_debounce_time; // move to clientinfo
-	GameTime last_move_time;
+	GameTime touch_debounce_time{}; // are all these legit?  do we need more/less of them?
+	GameTime pain_debounce_time{};
+	GameTime damage_debounce_time{};
+	GameTime fly_sound_debounce_time{}; // move to clientinfo
+	GameTime last_move_time{};
 
 	int32_t		health;
 	int32_t		maxHealth;
 	int32_t		gibHealth;
 	GameTime		show_hostile;
 
-	GameTime powerArmorTime;
+	GameTime powerArmorTime{};
 
 	std::array<char, MAX_QPATH> map; // target_changelevel
 
-	int32_t viewHeight; // height above origin where eyesight is determined
-	bool	deadFlag;
-	bool	takeDamage;
-	int32_t dmg;
-	int32_t splashDamage;
+	int32_t viewHeight{}; // height above origin where eyesight is determined
+	bool	deadFlag{};
+	bool	takeDamage{};
+	int32_t dmg{};
+	int32_t splashDamage{};
 	float	splashRadius;
-	int32_t sounds; // make this a spawntemp var?
-	int32_t count;
+	int32_t sounds{}; // make this a spawntemp var?
+	int32_t count{};
 
-	gentity_t* chain;
-	gentity_t* enemy;
-	gentity_t* oldEnemy;
-	gentity_t* activator;
-	gentity_t* groundEntity;
+	gentity_t* chain = nullptr;
+	gentity_t* enemy = nullptr;
+	gentity_t* oldEnemy = nullptr;
+	gentity_t* activator = nullptr;
+	gentity_t* groundEntity = nullptr;
 	int32_t	 groundEntity_linkCount;
-	gentity_t* teamChain;
-	gentity_t* teamMaster;
+	gentity_t* teamChain = nullptr;
+	gentity_t* teamMaster = nullptr;
 
-	gentity_t* myNoise; // can go in client only
-	gentity_t* myNoise2;
+	gentity_t* myNoise = nullptr; // can go in client only
+	gentity_t* myNoise2 = nullptr;
 
-	int32_t noiseIndex;
-	int32_t noiseIndex2;
+	int32_t noiseIndex{};
+	int32_t noiseIndex2{};
 	float	volume;
 	float	attenuation;
 
 	// timing variables
-	float wait;
-	float delay; // before firing targets
-	float random;
+	float wait{};
+	float delay{}; // before firing targets
+	float random{};
 
-	GameTime teleportTime;
+	GameTime teleportTime{};
 
-	contents_t	  waterType;
-	water_level_t waterLevel;
+	contents_t		waterType{};
+	water_level_t waterLevel{};
 
-	Vector3 moveOrigin;
-	Vector3 moveAngles;
+	Vector3 moveOrigin{};
+	Vector3 moveAngles{};
 
-	int32_t style; // also used as areaportal number
+	int32_t style{}; // also used as areaportal number
 
-	Item* item; // for bonus items
+	Item* item = nullptr; // for bonus items
 
 	// common data blocks
-	MoveInfo	  moveInfo;
-	MonsterInfo monsterInfo;
+	MoveInfo		  moveInfo;
+	MonsterInfo monsterInfo{};
 
-	plat2flags_t plat2flags;
-	Vector3		 offset;
-	Vector3		 gravityVector;
-	gentity_t* bad_area;
-	gentity_t* hint_chain;
-	gentity_t* monster_hint_chain;
-	gentity_t* target_hint_chain;
-	int32_t		 hint_chain_id;
+	plat2flags_t plat2flags{};
+	Vector3		offset{};
+	Vector3		gravityVector{};
+	gentity_t* bad_area = nullptr;
+	gentity_t* hint_chain = nullptr;
+	gentity_t* monster_hint_chain = nullptr;
+	gentity_t* target_hint_chain = nullptr;
+	int32_t		  hint_chain_id{};
 
-	char clock_message[CLOCK_MESSAGE_SIZE];
+	char clock_message[CLOCK_MESSAGE_SIZE]{};
 
 	// Paril: we died on this frame, apply knockback even if we're dead
-	GameTime dead_time;
+	GameTime dead_time{};
 	// used for dabeam monsters
-	gentity_t* beam, * beam2;
+	gentity_t* beam = nullptr;
+	gentity_t* beam2 = nullptr;
 	// proboscus for Parasite
-	gentity_t* proboscus;
+	gentity_t* proboscus = nullptr;
 	// for vooping things
-	gentity_t* disintegrator;
-	GameTime disintegrator_time;
-	int32_t hackFlags; // n64
+	gentity_t* disintegrator = nullptr;
+	GameTime disintegrator_time{};
+	int32_t hackFlags{}; // n64
 
 	// fog stuff
 	struct {
-		Vector3 color;
-		float density;
-		float sky_factor;
+		Vector3 color{};
+		float density{};
+		float sky_factor{};
 
-		Vector3 color_off;
-		float density_off;
-		float sky_factor_off;
+		Vector3 color_off{};
+		float density_off{};
+		float sky_factor_off{};
 	} fog;
 
 	struct {
-		float falloff;
-		float density;
-		Vector3 start_color;
-		float start_dist;
-		Vector3 end_color;
-		float end_dist;
+		float falloff{};
+		float density{};
+		Vector3 start_color{};
+		float start_dist{};
+		Vector3 end_color{};
+		float end_dist{};
 
-		float falloff_off;
-		float density_off;
-		Vector3 start_color_off;
-		float start_dist_off;
-		Vector3 end_color_off;
-		float end_dist_off;
+		float falloff_off{};
+		float density_off{};
+		Vector3 start_color_off{};
+		float start_dist_off{};
+		Vector3 end_color_off{};
+		float end_dist_off{};
 	} heightfog;
 
 	// instanced coop items
-	std::bitset<MAX_CLIENTS>	itemPickedUpBy;
-	GameTime						slime_debounce_time;
+	std::bitset<MAX_CLIENTS>	itemPickedUpBy{};
+	GameTime				slime_debounce_time{};
 
 	// [Paril-KEX]
-	bmodel_anim_t bmodel_anim;
+	bmodel_anim_t bmodel_anim{};
 
-	MeansOfDeath	lastMOD;
-	const char* style_on, * style_off;
-	uint32_t crosslevel_flags;
+	MeansOfDeath	lastMOD{};
+	const char* style_on = nullptr;
+	const char* style_off = nullptr;
+	uint32_t crosslevel_flags{};
 	// NOTE: if adding new elements, make sure to add them
 	// in g_save.cpp too!
 
 //muff
-	const char* gametype;
-	const char* not_gametype;
-	const char* notteam;
-	const char* notfree;
-	const char* notq2;
-	const char* notq3a;
-	const char* notarena;
-	const char* ruleset;
-	const char* not_ruleset;
-	const char* powerups_on;
-	const char* powerups_off;
-	const char* bfg_on;
-	const char* bfg_off;
-	const char* plasmabeam_on;
-	const char* plasmabeam_off;
+	const char* gametype = nullptr;
+	const char* not_gametype = nullptr;
+	const char* notteam = nullptr;
+	const char* notfree = nullptr;
+	const char* notq2 = nullptr;
+	const char* notq3a = nullptr;
+	const char* notarena = nullptr;
+	const char* ruleset = nullptr;
+	const char* not_ruleset = nullptr;
+	const char* powerups_on = nullptr;
+	const char* powerups_off = nullptr;
+	const char* bfg_on = nullptr;
+	const char* bfg_off = nullptr;
+	const char* plasmabeam_on = nullptr;
+	const char* plasmabeam_off = nullptr;
 
-	const char* spawnpad;
+	const char* spawnpad = nullptr;
 
-	gvec3_t		origin2;
+	gvec3_t		origin2{};
 
 	bool		skip;
 	//-muff
@@ -5505,7 +5608,7 @@ struct gentity_t {
 
 	// for q1 backpacks
 	int			pack_ammo_count[static_cast<int>(AmmoID::_Total)];
-	Item* pack_weapon;
+	Item* pack_weapon = nullptr;
 
 	int			arena;	//for RA2 support
 
@@ -5514,6 +5617,7 @@ struct gentity_t {
 	Vector3				mangle = vec3_origin;	// oblivion
 
 	saved_spawn_t* saved = {};
+
 };
 
 constexpr SpawnFlags SF_SPHERE_DEFENDER = 0x0001_spawnflag;

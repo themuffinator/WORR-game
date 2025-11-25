@@ -232,15 +232,15 @@ struct Vector3 {
 constexpr Vector3 vec3_origin{};
 
 inline void AngleVectors(const Vector3& angles, Vector3* forward, Vector3* right, Vector3* up) {
-	float angle = angles[YAW] * (PIf * 2 / 360);
-	float sy = std::sinf(angle);
-	float cy = cosf(angle);
-	angle = angles[PITCH] * (PIf * 2 / 360);
-	float sp = std::sinf(angle);
-	float cp = cosf(angle);
-	angle = angles[ROLL] * (PIf * 2 / 360);
-	float sr = std::sinf(angle);
-	float cr = cosf(angle);
+float angle = angles[YAW] * (PIf * 2 / 360);
+float sy = std::sin(angle);
+float cy = cosf(angle);
+angle = angles[PITCH] * (PIf * 2 / 360);
+float sp = std::sin(angle);
+float cp = cosf(angle);
+angle = angles[ROLL] * (PIf * 2 / 360);
+float sr = std::sin(angle);
+float cr = cosf(angle);
 
 	if (forward) {
 		forward->x = cp * cy;
@@ -398,13 +398,13 @@ R_ConcatRotations
 	im[2][0] = m[0][2];
 	im[2][1] = m[1][2];
 
-	zrot = {};
-	zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
+zrot = {};
+zrot[0][0] = zrot[1][1] = zrot[2][2] = 1.0F;
 
-	zrot[0][0] = cosf(DEG2RAD(degrees));
-	zrot[0][1] = std::sinf(DEG2RAD(degrees));
-	zrot[1][0] = -std::sinf(DEG2RAD(degrees));
-	zrot[1][1] = cosf(DEG2RAD(degrees));
+zrot[0][0] = cosf(DEG2RAD(degrees));
+zrot[0][1] = std::sin(DEG2RAD(degrees));
+zrot[1][0] = -std::sin(DEG2RAD(degrees));
+zrot[1][1] = cosf(DEG2RAD(degrees));
 
 	rot = R_ConcatRotations(R_ConcatRotations(m, zrot), im);
 

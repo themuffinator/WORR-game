@@ -4,9 +4,13 @@
 #include "server/client/client_stats_service.hpp"
 #include "server/gameplay/client_config.hpp"
 #include "server/g_local.hpp"
+#include "client_session_service_impl_stubs.hpp"
 
 cvar_t* g_gametype;
 cvar_t* deathmatch;
+local_game_import_t gi{};
+game_export_t globals{};
+gentity_t* g_entities = nullptr;
 cvar_t* match_doForceRespawn;
 static bool freezeHookCalled = false;
 
