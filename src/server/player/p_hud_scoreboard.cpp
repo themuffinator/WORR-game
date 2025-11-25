@@ -1,7 +1,17 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-p_hud_scoreboard.cpp (Player HUD Scoreboard) This file contains the server-side logic for generating the layout strings for the multiplayer scoreboards. It sorts players, gathers their scores and other relevant data, and constructs a formatted string that the client-side game module can parse to render the scoreboard. Key Responsibilities: - `MultiplayerScoreboard`: The main entry point for generating the scoreboard layout. It dispatches to different functions based on the current gametype. - Player Sorting: Implements the logic to sort players based on score for Free-for-All modes and by team and score for team-based modes. - Layout String Construction: Builds the complex string of HUD commands that defines the position, content, and appearance of each element on the scoreboard (player names, scores, pings, icons, etc.). - Gametype-Specific Scoreboards: Contains specialized functions for rendering scoreboards for different modes like FFA, Duel, and Team Deathmatch.*/
+p_hud_scoreboard.cpp (Player HUD Scoreboard) This file contains the server-side logic for
+generating the layout strings for the multiplayer scoreboards. It sorts players, gathers their
+scores and other relevant data, and constructs a formatted string that the client-side game
+module can parse to render the scoreboard. Key Responsibilities: - `MultiplayerScoreboard`: The
+main entry point for generating the scoreboard layout. It dispatches to different functions
+based on the current gametype. - Player Sorting: Implements the logic to sort players based on
+score for Free-for-All modes and by team and score for team-based modes. - Layout String
+Construction: Builds the complex string of HUD commands that defines the position, content, and
+appearance of each element on the scoreboard (player names, scores, pings, icons, etc.). -
+Gametype-Specific Scoreboards: Contains specialized functions for rendering scoreboards for
+different modes like FFA, Duel, and Team Deathmatch.*/
 
 #include <utility>
 

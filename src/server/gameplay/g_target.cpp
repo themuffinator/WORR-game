@@ -1,7 +1,17 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-g_target.cpp (Game Target Entities) This file implements the logic for a wide variety of "target_*" entities. These entities are the core of Quake II's scripting system, allowing mappers to create dynamic and interactive levels. They are typically invisible and are activated by other entities (like triggers or buttons). Key Responsibilities: - Event Triggers: Implements entities that create visual or audio effects (`target_temp_entity`, `target_explosion`, `target_speaker`). - Level Flow Control: Contains logic for entities that control the progression of the game, such as changing levels (`target_changelevel`) or triggering events based on player achievements (`target_secret`, `target_goal`). - World Interaction: Implements entities that modify the game world's properties, such as `target_gravity` or `target_sky`. - Scripting Utilities: Provides helper entities like `target_relay` (to chain triggers) and `target_delay` (to time events).*/
+g_target.cpp (Game Target Entities) This file implements the logic for a wide variety of
+"target_*" entities. These entities are the core of Quake II's scripting system, allowing
+mappers to create dynamic and interactive levels. They are typically invisible and are activated
+by other entities (like triggers or buttons). Key Responsibilities: - Event Triggers: Implements
+entities that create visual or audio effects (`target_temp_entity`, `target_explosion`,
+`target_speaker`). - Level Flow Control: Contains logic for entities that control the
+progression of the game, such as changing levels (`target_changelevel`) or triggering events
+based on player achievements (`target_secret`, `target_goal`). - World Interaction: Implements
+entities that modify the game world's properties, such as `target_gravity` or `target_sky`. -
+Scripting Utilities: Provides helper entities like `target_relay` (to chain triggers) and
+`target_delay` (to time events).*/
 
 #include "../g_local.hpp"
 #include "../../shared/char_array_utils.hpp"

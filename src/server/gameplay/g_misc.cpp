@@ -1,7 +1,16 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-g_misc.cpp (Game Miscellaneous Entities) This file contains the implementation for a wide variety of miscellaneous map entities that don't fit into other major categories like items, triggers, or monsters. It's a collection of special-purpose objects used for scripting, decoration, and unique gameplay mechanics. Key Responsibilities: - Decorative Objects: Implements entities that are primarily for visual effect, such as `misc_banner`, `misc_deadsoldier`, and `misc_explobox`. - Scripting Helpers: Contains the logic for positional markers like `path_corner` and `point_combat`, which are used to guide AI movement and scripting. - Special Effects: Implements entities that create special effects, like `misc_teleporter` and `misc_blackhole`. - Gibs and Corpses: Manages the spawning and physics of gibs (`ThrowGib`) and player heads (`ThrowClientHead`) upon death.*/
+g_misc.cpp (Game Miscellaneous Entities) This file contains the implementation for a wide
+variety of miscellaneous map entities that don't fit into other major categories like items,
+triggers, or monsters. It's a collection of special-purpose objects used for scripting,
+decoration, and unique gameplay mechanics. Key Responsibilities: - Decorative Objects:
+Implements entities that are primarily for visual effect, such as `misc_banner`,
+`misc_deadsoldier`, and `misc_explobox`. - Scripting Helpers: Contains the logic for positional
+markers like `path_corner` and `point_combat`, which are used to guide AI movement and
+scripting. - Special Effects: Implements entities that create special effects, like
+`misc_teleporter` and `misc_blackhole`. - Gibs and Corpses: Manages the spawning and physics of
+gibs (`ThrowGib`) and player heads (`ThrowClientHead`) upon death.*/
 
 #include "../g_local.hpp"
 

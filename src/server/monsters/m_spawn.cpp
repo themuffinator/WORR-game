@@ -1,7 +1,9 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== TARBABY (Spawn) - Ionized behaviour port ==============================================================================*/
+============================================================================== TARBABY (Spawn) -
+Ionized behaviour port
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_spawn.hpp"

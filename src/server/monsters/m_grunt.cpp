@@ -1,7 +1,11 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== GRUNT (Q1-styled grunt) - WOR port reference - Uses WOR soldier structure (moves, ai_* helpers, muzzle-flash offsets) - Single weapon profile (shotgun), 9-frame fire sequence with flash mapping - Sight/search/idle, pain, death ==============================================================================*/
+============================================================================== GRUNT (Q1-styled
+grunt) - WOR port reference - Uses WOR soldier structure (moves, ai_* helpers, muzzle-flash
+offsets) - Single weapon profile (shotgun), 9-frame fire sequence with flash mapping -
+Sight/search/idle, pain, death
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_grunt.hpp"

@@ -1,7 +1,15 @@
 /*Copyright (c) 2024 The DarkMatter Project
 Licensed under the GNU General Public License 2.0.
 
-menu_page_welcome.cpp (Menu Page - Welcome/Join) This file implements the main menu that players see when they are spectators or have just joined the server. It is the primary navigation hub for joining the game, spectating, or accessing other informational menus. Key Responsibilities: - Main Menu Hub: `OpenJoinMenu` is the function called to display the main menu. - Dynamic Join Options: The `onUpdate` function (`AddJoinOptions`) dynamically creates the "Join" options based on the current gametype (e.g., "Join Red", "Join Blue" for TDM; "Join Match" or "Join Queue" for FFA/Duel). - Player Counts: Displays the current number of players in the match or on each team. - Navigation: Provides the entry points to all other major menus, such as "Host Info", "Match Info", and "Call a Vote".*/
+menu_page_welcome.cpp (Menu Page - Welcome/Join) This file implements the main menu that players
+see when they are spectators or have just joined the server. It is the primary navigation hub
+for joining the game, spectating, or accessing other informational menus. Key Responsibilities:
+- Main Menu Hub: `OpenJoinMenu` is the function called to display the main menu. - Dynamic Join
+Options: The `onUpdate` function (`AddJoinOptions`) dynamically creates the "Join" options based
+on the current gametype (e.g., "Join Red", "Join Blue" for TDM; "Join Match" or "Join Queue" for
+FFA/Duel). - Player Counts: Displays the current number of players in the match or on each team.
+- Navigation: Provides the entry points to all other major menus, such as "Host Info", "Match
+Info", and "Call a Vote".*/
 
 #include "../g_local.hpp"
 

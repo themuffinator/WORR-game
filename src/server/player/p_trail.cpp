@@ -1,7 +1,15 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-p_trail.cpp (Player Trail) This file implements a system for tracking the recent path of a player. It creates a trail of "breadcrumb" entities that monsters can use for pursuit even after they have lost direct line of sight to the player. Key Responsibilities: - Trail Creation: The `PlayerTrail_Add` function periodically drops a new trail entity at the player's location. - Trail Management: Manages a two-way linked list of trail entities, ensuring the trail does not exceed a maximum length by reusing the oldest node. - AI Pathfinding: The `PlayerTrail_Pick` function is used by the monster AI to find the most relevant point on a player's trail to move towards. - Cleanup: `PlayerTrail_Destroy` cleans up all trail entities associated with a player, for example, when they disconnect.*/
+p_trail.cpp (Player Trail) This file implements a system for tracking the recent path of a
+player. It creates a trail of "breadcrumb" entities that monsters can use for pursuit even after
+they have lost direct line of sight to the player. Key Responsibilities: - Trail Creation: The
+`PlayerTrail_Add` function periodically drops a new trail entity at the player's location. -
+Trail Management: Manages a two-way linked list of trail entities, ensuring the trail does not
+exceed a maximum length by reusing the oldest node. - AI Pathfinding: The `PlayerTrail_Pick`
+function is used by the monster AI to find the most relevant point on a player's trail to move
+towards. - Cleanup: `PlayerTrail_Destroy` cleans up all trail entities associated with a player,
+for example, when they disconnect.*/
 
 #include "../g_local.hpp"
 

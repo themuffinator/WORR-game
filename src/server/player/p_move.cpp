@@ -1,7 +1,17 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-p_move.cpp (Player Movement) This file contains the core player physics and movement logic for the game, encapsulated within the `Pmove` function. This code is shared between the server (game.dll) and the client (cgame.dll) to ensure that player movement is predicted accurately on the client and authoritatively simulated on the server. Key Responsibilities: - `Pmove`: The main entry point for a single step of player movement simulation. - Movement Logic: Implements different types of movement, including walking, air movement, swimming, ladder climbing, and noclip. - Collision Detection: The `PM_StepSlideMove` function handles collision detection and response, causing the player to slide along walls and step up small ledges. - Player State Updates: Modifies the `player_state_t` based on the movement simulation, updating the player's origin, velocity, and ground status. - Special Moves: Handles the physics for actions like jumping and crouching.*/
+p_move.cpp (Player Movement) This file contains the core player physics and movement logic for
+the game, encapsulated within the `Pmove` function. This code is shared between the server
+(game.dll) and the client (cgame.dll) to ensure that player movement is predicted accurately on
+the client and authoritatively simulated on the server. Key Responsibilities: - `Pmove`: The
+main entry point for a single step of player movement simulation. - Movement Logic: Implements
+different types of movement, including walking, air movement, swimming, ladder climbing, and
+noclip. - Collision Detection: The `PM_StepSlideMove` function handles collision detection and
+response, causing the player to slide along walls and step up small ledges. - Player State
+Updates: Modifies the `player_state_t` based on the movement simulation, updating the player's
+origin, velocity, and ground status. - Special Moves: Handles the physics for actions like
+jumping and crouching.*/
 
 #include "../../shared/q_std.hpp"
 

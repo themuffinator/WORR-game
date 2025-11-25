@@ -1,7 +1,17 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-g_save.cpp (Game Save/Load) This file implements a modern, robust save and load system for the game state, using JSON as the serialization format. It is designed to be forwards and backwards compatible by using a descriptive, field-based approach rather than raw memory dumps. Key Responsibilities: - Serialization: `WriteGameJson` and `WriteLevelJson` traverse the game state (clients, entities) and serialize their data into a JSON object based on detailed structure definitions (`save_struct_t`). - Deserialization: `ReadGameJson` and `ReadLevelJson` parse a JSON string, reconstruct the game state, and correctly link entity references and function pointers. - Type Safety and Reflection: Uses a system of templates and macros (`FIELD_AUTO`, `SAVE_STRUCT_START`) to automatically deduce the type of each field to be saved, making the system easy to extend and maintain. - Pointer Marshalling: Safely handles saving and restoring function pointers and entity pointers by converting them to names or ID numbers.*/
+g_save.cpp (Game Save/Load) This file implements a modern, robust save and load system for the
+game state, using JSON as the serialization format. It is designed to be forwards and backwards
+compatible by using a descriptive, field-based approach rather than raw memory dumps. Key
+Responsibilities: - Serialization: `WriteGameJson` and `WriteLevelJson` traverse the game state
+(clients, entities) and serialize their data into a JSON object based on detailed structure
+definitions (`save_struct_t`). - Deserialization: `ReadGameJson` and `ReadLevelJson` parse a
+JSON string, reconstruct the game state, and correctly link entity references and function
+pointers. - Type Safety and Reflection: Uses a system of templates and macros (`FIELD_AUTO`,
+`SAVE_STRUCT_START`) to automatically deduce the type of each field to be saved, making the
+system easy to extend and maintain. - Pointer Marshalling: Safely handles saving and restoring
+function pointers and entity pointers by converting them to names or ID numbers.*/
 
 #include <algorithm>
 #include <new>

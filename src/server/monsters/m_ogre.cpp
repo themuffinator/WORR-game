@@ -1,7 +1,11 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== OGRE (Quake 1) - WOR port - Melee: chainsaw swipe (short reach, refires if still in range) - Ranged: arcing grenade lob (mid/long range, clear-shot check) - Two pain sets, two death sets - Sight, search, idle sounds - Uses monster muzzle flash handling like m_gunner.cpp ==============================================================================*/
+============================================================================== OGRE (Quake 1) -
+WOR port - Melee: chainsaw swipe (short reach, refires if still in range) - Ranged: arcing
+grenade lob (mid/long range, clear-shot check) - Two pain sets, two death sets - Sight, search,
+idle sounds - Uses monster muzzle flash handling like m_gunner.cpp
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_ogre.hpp"

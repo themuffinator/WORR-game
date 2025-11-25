@@ -1,7 +1,11 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== VORE (Shalrath) - WOR port - Ranged: launches a slow homing pod that tracks target and explodes - No melee; prefers mid/long engagements with clear shot checks - Idle/search/sight barks, two pain sets, standard death - Uses WOR muzzle-flash system like Chick/Gunner/Ogre ==============================================================================*/
+============================================================================== VORE (Shalrath) -
+WOR port - Ranged: launches a slow homing pod that tracks target and explodes - No melee;
+prefers mid/long engagements with clear shot checks - Idle/search/sight barks, two pain sets,
+standard death - Uses WOR muzzle-flash system like Chick/Gunner/Ogre
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_vore.hpp"

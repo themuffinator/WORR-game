@@ -1,7 +1,10 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== FIEND (Demon) - WOR port - Melee claws at close range - Mid/long pounce (leap) that deals on-impact damage - Two pain sets, two death sets - Sight/search/idle barks ==============================================================================*/
+============================================================================== FIEND (Demon) -
+WOR port - Melee claws at close range - Mid/long pounce (leap) that deals on-impact damage - Two
+pain sets, two death sets - Sight/search/idle barks
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_fiend.hpp"

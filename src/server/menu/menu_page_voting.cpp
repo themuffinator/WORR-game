@@ -1,7 +1,14 @@
 /*Copyright (c) 2024 The DarkMatter Project
 Licensed under the GNU General Public License 2.0.
 
-menu_page_voting.cpp (Menu Page - Voting) This file implements the UI for participating in a vote that has been called by another player. It displays the vote question and provides the "Yes" and "No" options. Key Responsibilities: - Vote Display: The `onUpdate` function populates the menu with the details of the active vote, including who called it and what the proposal is. - Vote Actions: The `onSelect` callbacks for the "Yes" and "No" options update the server-side vote counts (`level.vote.countYes`, `level.vote.countNo`). - Countdown Timer: Displays the time remaining for the vote. - Automatic Closing: The menu automatically closes itself if the vote ends (either by passing, failing, or timing out) while it is open.*/
+menu_page_voting.cpp (Menu Page - Voting) This file implements the UI for participating in a
+vote that has been called by another player. It displays the vote question and provides the
+"Yes" and "No" options. Key Responsibilities: - Vote Display: The `onUpdate` function populates
+the menu with the details of the active vote, including who called it and what the proposal is.
+- Vote Actions: The `onSelect` callbacks for the "Yes" and "No" options update the server-side
+vote counts (`level.vote.countYes`, `level.vote.countNo`). - Countdown Timer: Displays the time
+remaining for the vote. - Automatic Closing: The menu automatically closes itself if the vote
+ends (either by passing, failing, or timing out) while it is open.*/
 
 #include "../g_local.hpp"
 #include "../commands/commands.hpp"

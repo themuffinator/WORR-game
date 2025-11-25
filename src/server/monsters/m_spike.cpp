@@ -1,7 +1,10 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== QUAKE SPIKE MINE - WOR port Floating kamikaze drone that accelerates toward its target and detonates on close contact. Ported from the Ionized Quake 1 implementation while matching WOR's helper APIs. ==============================================================================*/
+============================================================================== QUAKE SPIKE MINE
+- WOR port Floating kamikaze drone that accelerates toward its target and detonates on close
+contact. Ported from the Ionized Quake 1 implementation while matching WOR's helper APIs.
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_spike.hpp"

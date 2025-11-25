@@ -1,7 +1,17 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-p_client.cpp (Player Client) This file manages the lifecycle and state of a player connected to the server. It handles everything from the initial connection and spawning into the world to death, respawning, and disconnection. Key Responsibilities: - Client Lifecycle: Implements `ClientConnect`, `ClientBegin`, and `ClientDisconnect` to manage a player's session. - Spawning and Respawning: Contains the logic for `ClientSpawn` and `ClientRespawn`, including selecting a spawn point (`SelectSpawnPoint`) and putting the player into the game world. - Per-Frame Updates: The `ClientThink` function is the main entry point for processing a player's user commands each frame, triggering movement and actions. - Death and Intermission: Handles player death (`player_die`) and moving the client to the intermission state at the end of a match. - State Management: Initializes and maintains the `gclient_t` struct, which holds all of a player's game-related state.*/
+p_client.cpp (Player Client) This file manages the lifecycle and state of a player connected to
+the server. It handles everything from the initial connection and spawning into the world to
+death, respawning, and disconnection. Key Responsibilities: - Client Lifecycle: Implements
+`ClientConnect`, `ClientBegin`, and `ClientDisconnect` to manage a player's session. - Spawning
+and Respawning: Contains the logic for `ClientSpawn` and `ClientRespawn`, including selecting a
+spawn point (`SelectSpawnPoint`) and putting the player into the game world. - Per-Frame
+Updates: The `ClientThink` function is the main entry point for processing a player's user
+commands each frame, triggering movement and actions. - Death and Intermission: Handles player
+death (`player_die`) and moving the client to the intermission state at the end of a match. -
+State Management: Initializes and maintains the `gclient_t` struct, which holds all of a
+player's game-related state.*/
 
 #include "../g_local.hpp"
 #include "../gameplay/g_proball.hpp"

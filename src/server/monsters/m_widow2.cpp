@@ -1,7 +1,9 @@
 /*Copyright (c) 2024 ZeniMax Media Inc.
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== black widow, part 2 ============================================================================== timeStamp used to prevent rapid fire of melee attack*/
+============================================================================== black widow, part
+2 ============================================================================== timeStamp used
+to prevent rapid fire of melee attack*/
 
 #include "../g_local.hpp"
 #include "m_widow2.hpp"

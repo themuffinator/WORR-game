@@ -1,7 +1,12 @@
 /*Copyright (c) 2024 The DarkMatter Project
 Licensed under the GNU General Public License 2.0.
 
-============================================================================== CHTHON (Quake 1 Boss) - WOR Port Behavior overview - Immobile boss that lobs lava balls at enemies on a timer. - Normally invulnerable; a target_chthon_lightning can strike Chthon, dealing a big hit and briefly making him vulnerable. - Can only be killed while vulnerable (or by telefrag) and only by energy weapons during that window. ==============================================================================*/
+============================================================================== CHTHON (Quake 1
+Boss) - WOR Port Behavior overview - Immobile boss that lobs lava balls at enemies on a timer. -
+Normally invulnerable; a target_chthon_lightning can strike Chthon, dealing a big hit and
+briefly making him vulnerable. - Can only be killed while vulnerable (or by telefrag) and only
+by energy weapons during that window.
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_chthon.hpp"
