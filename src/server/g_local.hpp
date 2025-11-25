@@ -4206,7 +4206,6 @@ void fire_acid(gentity_t* self, const Vector3& start, const Vector3& dir, int da
 bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDelay);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset);
 bool M_CheckClearShot(gentity_t* self, const Vector3& offset, Vector3& start);
-	Vector3		offset{};
 bool M_droptofloor_generic(Vector3& origin, const Vector3& mins, const Vector3& maxs, const Vector3& gravity, bool ceiling, gentity_t* ignore, contents_t mask, bool allow_partial);
 bool M_droptofloor(gentity_t* ent);
 void monster_think(gentity_t* self);
