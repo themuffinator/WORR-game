@@ -2095,7 +2095,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 			ent = Spawn();
 
 		entities = ED_ParseEntity(entities, ent);
-		worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
+		if (ent)
+			worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
 
 		if (ent != g_entities) {
 			if (G_InhibitEntity(ent)) {
@@ -2109,11 +2110,12 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 
 		if (!ent)
 			gi.Com_Error("invalid/empty entity string!\n");
-
-		ent->gravityVector = { 0.0f, 0.0f, -1.0f };
-		ED_CallSpawn(ent);
-		ApplyMapPostProcess(ent);
-		ent->s.renderFX |= RF_IR_VISIBLE;
+		else {
+			ent->gravityVector = { 0.0f, 0.0f, -1.0f };
+			ED_CallSpawn(ent);
+			ApplyMapPostProcess(ent);
+			ent->s.renderFX |= RF_IR_VISIBLE;
+		}
 	}
 
 	if (inhibited > 0 && g_verbose->integer)
