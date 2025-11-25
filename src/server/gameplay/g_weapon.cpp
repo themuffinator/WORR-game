@@ -22,25 +22,35 @@
 #include "../g_local.hpp"
 #include "g_proball.hpp"
 
+/*
+=============
+PlayClientPowerupFireSound
+
+Selects and plays the appropriate powerup fire sound for the owning client.
+=============
+*/
 static void PlayClientPowerupFireSound(gentity_t* self) {
 	if (!self->owner || !self->owner->client)
 		return;
 
 	gclient_t* cl = self->owner->client;
-	const bool quad = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
-	const bool ddamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
+	const bool quadDamage = cl->PowerupTimer(PowerupTimer::QuadDamage) > level.time;
+	const bool doubleDamage = cl->PowerupTimer(PowerupTimer::DoubleDamage) > level.time;
 	const bool haste = cl->PowerupTimer(PowerupTimer::Haste) > level.time;
-	const bool canHaste = cl->tech.soundTime < level.time;
+	const bool canPlayHaste = cl->tech.soundTime < level.time;
 
 	const char* sound = nullptr;
 
-	if (quad && ddamage)
+	if (quadDamage && doubleDamage) {
 		sound = "ctf/tech2x.wav";
-	else if (quad)
+	}
+	else if (quadDamage) {
 		sound = "items/damage3.wav";
-	else if (ddamage)
+	}
+	else if (doubleDamage) {
 		sound = "misc/ddamage3.wav";
-	else if (haste && canHaste) {
+	}
+	else if (haste && canPlayHaste) {
 		cl->tech.soundTime = level.time + 1_sec;
 		sound = "ctf/tech3.wav";
 	}
@@ -57,36 +67,23 @@ Used for all impact (hit/punch/slash) attacks
 =================
 */
 bool fire_hit(gentity_t* self, Vector3 aim, int damage, int kick) {
-	trace_t tr;
-	Vector3	forward, right, up;
-	Vector3	v;
-	Vector3	point;
-	float	range;
-	Vector3	dir;
-
-	// see if enemy is in range
-	range = distance_between_boxes(self->enemy->absMin, self->enemy->absMax, self->absMin, self->absMax);
+	const float range = distance_between_boxes(self->enemy->absMin, self->enemy->absMax, self->absMin, self->absMax);
 	if (range > aim[0])
 		return false;
 
 	if (!(aim[1] > self->mins[0] && aim[1] < self->maxs[0])) {
 		// this is a side hit so adjust the "right" value out to the edge of their bbox
-		if (aim[1] < 0)
-			aim[1] = self->enemy->mins[0];
-		else
-			aim[1] = self->enemy->maxs[0];
+		aim[1] = aim[1] < 0 ? self->enemy->mins[0] : self->enemy->maxs[0];
 	}
 
-	point = closest_point_to_box(self->s.origin, self->enemy->absMin, self->enemy->absMax);
-
-	// check that we can hit the point on the bbox
-	tr = gi.traceLine(self->s.origin, point, self, MASK_PROJECTILE);
+	Vector3 point = closest_point_to_box(self->s.origin, self->enemy->absMin, self->enemy->absMax);
+	trace_t tr = gi.traceLine(self->s.origin, point, self, MASK_PROJECTILE);
 
 	if (tr.fraction < 1) {
 		if (!tr.ent->takeDamage)
 			return false;
 		// if it will hit any client/monster then hit the one we wanted to hit
-		if ((tr.ent->svFlags & SVF_MONSTER) || (tr.ent->client))
+		if ((tr.ent->svFlags & SVF_MONSTER) || tr.ent->client)
 			tr.ent = self->enemy;
 	}
 
@@ -97,27 +94,26 @@ bool fire_hit(gentity_t* self, Vector3 aim, int damage, int kick) {
 		if (!tr.ent->takeDamage)
 			return false;
 		// if it will hit any client/monster then hit the one we wanted to hit
-		if ((tr.ent->svFlags & SVF_MONSTER) || (tr.ent->client))
+		if ((tr.ent->svFlags & SVF_MONSTER) || tr.ent->client)
 			tr.ent = self->enemy;
 	}
 
+	Vector3 forward{};
+	Vector3 right{};
+	Vector3 up{};
 	AngleVectors(self->s.angles, forward, right, up);
-	point = self->s.origin + (forward * range);
-	point += (right * aim[1]);
-	point += (up * aim[2]);
-	dir = point - self->enemy->s.origin;
+	point = self->s.origin + (forward * range) + (right * aim[1]) + (up * aim[2]);
+	const Vector3 dir = point - self->enemy->s.origin;
 
-	// do the damage
 	Damage(tr.ent, self, self, dir, point, vec3_origin, damage, kick / 2, DamageFlags::NoKnockback, ModID::Hit);
 
-	if (!(tr.ent->svFlags & SVF_MONSTER) && (!tr.ent->client))
+	if (!(tr.ent->svFlags & SVF_MONSTER) && !tr.ent->client)
 		return false;
 
-	// do our special form of knockback here
-	v = (self->enemy->absMin + self->enemy->absMax) * 0.5f;
-	v -= point;
-	v.normalize();
-	self->enemy->velocity += v * kick;
+	Vector3 knockbackDir = (self->enemy->absMin + self->enemy->absMax) * 0.5f;
+	knockbackDir -= point;
+	knockbackDir.normalize();
+	self->enemy->velocity += knockbackDir * kick;
 	if (self->enemy->velocity[_Z] > 0)
 		self->enemy->groundEntity = nullptr;
 	return true;
@@ -128,13 +124,18 @@ bool fire_hit(gentity_t* self, Vector3 aim, int damage, int kick) {
 // you can adjust the mask for the re-trace (for water, etc).
 // note that you must take care in your pierce callback to mark
 // the entities that are being pierced.
-void pierce_trace(const Vector3& start, const Vector3& end, gentity_t* ignore, pierce_args_t& pierce, contents_t mask) {
-	int	   loop_count = MAX_ENTITIES;
-	Vector3 own_start, own_end;
-	own_start = start;
-	own_end = end;
+/*
+=============
+pierce_trace
 
-	while (--loop_count) {
+Performs a pierce-aware trace between two points, delegating hit handling to a callback.
+=============
+*/
+void pierce_trace(const Vector3& start, const Vector3& end, gentity_t* ignore, pierce_args_t& pierce, contents_t mask) {
+	Vector3 own_start = start;
+	Vector3 own_end = end;
+
+	for (int loop_count = MAX_ENTITIES; loop_count > 0; --loop_count) {
 		pierce.tr = gi.traceLine(start, own_end, ignore, mask);
 
 		// didn't hit anything, so we're done
