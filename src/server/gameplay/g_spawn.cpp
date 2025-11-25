@@ -2098,7 +2098,7 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		if (ent)
 			worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
 
-		if (ent != g_entities) {
+		if (ent && ent != g_entities) {
 			if (G_InhibitEntity(ent)) {
 				worr::Logf(worr::LogLevel::Debug, "{}: inhibited {} based on ruleset", __FUNCTION__, LogEntityLabel(ent));
 				FreeEntity(ent);
