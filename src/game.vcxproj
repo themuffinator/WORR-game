@@ -276,6 +276,7 @@
     <ClCompile Include="server\gameplay\g_phys.cpp" />
     <ClCompile Include="server\gameplay\g_save.cpp" />
     <ClCompile Include="server\gameplay\g_spawn.cpp" />
+    <ClCompile Include="server\gameplay\g_statusbar.cpp" />
     <ClCompile Include="server\gameplay\g_svcmds.cpp" />
     <ClCompile Include="server\gameplay\g_target.cpp" />
     <ClCompile Include="server\gameplay\g_trigger.cpp" />

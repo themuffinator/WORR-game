@@ -76,3 +76,5 @@ struct statusbar_t {
 	inline auto& health_bars() { sb << "health_bars "; return *this; }
 	inline auto& story() { sb << "story "; return *this; }
 };
+
+void G_InitStatusbar();
