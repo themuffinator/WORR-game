@@ -3990,21 +3990,6 @@ bool G_LimitedLivesInCoop();
 bool G_LimitedLivesInLMS();
 int G_LimitedLivesMax();
 
-/*
-=============
-ClientIsEliminatedFromLimitedLives
-
-Evaluates whether a client with no remaining lives and zero-or-less persistent
-health should be treated as eliminated for limited-lives modes such as Horde.
-=============
-*/
-static inline bool ClientIsEliminatedFromLimitedLives(const gclient_t* client) {
-	if (!client)
-		return false;
-
-	return client->pers.health <= 0 && client->pers.lives <= 0;
-}
-
 gentity_t* ClientEntFromString(const char* in);
 Ruleset RS_IndexFromString(const char* in);
 void TeleporterVelocity(gentity_t* ent, gvec3_t angles);
@@ -5330,6 +5315,21 @@ struct gclient_t {
 
 	int32_t			killStreakCount = 0;	// for rampage award, reset on death or team change
 };
+
+/*
+=============
+ClientIsEliminatedFromLimitedLives
+
+Evaluates whether a client with no remaining lives and zero-or-less persistent
+health should be treated as eliminated for limited-lives modes such as Horde.
+=============
+*/
+static inline bool ClientIsEliminatedFromLimitedLives(const gclient_t* client) {
+	if (!client)
+		return false;
+
+	return client->pers.health <= 0 && client->pers.lives <= 0;
+}
 
 // ==========================================
 // PLAT 2
