@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_ctf_check_hurt_carrier.cpp implementation.*/
+
 #include <cassert>
 
 #include "server/gameplay/g_capture.hpp"

@@ -1,18 +1,10 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-dog (Quake 1) - WOR port
-
-Faithful behaviors:
-- Melee bite (attack frame 4) with short reach.
-- Mid-range leap that damages on impact.
-- Two death sets leading to corpse poses.
-- Two pain sets.
-
-==============================================================================
-*/
+============================================================================== dog (Quake 1) -
+WOR port Faithful behaviors: - Melee bite (attack frame 4) with short reach. - Mid-range leap
+that damages on impact. - Two death sets leading to corpse poses. - Two pain sets.
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_dog.hpp"

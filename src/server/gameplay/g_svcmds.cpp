@@ -1,12 +1,9 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_svcmds.cpp (Game Server Commands) - modernized C++
-//
-// Responsibilities:
-// - ServerCommand(): dispatch "sv" console/RCON commands
-// - IP filtering: addip/removeip/listip/writeip
-// - G_FilterPacket(): packet gate using configured filters
+g_svcmds.cpp (Game Server Commands) - modernized C++ Responsibilities: - ServerCommand():
+dispatch "sv" console/RCON commands - IP filtering: addip/removeip/listip/writeip -
+G_FilterPacket(): packet gate using configured filters*/
 
 #include "../g_local.hpp"
 

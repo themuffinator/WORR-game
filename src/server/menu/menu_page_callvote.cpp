@@ -1,19 +1,16 @@
-// menu_page_callvote.cpp (Menu Page - Call Vote)
-// This file contains the UI logic for the "Call a Vote" menu. It provides a
-// structured way for players to initiate votes for various game actions, such
-// as changing the map or shuffling teams.
-//
-// Key Responsibilities:
-// - Vote Menu Construction: Builds the main vote menu, dynamically showing
-//   only the vote options that are currently enabled by the server's
-//   `g_vote_flags` cvar.
-// - Sub-Menus for Options: Implements sub-menus for votes that require
-//   additional parameters, such as the map selection list (`OpenCallvoteMapMenu`)
-//   or the timelimit chooser.
-// - Parameter Handling: Manages the state for complex votes, like storing
-//   the selected map and custom map flags before initiating the vote.
-// - Integration with Vote System: The `onSelect` callbacks for each menu item
-//   call the core `Commands::TryLaunchVote` helper to actually begin the voting process.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+menu_page_callvote.cpp (Menu Page - Call Vote) This file contains the UI logic for the "Call a
+Vote" menu. It provides a structured way for players to initiate votes for various game actions,
+such as changing the map or shuffling teams. Key Responsibilities: - Vote Menu Construction:
+Builds the main vote menu, dynamically showing only the vote options that are currently enabled
+by the server's `g_vote_flags` cvar. - Sub-Menus for Options: Implements sub-menus for votes
+that require additional parameters, such as the map selection list (`OpenCallvoteMapMenu`) or
+the timelimit chooser. - Parameter Handling: Manages the state for complex votes, like storing
+the selected map and custom map flags before initiating the vote. - Integration with Vote
+System: The `onSelect` callbacks for each menu item call the core `Commands::TryLaunchVote`
+helper to actually begin the voting process.*/
 
 #include "../commands/commands.hpp"
 #include "../g_local.hpp"

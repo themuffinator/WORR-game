@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+m_hellknight.cpp implementation.*/
+
 #include "../g_local.hpp"
 #include "m_hellknight.hpp"
 #include "m_flash.hpp"

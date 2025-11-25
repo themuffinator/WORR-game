@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_map_config_filename_sanitization.cpp implementation.*/
+
 #include "shared/map_validation.hpp"
 
 #include <cassert>

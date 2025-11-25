@@ -1,24 +1,17 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_phys.cpp (Game Physics)
-// This file is responsible for the server-side physics simulation of all
-// non-player entities. It is called every frame for each active entity to
-// update its position and state based on its `moveType`.
-//
-// Key Responsibilities:
-// - Physics Dispatcher: `G_RunEntity` is the main function that selects the
-//   correct physics function (e.g., `G_Physics_Pusher`, `G_Physics_Toss`)
-//   based on the entity's `moveType`.
-// - Mover Physics: Implements `G_Physics_Pusher` for solid, moving brush
-//   models like doors and platforms, including the complex logic for pushing
-//   other entities.
-// - Projectile and Gib Physics: Implements `G_Physics_Toss` for entities
-//   that are affected by gravity and can bounce off surfaces.
-// - Static and NoClip Physics: Handles entities that do not move or that move
-//   without any collision.
-// - Core Utilities: Contains fundamental physics helpers like `G_AddGravity`
-//   and `G_Impact` for handling collisions.
+g_phys.cpp (Game Physics) This file is responsible for the server-side physics simulation of all
+non-player entities. It is called every frame for each active entity to update its position and
+state based on its `moveType`. Key Responsibilities: - Physics Dispatcher: `G_RunEntity` is the
+main function that selects the correct physics function (e.g., `G_Physics_Pusher`,
+`G_Physics_Toss`) based on the entity's `moveType`. - Mover Physics: Implements
+`G_Physics_Pusher` for solid, moving brush models like doors and platforms, including the
+complex logic for pushing other entities. - Projectile and Gib Physics: Implements
+`G_Physics_Toss` for entities that are affected by gravity and can bounce off surfaces. - Static
+and NoClip Physics: Handles entities that do not move or that move without any collision. - Core
+Utilities: Contains fundamental physics helpers like `G_AddGravity` and `G_Impact` for handling
+collisions.*/
 
 #include "../g_local.hpp"
 

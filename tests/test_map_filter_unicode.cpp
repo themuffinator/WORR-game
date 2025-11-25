@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_map_filter_unicode.cpp implementation.*/
+
 #include <algorithm>
 #include <cassert>
 #include <cctype>

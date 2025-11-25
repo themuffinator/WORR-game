@@ -1,22 +1,16 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// p_hud_main.cpp (Player HUD Main)
-// This file is responsible for generating the data that the client-side
-// (cgame) module uses to render the Heads-Up Display (HUD). It populates the
-// `player_state_t::stats` array with values that correspond to icons, numbers,
-// and strings to be drawn on the screen.
-//
-// Key Responsibilities:
-// - `SetStats`: The primary function that populates the stats array for a
-//   playing client, including health, armor, ammo, and powerup timers.
-// - Intermission and Spectator HUDs: Handles the logic for switching to the
-//   intermission scoreboard (`MoveClientToIntermission`) and for displaying
-//   spectator-specific information (`SetSpectatorStats`).
-// - Dynamic HUD Elements: Manages the display of dynamic information such as
-//   pickup messages, selected item names, and chase camera targets.
-// - Crosshair ID: Updates the stats that show the name of the player being
-//   aimed at.
+p_hud_main.cpp (Player HUD Main) This file is responsible for generating the data that the
+client-side (cgame) module uses to render the Heads-Up Display (HUD). It populates the
+`player_state_t::stats` array with values that correspond to icons, numbers, and strings to be
+drawn on the screen. Key Responsibilities: - `SetStats`: The primary function that populates the
+stats array for a playing client, including health, armor, ammo, and powerup timers. -
+Intermission and Spectator HUDs: Handles the logic for switching to the intermission scoreboard
+(`MoveClientToIntermission`) and for displaying spectator-specific information
+(`SetSpectatorStats`). - Dynamic HUD Elements: Manages the display of dynamic information such
+as pickup messages, selected item names, and chase camera targets. - Crosshair ID: Updates the
+stats that show the name of the player being aimed at.*/
 
 #include "../g_local.hpp"
 #include "../gameplay/g_statusbar.hpp"

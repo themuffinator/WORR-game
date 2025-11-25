@@ -1,9 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-	xatrix
-	gekk.c
-*/
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
+
+xatrix gekk.c*/
 
 #include "../g_local.hpp"
 #include "m_gekk.hpp"

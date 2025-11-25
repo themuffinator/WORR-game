@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_vote_input_validation.cpp implementation.*/
+
 #include "server/commands/command_validation.hpp"
 #include <cassert>
 #include <string>

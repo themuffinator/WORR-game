@@ -1,21 +1,15 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_turret.cpp (Game Turret Logic)
-// This file contains the logic for all turret-based entities in the game.
-// It manages the behavior of the turret driver (the AI brain), the base, and
-// the breach (the firing mechanism), allowing them to work together as a
-// cohesive unit.
-//
-// Key Responsibilities:
-// - Turret AI: Implements the `turret_driver_think` function, which handles
-//   target acquisition, aiming, and firing decisions for the turret.
-// - Movement and Rotation: The `turret_breach_think` function controls the
-//   physical rotation of the turret barrel to track targets.
-// - Blocking and Damage: Defines how turrets react when their movement is
-//   blocked by another entity.
-// - Activation: Handles the logic for turrets that are spawned inactive and
-//   must be triggered by another entity before they begin operating.
+g_turret.cpp (Game Turret Logic) This file contains the logic for all turret-based entities in
+the game. It manages the behavior of the turret driver (the AI brain), the base, and the breach
+(the firing mechanism), allowing them to work together as a cohesive unit. Key Responsibilities:
+- Turret AI: Implements the `turret_driver_think` function, which handles target acquisition,
+aiming, and firing decisions for the turret. - Movement and Rotation: The `turret_breach_think`
+function controls the physical rotation of the turret barrel to track targets. - Blocking and
+Damage: Defines how turrets react when their movement is blocked by another entity. -
+Activation: Handles the logic for turrets that are spawned inactive and must be triggered by
+another entity before they begin operating.*/
 
 #include "../g_local.hpp"
 

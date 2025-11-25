@@ -1,12 +1,9 @@
-/*
-=============
-g_proball.cpp
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
 
-Ball physics helpers and the ProBall gametype implementation. This file merges
-all of the shared ball item behavior with the gametype-specific scoring and
-trigger logic so the entire mode can be reasoned about in a single location.
-=============
-*/
+============= g_proball.cpp Ball physics helpers and the ProBall gametype implementation. This
+file merges all of the shared ball item behavior with the gametype-specific scoring and trigger
+logic so the entire mode can be reasoned about in a single location. =============*/
 
 #include "g_proball.hpp"
 

@@ -1,21 +1,17 @@
-// g_map_manager.cpp (Game Maps)
-// This file manages the map loading, rotation, and voting systems for
-// multiplayer matches. It is responsible for parsing map lists, selecting the
-// next map to be played, and handling the end-of-match map voting screen.
-//
-// Key Responsibilities:
-// - Map Database: `LoadMapPool` reads a JSON file (`mapdb.json`) to create an
-//   internal database of all available maps and their properties (e.g., name,
-//   supported gametypes, player count).
-// - Map Cycle: `LoadMapCycle` reads a text file (`mapcycle.txt`) to determine
-//   which maps from the pool are part of the regular rotation.
-// - Next Map Selection: `AutoSelectNextMap` contains the logic for automatically
-//   choosing the next map, considering factors like player count, map popularity,
-//   and avoiding recent repeats.
-// - Map Voting: Implements the `MapSelector` system, which presents players with
-//   a choice of maps at the end of a match and transitions to the winning map.
-// - "MyMap" Queue: Manages a player-driven queue where users can vote to play
-//   a specific map next.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_map_manager.cpp (Game Maps) This file manages the map loading, rotation, and voting systems
+for multiplayer matches. It is responsible for parsing map lists, selecting the next map to be
+played, and handling the end-of-match map voting screen. Key Responsibilities: - Map Database:
+`LoadMapPool` reads a JSON file (`mapdb.json`) to create an internal database of all available
+maps and their properties (e.g., name, supported gametypes, player count). - Map Cycle:
+`LoadMapCycle` reads a text file (`mapcycle.txt`) to determine which maps from the pool are part
+of the regular rotation. - Next Map Selection: `AutoSelectNextMap` contains the logic for
+automatically choosing the next map, considering factors like player count, map popularity, and
+avoiding recent repeats. - Map Voting: Implements the `MapSelector` system, which presents
+players with a choice of maps at the end of a match and transitions to the winning map. -
+"MyMap" Queue: Manages a player-driven queue where users can vote to play a specific map next.*/
 
 #include "../g_local.hpp"
 #include "map_flag_parser.hpp"

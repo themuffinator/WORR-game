@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_client_config_weapon_prefs.cpp implementation.*/
+
 #include "server/g_local.hpp"
 #include "server/gameplay/client_config.hpp"
 

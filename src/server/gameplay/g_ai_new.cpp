@@ -1,21 +1,16 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_ai_new.cpp (Game AI - Advanced)
-// This file contains advanced and alternative AI behaviors, extending the base
-// logic from g_ai.cpp. It implements more complex actions and decision-making
-// processes for monsters.
-//
-// Key Responsibilities:
-// - Advanced Movement: Implements logic for monster jumping (`blocked_checkjump`),
-//   dodging projectiles (`M_MonsterDodge`), and ducking under fire.
-// - Pathfinding: Contains the "hint path" system, a legacy node-based pathing
-//   mechanism that allows monsters to navigate complex environments when they
-//   lose sight of a player (`monsterlost_checkhint`).
-// - Special Interactions: Handles specific AI behaviors, such as targeting
-//   and reacting to Tesla mines (`TargetTesla`).
-// - Utility Functions: Provides various helper functions for AI, like checking
-//   if a target is behind a monster (`inback`) or exploding bosses (`BossExplode`).
+g_ai_new.cpp (Game AI - Advanced) This file contains advanced and alternative AI behaviors,
+extending the base logic from g_ai.cpp. It implements more complex actions and decision-making
+processes for monsters. Key Responsibilities: - Advanced Movement: Implements logic for monster
+jumping (`blocked_checkjump`), dodging projectiles (`M_MonsterDodge`), and ducking under fire. -
+Pathfinding: Contains the "hint path" system, a legacy node-based pathing mechanism that allows
+monsters to navigate complex environments when they lose sight of a player
+(`monsterlost_checkhint`). - Special Interactions: Handles specific AI behaviors, such as
+targeting and reacting to Tesla mines (`TargetTesla`). - Utility Functions: Provides various
+helper functions for AI, like checking if a target is behind a monster (`inback`) or exploding
+bosses (`BossExplode`).*/
 
 #include "../g_local.hpp"
 

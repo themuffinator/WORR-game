@@ -1,23 +1,17 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_spectator.cpp (Game Spectator Logic)
-// This file contains all the logic related to the spectator mode. It handles
-// how a spectator follows other players (the "chase cam"), including both
-// third-person and first-person (`eyecam`) views, and manages the logic for
-// cycling between different follow targets.
-//
-// Key Responsibilities:
-// - Chase Camera: `ClientUpdateFollowers` is the core function that updates a
-//   spectator's position and view angles to follow their target. It includes
-//   collision detection to prevent the camera from clipping through walls.
-// - Eyecam Mode: Implements the first-person spectator view by directly copying
-//   the target's player state (view angles, weapon model, etc.) to the
-//   spectator.
-// - Target Cycling: `FollowNext` and `FollowPrev` provide the logic for a
-//   spectator to cycle through the available players to watch.
-// - State Management: Handles freeing and attaching followers when players
-//   connect, disconnect, or switch between playing and spectating.
+g_spectator.cpp (Game Spectator Logic) This file contains all the logic related to the spectator
+mode. It handles how a spectator follows other players (the "chase cam"), including both
+third-person and first-person (`eyecam`) views, and manages the logic for cycling between
+different follow targets. Key Responsibilities: - Chase Camera: `ClientUpdateFollowers` is the
+core function that updates a spectator's position and view angles to follow their target. It
+includes collision detection to prevent the camera from clipping through walls. - Eyecam Mode:
+Implements the first-person spectator view by directly copying the target's player state (view
+angles, weapon model, etc.) to the spectator. - Target Cycling: `FollowNext` and `FollowPrev`
+provide the logic for a spectator to cycle through the available players to watch. - State
+Management: Handles freeing and attaching followers when players connect, disconnect, or switch
+between playing and spectating.*/
 
 #include "../g_local.hpp"
 #include <cctype>

@@ -1,5 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
+
+g_statusbar.cpp implementation.*/
 
 #include "../g_local.hpp"
 #include "g_statusbar.hpp"

@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_weapon_abbreviation_conversion.cpp implementation.*/
+
 #include "shared/weapon_pref_utils.hpp"
 
 #include <cassert>

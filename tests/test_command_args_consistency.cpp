@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_command_args_consistency.cpp implementation.*/
+
 #include "server/commands/command_system.hpp"
 
 #include <cassert>

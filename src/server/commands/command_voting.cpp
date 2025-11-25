@@ -1,9 +1,8 @@
-// Copyright (c) DarkMatter Projects 2023-2025
-// Licensed under the GNU General Public License 2.0.
-//
-// commands_voting.cpp - Implements the voting system commands.
-// This module contains all logic for calling votes, casting votes,
-// and processing the results for various game actions.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+commands_voting.cpp - Implements the voting system commands. This module contains all logic for
+calling votes, casting votes, and processing the results for various game actions.*/
 
 #include "command_voting.hpp"
 #include "../g_local.hpp"

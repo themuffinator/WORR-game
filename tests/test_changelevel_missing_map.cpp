@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_changelevel_missing_map.cpp implementation.*/
+
 #include "shared/char_array_utils.hpp"
 
 #include <array>

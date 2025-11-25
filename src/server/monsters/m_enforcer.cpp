@@ -1,17 +1,11 @@
-// Copyright (c) 2025 WOR
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
 
-ENFORCER (Quake 1) - WOR Port (rewritten)
-
-Core behavior:
-- Mid-tier humanoid with a fast "laser" (implemented via blaster plumbing)
-- Two-shot volley with short cadence; moderate mobility
-- Simple pain reactions and standard gib/regular death handling
-
-==============================================================================
-*/
+============================================================================== ENFORCER (Quake
+1) - WOR Port (rewritten) Core behavior: - Mid-tier humanoid with a fast "laser" (implemented
+via blaster plumbing) - Two-shot volley with short cadence; moderate mobility - Simple pain
+reactions and standard gib/regular death handling
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_enforcer.hpp"

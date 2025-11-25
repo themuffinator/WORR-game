@@ -1,8 +1,8 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// Modernized capture gameplay implementation covering Capture the Flag, One Flag
-// CTF and Harvester logic.
+Modernized capture gameplay implementation covering Capture the Flag, One Flag CTF and Harvester
+logic.*/
 
 #include "../g_local.hpp"
 #include "g_capture.hpp"

@@ -1,20 +1,18 @@
-// g_match_state.cpp (Game Match State)
-// This file manages the high-level state and flow of a multiplayer match.
-// It controls the transitions between different phases of a game, such as
-// warmup, countdown, active gameplay, and post-game intermission. It is the
-// central authority for enforcing game rules and round-based logic.
-//
-// Key Responsibilities:
-// - Match Lifecycle: Implements the state machine for the match, progressing
-//   from `MatchState::Warmup` to `MatchState::Countdown` to `MatchState::In_Progress`.
-// - Rule Enforcement: `CheckDMExitRules` is called every frame to check for
-//   end-of-match conditions like timelimit, scorelimit, or mercylimit.
-// - Round-Based Logic: Manages the start and end of rounds for gametypes like
-//   Clan Arena and Horde mode (`Round_StartNew`, `Round_End`).
-// - Warmup and Ready-Up: Handles the "ready-up" system, where the match will
-//   not start until a certain percentage of players have indicated they are ready.
-// - Gametype Switching: Contains the logic to cleanly switch between different
-//   gametypes (`ChangeGametype`) by reloading the map and resetting state.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_match_state.cpp (Game Match State) This file manages the high-level state and flow of a
+multiplayer match. It controls the transitions between different phases of a game, such as
+warmup, countdown, active gameplay, and post-game intermission. It is the central authority for
+enforcing game rules and round-based logic. Key Responsibilities: - Match Lifecycle: Implements
+the state machine for the match, progressing from `MatchState::Warmup` to
+`MatchState::Countdown` to `MatchState::In_Progress`. - Rule Enforcement: `CheckDMExitRules` is
+called every frame to check for end-of-match conditions like timelimit, scorelimit, or
+mercylimit. - Round-Based Logic: Manages the start and end of rounds for gametypes like Clan
+Arena and Horde mode (`Round_StartNew`, `Round_End`). - Warmup and Ready-Up: Handles the
+"ready-up" system, where the match will not start until a certain percentage of players have
+indicated they are ready. - Gametype Switching: Contains the logic to cleanly switch between
+different gametypes (`ChangeGametype`) by reloading the map and resetting state.*/
 
 #include "../g_local.hpp"
 #include "../client/client_stats_service.hpp"

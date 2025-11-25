@@ -1,12 +1,8 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-INFANTRY
-
-==============================================================================
-*/
+============================================================================== INFANTRY
+==============================================================================*/
 
 #include "../g_local.hpp"
 #include "m_infantry.hpp"

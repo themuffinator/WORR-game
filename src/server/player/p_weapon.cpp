@@ -1,6 +1,7 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-// g_weapon.c
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
+
+g_weapon.c*/
 
 #include "../g_local.hpp"
 #include "../gameplay/g_proball.hpp"

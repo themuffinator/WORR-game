@@ -1,22 +1,16 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// cg_main.cpp (Client Game Main)
-// This file serves as the main entry point and API bridge for the client-side
-// game module (cgame). It is responsible for initializing and shutting down
-// the client-side game logic and exporting the necessary functions to the
-// main engine.
-//
-// Key Responsibilities:
-// - Implements `GetCGameAPI`, the function the engine calls to get the table
-//   of client-side game functions (`cgame_export_t`).
-// - Handles the initialization (`InitCGame`) and shutdown (`ShutdownCGame`) of
-//   the client-side module, setting up necessary systems like the HUD.
-// - Provides wrapper functions that are exposed to the engine, which in turn
-//   call the actual implementation logic located in other `cg_` files (e.g.,
-//   `CG_DrawHUD`, `CG_ParseCenterPrint`).
-// - Manages client-side state that depends on server configstrings, like
-//   physics settings (`pm_config`).
+cg_main.cpp (Client Game Main) This file serves as the main entry point and API bridge for the
+client-side game module (cgame). It is responsible for initializing and shutting down the
+client-side game logic and exporting the necessary functions to the main engine. Key
+Responsibilities: - Implements `GetCGameAPI`, the function the engine calls to get the table of
+client-side game functions (`cgame_export_t`). - Handles the initialization (`InitCGame`) and
+shutdown (`ShutdownCGame`) of the client-side module, setting up necessary systems like the HUD.
+- Provides wrapper functions that are exposed to the engine, which in turn call the actual
+implementation logic located in other `cg_` files (e.g., `CG_DrawHUD`, `CG_ParseCenterPrint`). -
+Manages client-side state that depends on server configstrings, like physics settings
+(`pm_config`).*/
 
 #include "cg_local.hpp"
 #include "../server/monsters/m_flash.hpp"

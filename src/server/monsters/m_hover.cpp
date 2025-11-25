@@ -1,12 +1,9 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
-/*
-==============================================================================
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-hover
+============================================================================== hover
+==============================================================================*/
 
-==============================================================================
-*/
 #include "../g_local.hpp"
 #include "m_hover.hpp"
 #include "m_flash.hpp"

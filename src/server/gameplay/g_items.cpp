@@ -1,23 +1,16 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_items.cpp (Game Items)
-// This file defines all the items available in the game, including weapons,
-// ammo, armor, powerups, keys, and special tech items. It is the central
-// repository for item properties and behavior.
-//
-// Key Responsibilities:
-// - Item Definition: The `itemList` array serves as the master database for
-//   all items, defining their classnames, models, sounds, and flags.
-// - Pickup Logic: Contains the `Pickup_*` functions that are called when a
-//   player touches an item, determining if the player can take it and what
-//   happens when they do (e.g., adding to inventory, auto-using).
-// - Use Logic: Implements the `Use_*` functions for activatable items like
-//   powerups or the grappling hook.
-// - Drop Logic: Handles the `Drop_*` functions for when a player manually drops
-//   an item or dies.
-// - Initialization: `InitItems` and `SetItemNames` are called at startup to
-//   precache assets and set up server configuration strings for all items.
+g_items.cpp (Game Items) This file defines all the items available in the game, including
+weapons, ammo, armor, powerups, keys, and special tech items. It is the central repository for
+item properties and behavior. Key Responsibilities: - Item Definition: The `itemList` array
+serves as the master database for all items, defining their classnames, models, sounds, and
+flags. - Pickup Logic: Contains the `Pickup_*` functions that are called when a player touches
+an item, determining if the player can take it and what happens when they do (e.g., adding to
+inventory, auto-using). - Use Logic: Implements the `Use_*` functions for activatable items like
+powerups or the grappling hook. - Drop Logic: Handles the `Drop_*` functions for when a player
+manually drops an item or dies. - Initialization: `InitItems` and `SetItemNames` are called at
+startup to precache assets and set up server configuration strings for all items.*/
 
 #include "../g_local.hpp"
 #include "g_proball.hpp"

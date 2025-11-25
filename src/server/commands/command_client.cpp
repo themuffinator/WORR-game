@@ -1,7 +1,7 @@
-// Copyright (c) DarkMatter Projects 2023-2025
-// Licensed under the GNU General Public License 2.0.
-//
-// commands_client.cpp - Implements all general client-side commands.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+commands_client.cpp - Implements all general client-side commands.*/
 
 #include "command_system.hpp"
 #include "command_registration.hpp"

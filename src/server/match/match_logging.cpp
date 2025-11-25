@@ -1,20 +1,18 @@
-﻿// g_match_logging.cpp (Game Match Logging)
-// This file implements a detailed match statistics logging system. At the end
-// of each match, it gathers comprehensive data about players and teams (kills,
-// deaths, damage, accuracy, weapon usage, awards, etc.) and writes it out to
-// structured files for later analysis and display.
-//
-// Key Responsibilities:
-// - Data Aggregation: The `MatchStats_End` function iterates through all players
-//   at the end of a match and compiles their performance data into `PlayerStats`
-//   and `TeamStats` structures.
-// - JSON Output: Serializes the collected match data into a well-structured
-//   JSON file. This format is ideal for data parsing by external tools or websites.
-// - HTML Report Generation: Creates a user-friendly HTML report of the match
-//   results, including overall scores, team comparisons, top player lists, and
-//   detailed individual performance breakdowns with progress bars and weapon stats.
-// - Match Initialization: `MatchStats_Init` is called at the start of a match
-//   to generate a unique match ID and reset all statistical counters.
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_match_logging.cpp (Game Match Logging) This file implements a detailed match statistics
+logging system. At the end of each match, it gathers comprehensive data about players and teams
+(kills, deaths, damage, accuracy, weapon usage, awards, etc.) and writes it out to structured
+files for later analysis and display. Key Responsibilities: - Data Aggregation: The
+`MatchStats_End` function iterates through all players at the end of a match and compiles their
+performance data into `PlayerStats` and `TeamStats` structures. - JSON Output: Serializes the
+collected match data into a well-structured JSON file. This format is ideal for data parsing by
+external tools or websites. - HTML Report Generation: Creates a user-friendly HTML report of the
+match results, including overall scores, team comparisons, top player lists, and detailed
+individual performance breakdowns with progress bars and weapon stats. - Match Initialization:
+`MatchStats_Init` is called at the start of a match to generate a unique match ID and reset all
+statistical counters.*/
 
 #include "../g_local.hpp"
 #include "../gameplay/client_config.hpp"

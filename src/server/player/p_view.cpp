@@ -1,24 +1,17 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// p_view.cpp (Player View)
-// This file is responsible for calculating and applying all client-side view
-// modifications that are not part of the core player movement. This includes
-// effects like weapon kickback, view bobbing, damage feedback, and falling
-// effects. It also contains the server-side logic for lag compensation.
-//
-// Key Responsibilities:
-// - `ClientEndServerFrame`: The main entry point called each frame to update
-//   the player's view state (`player_state_t`).
-// - View Bobbing: `P_CalcBob` calculates the up-and-down and side-to-side
-//   motion of the view as the player moves.
-// - Damage Feedback: Calculates view kicks (`P_DamageFeedback`) and screen
-//   blends when the player takes damage.
-// - Weapon Kick: `P_AddWeaponKick` applies the recoil effect to the player's
-//   view when they fire a weapon.
-// - Lag Compensation: Implements the `LagCompensate` system, which temporarily
-//   moves other players back in time to their positions as seen by the attacker,
-//   ensuring accurate hit detection in a networked environment.
+p_view.cpp (Player View) This file is responsible for calculating and applying all client-side
+view modifications that are not part of the core player movement. This includes effects like
+weapon kickback, view bobbing, damage feedback, and falling effects. It also contains the
+server-side logic for lag compensation. Key Responsibilities: - `ClientEndServerFrame`: The main
+entry point called each frame to update the player's view state (`player_state_t`). - View
+Bobbing: `P_CalcBob` calculates the up-and-down and side-to-side motion of the view as the
+player moves. - Damage Feedback: Calculates view kicks (`P_DamageFeedback`) and screen blends
+when the player takes damage. - Weapon Kick: `P_AddWeaponKick` applies the recoil effect to the
+player's view when they fire a weapon. - Lag Compensation: Implements the `LagCompensate`
+system, which temporarily moves other players back in time to their positions as seen by the
+attacker, ensuring accurate hit detection in a networked environment.*/
 
 #include "../g_local.hpp"
 #include "../monsters/m_player.hpp"

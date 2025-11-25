@@ -1,24 +1,17 @@
-﻿// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_main.cpp (Game Main)
-// This is the main entry point and central hub for the server-side game module
-// (game.dll). It is responsible for initializing and shutting down the game,
-// managing the main game loop, and orchestrating the high-level logic of a match.
-//
-// Key Responsibilities:
-// - API Bridge: Implements `GetGameAPI`, which provides the engine with the
-//   necessary function pointers to interact with the game logic.
-// - Initialization: `InitGame` is called once per server startup to register
-//   cvars and initialize global game state. `SpawnEntities` is called for each
-//   map load.
-// - Game Loop: `G_RunFrame` is the main function called by the engine every
-//   server frame. It drives all entity thinking, physics, and game rule checks.
-// - Match State Management: Contains the top-level logic for checking game
-//   rules (e.g., timelimit, fraglimit) and transitioning the game into and out
-//   of intermission.
-// - Cvar Management: Handles the checking and application of various cvars
-//   that can change game behavior on the fly.
+g_main.cpp (Game Main) This is the main entry point and central hub for the server-side game
+module (game.dll). It is responsible for initializing and shutting down the game, managing the
+main game loop, and orchestrating the high-level logic of a match. Key Responsibilities: - API
+Bridge: Implements `GetGameAPI`, which provides the engine with the necessary function pointers
+to interact with the game logic. - Initialization: `InitGame` is called once per server startup
+to register cvars and initialize global game state. `SpawnEntities` is called for each map load.
+- Game Loop: `G_RunFrame` is the main function called by the engine every server frame. It
+drives all entity thinking, physics, and game rule checks. - Match State Management: Contains
+the top-level logic for checking game rules (e.g., timelimit, fraglimit) and transitioning the
+game into and out of intermission. - Cvar Management: Handles the checking and application of
+various cvars that can change game behavior on the fly.*/
 
 #include "../g_local.hpp"
 #include "../bots/bot_includes.hpp"

@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_monster_spawn_gravity.cpp implementation.*/
+
 #include <algorithm>
 #include <cassert>
 #include <cmath>

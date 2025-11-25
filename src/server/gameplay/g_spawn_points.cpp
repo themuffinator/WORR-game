@@ -1,24 +1,18 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_spawn_points.cpp (Game Player Spawning)
-// This file handles the logic for finding and managing player spawn points.
-// It scans the map for `info_player_*` entities at level start, categorizes
-// them by team or gametype, and provides the logic for selecting an
-// appropriate spawn point for a player entering the game or respawning.
-//
-// Key Responsibilities:
-// - Spawn Point Registration: `G_LocateSpawnSpots` is called at the beginning
-//   of a map to find all `info_player_*` entities and register them in the
-//   appropriate lists (e.g., FFA, Team Red, Team Blue).
-// - Modernized Structure: Implements a clean, vector-based system for storing
-//   spawn points, replacing the original engine's flat array and making the
-//   code more robust and easier to manage.
-// - Intermission Point: Specifically identifies the `info_player_intermission`
-//   spot and calculates the correct camera angle for the end-of-level sequence.
-// - Legacy Compatibility: Provides a function to flatten the new vector-based
-//   system back into the old-style flat array to maintain compatibility with
-//   older parts of the codebase that have not yet been migrated.
+g_spawn_points.cpp (Game Player Spawning) This file handles the logic for finding and managing
+player spawn points. It scans the map for `info_player_*` entities at level start, categorizes
+them by team or gametype, and provides the logic for selecting an appropriate spawn point for a
+player entering the game or respawning. Key Responsibilities: - Spawn Point Registration:
+`G_LocateSpawnSpots` is called at the beginning of a map to find all `info_player_*` entities
+and register them in the appropriate lists (e.g., FFA, Team Red, Team Blue). - Modernized
+Structure: Implements a clean, vector-based system for storing spawn points, replacing the
+original engine's flat array and making the code more robust and easier to manage. -
+Intermission Point: Specifically identifies the `info_player_intermission` spot and calculates
+the correct camera angle for the end-of-level sequence. - Legacy Compatibility: Provides a
+function to flatten the new vector-based system back into the old-style flat array to maintain
+compatibility with older parts of the codebase that have not yet been migrated.*/
 
 #include "../g_local.hpp"
 #include "g_headhunters.hpp"

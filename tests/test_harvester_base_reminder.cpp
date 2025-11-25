@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_harvester_base_reminder.cpp implementation.*/
+
 #include <cassert>
 #include <string>
 

@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_remove_id_preserves_comments.cpp implementation.*/
+
 #include "../src/server/g_local.hpp"
 
 #include <cassert>

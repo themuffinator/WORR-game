@@ -1,22 +1,16 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_trigger.cpp (Game Triggers)
-// This file implements the behavior of various "trigger_*" entities. Triggers
-// are invisible, solid (or non-solid) volumes in the world that activate
-// their targets when touched by other entities (usually players or monsters).
-// They are a fundamental part of level scripting.
-//
-// Key Responsibilities:
-// - Basic Triggers: Implements standard triggers like `trigger_once` and
-//   `trigger_multiple`.
-// - Specialized Triggers: Contains logic for more complex triggers, such as
-//   `trigger_hurt` (which applies damage), `trigger_push` (which applies a
-//   velocity change), and `trigger_teleport`.
-// - Conditional Triggers: Implements triggers that require specific conditions
-//   to be met, like `trigger_key` (requires a key item) or `trigger_counter`.
-// - Initialization: The `InitTrigger` function sets up the common properties
-//   for all trigger entities.
+g_trigger.cpp (Game Triggers) This file implements the behavior of various "trigger_*" entities.
+Triggers are invisible, solid (or non-solid) volumes in the world that activate their targets
+when touched by other entities (usually players or monsters). They are a fundamental part of
+level scripting. Key Responsibilities: - Basic Triggers: Implements standard triggers like
+`trigger_once` and `trigger_multiple`. - Specialized Triggers: Contains logic for more complex
+triggers, such as `trigger_hurt` (which applies damage), `trigger_push` (which applies a
+velocity change), and `trigger_teleport`. - Conditional Triggers: Implements triggers that
+require specific conditions to be met, like `trigger_key` (requires a key item) or
+`trigger_counter`. - Initialization: The `InitTrigger` function sets up the common properties
+for all trigger entities.*/
 
 #include "../g_local.hpp"
 #include "../../shared/char_array_utils.hpp"

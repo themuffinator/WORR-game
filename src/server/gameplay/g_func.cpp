@@ -1,22 +1,15 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_func.cpp (Game Function Entities)
-// This file implements the behavior for various "func_*" entities, which are
-// brush-based, interactive map elements that form the core of Quake II's
-// level scripting and dynamism.
-//
-// Key Responsibilities:
-// - Movers: Contains the logic for all moving platforms, doors, and trains
-//   (`func_plat`, `func_door`, `func_train`). This includes handling their
-//   movement paths, speed, acceleration, and what happens when they are
-//   blocked.
-// - Interactive Objects: Implements buttons (`func_button`), rotating objects
-//   (`func_rotating`), and other interactive map features.
-// - Special Volumes: Defines the behavior of special volumes like `func_water`
-//   and `func_killbox`.
-// - State Management: Manages the internal state machines for these entities
-//   (e.g., a door's state being 'up', 'down', 'moving up', etc.).
+g_func.cpp (Game Function Entities) This file implements the behavior for various "func_*"
+entities, which are brush-based, interactive map elements that form the core of Quake II's level
+scripting and dynamism. Key Responsibilities: - Movers: Contains the logic for all moving
+platforms, doors, and trains (`func_plat`, `func_door`, `func_train`). This includes handling
+their movement paths, speed, acceleration, and what happens when they are blocked. - Interactive
+Objects: Implements buttons (`func_button`), rotating objects (`func_rotating`), and other
+interactive map features. - Special Volumes: Defines the behavior of special volumes like
+`func_water` and `func_killbox`. - State Management: Manages the internal state machines for
+these entities (e.g., a door's state being 'up', 'down', 'moving up', etc.).*/
 
 #include "../g_local.hpp"
 

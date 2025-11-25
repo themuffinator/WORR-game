@@ -1,23 +1,17 @@
-// Copyright (c) ZeniMax Media Inc.
-// Licensed under the GNU General Public License 2.0.
+/*Copyright (c) 2024 ZeniMax Media Inc.
+Licensed under the GNU General Public License 2.0.
 
-// g_spawn.cpp (Game Entity Spawning)
-// This file is responsible for parsing the entity data from a loaded map and
-// spawning the corresponding entities into the game world. It acts as the
-// bridge between the map editor's entity definitions and the in-game objects.
-//
-// Key Responsibilities:
-// - Entity Parsing: The `ED_ParseEntity` function reads the key/value pairs
-//   for each entity from the map's entity string.
-// - Field Mapping: `ED_ParseField` maps the text-based keys from the map data
-//   (e.g., "health", "speed") to the appropriate fields in the `gentity_t`
-//   and `spawn_temp_t` structs.
-// - Spawn Function Dispatch: `ED_CallSpawn` is the central function that looks
-//   up an entity's `className` in a dispatch table and calls the correct `SP_*`
-//   spawn function to initialize it.
-// - Global Setup: The `SP_worldspawn` function is called for the first entity
-//   in the map and is used to set up level-wide properties like the skybox,
-//   music, and global game rules.
+g_spawn.cpp (Game Entity Spawning) This file is responsible for parsing the entity data from a
+loaded map and spawning the corresponding entities into the game world. It acts as the bridge
+between the map editor's entity definitions and the in-game objects. Key Responsibilities: -
+Entity Parsing: The `ED_ParseEntity` function reads the key/value pairs for each entity from the
+map's entity string. - Field Mapping: `ED_ParseField` maps the text-based keys from the map data
+(e.g., "health", "speed") to the appropriate fields in the `gentity_t` and `spawn_temp_t`
+structs. - Spawn Function Dispatch: `ED_CallSpawn` is the central function that looks up an
+entity's `className` in a dispatch table and calls the correct `SP_*` spawn function to
+initialize it. - Global Setup: The `SP_worldspawn` function is called for the first entity in
+the map and is used to set up level-wide properties like the skybox, music, and global game
+rules.*/
 
 #include "../g_local.hpp"
 #include "../../shared/map_validation.hpp"

@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+g_domination.cpp implementation.*/
+
 #include "../g_local.hpp"
 
 #include <algorithm>

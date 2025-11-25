@@ -1,3 +1,8 @@
+/*Copyright (c) 2024 The DarkMatter Project
+Licensed under the GNU General Public License 2.0.
+
+test_match_initial_delay_transition.cpp implementation.*/
+
 #include "server/match/match.hpp"
 
 #include <cassert>
