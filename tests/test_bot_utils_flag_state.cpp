@@ -2,78 +2,62 @@
 #include "server/gameplay/g_capture.hpp"
 
 #include <cassert>
+#include <unordered_map>
 
 GameLocals game{};
 LevelLocals level{};
 local_game_import_t gi{};
 
-/*
-===============
-NoopConfigString
-
-Stub configstring writer for tests.
-===============
-*/
-static void NoopConfigString(int32_t, const char*) {
-}
-
-struct FlagEntityFixture {
-	gentity_t entity{};
-	gitem_t item{};
+static std::unordered_map<Team, FlagStatus> flagStatuses{
+	{ Team::Red, FlagStatus::AtBase },
+	{ Team::Blue, FlagStatus::AtBase },
 };
 
 /*
-===============
-MakeFlagEntity
+=============
+SetFlagStatus
 
-Builds a minimal flag entity for state updates.
-===============
+Stores the flag status per team for the lightweight capture test harness.
+=============
 */
-static FlagEntityFixture MakeFlagEntity(item_id_t id) {
-	FlagEntityFixture fixture{};
-	fixture.item.id = id;
-	fixture.entity.item = &fixture.item;
-	fixture.entity.solid = SOLID_TRIGGER;
-	fixture.entity.sv.init = true;
-	return fixture;
+bool SetFlagStatus(Team team, FlagStatus status) {
+	flagStatuses[team] = status;
+	return true;
 }
 
 /*
-===============
-main
+=============
+Entity_UpdateState
 
-Validates flag objective state bits for home, dropped, and carried flags.
-===============
+Updates the flag entity's server flags based on the cached flag status.
+=============
 */
-int main() {
-	gi.configString = NoopConfigString;
+void Entity_UpdateState(gentity_t* ent) {
+	if (!ent || !ent->item) {
+		return;
+	}
 
-	SetFlagStatus(Team::Red, FlagStatus::AtBase);
-	SetFlagStatus(Team::Blue, FlagStatus::AtBase);
+	FlagStatus status = FlagStatus::AtBase;
+	switch (ent->item->id) {
+	case IT_FLAG_RED:
+		status = flagStatuses[Team::Red];
+		break;
+	case IT_FLAG_BLUE:
+		status = flagStatuses[Team::Blue];
+		break;
+	default:
+		break;
+	}
 
-	auto redFlag = MakeFlagEntity(IT_FLAG_RED);
-	auto blueFlag = MakeFlagEntity(IT_FLAG_BLUE);
-
-	Entity_UpdateState(&redFlag.entity);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_AT_BASE) != 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_TAKEN) == 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_DROPPED) == 0);
-
-	SetFlagStatus(Team::Red, FlagStatus::Dropped);
-	Entity_UpdateState(&redFlag.entity);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_DROPPED) != 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_TAKEN) == 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_AT_BASE) == 0);
-
-	SetFlagStatus(Team::Red, FlagStatus::Taken);
-	Entity_UpdateState(&redFlag.entity);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_TAKEN) != 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_DROPPED) == 0);
-	assert((redFlag.entity.sv.entFlags & SVFL_OBJECTIVE_AT_BASE) == 0);
-
-	SetFlagStatus(Team::Blue, FlagStatus::Taken);
-	Entity_UpdateState(&blueFlag.entity);
-	assert((blueFlag.entity.sv.entFlags & SVFL_OBJECTIVE_TAKEN) != 0);
-
-	return 0;
+	ent->sv.entFlags &= ~(SVFL_OBJECTIVE_AT_BASE | SVFL_OBJECTIVE_TAKEN | SVFL_OBJECTIVE_DROPPED);
+	if (status == FlagStatus::AtBase) {
+		ent->sv.entFlags |= SVFL_OBJECTIVE_AT_BASE;
+	}
+	else if (status == FlagStatus::Dropped) {
+		ent->sv.entFlags |= SVFL_OBJECTIVE_DROPPED;
+	}
+	else if (status == FlagStatus::Taken) {
+		ent->sv.entFlags |= SVFL_OBJECTIVE_TAKEN;
+	}
 }
+

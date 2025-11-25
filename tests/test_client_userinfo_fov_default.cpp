@@ -2,6 +2,7 @@
 #include "server/client/client_stats_service.hpp"
 #include "server/gameplay/client_config.hpp"
 #include "server/g_local.hpp"
+#include "client_session_service_impl_stubs.hpp"
 
 #include <array>
 #include <cassert>
@@ -10,6 +11,8 @@
 
 cvar_t* g_allowCustomSkins = nullptr;
 gentity_t* g_entities = nullptr;
+local_game_import_t gi{};
+game_export_t globals{};
 
 namespace {
 
