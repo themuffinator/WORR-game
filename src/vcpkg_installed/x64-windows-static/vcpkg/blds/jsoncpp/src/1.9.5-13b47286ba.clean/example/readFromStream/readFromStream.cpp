@@ -1,8 +1,3 @@
-/*Copyright (c) 2024 The DarkMatter Project
-Licensed under the GNU General Public License 2.0.
-
-readFromStream.cpp implementation.*/
-
 #include "json/json.h"
 #include <fstream>
 #include <iostream>

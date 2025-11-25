@@ -1,7 +1,7 @@
-/*Copyright (c) 2024 The DarkMatter Project
-Licensed under the GNU General Public License 2.0.
-
-Distributed under MIT license, or public domain if desired and recognized in your jurisdiction. See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE*/
+// Copyright 2007-2019 The JsonCpp Authors
+// Distributed under MIT license, or public domain if desired and
+// recognized in your jurisdiction.
+// See file LICENSE for detail or copy at http://jsoncpp.sourceforge.net/LICENSE
 
 #include "fuzz.h"
 
