@@ -860,6 +860,8 @@ void ED_CallSpawn(gentity_t* ent) {
 	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityLabel(ent));
 	FreeEntity(ent);
 }
+
+
 /*
 =============
 ED_NewString
@@ -1125,34 +1127,34 @@ static const std::initializer_list<field_t> entity_fields = {
 		}
 	},
 
-	//muff
-		FIELD_AUTO(gametype),
-		FIELD_AUTO(not_gametype),
-		FIELD_AUTO(notteam),
-		FIELD_AUTO(notfree),
-		FIELD_AUTO(notq2),
-		FIELD_AUTO(notq3a),
-		FIELD_AUTO(notarena),
-		FIELD_AUTO(ruleset),
-		FIELD_AUTO(not_ruleset),
-		FIELD_AUTO(powerups_on),
-		FIELD_AUTO(powerups_off),
-		FIELD_AUTO(bfg_on),
-		FIELD_AUTO(bfg_off),
-		FIELD_AUTO(plasmabeam_on),
-		FIELD_AUTO(plasmabeam_off),
-		FIELD_AUTO(spawnpad),
-		FIELD_AUTO(height),
-		FIELD_AUTO(phase),
-		FIELD_AUTO(bob),
-		FIELD_AUTO(duration),
-		FIELD_AUTO(bobFrame),
-	//-muff
-		FIELD_AUTO_NAMED("rotate", moveAngles),
-		FIELD_AUTO_NAMED("speeds", moveOrigin),
-		FIELD_AUTO_NAMED("durations", durations),
+//muff
+	FIELD_AUTO(gametype),
+	FIELD_AUTO(not_gametype),
+	FIELD_AUTO(notteam),
+	FIELD_AUTO(notfree),
+	FIELD_AUTO(notq2),
+	FIELD_AUTO(notq3a),
+	FIELD_AUTO(notarena),
+	FIELD_AUTO(ruleset),
+	FIELD_AUTO(not_ruleset),
+	FIELD_AUTO(powerups_on),
+	FIELD_AUTO(powerups_off),
+	FIELD_AUTO(bfg_on),
+	FIELD_AUTO(bfg_off),
+	FIELD_AUTO(plasmabeam_on),
+	FIELD_AUTO(plasmabeam_off),
+	FIELD_AUTO(spawnpad),
+	FIELD_AUTO(height),
+	FIELD_AUTO(phase),
+	FIELD_AUTO(bob),
+	FIELD_AUTO(duration),
+	FIELD_AUTO(bobFrame),
+//-muff
+	FIELD_AUTO_NAMED("rotate", moveAngles),
+	FIELD_AUTO_NAMED("speeds", moveOrigin),
+	FIELD_AUTO_NAMED("durations", durations),
 
-		FIELD_AUTO_NAMED("monster_slots", monsterInfo.monster_slots)
+	FIELD_AUTO_NAMED("monster_slots", monsterInfo.monster_slots)
 };
 
 #undef AUTO_LOADER_FUNC
@@ -1234,6 +1236,7 @@ static const std::initializer_list<temp_field_t> temp_fields = {
 };
 // clang-format on
 
+
 /*
 ===============
 ED_ParseField
@@ -1278,6 +1281,8 @@ static void ED_ParseField(const char* key, const char* value, gentity_t* ent) {
 
 	worr::Logf(worr::LogLevel::Trace, "{}: unknown spawn key \"{}\" for {}", __FUNCTION__, key, LogEntityLabel(ent));
 }
+
+
 /*
 ====================
 ED_ParseEntity
