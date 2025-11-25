@@ -242,7 +242,13 @@ bool TryRandomTeleportPosition(gentity_t* self, float radius, GameTime returnDel
 	return false;
 }
 
-// [Paril-KEX]
+/*
+=============
+M_ProjectFlashSource
+
+Projects a muzzle flash origin for monsters, accounting for entity scale.
+=============
+*/
 Vector3 M_ProjectFlashSource(gentity_t* self, const Vector3& offset, const Vector3& forward, const Vector3& right) {
 	return G_ProjectSource(self->s.origin, self->s.scale ? (offset * self->s.scale) : offset, forward, right);
 }
