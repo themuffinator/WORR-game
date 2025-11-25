@@ -713,7 +713,7 @@ static void SpawnEnt_MapFixes(gentity_t* ent) {
 
 /*
 ===============
-		ED_CallSpawn
+ED_CallSpawn
 
 Finds the spawn function for the entity and calls it
 ===============
@@ -1344,19 +1344,17 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 	worr::Logf(worr::LogLevel::Trace, "{}: parsed entity #{} as {} ({} keys)", __FUNCTION__, ent_num, parsed_class, st.keys_specified.size());
 
 	return data;
-}/*
+}
+
+
+/*
 ================
-	G_FindTeams
+G_FixTeams
 
-Chain together all entities with a matching team field.
-
-All but the first will have the FL_TEAMSLAVE flag set.
-All but the last will have the teamChain field set to the next one
+Adjusts teams so that trains that move their children
+are in the front of the team
 ================
 */
-
-// adjusts teams so that trains that move their children
-// are in the front of the team
 static void G_FixTeams() {
 	gentity_t* e, * e2, * chain;
 	uint32_t i, j;
@@ -1401,6 +1399,18 @@ static void G_FixTeams() {
 	if (c)
 		gi.Com_PrintFmt("{}: {} entity team{} repaired.\n", __FUNCTION__, c, c != 1 ? "s" : "");
 }
+
+
+/*
+================
+G_FindTeams
+
+Chain together all entities with a matching team field.
+
+All but the first will have the FL_TEAMSLAVE flag set.
+All but the last will have the teamChain field set to the next one
+================
+*/
 static void G_FindTeams() {
 	gentity_t* e1, * e2, * chain;
 	uint32_t i, j;
@@ -1442,7 +1452,15 @@ static void G_FindTeams() {
 	if (c1 && g_verbose->integer)
 		gi.Com_PrintFmt("{}: {} entity team{} found with a total of {} entit{}.\n", __FUNCTION__, c1, c1 != 1 ? "s" : "", c2, c2 != 1 ? "ies" : "y");
 }
-// inhibit entities from game based on cvars & spawnFlags
+
+
+/*
+================
+G_InhibitEntity
+
+Inhibit entities from game based on cvars & spawnFlags
+================
+*/
 static inline bool G_InhibitEntity(gentity_t* ent) {
 	if (ent->gametype) {
 		const char* s = strstr(ent->gametype, Game::GetCurrentInfo().spawn_name.data());
@@ -1546,6 +1564,8 @@ void PrecacheInventoryItems() {
 				PrecacheItem(GetItemByIndex(id));
 	}
 }
+
+
 /*
 =============
 PrecacheForRandomRespawn
@@ -1562,6 +1582,13 @@ static void PrecacheForRandomRespawn()
 		PrecacheItem(GetItemByIndex(id));
 	}
 }
+
+
+/*
+=============
+PrecacheStartItems
+=============
+*/
 static void PrecacheStartItems() {
 	const char* raw = g_start_items && g_start_items->string ? g_start_items->string : "";
 	if (*raw == '\0') {
@@ -1630,6 +1657,13 @@ static void PrecacheStartItems() {
 		PrecacheItem(item);
 	}
 }
+
+
+/*
+=============
+PrecachePlayerSounds
+=============
+*/
 static void PrecachePlayerSounds() {
 
 	gi.soundIndex("player/lava1.wav");
@@ -1680,6 +1714,13 @@ static void PrecachePlayerSounds() {
 	gi.soundIndex("*pain100_2.wav");
 	gi.soundIndex("*drown1.wav");
 }
+
+
+/*
+=============
+GT_PrecacheAssets
+=============
+*/
 void GT_PrecacheAssets() {
 	if (Teams()) {
 		if (Game::IsNot(GameType::RedRover)) {
@@ -1704,7 +1745,13 @@ void GT_PrecacheAssets() {
 		mi_ctf_blue_flag = gi.modelIndex("players/male/flag2.md2");
 	}
 }
-// [Paril-KEX]
+
+
+/*
+=============
+PrecacheAssets
+=============
+*/
 static void PrecacheAssets() {
 	if (!deathmatch->integer) {
 		gi.soundIndex("infantry/inflies1.wav");
@@ -1745,6 +1792,13 @@ static void PrecacheAssets() {
 
 	gi.soundIndex("misc/talk1.wav");
 }
+
+
+/*
+=============
+FS_Read
+=============
+*/
 constexpr int MAX_READ = 0x10000;		// read in blocks of 64k
 static void FS_Read(void* buffer, int len, FILE* f) {
 	int		block, remaining;
@@ -1776,6 +1830,7 @@ static void FS_Read(void* buffer, int len, FILE* f) {
 		buf += read;
 	}
 }
+
 
 /*
 ==============
@@ -1862,9 +1917,10 @@ static bool VerifyEntityString(const char* entities) {
 	return true;
 }
 
+
 /*
 ==============
-		ApplyMapPostProcess
+ApplyMapPostProcess
 ==============
 */
 static void ApplyMapPostProcess(gentity_t* ent) {
@@ -1872,6 +1928,8 @@ static void ApplyMapPostProcess(gentity_t* ent) {
 		ent->wait = -1;
 	}
 }
+
+
 /*
 ==============
 TryLoadEntityOverride
@@ -1936,6 +1994,8 @@ static const char* TryLoadEntityOverride(const char* mapName, const char* defaul
 
 	return default_entities;
 }
+
+
 /*
 ===============
 SpawnEntities
@@ -2094,6 +2154,8 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 
 	globals.serverFlags &= ~SERVER_FLAG_LOADING;
 }
+
+
 /*
 =============
 G_ResetWorldEntitiesFromSavedString
@@ -2402,6 +2464,7 @@ bool G_ResetWorldEntitiesFromSavedString() {
 
 	return true;
 }
+
 //===================================================================
 
 #include "g_statusbar.hpp"
@@ -2433,6 +2496,8 @@ static void AddCombatHUD(statusbar_t& sb) {
 	// Help icon
 	sb.ifstat(STAT_SHOW_STATUSBAR).ifstat(STAT_HELPICON).xv(150).pic(STAT_HELPICON).endifstat().endifstat();
 }
+
+
 /*
 =========================
 AddPowerupsAndTech
@@ -2444,6 +2509,8 @@ static void AddPowerupsAndTech(statusbar_t& sb) {
 		.ifstat(STAT_TECH).yb(-137).xr(-26).pic(STAT_TECH).endifstat()
 		.endifstat();
 }
+
+
 /*
 =========================
 AddCoopStatus
@@ -2467,6 +2534,8 @@ static void AddCoopStatus(statusbar_t& sb) {
 		sb.ifstat(STAT_MONSTER_COUNT).xr(-32 - (16 * chars)).yt(y += 10).num(3, STAT_MONSTER_COUNT).xr(0).yt(y += step).loc_rstring("Monsters").endifstat();
 	}
 }
+
+
 /*
 =========================
 AddSPExtras
@@ -2488,6 +2557,8 @@ static void AddSPExtras(statusbar_t& sb) {
 
 	sb.story();
 }
+
+
 /*
 =========================
 AddDeathmatchStatus
@@ -2516,6 +2587,8 @@ static void AddDeathmatchStatus(statusbar_t& sb) {
 	sb.ifstat(STAT_CROSSHAIR_ID_VIEW).xv(122).yb(-128).stat_pname(STAT_CROSSHAIR_ID_VIEW).endifstat();
 	sb.ifstat(STAT_CROSSHAIR_ID_VIEW_COLOR).xv(156).yb(-118).pic(STAT_CROSSHAIR_ID_VIEW_COLOR).endifstat();
 }
+
+
 /*
 =========================
 G_InitStatusbar
@@ -2541,6 +2614,8 @@ static void G_InitStatusbar() {
 
 	gi.configString(CS_STATUSBAR, sb.sb.str().c_str());
 }
+
+
 /*
 =========================
 ApplyMapSettingOverrides
@@ -2593,6 +2668,8 @@ static void ApplyMapSettingOverrides() {
 	if (enableFlags & MAPFLAG_WS)   game.map.weaponsStay = true;
 	else if (disableFlags & MAPFLAG_WS)  game.map.weaponsStay = false;
 }
+
+
 /*
 ===================
 PickRandomArena
@@ -2604,6 +2681,8 @@ static int32_t PickRandomArena() {
 
 	return (irandom(level.arenaTotal) + 1); // irandom is 0-based
 }
+
+
 /*
 ==============
 AssignMapLongName
@@ -2687,6 +2766,8 @@ static void AssignMapLongName(const gentity_t* ent) {
 	Q_strlcpy(level.longName.data(), fallback, level.longName.size());
 	gi.configString(CS_NAME, level.longName.data());
 }
+
+
 /*QUAKED worldspawn (0 0 0) ?
 
 Only used for the world.
