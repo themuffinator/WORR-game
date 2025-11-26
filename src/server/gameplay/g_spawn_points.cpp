@@ -1381,7 +1381,7 @@ void ClientSpawn(gentity_t* ent) {
 		ent->client->resp.coopRespawn.lives = lives;
 
 	// clear playerstate values
-	memset(&ent->client->ps, 0, sizeof(cl->ps));
+	ent->client->ps = {};
 
 	char val[MAX_INFO_VALUE];
 	gi.Info_ValueForKey(ent->client->pers.userInfo, "fov", val, sizeof(val));

@@ -1064,9 +1064,9 @@ movement, inactivity timers, and weapon logic.
 */
 void ClientSessionServiceImpl::ClientThink(local_game_import_t& gi, GameLocals& game, LevelLocals& level,
 gentity_t* ent, usercmd_t* ucmd) {
-	gclient_t* cl;
-	gentity_t* other;
-	PMove           pm;
+        gclient_t* cl;
+        gentity_t* other;
+        PMove           pm{};
 
 	level.currentEntity = ent;
 	cl = ent->client;
@@ -1196,7 +1196,6 @@ gentity_t* ent, usercmd_t* ucmd) {
 
 
 		// set up for pmove
-		memset(&pm, 0, sizeof(pm));
 
 		pmove_state_t& pmState = cl->ps.pmove;
 
