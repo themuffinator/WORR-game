@@ -27,6 +27,13 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 TEST_ROOT = REPO_ROOT / "tests"
 SRC_ROOT = REPO_ROOT / "src"
 INCLUDE_DIRS = [SRC_ROOT, SRC_ROOT / "fmt", SRC_ROOT / "json"]
+JSONCPP_SOURCE_NAMES = ["json_reader.cpp", "json_value.cpp", "json_writer.cpp"]
+SUPPORT_SOURCES = [
+    SRC_ROOT / "format.cc",
+    SRC_ROOT / "os.cc",
+    SRC_ROOT / "server" / "q_std.cpp",
+    REPO_ROOT / "tools" / "ci" / "test_support.cpp",
+]
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "test-results"
 LOG_FILE = ARTIFACT_DIR / "test-log.txt"
 JUNIT_FILE = ARTIFACT_DIR / "junit.xml"
@@ -121,9 +128,40 @@ def detect_compiler() -> Sequence[str]:
     raise ToolchainError("Unable to locate a C++ compiler (clang++ or g++) in PATH")
 
 
+def find_jsoncpp_sources() -> tuple[list[Path], list[str]]:
+    search_root = SRC_ROOT / "vcpkg_installed"
+    candidates = sorted(search_root.glob("**/src/lib_json"))
+    for lib_dir in candidates:
+        if not lib_dir.is_dir():
+            continue
+
+        parent_src = lib_dir.parent
+        include_dir = parent_src.parent / "include"
+        sources = [lib_dir / name for name in JSONCPP_SOURCE_NAMES]
+        if all(source.exists() for source in sources):
+            includes = [str(include_dir)] if include_dir.exists() else [str(parent_src)]
+            return sources, includes
+
+    return [], []
+
+
+def support_sources() -> tuple[list[str], list[str]]:
+    sources = [str(path) for path in SUPPORT_SOURCES if path.exists()]
+    includes: list[str] = []
+
+    json_sources, json_includes = find_jsoncpp_sources()
+    sources.extend(str(path) for path in json_sources)
+    includes.extend(json_includes)
+
+    return sources, includes
+
+
 def build_command(compiler_cmd: Sequence[str], source: Path, output: Path) -> List[str]:
     system = platform.system()
     include_dirs = [str(path) for path in INCLUDE_DIRS if path.exists()]
+    extra_sources, extra_includes = support_sources()
+    if extra_includes:
+        include_dirs = extra_includes + include_dirs
     if not include_dirs:
         include_dirs = [str(SRC_ROOT)]
 
@@ -141,6 +179,7 @@ def build_command(compiler_cmd: Sequence[str], source: Path, output: Path) -> Li
             "/nologo",
             "/std:c++20",
             *includes,
+            *extra_sources,
             str(source),
             f"/Fe:{output}",
         ]
@@ -154,6 +193,7 @@ def build_command(compiler_cmd: Sequence[str], source: Path, output: Path) -> Li
         "-std=c++20",
         *include_flags,
         str(source),
+        *extra_sources,
         "-o",
         str(output),
     ]
