@@ -9,6 +9,7 @@ g_weapon.c*/
 #include "../../shared/weapon_pref_utils.hpp"
 
 #include <array>
+#include <cmath>
 
 bool			isQuad = false;
 bool			isHaste = false;
@@ -2145,12 +2146,12 @@ static void Weapon_HyperBlaster_Fire(gentity_t* ent) {
 			return;
 		}
 
-		// Calculate rotating offset
-		Vector3 offset{};
-		rotation = (client->ps.gunFrame - 5) * 2.0f * PIf / 6.0f;
-		offset[0] = -4.0f * std::sinf(rotation);
-		offset[1] = 4.0f * cosf(rotation);
-		offset[2] = 0.0f;
+// Calculate rotating offset
+Vector3 offset{};
+rotation = (client->ps.gunFrame - 5) * 2.0f * PIf / 6.0f;
+offset[0] = -4.0f * std::sin(rotation);
+offset[1] = 4.0f * std::cos(rotation);
+offset[2] = 0.0f;
 
 		// Set damage based on ruleset
 		if (RS(Quake3Arena)) {

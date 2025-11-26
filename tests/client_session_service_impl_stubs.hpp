@@ -114,42 +114,36 @@ return ReadyResult::Success;
 	that bots, humans, and arena assignments are honored consistently.
 	=============
 	*/
-	inline void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
+inline void ClientSessionServiceImpl::ApplySpawnFlags(gentity_t* ent) const {
 	if (!ent) {
-	return;
+		return;
 	}
 
 	if (st.was_key_specified("noBots")) {
-	if (st.noBots) {
-	ent->flags |= FL_NO_BOTS;
-	}
-	else {
-	ent->flags &= ~FL_NO_BOTS;
-	}
-	}
-	else {
-	ent->flags &= ~FL_NO_BOTS;
+		if (st.noBots) {
+			ent->flags |= FL_NO_BOTS;
+		}
+		else {
+			ent->flags &= ~FL_NO_BOTS;
+		}
 	}
 
 	if (st.was_key_specified("noHumans")) {
-	if (st.noHumans) {
-	ent->flags |= FL_NO_HUMANS;
-	}
-	else {
-	ent->flags &= ~FL_NO_HUMANS;
-	}
-	}
-	else {
-	ent->flags &= ~FL_NO_HUMANS;
+		if (st.noHumans) {
+			ent->flags |= FL_NO_HUMANS;
+		}
+		else {
+			ent->flags &= ~FL_NO_HUMANS;
+		}
 	}
 
 	if (st.arena) {
-	ent->arena = st.arena;
+		ent->arena = st.arena;
 	}
 	else if (!st.was_key_specified("arena")) {
-	ent->arena = 0;
+		ent->arena = 0;
 	}
-	}
+}
 
 	/*
 	=============
