@@ -81,29 +81,29 @@ static void* CG_GetExtension(const char* name)
 		const char* name;
 		void* interface_ptr;
 	};
-	
+
 	static constexpr std::array<extension_entry_t, 0> extensions{};
-	
+
 	if (!name)
 		return nullptr;
-	
+
 	for (const auto& extension : extensions)
 	{
 		if (std::strcmp(name, extension.name) == 0)
 			return extension.interface_ptr;
 	}
-	
+
 	if (cgi.Com_Print)
 	{
-		char message_buffer[256] = {};
+		std::array<char, 256> message_buffer{};
 		std::snprintf(
-			message_buffer,
-			sizeof(message_buffer),
+			message_buffer.data(),
+			message_buffer.size(),
 			"CG_GetExtension: requested unknown extension '%s' (no client extensions are exposed)\n",
 			name);
-		cgi.Com_Print(message_buffer);
+		cgi.Com_Print(message_buffer.data());
 	}
-	
+
 	return nullptr;
 }
 

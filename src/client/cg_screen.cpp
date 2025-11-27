@@ -13,6 +13,7 @@ Handles rendering of numerical stats (health, armor, ammo) using custom graphica
 - Manages accessibility features like high-contrast text backgrounds and alternate typefaces.*/
 
 #include "cg_local.hpp"
+#include <array>    // for std::array
 #include <sstream>  // for std::istringstream
 #include <string>   // for std::string
 #include <string_view> // for std::string_view
@@ -1357,169 +1358,185 @@ static void CG_ExecuteLayoutString(const char* s, vrect_t hud_vrect, vrect_t hud
 			continue;
 		}
 
-		static char arg_tokens[MAX_LOCALIZATION_ARGS + 1][MAX_TOKEN_CHARS];
-		static const char* arg_buffers[MAX_LOCALIZATION_ARGS];
+		static std::array<std::array<char, MAX_TOKEN_CHARS>, MAX_LOCALIZATION_ARGS + 1> arg_tokens{};
+		static std::array<const char*, MAX_LOCALIZATION_ARGS> arg_buffers{};
 
 		if (!strcmp(token, "loc_cstring")) {
-			int32_t num_args = atoi(COM_Parse(&s));
+		int32_t num_args = atoi(COM_Parse(&s));
 
-			if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
-				cgi.Com_Error("Bad loc string");
+		if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
+		cgi.Com_Error("Bad loc string");
 
-			// parse base
-			token = COM_Parse(&s);
-			Q_strlcpy(arg_tokens[0], token, sizeof(arg_tokens[0]));
+		arg_buffers.fill(nullptr);
 
-			// parse args
-			for (size_t i = 0; i < num_args; i++) {
-				token = COM_Parse(&s);
-				Q_strlcpy(arg_tokens[1 + i], token, sizeof(arg_tokens[0]));
-				arg_buffers[i] = arg_tokens[1 + i];
-			}
+		// parse base
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[0].data(), token, arg_tokens[0].size());
 
-			if (!skip_depth) {
-				cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-				CG_DrawHUDString(cgi.Localize(arg_tokens[0], arg_buffers, num_args), x, y, hx * 2 * scale, 0, scale);
-				cgi.SCR_SetAltTypeface(false);
-			}
-			continue;
+		// parse args
+		for (size_t i = 0; i < num_args; i++) {
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[1 + i].data(), token, arg_tokens[0].size());
+		arg_buffers[i] = arg_tokens[1 + i].data();
+		}
+
+		if (!skip_depth) {
+		cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+		CG_DrawHUDString(
+		cgi.Localize(arg_tokens[0].data(), arg_buffers.data(), num_args),
+		x,
+		y,
+		hx * 2 * scale,
+		0,
+		scale);
+		cgi.SCR_SetAltTypeface(false);
+		}
+		continue;
 		}
 
 		if (!strcmp(token, "loc_string")) {
-			int32_t num_args = atoi(COM_Parse(&s));
+		int32_t num_args = atoi(COM_Parse(&s));
 
-			if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
-				cgi.Com_Error("Bad loc string");
+		if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
+		cgi.Com_Error("Bad loc string");
 
-			// parse base
-			token = COM_Parse(&s);
-			Q_strlcpy(arg_tokens[0], token, sizeof(arg_tokens[0]));
+		arg_buffers.fill(nullptr);
 
-			// parse args
-			for (size_t i = 0; i < num_args; i++) {
-				token = COM_Parse(&s);
-				Q_strlcpy(arg_tokens[1 + i], token, sizeof(arg_tokens[0]));
-				arg_buffers[i] = arg_tokens[1 + i];
-			}
+		// parse base
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[0].data(), token, arg_tokens[0].size());
 
-			if (!skip_depth) {
-				if (!scr_usekfont->integer)
-					CG_DrawString(x, y, scale, cgi.Localize(arg_tokens[0], arg_buffers, num_args));
-				else {
-					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(cgi.Localize(arg_tokens[0], arg_buffers, num_args), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
-					cgi.SCR_SetAltTypeface(false);
-				}
-			}
-			continue;
+		// parse args
+		for (size_t i = 0; i < num_args; i++) {
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[1 + i].data(), token, arg_tokens[0].size());
+		arg_buffers[i] = arg_tokens[1 + i].data();
+		}
+
+		if (!skip_depth) {
+		if (!scr_usekfont->integer)
+		CG_DrawString(x, y, scale, cgi.Localize(arg_tokens[0].data(), arg_buffers.data(), num_args));
+		else {
+		cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+		cgi.SCR_DrawFontString(cgi.Localize(arg_tokens[0].data(), arg_buffers.data(), num_args), x, y - (font_y_offset * scale), scale, rgba_white, true, text_align_t::LEFT);
+		cgi.SCR_SetAltTypeface(false);
+		}
+		}
+		continue;
 		}
 
 		if (!strcmp(token, "loc_cstring2")) {
-			int32_t num_args = atoi(COM_Parse(&s));
+		int32_t num_args = atoi(COM_Parse(&s));
 
-			if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
-				cgi.Com_Error("Bad loc string");
+		if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
+		cgi.Com_Error("Bad loc string");
 
-			// parse base
-			token = COM_Parse(&s);
-			Q_strlcpy(arg_tokens[0], token, sizeof(arg_tokens[0]));
+		arg_buffers.fill(nullptr);
 
-			// parse args
-			for (size_t i = 0; i < num_args; i++) {
-				token = COM_Parse(&s);
-				Q_strlcpy(arg_tokens[1 + i], token, sizeof(arg_tokens[0]));
-				arg_buffers[i] = arg_tokens[1 + i];
-			}
+		// parse base
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[0].data(), token, arg_tokens[0].size());
 
-			if (!skip_depth) {
-				cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-				CG_DrawHUDString(cgi.Localize(arg_tokens[0], arg_buffers, num_args), x, y, hx * 2 * scale, 0x80, scale);
-				cgi.SCR_SetAltTypeface(false);
-			}
-			continue;
+		// parse args
+		for (size_t i = 0; i < num_args; i++) {
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[1 + i].data(), token, arg_tokens[0].size());
+		arg_buffers[i] = arg_tokens[1 + i].data();
+		}
+
+		if (!skip_depth) {
+		cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+		CG_DrawHUDString(cgi.Localize(arg_tokens[0].data(), arg_buffers.data(), num_args), x, y, hx * 2 * scale, 0x80, scale);
+		cgi.SCR_SetAltTypeface(false);
+		}
+		continue;
 		}
 
 		if (!strcmp(token, "loc_string2") || !strcmp(token, "loc_rstring2") ||
-			!strcmp(token, "loc_string") || !strcmp(token, "loc_rstring")) {
-			bool green = token[strlen(token) - 1] == '2';
-			bool rightAlign = !Q_strncasecmp(token, "loc_rstring", strlen("loc_rstring"));
-			int32_t num_args = atoi(COM_Parse(&s));
+		!strcmp(token, "loc_string") || !strcmp(token, "loc_rstring")) {
+		bool green = token[strlen(token) - 1] == '2';
+		bool rightAlign = !Q_strncasecmp(token, "loc_rstring", strlen("loc_rstring"));
+		int32_t num_args = atoi(COM_Parse(&s));
 
-			if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
-				cgi.Com_Error("Bad loc string");
+		if (num_args < 0 || num_args >= MAX_LOCALIZATION_ARGS)
+		cgi.Com_Error("Bad loc string");
 
-			// parse base
-			token = COM_Parse(&s);
-			Q_strlcpy(arg_tokens[0], token, sizeof(arg_tokens[0]));
+		arg_buffers.fill(nullptr);
 
-			// parse args
-			for (size_t i = 0; i < num_args; i++) {
-				token = COM_Parse(&s);
-				Q_strlcpy(arg_tokens[1 + i], token, sizeof(arg_tokens[0]));
-				arg_buffers[i] = arg_tokens[1 + i];
-			}
+		// parse base
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[0].data(), token, arg_tokens[0].size());
 
-			if (!skip_depth) {
-				const char* locStr = cgi.Localize(arg_tokens[0], arg_buffers, num_args);
-				int xOffs = 0;
-				if (rightAlign) {
-					xOffs = scr_usekfont->integer ? cgi.SCR_MeasureFontString(locStr, scale).x : (strlen(locStr) * CONCHAR_WIDTH * scale);
-				}
+		// parse args
+		for (size_t i = 0; i < num_args; i++) {
+		token = COM_Parse(&s);
+		Q_strlcpy(arg_tokens[1 + i].data(), token, arg_tokens[0].size());
+		arg_buffers[i] = arg_tokens[1 + i].data();
+		}
 
-				if (!scr_usekfont->integer)
-					CG_DrawString(x - xOffs, y, scale, locStr, green);
-				else {
-					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(locStr, x - xOffs, y - (font_y_offset * scale), scale, green ? alt_color : rgba_white, true, text_align_t::LEFT);
-					cgi.SCR_SetAltTypeface(false);
-				}
-			}
-			continue;
+		if (!skip_depth) {
+		const char* locStr = cgi.Localize(arg_tokens[0].data(), arg_buffers.data(), num_args);
+		int xOffs = 0;
+		if (rightAlign) {
+		xOffs = scr_usekfont->integer ? cgi.SCR_MeasureFontString(locStr, scale).x : (strlen(locStr) * CONCHAR_WIDTH * scale);
+		}
+
+		if (!scr_usekfont->integer)
+		CG_DrawString(x - xOffs, y, scale, locStr, green);
+		else {
+		cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+		cgi.SCR_DrawFontString(locStr, x - xOffs, y - (font_y_offset * scale), scale, green ? alt_color : rgba_white, true, text_align_t::LEFT);
+		cgi.SCR_SetAltTypeface(false);
+		}
+		}
+		continue;
 		}
 
 		// draw time remaining
 		if (!strcmp(token, "time_limit")) {
-			// end frame
-			token = COM_Parse(&s);
+		// end frame
+		token = COM_Parse(&s);
 
-			if (!skip_depth) {
-				const int32_t raw_end_frame = atoi(token);
-				const int32_t current_frame = cgi.CL_ServerFrame();
+		if (!skip_depth) {
+		arg_buffers.fill(nullptr);
 
-				// skip if it's already expired
-				if (raw_end_frame < current_frame)
-					continue;
+		const int32_t raw_end_frame = atoi(token);
+		const int32_t current_frame = cgi.CL_ServerFrame();
 
-				// promote before subtracting to avoid signed underflow
-				const uint64_t remaining_frames = static_cast<uint64_t>(raw_end_frame) - static_cast<uint64_t>(current_frame);
-				const uint64_t remaining_ms = remaining_frames * cgi.frameTimeMs;
+		// skip if it's already expired
+		if (raw_end_frame < current_frame)
+		continue;
 
-				const bool green = true;
-				arg_buffers[0] = G_Fmt("{:02}:{:02}", (remaining_ms / 1000) / 60, (remaining_ms / 1000) % 60).data();
+		// promote before subtracting to avoid signed underflow
+		const uint64_t remaining_frames = static_cast<uint64_t>(raw_end_frame) - static_cast<uint64_t>(current_frame);
+		const uint64_t remaining_ms = remaining_frames * cgi.frameTimeMs;
 
-				const char* locStr = cgi.Localize("$g_score_time", arg_buffers, 1);
+		const bool green = true;
+		arg_buffers[0] = G_Fmt("{:02}:{:02}", (remaining_ms / 1000) / 60, (remaining_ms / 1000) % 60).data();
 
-				const int xOffs = scr_usekfont->integer
-					? static_cast<int>(cgi.SCR_MeasureFontString(locStr, scale).x)
-					: static_cast<int>(strlen(locStr)) * CONCHAR_WIDTH * scale;
+		const char* locStr = cgi.Localize("$g_score_time", arg_buffers.data(), 1);
 
-				if (!scr_usekfont->integer) {
-					CG_DrawString(x - xOffs, y, scale, locStr, green);
-				}
-				else {
-					cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
-					cgi.SCR_DrawFontString(
-						locStr,
-						x - xOffs,
-						y - (font_y_offset * scale),
-						scale,
-						green ? alt_color : rgba_white,
-						true,
-						text_align_t::LEFT
-					);
-					cgi.SCR_SetAltTypeface(false);
-				}
-			}
+		const int xOffs = scr_usekfont->integer
+		? static_cast<int>(cgi.SCR_MeasureFontString(locStr, scale).x)
+		: static_cast<int>(strlen(locStr)) * CONCHAR_WIDTH * scale;
+
+		if (!scr_usekfont->integer) {
+		CG_DrawString(x - xOffs, y, scale, locStr, green);
+		}
+		else {
+		cgi.SCR_SetAltTypeface(ui_acc_alttypeface->integer && true);
+		cgi.SCR_DrawFontString(
+		locStr,
+		x - xOffs,
+		y - (font_y_offset * scale),
+		scale,
+		green ? alt_color : rgba_white,
+		true,
+		text_align_t::LEFT
+		);
+		cgi.SCR_SetAltTypeface(false);
+		}
+		}
 		}
 
 		// draw client dogtag
