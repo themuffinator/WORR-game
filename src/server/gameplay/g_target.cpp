@@ -1071,8 +1071,15 @@ message		two letters; starting lightlevel and ending lightlevel
 
 constexpr SpawnFlags SPAWNFLAG_LIGHTRAMP_TOGGLE = 1_spawnflag;
 
+/*
+=============
+Target_Lightramp_Think
+
+Updates the light configuration string to follow the configured ramp over time.
+=============
+*/
 static THINK(Target_Lightramp_Think) (gentity_t* self) -> void {
-	char style[2]{};
+	std::array<char, 2> style{};
 
 	const float delta = ((level.time - self->timeStamp) / gi.frameTimeSec).seconds();
 	const int step = static_cast<int>(self->moveDir[0] + delta * self->moveDir[2]);
@@ -1080,7 +1087,7 @@ static THINK(Target_Lightramp_Think) (gentity_t* self) -> void {
 	style[0] = static_cast<char>('a' + step);
 	style[1] = '\0';
 
-	gi.configString(CS_LIGHTS + self->enemy->style, style);
+	gi.configString(CS_LIGHTS + self->enemy->style, style.data());
 
 	if ((level.time - self->timeStamp).seconds() < self->speed) {
 		self->nextThink = level.time + FRAME_TIME_S;

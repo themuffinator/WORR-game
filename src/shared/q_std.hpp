@@ -43,7 +43,7 @@ namespace fmt = std;
 #define FMT_STRING(s) s
 
 struct g_fmt_data_t {
-	char string[2][4096];
+	std::array<std::array<char, 4096>, 2> string{};
 	int  istr;
 };
 
@@ -54,6 +54,13 @@ extern g_fmt_data_t g_fmt_data;
 // returns the length of the string written (up to N)
 #define G_FmtTo_ G_FmtTo
 
+/*
+=============
+G_FmtTo
+
+Formats text into the provided character buffer and guarantees null termination.
+=============
+*/
 template<size_t N, typename... Args>
 inline size_t G_FmtTo(char(&buffer)[N], std::format_string<Args...> format_str, Args &&... args)
 {
@@ -64,8 +71,32 @@ inline size_t G_FmtTo(char(&buffer)[N], std::format_string<Args...> format_str, 
 	return end.out - buffer;
 }
 
+/*
+=============
+G_FmtTo
+
+Formats text into the provided std::array buffer and guarantees null termination.
+=============
+*/
+template<size_t N, typename... Args>
+inline size_t G_FmtTo(std::array<char, N>& buffer, std::format_string<Args...> format_str, Args &&... args)
+{
+	auto end = fmt::format_to_n(buffer.data(), N - 1, format_str, std::forward<Args>(args)...);
+
+	*(end.out) = '\0';
+
+	return static_cast<size_t>(end.out - buffer.data());
+}
+
 // format to temp buffers; doesn't use heap allocation
 // unlike `fmt::format` does directly
+/*
+=============
+G_Fmt
+
+Formats into an internal rotating buffer and returns a view of the contents.
+=============
+*/
 template<typename... Args>
 [[nodiscard]] inline std::string_view G_Fmt(std::format_string<Args...> format_str, Args &&... args)
 {
@@ -73,7 +104,7 @@ template<typename... Args>
 
 	size_t len = G_FmtTo_(g_fmt_data.string[g_fmt_data.istr], format_str, std::forward<Args>(args)...);
 
-	return std::string_view(g_fmt_data.string[g_fmt_data.istr], len);
+	return std::string_view(g_fmt_data.string[g_fmt_data.istr].data(), len);
 }
 
 // fmt::join replacement
