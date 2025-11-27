@@ -15,6 +15,7 @@ firing a weapon (ready, fire, idle, etc.).*/
 
 #include "../g_local.hpp"
 #include "g_proball.hpp"
+#include <array>
 
 /*
 =============
@@ -2885,6 +2886,13 @@ static THINK(tesla_think) (gentity_t* ent) -> void {
 	}
 }
 
+/*
+=============
+tesla_touch
+
+Handle tesla mine contact events and apply related effects.
+=============
+*/
 static TOUCH(tesla_touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, bool otherTouchingSelf) -> void {
 	if (tr.contents & (CONTENTS_SLIME | CONTENTS_LAVA)) {
 		tesla_blow(ent);
@@ -2895,10 +2903,10 @@ static TOUCH(tesla_touch) (gentity_t* ent, gentity_t* other, const trace_t& tr, 
 	if (ent->velocity[_X] || ent->velocity[_Y] || ent->velocity[_Z]) {
 		const char variant = (frandom() > 0.5f) ? '1' : '2';
 
-		char path[32];
-		std::snprintf(path, sizeof(path), "weapons/hgrenb%ca.wav", variant);
+		std::array<char, 32> path{};
+		std::snprintf(path.data(), path.size(), "weapons/hgrenb%ca.wav", variant);
 
-		gi.sound(ent, CHAN_VOICE, gi.soundIndex(path), 1.0f, ATTN_NORM, 0);
+		gi.sound(ent, CHAN_VOICE, gi.soundIndex(path.data()), 1.0f, ATTN_NORM, 0);
 	}
 }
 
