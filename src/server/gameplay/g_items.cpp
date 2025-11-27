@@ -17,6 +17,7 @@ startup to precache assets and set up server configuration strings for all items
 #include "../bots/bot_includes.hpp"
 #include "../monsters/m_player.hpp"	//doppelganger
 
+#include <array>
 #include <limits>
 
 bool Pickup_Weapon(gentity_t* ent, gentity_t* other);
@@ -4241,9 +4242,9 @@ bool SpawnItem(gentity_t* ent, Item* item) {
 			(ent->count < 25) ? "n" :
 			(ent->count < 50) ? "l" : "m";
 
-		char path[32];
-		std::snprintf(path, sizeof(path), "items/%s_health.wav", sizeCode);
-		ent->noiseIndex = gi.soundIndex(path);
+		std::array<char, 32> path{};
+		std::snprintf(path.data(), path.size(), "items/%s_health.wav", sizeCode);
+		ent->noiseIndex = gi.soundIndex(path.data());
 	}
 
 	return true;
@@ -4265,12 +4266,12 @@ void P_ToggleFlashlight(gentity_t* ent, bool state) {
 	// Toggle flashlight flag
 	ent->flags ^= FL_FLASHLIGHT;
 
-	// Choose sound based on new state
-	const char* suffix = (ent->flags & FL_FLASHLIGHT) ? "on" : "off";
-	char path[32];
-	std::snprintf(path, sizeof(path), "items/flashlight_%s.wav", suffix);
+        // Choose sound based on new state
+        const char* suffix = (ent->flags & FL_FLASHLIGHT) ? "on" : "off";
+        std::array<char, 32> path{};
+        std::snprintf(path.data(), path.size(), "items/flashlight_%s.wav", suffix);
 
-	gi.sound(ent, CHAN_AUTO, gi.soundIndex(path), 1.0f, ATTN_STATIC, 0);
+        gi.sound(ent, CHAN_AUTO, gi.soundIndex(path.data()), 1.0f, ATTN_STATIC, 0);
 }
 
 /*
