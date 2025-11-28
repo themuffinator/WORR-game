@@ -37,11 +37,8 @@ void MenuSystem::Open(gentity_t* ent, std::unique_ptr<Menu> menu) {
 	if (ent->client->menu.current)
 		Close(ent);
 
-	const int total = static_cast<int>(menu->entries.size());
-
-	for (int i = 0; i < total; ++i) {
-		menu->entries[i].text = TrimToWidth(menu->entries[i].text);
-		menu->entries[i].scrollable = (i > 0 && i < total - 1);
+	for (MenuEntry& entry : menu->entries) {
+		entry.text = TrimToWidth(entry.text);
 	}
 
 	// Select the first entry with a valid onSelect

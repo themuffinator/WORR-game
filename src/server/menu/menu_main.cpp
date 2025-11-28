@@ -28,6 +28,31 @@ namespace {
 
 /*
 =============
+IsRenderableEntry
+
+Determines whether a menu entry has content or an action to display.
+=============
+*/
+	bool IsRenderableEntry(const MenuEntry& entry) {
+		return !entry.text.empty() || static_cast<bool>(entry.onSelect);
+	}
+
+/*
+=============
+RebuildScrollability
+
+Refreshes the scrollable flag for each entry based on renderability.
+=============
+*/
+	void RebuildScrollability(const Menu& menu) {
+		auto& entries = const_cast<std::vector<MenuEntry>&>(menu.entries);
+
+		for (MenuEntry& entry : entries)
+			entry.scrollable = IsRenderableEntry(entry);
+	}
+
+/*
+=============
 CountScrollableEntries
 
 Returns the total number of scrollable menu entries in the provided list.
@@ -63,29 +88,26 @@ Builds the list of entries that should be rendered based on the current
 scroll offset.
 =============
 */
-	std::vector<const MenuEntry*> CollectVisibleEntries(const std::vector<MenuEntry>& entries, int offset, int maxOffset) {
+	std::vector<const MenuEntry*> CollectVisibleEntries(const std::vector<MenuEntry>& entries, int offset) {
 		int skippedScrollable = offset;
 		int visibleScrollable = 0;
 		std::vector<const MenuEntry*> visibleEntries;
 		visibleEntries.reserve(entries.size());
 
 		for (const MenuEntry& entry : entries) {
-			if (entry.scrollable) {
-				if (skippedScrollable > 0) {
-					--skippedScrollable;
-					continue;
-				}
+			if (!entry.scrollable)
+				continue;
 
-				if (visibleScrollable >= MAX_VISIBLE_LINES)
-					continue;
-
-				++visibleScrollable;
-				visibleEntries.push_back(&entry);
+			if (skippedScrollable > 0) {
+				--skippedScrollable;
 				continue;
 			}
 
-			if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
-				visibleEntries.push_back(&entry);
+			if (visibleScrollable >= MAX_VISIBLE_LINES)
+				break;
+
+			++visibleScrollable;
+			visibleEntries.push_back(&entry);
 		}
 
 		return visibleEntries;
@@ -167,6 +189,8 @@ void Menu::Render(gentity_t* ent) const {
 	if (onUpdate)
 		onUpdate(ent, *this);
 
+	RebuildScrollability(*this);
+
 	// Do not early-return if current is invalid; still render the menu
 	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;
 
@@ -180,7 +204,7 @@ void Menu::Render(gentity_t* ent) const {
 	const bool hasAbove = (offset > 0);
 	const bool hasBelow = (offset < maxOffset);
 
-	std::vector<const MenuEntry*> visibleEntries = CollectVisibleEntries(entries, offset, maxOffset);
+	std::vector<const MenuEntry*> visibleEntries = CollectVisibleEntries(entries, offset);
 
 	int y = 32;
 
