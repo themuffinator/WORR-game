@@ -16,17 +16,6 @@ opening (`Open`), closing (`Close`), and updating (`Update`) menus for a given p
 
 /*
 ===============
-TrimToWidth
-===============
-*/
-static std::string TrimToWidth(const std::string& text) {
-	if (text.size() > MAX_MENU_WIDTH)
-		return text.substr(0, static_cast<size_t>(MAX_MENU_WIDTH - 3)) + "...";
-	return text;
-}
-
-/*
-===============
 MenuSystem::Open
 ===============
 */

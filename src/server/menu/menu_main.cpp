@@ -89,6 +89,22 @@ scroll offset.
 		}
 
 		return visibleEntries;
+}
+
+/*
+=============
+TrimUpdatedEntries
+
+Re-applies width trimming to menu entries after runtime updates to keep
+alignment and scroll calculations consistent with the rendered text.
+=============
+*/
+	void TrimUpdatedEntries(Menu& menu) {
+		for (MenuEntry& entry : menu.entries) {
+			const std::string trimmed = TrimToWidth(entry.text);
+			if (trimmed != entry.text)
+				entry.text = trimmed;
+		}
 	}
 
 } // namespace
@@ -164,8 +180,12 @@ Menu::Render
 ===============
 */
 void Menu::Render(gentity_t* ent) const {
+	Menu& mutableMenu = *const_cast<Menu*>(this);
+
 	if (onUpdate)
 		onUpdate(ent, *this);
+
+	TrimUpdatedEntries(mutableMenu);
 
 	// Do not early-return if current is invalid; still render the menu
 	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;
