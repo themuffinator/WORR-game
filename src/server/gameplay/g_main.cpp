@@ -18,6 +18,7 @@ various cvars that can change game behavior on the fly.*/
 #include "../../shared/char_array_utils.hpp"
 #include "../../shared/logger.hpp"
 #include "../commands/commands.hpp"
+#include "server_limits.hpp"
 #include "g_clients.hpp"
 #include "g_headhunters.hpp"
 #include <algorithm>
@@ -1141,9 +1142,6 @@ static void InitGame() {
 	std::memset(g_entities, 0, game.maxEntities * sizeof(g_entities[0]));
 	globals.gentities = g_entities;
 	globals.maxEntities = game.maxEntities;
-
-	// initialize all clients for this game
-	AllocateClientArray(maxclients->integer);
 
 	level.levelStartTime = level.time;
 	game.serverStartTime = time(nullptr);
