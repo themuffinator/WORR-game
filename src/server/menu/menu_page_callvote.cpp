@@ -146,9 +146,9 @@ Return helper
 ===============
 */
 static inline void AddReturnToCallvoteMenu(MenuBuilder& builder) {
-	builder.spacer().add("Return", MenuAlign::Left, [](gentity_t* e, Menu&) {
+	builder.addFixed("", MenuAlign::Left).addFixed("Return", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenCallvoteMenu(e);
-		});
+	});
 }
 
 /*
@@ -165,19 +165,19 @@ OpenCallvoteMap
 */
 static void OpenCallvoteMap(gentity_t* ent) {
 	MenuBuilder builder;
-	builder.add("Callvote: Map", MenuAlign::Center).spacer();
+	builder.addFixed("Callvote: Map", MenuAlign::Center).addFixed("", MenuAlign::Left);
 
 	// Flags summary + editor
-	builder.add("Flags: " + MapFlags_Summary(), MenuAlign::Left, [](gentity_t* e, Menu&) {
+	builder.addFixed("Flags: " + MapFlags_Summary(), MenuAlign::Left, [](gentity_t* e, Menu&) {
 		OpenCallvoteMapFlags(e);
-		});
+	});
 
-	builder.add("Clear Flags", MenuAlign::Left, [](gentity_t* e, Menu&) {
+	builder.addFixed("Clear Flags", MenuAlign::Left, [](gentity_t* e, Menu&) {
 		MapFlags_Clear();
 		OpenCallvoteMap(e);
-		});
+	});
 
-	builder.spacer();
+	builder.addFixed("");
 
 	for (const auto& entry : game.mapSystem.mapPool) {
 		const std::string& displayName = entry.longName.empty() ? entry.filename : entry.longName;
@@ -185,13 +185,12 @@ static void OpenCallvoteMap(gentity_t* ent) {
 		builder.add(displayName, MenuAlign::Left, [mapname = entry.filename](gentity_t* e, Menu&) {
 			const std::string fullArg = BuildMapVoteArg(mapname);
 			TryLaunchMenuVote(e, "map", fullArg);
-			});
+		});
 	}
 
 	AddReturnToCallvoteMenu(builder);
 	MenuSystem::Open(ent, builder.build());
 }
-
 /*
 ===============
 OpenCallvoteMapFlags
