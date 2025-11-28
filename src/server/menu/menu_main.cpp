@@ -70,26 +70,23 @@ scroll offset.
 		visibleEntries.reserve(entries.size());
 
 		for (const MenuEntry& entry : entries) {
-			if (entry.scrollable) {
-				if (skippedScrollable > 0) {
-					--skippedScrollable;
-					continue;
-				}
+			if (!entry.scrollable)
+				continue;
 
-				if (visibleScrollable >= MAX_VISIBLE_LINES)
-					continue;
-
-				++visibleScrollable;
-				visibleEntries.push_back(&entry);
+			if (skippedScrollable > 0) {
+				--skippedScrollable;
 				continue;
 			}
 
-			if (visibleScrollable < MAX_VISIBLE_LINES || offset == maxOffset)
-				visibleEntries.push_back(&entry);
+			if (visibleScrollable >= MAX_VISIBLE_LINES)
+				continue;
+
+			++visibleScrollable;
+			visibleEntries.push_back(&entry);
 		}
 
 		return visibleEntries;
-}
+	}
 
 /*
 =============
@@ -104,6 +101,24 @@ alignment and scroll calculations consistent with the rendered text.
 			const std::string trimmed = TrimToWidth(entry.text);
 			if (trimmed != entry.text)
 				entry.text = trimmed;
+		}
+	}
+
+/*
+===============
+RebuildDynamicScrollability
+
+Re-evaluates scrollability for entries without explicit overrides so only
+renderable lines participate in scrolling.
+===============
+*/
+	void RebuildDynamicScrollability(Menu& menu) {
+		for (MenuEntry& entry : menu.entries) {
+			if (entry.scrollableSet)
+				continue;
+
+			const bool renderable = !entry.text.empty() || static_cast<bool>(entry.onSelect);
+			entry.scrollable = renderable;
 		}
 	}
 
@@ -183,23 +198,25 @@ void Menu::Render(gentity_t* ent) const {
 	Menu& mutableMenu = *const_cast<Menu*>(this);
 
 	if (onUpdate)
-	onUpdate(ent, *this);
+		onUpdate(ent, *this);
+
+	RebuildDynamicScrollability(mutableMenu);
 
 	TrimUpdatedEntries(mutableMenu);
 
 	if (mutableMenu.current >= static_cast<int>(entries.size()))
-	mutableMenu.current = entries.empty() ? -1 : static_cast<int>(entries.size()) - 1;
+		mutableMenu.current = entries.empty() ? -1 : static_cast<int>(entries.size()) - 1;
 
 	if (mutableMenu.current >= 0 && mutableMenu.current < static_cast<int>(entries.size()) && !entries[mutableMenu.current].onSelect) {
-	const int original = mutableMenu.current;
+		const int original = mutableMenu.current;
 
-	mutableMenu.Next();
+		mutableMenu.Next();
 
-	if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect) {
-	mutableMenu.Prev();
-	if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect)
-	mutableMenu.current = -1;
-	}
+		if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect) {
+			mutableMenu.Prev();
+			if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect)
+				mutableMenu.current = -1;
+		}
 	}
 
 	mutableMenu.EnsureCurrentVisible();
