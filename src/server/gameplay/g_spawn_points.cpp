@@ -850,23 +850,47 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 
 	// Gather coop starts
 	std::vector<gentity_t*> coopSpots;
+	gentity_t* deterministicFallback = nullptr;
 	for (gentity_t* s = nullptr; (s = G_FindByString<&gentity_t::className>(s, "info_player_coop")) != nullptr; ) {
 		if (s->inUse)
 			coopSpots.push_back(s);
 	}
 
-	// Fallback: classic single-player start
+	// Fallback: classic single-player start (even if unsafe, for deterministic fallback)
 	if (coopSpots.empty()) {
-		if (gentity_t* start = G_FindByString<&gentity_t::className>(nullptr, "info_player_start"))
-			return SpotIsSafe(start) ? start : nullptr;
+		if (gentity_t* start = G_FindByString<&gentity_t::className>(nullptr, "info_player_start")) {
+			if (SpotIsSafe(start))
+				return start;
+
+			deterministicFallback = start;
+			coopSpots.push_back(start);
+		}
 	}
 
 	// If still nothing, consider FFA list to keep players flowing
-	if (coopSpots.empty() && !level.spawn.ffa.empty())
+	if (coopSpots.empty() && !level.spawn.ffa.empty()) {
 		coopSpots = level.spawn.ffa;
+		deterministicFallback = coopSpots.front();
+	}
 
-	if (coopSpots.empty())
-		return nullptr;
+	// Last resort before artificial fallback: seed with any deathmatch starts
+	if (coopSpots.empty()) {
+		for (gentity_t* dm = nullptr; (dm = G_FindByString<&gentity_t::className>(dm, "info_player_deathmatch")) != nullptr; ) {
+			coopSpots.push_back(dm);
+		}
+
+		if (!coopSpots.empty())
+			deterministicFallback = coopSpots.front();
+	}
+
+	// Absolute last resort in case no map spot exists
+	if (coopSpots.empty()) {
+		static gentity_t zeroSpawn;
+		zeroSpawn.s.origin = { 0.0f, 0.0f, 0.0f };
+		zeroSpawn.s.angles = { 0.0f, 0.0f, 0.0f };
+		gi.Com_PrintFmt("{}: fallback to zero-origin spawn for client {}\n", __FUNCTION__, ent->s.number);
+		return &zeroSpawn;
+	}
 
 	// Safety-screen the set
 	const Vector3 avoid_point = (ent && ent->client) ? ent->client->lastDeathLocation : Vector3{ 0,0,0 };
@@ -878,17 +902,22 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 	if (eligible.empty()) {
 		// Deterministic last-ditch so we never hard-fail coop
 		const int clientNum = static_cast<int>(ent - g_entities);
-		return coopSpots[static_cast<size_t>(clientNum % static_cast<int>(coopSpots.size()))];
+		const size_t idx = static_cast<size_t>(clientNum % static_cast<int>(coopSpots.size()));
+		return coopSpots[idx];
 	}
 
 	// Score by heat + LOS + proximity + avoid_point + mines
 	auto scoreFn = [ent, avoid_point](gentity_t* s) {
 		return CompositeDangerScore(s, ent, avoid_point);
-		};
+	};
 	if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn))
 		return pick;
 
-	return nullptr;
+	if (deterministicFallback)
+		return deterministicFallback;
+
+	gi.Com_PrintFmt("{}: fallback to first coop-compatible spawn for client {}\n", __FUNCTION__, ent->s.number);
+	return coopSpots.front();
 }
 
 static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
@@ -1069,7 +1098,11 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 				angles = level.intermission.angles;
 				return true;
 			}
-			return false;
+
+			gi.Com_PrintFmt("{}: coop fallback to zero-origin spawn for client {}\n", __FUNCTION__, ent->s.number);
+			origin = { 0.0f, 0.0f, 0.0f };
+			angles = { 0.0f, 0.0f, 0.0f };
+			return true;
 		}
 	}
 	// Single player
