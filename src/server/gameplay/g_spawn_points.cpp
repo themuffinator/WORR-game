@@ -888,6 +888,25 @@ static gentity_t* SelectCoopSpawnPoint(gentity_t* ent) {
 	if (gentity_t* pick = SelectFromSpawnList(eligible, scoreFn))
 		return pick;
 
+        return nullptr;
+}
+
+/*
+===============
+SelectCoopFallbackSpawnPoint
+
+Provides a more permissive coop spawn search when the primary pass fails.
+===============
+*/
+static gentity_t* SelectCoopFallbackSpawnPoint(gentity_t* ent) {
+	// Last-resort single-player start without safety checks
+	if (gentity_t* start = SelectSingleSpawnPoint(ent))
+		return start;
+
+	// Final attempt: reuse any registered FFA spawn to keep players moving
+	if (!level.spawn.ffa.empty())
+		return level.spawn.ffa.front();
+
 	return nullptr;
 }
 
@@ -1059,7 +1078,7 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 		// Prefer open spots first
 		spot = SelectCoopSpawnPoint(ent);
 		if (!spot) {
-			spot = SelectCoopSpawnPoint(ent);
+			spot = SelectCoopFallbackSpawnPoint(ent);
 		}
 
 		// No open spot yet: during intermission, spawn at intermission camera
@@ -1084,7 +1103,6 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 			return true;
 		}
 	}
-
 	// Common placement (Coop/SP)
 	origin = spot->s.origin;
 	angles = spot->s.angles;
