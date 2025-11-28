@@ -5196,6 +5196,7 @@ struct gclient_t {
 		bool			doUpdate = false;
 		bool			restoreStatusBar = false; // should STAT_SHOW_STATUSBAR be restored on close?
 		int32_t			previousStatusBar = 0;    // cached STAT_SHOW_STATUSBAR value
+		bool			previousShowScores = false;	// cached showScores value
 	} menu;
 
 	struct {

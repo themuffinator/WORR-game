@@ -61,6 +61,7 @@ void MenuSystem::Open(gentity_t* ent, std::unique_ptr<Menu> menu) {
 	ent->client->menu.current = std::move(menu);
 
 	menuState.previousStatusBar = ent->client->ps.stats[STAT_SHOW_STATUSBAR];
+	menuState.previousShowScores = ent->client->showScores;
 	menuState.restoreStatusBar = true;
 	ent->client->ps.stats[STAT_SHOW_STATUSBAR] = 1;
 
@@ -89,8 +90,10 @@ void MenuSystem::Close(gentity_t* ent) {
 
 	if (menuState.restoreStatusBar) {
 		ent->client->ps.stats[STAT_SHOW_STATUSBAR] = menuState.previousStatusBar;
+		ent->client->showScores = menuState.previousShowScores;
 		menuState.restoreStatusBar = false;
 		menuState.previousStatusBar = 0;
+		menuState.previousShowScores = false;
 	}
 
 	//ent->client->showScores = false;
