@@ -57,6 +57,34 @@ Converts an entry index into its corresponding scrollable index position.
 
 /*
 =============
+IsRenderable
+
+Determines whether a menu entry will display content or an action.
+=============
+*/
+	bool IsRenderable(const MenuEntry& entry) {
+		return !entry.text.empty() || static_cast<bool>(entry.onSelect);
+	}
+
+/*
+=============
+RebuildScrollability
+
+Refreshes the scrollable state for entries that were not explicitly set,
+marking only renderable lines as scrollable.
+=============
+*/
+	void RebuildScrollability(Menu& menu) {
+		for (MenuEntry& entry : menu.entries) {
+			if (entry.scrollableSet)
+				continue;
+
+			entry.scrollable = IsRenderable(entry);
+		}
+	}
+
+/*
+=============
 CollectVisibleEntries
 
 Builds the list of entries that should be rendered based on the current
@@ -70,6 +98,9 @@ scroll offset.
 		visibleEntries.reserve(entries.size());
 
 		for (const MenuEntry& entry : entries) {
+			if (!IsRenderable(entry))
+				continue;
+
 			if (entry.scrollable) {
 				if (skippedScrollable > 0) {
 					--skippedScrollable;
@@ -89,7 +120,7 @@ scroll offset.
 		}
 
 		return visibleEntries;
-	}
+}
 
 } // namespace
 
@@ -163,9 +194,11 @@ void Menu::Select(gentity_t* ent) {
 Menu::Render
 ===============
 */
-void Menu::Render(gentity_t* ent) const {
+void Menu::Render(gentity_t* ent) {
 	if (onUpdate)
 		onUpdate(ent, *this);
+
+	RebuildScrollability(*this);
 
 	// Do not early-return if current is invalid; still render the menu
 	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;
