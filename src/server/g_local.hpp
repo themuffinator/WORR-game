@@ -6016,6 +6016,20 @@ class Menu;
 constexpr int MAX_MENU_WIDTH = 28;
 constexpr int MAX_VISIBLE_LINES = 18;
 
+/*
+===============
+TrimToWidth
+
+Ensures menu strings do not exceed MAX_MENU_WIDTH characters by trimming and
+appending an ellipsis when necessary.
+===============
+*/
+inline std::string TrimToWidth(const std::string& text) {
+	if (text.size() > MAX_MENU_WIDTH)
+		return text.substr(0, static_cast<size_t>(MAX_MENU_WIDTH - 3)) + "...";
+	return text;
+}
+
 //extern gentity_t *g_entities;
 
 /*
