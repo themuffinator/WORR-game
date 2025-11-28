@@ -163,9 +163,25 @@ void Menu::Select(gentity_t* ent) {
 Menu::Render
 ===============
 */
-void Menu::Render(gentity_t* ent) const {
+void Menu::Render(gentity_t* ent) {
 	if (onUpdate)
 		onUpdate(ent, *this);
+
+	if (current >= 0 && current < static_cast<int>(entries.size()) && !entries[current].onSelect) {
+		const int original = current;
+
+		Next();
+
+		if (current == original || current < 0 || current >= static_cast<int>(entries.size()) || !entries[current].onSelect) {
+			current = original;
+			Prev();
+
+			if (current == original || current < 0 || current >= static_cast<int>(entries.size()) || !entries[current].onSelect)
+				current = -1;
+		}
+	}
+
+	EnsureCurrentVisible();
 
 	// Do not early-return if current is invalid; still render the menu
 	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;

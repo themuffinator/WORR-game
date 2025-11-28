@@ -6061,7 +6061,7 @@ public:
 	void Next();
 	void Prev();
 	void Select(gentity_t* ent);
-	void Render(gentity_t* ent) const;
+	void Render(gentity_t* ent);
 	void EnsureCurrentVisible();
 };
 
