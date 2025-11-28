@@ -183,9 +183,26 @@ void Menu::Render(gentity_t* ent) const {
 	Menu& mutableMenu = *const_cast<Menu*>(this);
 
 	if (onUpdate)
-		onUpdate(ent, *this);
+	onUpdate(ent, *this);
 
 	TrimUpdatedEntries(mutableMenu);
+
+	if (mutableMenu.current >= static_cast<int>(entries.size()))
+	mutableMenu.current = entries.empty() ? -1 : static_cast<int>(entries.size()) - 1;
+
+	if (mutableMenu.current >= 0 && mutableMenu.current < static_cast<int>(entries.size()) && !entries[mutableMenu.current].onSelect) {
+	const int original = mutableMenu.current;
+
+	mutableMenu.Next();
+
+	if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect) {
+	mutableMenu.Prev();
+	if (mutableMenu.current == original || mutableMenu.current < 0 || mutableMenu.current >= static_cast<int>(entries.size()) || !entries[mutableMenu.current].onSelect)
+	mutableMenu.current = -1;
+	}
+	}
+
+	mutableMenu.EnsureCurrentVisible();
 
 	// Do not early-return if current is invalid; still render the menu
 	const int selected = (current >= 0 && current < static_cast<int>(entries.size())) ? current : -1;
