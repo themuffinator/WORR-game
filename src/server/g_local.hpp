@@ -6039,6 +6039,7 @@ public:
 	MenuAlign align;
 	std::function<void(gentity_t*, Menu&)> onSelect;
 	bool scrollable = true;
+	bool scrollableSet = false;
 
 	MenuEntry(const std::string& txt, MenuAlign a, std::function<void(gentity_t*, Menu&)> cb = nullptr)
 		: text(txt), align(a), onSelect(std::move(cb)) {
@@ -6079,6 +6080,20 @@ public:
 
 	MenuBuilder& add(const std::string& text, MenuAlign align = MenuAlign::Left, std::function<void(gentity_t*, Menu&)> onSelect = nullptr) {
 		menu->entries.emplace_back(text, align, std::move(onSelect));
+		return *this;
+	}
+
+	/*
+	===============
+	addFixed
+
+	Adds a non-scrollable entry to the menu.
+	===============
+	*/
+	MenuBuilder& addFixed(const std::string& text, MenuAlign align = MenuAlign::Left, std::function<void(gentity_t*, Menu&)> onSelect = nullptr) {
+		menu->entries.emplace_back(text, align, std::move(onSelect));
+		menu->entries.back().scrollable = false;
+		menu->entries.back().scrollableSet = true;
 		return *this;
 	}
 
