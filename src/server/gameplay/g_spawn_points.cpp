@@ -336,6 +336,10 @@ A range std::clamp avoids expensive full-map traces; tune MAX_LOS_DIST as needed
 ===============
 */
 static bool AnyDirectEnemyLoS(const gentity_t* requester, const Vector3& spot, float maxDist) {
+	if (!requester || !requester->client) {
+		return false;
+	}
+
 	const Vector3 toCheck = SpawnEye(spot);
 
 	for (auto ec : active_clients()) {
@@ -910,10 +914,16 @@ static gentity_t* SelectCoopFallbackSpawnPoint(gentity_t* ent) {
 	return nullptr;
 }
 
+/*
+===============
+TryLandmarkSpawn
+
+Attempt to place a client relative to a landmark from a previous map. Safely
+no-ops if no client data is available or if the landmark cannot be resolved.
+===============
+*/
 static bool TryLandmarkSpawn(gentity_t* ent, Vector3& origin, Vector3& angles) {
-	// if transitioning from another level with a landmark seamless transition
-	// just set the location here
-	if (!ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
+	if (!ent || !ent->client || !ent->client->landmark_name || !strlen(ent->client->landmark_name)) {
 		return false;
 	}
 
