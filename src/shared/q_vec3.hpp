@@ -18,6 +18,7 @@
 
 #pragma once
 #include <array>
+#include <cassert>
 #include <cmath>
 #include <stdexcept>
 #include <type_traits>
@@ -26,10 +27,32 @@
 using nullptr_t = std::nullptr_t;
 
 struct Vector3 {
+	static constexpr float kDivisionEpsilon = 1.0e-6f;
+
 	std::array<float, 3> components{ 0.0f, 0.0f, 0.0f };
 	float& x;
 	float& y;
 	float& z;
+
+	/*
+	=============
+	SafeDivisor
+
+	Clamps divisors away from zero while asserting in debug builds.
+	=============
+	*/
+	[[nodiscard]] static inline float SafeDivisor(const float divisor) {
+		const bool near_zero = divisor > -kDivisionEpsilon && divisor < kDivisionEpsilon;
+
+		#ifndef NDEBUG
+		assert(!near_zero && "Vector3 division by zero or near-zero divisor");
+		#endif
+
+		if (near_zero)
+			return divisor >= 0.0f ? kDivisionEpsilon : -kDivisionEpsilon;
+
+		return divisor;
+	}
 
 	/*
 	=============
@@ -159,12 +182,27 @@ struct Vector3 {
 	[[nodiscard]] constexpr Vector3 operator+(const Vector3& v) const {
 		return { x + v.x, y + v.y, z + v.z };
 	}
-	[[nodiscard]] constexpr Vector3 operator/(const Vector3& v) const {
-		return { x / v.x, y / v.y, z / v.z };
+	/*
+	=============
+	operator/
+
+	Divides component-wise by another vector using guarded divisors.
+	=============
+	*/
+	[[nodiscard]] inline Vector3 operator/(const Vector3& v) const {
+	return { x / SafeDivisor(v.x), y / SafeDivisor(v.y), z / SafeDivisor(v.z) };
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
-	[[nodiscard]] constexpr Vector3 operator/(const T& v) const {
-		return { static_cast<float>(x / v), static_cast<float>(y / v), static_cast<float>(z / v) };
+	/*
+	=============
+	operator/
+
+	Divides each component by a scalar using a guarded divisor.
+	=============
+	*/
+	[[nodiscard]] inline Vector3 operator/(const T& v) const {
+	const float divisor = SafeDivisor(static_cast<float>(v));
+	return { static_cast<float>(x / divisor), static_cast<float>(y / divisor), static_cast<float>(z / divisor) };
 	}
 	template<typename T, typename = std::enable_if_t<std::is_floating_point_v<T> || std::is_integral_v<T>>>
 	[[nodiscard]] constexpr Vector3 operator*(const T& v) const {
