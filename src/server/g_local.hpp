@@ -1843,6 +1843,8 @@ struct Item {
 	bool precached = false;         // new: prevents duplicate precaches
 };
 
+using gitem_t = Item;
+
 // means of death
 enum class ModID : uint8_t {
 	Unknown,
@@ -5048,6 +5050,7 @@ struct gclient_t {
 	bool			showEOU = false;       // end of unit screen
 	bool			showInventory = false; // set layout stat
 	bool			showHelp = false;
+	bool			deadFlag = false;
 
 	button_t		buttons = BUTTON_NONE;
 	button_t		oldButtons = BUTTON_NONE;

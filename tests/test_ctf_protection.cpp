@@ -53,9 +53,9 @@ Validates base defense awards when line of sight checks fail near the flag.
 =============
 */
 int main() {
-	g_entities = entities;
-	gi.trace = BlockedTrace;
-	gi.soundIndex = TestSoundIndex;
+g_entities = entities;
+gi.game_import_t::trace = BlockedTrace;
+gi.soundIndex = TestSoundIndex;
 	game.clients = clients;
 	game.maxClients = 2;
 	game.maxEntities = 4;

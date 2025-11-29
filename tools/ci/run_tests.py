@@ -32,6 +32,7 @@ SUPPORT_SOURCES = [
     SRC_ROOT / "format.cc",
     SRC_ROOT / "os.cc",
     SRC_ROOT / "server" / "q_std.cpp",
+    SRC_ROOT / "server" / "gameplay" / "g_client_cfg.cpp",
     REPO_ROOT / "tools" / "ci" / "test_support.cpp",
 ]
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "test-results"
