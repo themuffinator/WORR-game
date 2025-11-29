@@ -5,6 +5,7 @@ test_client_stats_ghosts.cpp implementation.*/
 
 #include "server/g_local.hpp"
 #include "server/client/client_stats_service.hpp"
+#include "server/gameplay/client_config.hpp"
 
 #include <cassert>
 #include <cstring>

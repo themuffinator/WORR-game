@@ -16,11 +16,11 @@ static constexpr int CONFIG_CHASE_PLAYER_NAME = 1;
 static constexpr std::size_t MAX_NETNAME = 64;
 
 struct session_t {
-	char netName[MAX_NETNAME] = { '\\0' };
+	char netName[MAX_NETNAME] = { '\0' };
 };
 
 struct persistent_t {
-	char netName[MAX_NETNAME] = { '\\0' };
+	char netName[MAX_NETNAME] = { '\0' };
 };
 
 struct gclient_t {
@@ -118,7 +118,7 @@ bool local_game_import_t::Info_ValueForKey(const char* userInfo, const char* key
 		return false;
 
 	std::strncpy(value, it->second.c_str(), len);
-	value[len - 1] = '\\0';
+	value[len - 1] = '\0';
 	return true;
 }
 
@@ -167,11 +167,11 @@ static void ClientUserinfoChanged(local_game_import_t& gi, gentity_t* ent, const
 	std::array<char, MAX_NETNAME> name{};
 	if (!gi.Info_ValueForKey(userInfo.c_str(), "name", name.data(), name.size())) {
 		std::strncpy(name.data(), "badinfo", name.size());
-		name[name.size() - 1] = '\\0';
+		name[name.size() - 1] = '\0';
 	}
 
 	std::strncpy(ent->client->sess.netName, name.data(), MAX_NETNAME);
-	ent->client->sess.netName[MAX_NETNAME - 1] = '\\0';
+	ent->client->sess.netName[MAX_NETNAME - 1] = '\0';
 
 	const std::string skin = "male/grunt";
 	const std::string composite = std::string(ent->client->sess.netName) + "\\\\" + skin;
@@ -179,7 +179,7 @@ static void ClientUserinfoChanged(local_game_import_t& gi, gentity_t* ent, const
 	gi.configString(CONFIG_CHASE_PLAYER_NAME + ent->s_number, ent->client->sess.netName);
 
 	std::strncpy(ent->client->pers.netName, ent->client->sess.netName, MAX_NETNAME);
-	ent->client->pers.netName[MAX_NETNAME - 1] = '\\0';
+	ent->client->pers.netName[MAX_NETNAME - 1] = '\0';
 }
 
 class ClientSessionHarness {
