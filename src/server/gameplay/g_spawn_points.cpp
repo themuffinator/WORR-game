@@ -762,6 +762,9 @@ select_spawn_result_t SelectDeathmatchSpawnPoint(
 // Single-player and Coop spawn selection
 // ==============================================================================
 
+// Forward declarations
+static gentity_t* SelectSingleSpawnPoint(gentity_t* ent);
+
 /*
 ===============
 SelectLavaCoopSpawnPoint
