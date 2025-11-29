@@ -1338,8 +1338,10 @@ static const char* ED_ParseEntity(const char* data, gentity_t* ent) {
 		ED_ParseField(keyname, com_token, ent);
 	}
 
-	if (!init)
-		memset(ent, 0, sizeof(*ent));
+	if (!init) {
+		ent->~gentity_t();
+		new (ent) gentity_t();
+	}
 
 	const char* parsed_class = ent->className ? ent->className : "<unset>";
 	worr::Logf(worr::LogLevel::Trace, "{}: parsed entity #{} as {} ({} keys)", __FUNCTION__, ent_num, parsed_class, st.keys_specified.size());
