@@ -56,7 +56,7 @@ namespace {
 	/*
 	=============
 	LogEntityLabel
-
+	
 	Builds a concise label for logging spawn activity, including entity number and
 	classname when available.
 	=============
@@ -65,13 +65,30 @@ namespace {
 	{
 		const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
 		const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
-
+	
 		return std::format("#{} ({})", ent_num, class_name);
 	}
 	/*
 	=============
+	BuildMapEntityContext
+	
+	Returns a detailed label including map name, entity number, classname,
+	and model for logging spawn handling.
+	=============
+	*/
+	static std::string BuildMapEntityContext(const gentity_t* ent)
+	{
+		const char* map_name = level.mapName.empty() ? "<unknown>" : level.mapName.c_str();
+		const int32_t ent_num = ent ? static_cast<int32_t>(ent - g_entities) : -1;
+		const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
+		const char* model_name = (ent && ent->model) ? ent->model : "<unset>";
+	
+		return std::format("[map:{} ent:{} class:{} model:{}]", map_name, ent_num, class_name, model_name);
+	}
+	/*
+	=============
 	EnsureWorldspawnPresent
-
+	
 	Verifies that the world entity is present and initialized, spawning a
 	fallback worldspawn when parsing fails to create one.
 	=============
@@ -670,58 +687,76 @@ static const std::initializer_list<spawn_t> spawns = {
 // clang-format on
 
 
-/*
-=============
-SpawnEnt_MapFixes
-
-Applies per-map entity fixes for known problematic placements or setups.
-=============
-*/
-static void SpawnEnt_MapFixes(gentity_t* ent) {
-	if (!ent) {
-		worr::Log(worr::LogLevel::Warn, "SpawnEnt_MapFixes: null entity provided; skipping map fixes");
-		return;
-	}
-	if (!ent->className || !ent->model) {
-		worr::Logf(worr::LogLevel::Warn, "SpawnEnt_MapFixes: missing data for %s; skipping map fixes", LogEntityLabel(ent));
-		return;
-	}
-	if (!Q_strcasecmp(level.mapName.data(), "bunk1")) {
-		if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
-			ent->wait = -1;
+	/*
+	=============
+	SpawnEnt_MapFixes
+	
+	Applies per-map entity fixes for known problematic placements or setups.
+	=============
+	*/
+	static void SpawnEnt_MapFixes(gentity_t* ent) {
+		if (!ent) {
+			worr::Logf(worr::LogLevel::Warn, "{}: null entity provided; skipping map fixes {}", __FUNCTION__, BuildMapEntityContext(ent));
+			return;
 		}
-		return;
-	}
-	if (!Q_strcasecmp(level.mapName.data(), "q64/dm7")) {
-		if (ent->s.origin == Vector3{ 1056, 1056, 40 } && !Q_strcasecmp(ent->className, "info_player_deathmatch")) {
-			// silly location, move this spawn point back away from the lava trap
-			ent->s.origin = Vector3{ 1312, 928, 40 };
+		if (!ent->className || !ent->model) {
+			worr::Logf(worr::LogLevel::Warn, "{}: missing data; skipping map fixes {}", __FUNCTION__, BuildMapEntityContext(ent));
+			return;
 		}
-		return;
-	}
-	if (!Q_strcasecmp(ent->className, "item_health_mega")) {
-		if (!Q_strcasecmp(level.mapName.data(), "q2dm1")) {
-			if (ent->s.origin == Vector3{ 480, 1376, 912 }) {
-				ent->s.angles = { 0, -45, 0 };
+		if (!Q_strcasecmp(level.mapName.data(), "bunk1")) {
+			if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
+				ent->wait = -1;
+				worr::Logf(worr::LogLevel::Trace, "{}: applied bunk1 func_button wait fix {}", __FUNCTION__, BuildMapEntityContext(ent));
+			}
+			else {
+				worr::Logf(worr::LogLevel::Debug, "{}: bunk1 map fixes skipped {}", __FUNCTION__, BuildMapEntityContext(ent));
 			}
 			return;
 		}
-		if (!Q_strcasecmp(level.mapName.data(), "q2dm8")) {
-			if (ent->s.origin == Vector3{ -832, 192, -232 }) {
-				ent->s.angles = { 0, 90, 0 };
+		if (!Q_strcasecmp(level.mapName.data(), "q64/dm7")) {
+			if (ent->s.origin == Vector3{ 1056, 1056, 40 } && !Q_strcasecmp(ent->className, "info_player_deathmatch")) {
+				// silly location, move this spawn point back away from the lava trap
+				ent->s.origin = Vector3{ 1312, 928, 40 };
+				worr::Logf(worr::LogLevel::Trace, "{}: adjusted dm7 deathmatch spawn origin {}", __FUNCTION__, BuildMapEntityContext(ent));
+			}
+			else {
+				worr::Logf(worr::LogLevel::Debug, "{}: dm7 map fixes skipped {}", __FUNCTION__, BuildMapEntityContext(ent));
 			}
 			return;
 		}
-		if (!Q_strcasecmp(level.mapName.data(), "fact3")) {
-			if (ent->s.origin == Vector3{ -80, 568, 144 }) {
-				ent->s.angles = { 0, -90, 0 };
+		if (!Q_strcasecmp(ent->className, "item_health_mega")) {
+			if (!Q_strcasecmp(level.mapName.data(), "q2dm1")) {
+				if (ent->s.origin == Vector3{ 480, 1376, 912 }) {
+					ent->s.angles = { 0, -45, 0 };
+					worr::Logf(worr::LogLevel::Trace, "{}: rotated q2dm1 megahealth {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				else {
+					worr::Logf(worr::LogLevel::Debug, "{}: q2dm1 megahealth fix skipped {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				return;
 			}
-			return;
+			if (!Q_strcasecmp(level.mapName.data(), "q2dm8")) {
+				if (ent->s.origin == Vector3{ -832, 192, -232 }) {
+					ent->s.angles = { 0, 90, 0 };
+					worr::Logf(worr::LogLevel::Trace, "{}: rotated q2dm8 megahealth {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				else {
+					worr::Logf(worr::LogLevel::Debug, "{}: q2dm8 megahealth fix skipped {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				return;
+			}
+			if (!Q_strcasecmp(level.mapName.data(), "fact3")) {
+				if (ent->s.origin == Vector3{ -80, 568, 144 }) {
+					ent->s.angles = { 0, -90, 0 };
+					worr::Logf(worr::LogLevel::Trace, "{}: rotated fact3 megahealth {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				else {
+					worr::Logf(worr::LogLevel::Debug, "{}: fact3 megahealth fix skipped {}", __FUNCTION__, BuildMapEntityContext(ent));
+				}
+				return;
+			}
 		}
 	}
-}
-// ----------
-
 /*
 ===============
 ED_CallSpawn
@@ -732,14 +767,14 @@ Finds the spawn function for the entity and calls it
 void ED_CallSpawn(gentity_t* ent) {
 
 	if (!ent) {
-		worr::Logf(worr::LogLevel::Warn, "{}: called with null entity; skipping", __FUNCTION__);
+		worr::Logf(worr::LogLevel::Warn, "{}: called with null entity; skipping {}", __FUNCTION__, BuildMapEntityContext(ent));
 		return;
 	}
 
-	worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn for {}", __FUNCTION__, LogEntityLabel(ent));
+	worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn {}", __FUNCTION__, BuildMapEntityContext(ent));
 
 	if (!ent->className) {
-		worr::Logf(worr::LogLevel::Warn, "{}: entity {} has no classname; freeing", __FUNCTION__, LogEntityLabel(ent));
+		worr::Logf(worr::LogLevel::Warn, "{}: entity missing classname; freeing {}", __FUNCTION__, BuildMapEntityContext(ent));
 		FreeEntity(ent);
 		return;
 	}
@@ -801,17 +836,17 @@ void ED_CallSpawn(gentity_t* ent) {
 		worr::Logf(worr::LogLevel::Trace, "{}: remapped classname {} -> {} for {}", __FUNCTION__, original_class_name, ent->className, LogEntityLabel(ent));
 
 	if (!ent->inUse) {
-		worr::Logf(worr::LogLevel::Warn, "{}: entity {} not in use; skipping map fixes", __FUNCTION__, LogEntityLabel(ent));
+		worr::Logf(worr::LogLevel::Warn, "{}: entity not in use; skipping map fixes {}", __FUNCTION__, BuildMapEntityContext(ent));
 		return;
 	}
 
 	if (!ent->className) {
-		worr::Logf(worr::LogLevel::Warn, "{}: entity {} missing classname before map fixes; skipping", __FUNCTION__, LogEntityLabel(ent));
+		worr::Logf(worr::LogLevel::Warn, "{}: entity missing classname before map fixes {}; skipping", __FUNCTION__, BuildMapEntityContext(ent));
 		return;
 	}
 
 	if (!ent->model) {
-		worr::Logf(worr::LogLevel::Warn, "{}: entity {} missing model before map fixes; skipping", __FUNCTION__, LogEntityLabel(ent));
+		worr::Logf(worr::LogLevel::Warn, "{}: entity missing model before map fixes {}; skipping", __FUNCTION__, BuildMapEntityContext(ent));
 		return;
 	}
 
@@ -883,16 +918,14 @@ void ED_CallSpawn(gentity_t* ent) {
 		}
 		else {
 			FreeEntity(ent);
-			worr::Logf(worr::LogLevel::Warn, "{}: discarded orphaned item_ball for {}", __FUNCTION__, LogEntityLabel(ent));
+			worr::Logf(worr::LogLevel::Warn, "{}: discarded orphaned item_ball {}", __FUNCTION__, BuildMapEntityContext(ent));
 		}
 		return;
 	}
 
-	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityLabel(ent));
+	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, BuildMapEntityContext(ent));
 	FreeEntity(ent);
 }
-
-
 /*
 =============
 ED_NewString
