@@ -28,7 +28,7 @@ struct MatchSetupState {
 
 static void FinishMatchSetup(gentity_t* ent, MatchSetupState* state) {
 	// Example: Apply config and broadcast
-	gi.Com_PrintFmt("Match setup complete: gametype=%s modifier=%s players=%d length=%s type=%s bestof=%s\n",
+	gi.Com_PrintFmt("Match setup complete: gametype={} modifier={} players={} length={} type={} bestof={}\n",
 		state->gametype.c_str(), state->modifier.c_str(), state->maxPlayers,
 		state->length.c_str(), state->type.c_str(), state->bestOf.c_str());
 
@@ -133,7 +133,7 @@ static void OpenSetupMaxPlayersMenu(gentity_t* ent, MatchSetupState* state) {
 	MenuBuilder b;
 	b.add("Max Players", MenuAlign::Center).spacer();
 	for (int count : {2, 4, 8, 16}) {
-		b.add(G_Fmt("%d", count).data(), MenuAlign::Left, [=](gentity_t* e, Menu& m) {
+		b.add(G_Fmt("{}", count).data(), MenuAlign::Left, [=](gentity_t* e, Menu& m) {
 			state->maxPlayers = count;
 			OpenSetupMatchLengthMenu(e, state);
 			});

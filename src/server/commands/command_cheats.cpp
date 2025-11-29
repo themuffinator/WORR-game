@@ -128,7 +128,7 @@ namespace Commands {
 		for (int i = 0; i < static_cast<int>(globals.numEntities); ++i) {
 			gentity_t* e = &g_entities[i];
 			if (e->inUse) {
-				gi.Com_PrintFmt("%3i: %s\n", i, e->className);
+				gi.Com_PrintFmt("{}: {}\n", i, e->className);
 			}
 		}
 		gi.Client_Print(ent, PRINT_HIGH, "-------------------\n");
@@ -140,11 +140,11 @@ namespace Commands {
 		for (int i = 0; i < static_cast<int>(globals.numEntities); ++i) {
 			gentity_t* e = &g_entities[i];
 			if (e->inUse && (e->svFlags & SVF_MONSTER)) {
-				gi.Com_PrintFmt("%3i: %s at %.1f %.1f %.1f\n", i, e->className, e->s.origin[0], e->s.origin[1], e->s.origin[2]);
+				gi.Com_PrintFmt("{}: {} at {}\n", i, e->className, e->s.origin);
 				count++;
 			}
 		}
-		gi.Com_PrintFmt("Total monsters: %i\n", count);
+		gi.Com_PrintFmt("Total monsters: {}\n", count);
 		gi.Client_Print(ent, PRINT_HIGH, "--------------------\n");
 	}
 

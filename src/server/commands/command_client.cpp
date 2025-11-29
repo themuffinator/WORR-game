@@ -341,12 +341,12 @@ Enables administrative permissions when the correct password is supplied.
 
 			default:
 			// Unknown impulses silently ignored (classic Q1 feel), but a hint helps once.
-			gi.LocClient_Print(ent, PRINT_LOW, "impulse %d ignored (supported: 1..8, 9, 10, 12, 21, 255)\n", n);
+			gi.LocClient_Print(ent, PRINT_LOW, "impulse {} ignored (supported: 1..8, 9, 10, 12, 21, 255)\n", n);
 			return;
 		}
 
 		if (!handled && n >= 1 && n <= 8) {
-			gi.LocClient_Print(ent, PRINT_LOW, "You do not have a valid weapon for impulse %d\n", n);
+			gi.LocClient_Print(ent, PRINT_LOW, "You do not have a valid weapon for impulse {}\n", n);
 		}
 	}
 

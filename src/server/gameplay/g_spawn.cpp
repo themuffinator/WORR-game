@@ -78,7 +78,7 @@ namespace {
 	*/
 	static std::string BuildMapEntityContext(const gentity_t* ent)
 	{
-		const char* map_name = level.mapName.empty() ? "<unknown>" : level.mapName.c_str();
+		const char* map_name = level.mapName.empty() ? "<unknown>" : level.mapName.data();
 		const int32_t ent_num = ent ? static_cast<int32_t>(ent - g_entities) : -1;
 		const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
 		const char* model_name = (ent && ent->model) ? ent->model : "<unset>";
@@ -697,6 +697,9 @@ static const std::initializer_list<spawn_t> spawns = {
 	static void SpawnEnt_MapFixes(gentity_t* ent) {
 		if (!ent) {
 			worr::Logf(worr::LogLevel::Warn, "{}: null entity provided; skipping map fixes {}", __FUNCTION__, BuildMapEntityContext(ent));
+			return;
+		}
+		if (!ent->inUse) {
 			return;
 		}
 		if (!ent->className || !ent->model) {

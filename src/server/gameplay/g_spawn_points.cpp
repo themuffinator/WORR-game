@@ -1074,9 +1074,15 @@ bool SelectSpawnPoint(gentity_t* ent, Vector3& origin, Vector3& angles, bool for
 			return false;
 		}
 
+		// Validate spot one more time before dereferencing
+		if (!spot || !spot->inUse) {
+			gi.Com_PrintFmt("{}: selected spawn point is invalid\n", __FUNCTION__);
+			return false;
+		}
+
 		// Place slightly above pad if allowed
 		const float zlift = match_allowSpawnPads->integer ? 9.0f : 1.0f;
-		origin = spot->s.origin + Vector3{ 0.0f, 0.0f, zlift };
+		origin = spot->s.origin + gvec3_t{ 0.0f, 0.0f, zlift };
 		angles = spot->s.angles;
 
 		// Ensure no roll; optionally zero pitch if desired

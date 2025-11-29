@@ -92,12 +92,12 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 			Json::CharReaderBuilder builder;
 			std::string errs;
 			if (!Json::parseFromStream(builder, in, &cfg, &errs)) {
-				gi_.Com_PrintFmt("%s: parse error in %s: %s\n", __FUNCTION__, path.c_str(), errs.c_str());
+				gi_.Com_PrintFmt("{}: parse error in {}: {}\n", __FUNCTION__, path.c_str(), errs.c_str());
 				cfg = Json::Value(Json::objectValue);
 			}
 		}
 		else {
-			gi_.Com_PrintFmt("%s: creating new player config for missing file %s\n", __FUNCTION__, path.c_str());
+			gi_.Com_PrintFmt("{}: creating new player config for missing file {}\n", __FUNCTION__, path.c_str());
 		}
 	}
 
@@ -270,13 +270,13 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 
 	try {
 		if (!EnsurePlayerConfigDirectory()) {
-			gi_.Com_PrintFmt("%s: failed to ensure player config directory\n", __FUNCTION__);
+			gi_.Com_PrintFmt("{}: failed to ensure player config directory\n", __FUNCTION__);
 			return;
 		}
 
 		std::ofstream out(path);
 		if (!out.is_open()) {
-			gi_.Com_PrintFmt("%s: failed to write %s\n", __FUNCTION__, path.c_str());
+			gi_.Com_PrintFmt("{}: failed to write {}\n", __FUNCTION__, path.c_str());
 			return;
 		}
 
@@ -286,10 +286,10 @@ void ClientConfigStore::SaveInternal(const std::string& playerID, int skillRatin
 		writer->write(cfg, &out);
 		out.close();
 
-		gi_.Com_PrintFmt("%s: saved updates for %s\n", __FUNCTION__, playerID.c_str());
+		gi_.Com_PrintFmt("{}: saved updates for {}\n", __FUNCTION__, playerID.c_str());
 	}
 	catch (const std::exception& e) {
-		gi_.Com_PrintFmt("%s: exception: %s\n", __FUNCTION__, e.what());
+		gi_.Com_PrintFmt("{}: exception: {}\n", __FUNCTION__, e.what());
 	}
 }
 /*
