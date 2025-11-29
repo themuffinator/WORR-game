@@ -731,6 +731,11 @@ Finds the spawn function for the entity and calls it
 */
 void ED_CallSpawn(gentity_t* ent) {
 
+	if (!ent) {
+		worr::Logf(worr::LogLevel::Warn, "{}: called with null entity; skipping", __FUNCTION__);
+		return;
+	}
+
 	worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn for {}", __FUNCTION__, LogEntityLabel(ent));
 
 	if (!ent->className) {
@@ -794,6 +799,21 @@ void ED_CallSpawn(gentity_t* ent) {
 
 	if (ent->className != original_class_name)
 		worr::Logf(worr::LogLevel::Trace, "{}: remapped classname {} -> {} for {}", __FUNCTION__, original_class_name, ent->className, LogEntityLabel(ent));
+
+	if (!ent->inUse) {
+		worr::Logf(worr::LogLevel::Warn, "{}: entity {} not in use; skipping map fixes", __FUNCTION__, LogEntityLabel(ent));
+		return;
+	}
+
+	if (!ent->className) {
+		worr::Logf(worr::LogLevel::Warn, "{}: entity {} missing classname before map fixes; skipping", __FUNCTION__, LogEntityLabel(ent));
+		return;
+	}
+
+	if (!ent->model) {
+		worr::Logf(worr::LogLevel::Warn, "{}: entity {} missing model before map fixes; skipping", __FUNCTION__, LogEntityLabel(ent));
+		return;
+	}
 
 	SpawnEnt_MapFixes(ent);
 
