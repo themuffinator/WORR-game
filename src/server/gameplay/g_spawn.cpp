@@ -670,7 +670,22 @@ static const std::initializer_list<spawn_t> spawns = {
 // clang-format on
 
 
+/*
+=============
+SpawnEnt_MapFixes
+
+Applies per-map entity fixes for known problematic placements or setups.
+=============
+*/
 static void SpawnEnt_MapFixes(gentity_t* ent) {
+	if (!ent) {
+		worr::Log(worr::LogLevel::Warn, "SpawnEnt_MapFixes: null entity provided; skipping map fixes");
+		return;
+	}
+	if (!ent->className || !ent->model) {
+		worr::Logf(worr::LogLevel::Warn, "SpawnEnt_MapFixes: missing data for %s; skipping map fixes", LogEntityLabel(ent));
+		return;
+	}
 	if (!Q_strcasecmp(level.mapName.data(), "bunk1")) {
 		if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
 			ent->wait = -1;
