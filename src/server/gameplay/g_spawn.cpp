@@ -2097,6 +2097,9 @@ void SpawnEntities(const char* mapName, const char* entities, const char* spawnP
 		else
 			ent = Spawn();
 
+		if (ent == g_entities)
+			InitGEntity(ent);
+
 		entities = ED_ParseEntity(entities, ent);
 		if (ent)
 			worr::Logf(worr::LogLevel::Debug, "{}: preparing {} with spawnflags {}", __FUNCTION__, LogEntityLabel(ent), static_cast<uint32_t>(ent->spawnFlags));
@@ -2414,6 +2417,9 @@ const auto persistent = std::make_unique<LevelPersistentState>(LevelPersistentSt
 
 		gentity_t* ent = firstEntity ? g_entities : Spawn();
 		firstEntity = false;
+
+		if (ent == g_entities)
+			InitGEntity(ent);
 
 		entities = ED_ParseEntity(entities, ent);
 
