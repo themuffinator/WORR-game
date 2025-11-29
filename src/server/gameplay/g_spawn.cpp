@@ -70,12 +70,22 @@ namespace {
 	}
 	/*
 	=============
-	EnsureWorldspawnPresent
+	LogEntityContext
 
-	Verifies that the world entity is present and initialized, spawning a
-	fallback worldspawn when parsing fails to create one.
+	Builds a detailed context string for logging, including the map name, entity
+	number, classname, and model.
 	=============
 	*/
+	static std::string LogEntityContext(const gentity_t* ent)
+	{
+		const int32_t ent_num = static_cast<int32_t>(ent - g_entities);
+		const char* class_name = (ent && ent->className) ? ent->className : "<unset>";
+		const char* model_name = (ent && ent->model) ? ent->model : "<unset>";
+		const char* map_name = level.mapName.empty() ? "<unset>" : level.mapName.data();
+
+		return std::format("map '{}' entity #{} (class '{}', model '{}')", map_name, ent_num, class_name, model_name);
+	}
+
 	static bool EnsureWorldspawnPresent()
 	{
 		if (world->inUse && world->className && !Q_strcasecmp(world->className, "worldspawn"))
@@ -670,40 +680,74 @@ static const std::initializer_list<spawn_t> spawns = {
 // clang-format on
 
 
+/*
+=============
+SpawnEnt_MapFixes
+
+Applies map-specific fixes to entities prior to spawning.
+=============
+*/
 static void SpawnEnt_MapFixes(gentity_t* ent) {
+
+	const std::string context = LogEntityContext(ent);
+
+	worr::Logf(worr::LogLevel::Trace, "{}: evaluating map fixes for {}", __FUNCTION__, context);
+
 	if (!Q_strcasecmp(level.mapName.data(), "bunk1")) {
 		if (!Q_strcasecmp(ent->className, "func_button") && !Q_strcasecmp(ent->model, "*36")) {
+			worr::Logf(worr::LogLevel::Debug, "{}: applying bunk1 func_button wait fix for {}", __FUNCTION__, context);
 			ent->wait = -1;
+		}
+		else {
+			worr::Logf(worr::LogLevel::Trace, "{}: bunk1 map fix skipped for {}", __FUNCTION__, context);
 		}
 		return;
 	}
 	if (!Q_strcasecmp(level.mapName.data(), "q64/dm7")) {
 		if (ent->s.origin == Vector3{ 1056, 1056, 40 } && !Q_strcasecmp(ent->className, "info_player_deathmatch")) {
 			// silly location, move this spawn point back away from the lava trap
+			worr::Logf(worr::LogLevel::Debug, "{}: applying q64/dm7 deathmatch spawn fix for {}", __FUNCTION__, context);
 			ent->s.origin = Vector3{ 1312, 928, 40 };
+		}
+		else {
+			worr::Logf(worr::LogLevel::Trace, "{}: q64/dm7 map fix skipped for {}", __FUNCTION__, context);
 		}
 		return;
 	}
 	if (!Q_strcasecmp(ent->className, "item_health_mega")) {
 		if (!Q_strcasecmp(level.mapName.data(), "q2dm1")) {
 			if (ent->s.origin == Vector3{ 480, 1376, 912 }) {
+				worr::Logf(worr::LogLevel::Debug, "{}: applying q2dm1 megahealth angle fix for {}", __FUNCTION__, context);
 				ent->s.angles = { 0, -45, 0 };
+			}
+			else {
+				worr::Logf(worr::LogLevel::Trace, "{}: q2dm1 megahealth fix skipped for {}", __FUNCTION__, context);
 			}
 			return;
 		}
 		if (!Q_strcasecmp(level.mapName.data(), "q2dm8")) {
 			if (ent->s.origin == Vector3{ -832, 192, -232 }) {
+				worr::Logf(worr::LogLevel::Debug, "{}: applying q2dm8 megahealth angle fix for {}", __FUNCTION__, context);
 				ent->s.angles = { 0, 90, 0 };
+			}
+			else {
+				worr::Logf(worr::LogLevel::Trace, "{}: q2dm8 megahealth fix skipped for {}", __FUNCTION__, context);
 			}
 			return;
 		}
 		if (!Q_strcasecmp(level.mapName.data(), "fact3")) {
 			if (ent->s.origin == Vector3{ -80, 568, 144 }) {
+				worr::Logf(worr::LogLevel::Debug, "{}: applying fact3 megahealth angle fix for {}", __FUNCTION__, context);
 				ent->s.angles = { 0, -90, 0 };
+			}
+			else {
+				worr::Logf(worr::LogLevel::Trace, "{}: fact3 megahealth fix skipped for {}", __FUNCTION__, context);
 			}
 			return;
 		}
 	}
+
+	worr::Logf(worr::LogLevel::Trace, "{}: no map fix applied for {}", __FUNCTION__, context);
 }
 // ----------
 
@@ -716,13 +760,13 @@ Finds the spawn function for the entity and calls it
 */
 void ED_CallSpawn(gentity_t* ent) {
 
-	worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn for {}", __FUNCTION__, LogEntityLabel(ent));
+        worr::Logf(worr::LogLevel::Debug, "{}: dispatching spawn for {}", __FUNCTION__, LogEntityContext(ent));
 
-	if (!ent->className) {
-		worr::Logf(worr::LogLevel::Warn, "{}: entity {} has no classname; freeing", __FUNCTION__, LogEntityLabel(ent));
-		FreeEntity(ent);
-		return;
-	}
+        if (!ent->className) {
+                worr::Logf(worr::LogLevel::Warn, "{}: entity {} has no classname; freeing", __FUNCTION__, LogEntityContext(ent));
+                FreeEntity(ent);
+                return;
+        }
 
 	// do this before calling the spawn function so it can be overridden.
 	ent->gravityVector[0] = 0.0;
@@ -777,8 +821,8 @@ void ED_CallSpawn(gentity_t* ent) {
 	}
 	// pmm
 
-	if (ent->className != original_class_name)
-		worr::Logf(worr::LogLevel::Trace, "{}: remapped classname {} -> {} for {}", __FUNCTION__, original_class_name, ent->className, LogEntityLabel(ent));
+        if (ent->className != original_class_name)
+                worr::Logf(worr::LogLevel::Trace, "{}: remapped classname {} -> {} for {}", __FUNCTION__, original_class_name, ent->className, LogEntityContext(ent));
 
 	SpawnEnt_MapFixes(ent);
 
@@ -797,12 +841,12 @@ void ED_CallSpawn(gentity_t* ent) {
 				if (new_item) {
 					item = GetItemByIndex(new_item);
 					ent->className = item->className;
-					worr::Logf(worr::LogLevel::Debug, "{}: random respawn mapped to {} for {}", __FUNCTION__, ent->className, LogEntityLabel(ent));
+                                        worr::Logf(worr::LogLevel::Debug, "{}: random respawn mapped to {} for {}", __FUNCTION__, ent->className, LogEntityContext(ent));
 				}
 			}
 
 			SpawnItem(ent, item);
-			worr::Logf(worr::LogLevel::Trace, "{}: spawned item {}", __FUNCTION__, LogEntityLabel(ent));
+                        worr::Logf(worr::LogLevel::Trace, "{}: spawned item {}", __FUNCTION__, LogEntityContext(ent));
 			return;
 		}
 	}
@@ -810,7 +854,7 @@ void ED_CallSpawn(gentity_t* ent) {
 	// check normal spawn functions
 	for (auto& s : spawns) {
 		if (!strcmp(s.name, ent->className)) { // found it
-			worr::Logf(worr::LogLevel::Trace, "{}: calling spawn function {} for {}", __FUNCTION__, s.name, LogEntityLabel(ent));
+                        worr::Logf(worr::LogLevel::Trace, "{}: calling spawn function {} for {}", __FUNCTION__, s.name, LogEntityContext(ent));
 			s.spawn(ent);
 
 			if (strcmp(ent->className, s.name) == 0)
@@ -836,7 +880,7 @@ void ED_CallSpawn(gentity_t* ent) {
 				};
 				ent->saved = spawn;
 			}
-			worr::Logf(worr::LogLevel::Debug, "{}: completed spawn for {}", __FUNCTION__, LogEntityLabel(ent));
+                        worr::Logf(worr::LogLevel::Debug, "{}: completed spawn for {}", __FUNCTION__, LogEntityContext(ent));
 			return;
 		}
 	}
@@ -848,13 +892,13 @@ void ED_CallSpawn(gentity_t* ent) {
 		}
 		else {
 			FreeEntity(ent);
-			worr::Logf(worr::LogLevel::Warn, "{}: discarded orphaned item_ball for {}", __FUNCTION__, LogEntityLabel(ent));
-		}
-		return;
-	}
+                        worr::Logf(worr::LogLevel::Warn, "{}: discarded orphaned item_ball for {}", __FUNCTION__, LogEntityContext(ent));
+                }
+                return;
+        }
 
-	worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityLabel(ent));
-	FreeEntity(ent);
+        worr::Logf(worr::LogLevel::Warn, "{}: {} doesn't have a spawn function.", __FUNCTION__, LogEntityContext(ent));
+        FreeEntity(ent);
 }
 
 
