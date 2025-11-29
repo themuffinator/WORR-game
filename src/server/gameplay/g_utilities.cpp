@@ -381,14 +381,32 @@ char* CopyString(const char* in, int32_t tag) {
 	return out;
 }
 
-void InitGEntity(gentity_t* e) {
-	// FIXME -
-	//   this fixes a bug somewhere that is setting "nextThink" for an entity that has
-	//   already been released. nextThink is being set to FRAME_TIME_S after level.time,
-	//   since freeTime = nextThink - FRAME_TIME_S
-	if (e->nextThink)
-		e->nextThink = 0_ms;
+/*
+=============
+ResetGEntity
 
+Clears an entity for reuse while preserving persistent handles.
+=============
+*/
+static void ResetGEntity(gentity_t* e) {
+	gclient_t* client = e->client;
+	int32_t spawn_count = e->spawn_count;
+
+	std::memset(e, 0, sizeof(*e));
+
+	e->client = client;
+	e->spawn_count = spawn_count;
+}
+
+/*
+=============
+InitGEntity
+
+Initializes a game entity to a known default state before use.
+=============
+*/
+void InitGEntity(gentity_t* e) {
+	ResetGEntity(e);
 	e->inUse = true;
 	e->sv.init = false;
 	e->className = "noClass";
