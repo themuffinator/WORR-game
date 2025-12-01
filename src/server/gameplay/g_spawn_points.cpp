@@ -126,8 +126,10 @@ static bool RegisterSpawn(gentity_t* ent, std::string_view suffix) {
 		return true;
 	}
 
-	// Single-player / coop start points are registered for fallbacks
-	if (IEquals(suffix, "start") || IEquals(suffix, "coop") || IEquals(suffix, "coop_lava")) {
+	// Single-player start points are registered for deathmatch fallbacks
+	// Coop-specific starts are intentionally excluded so deathmatch never
+	// selects them.
+	if (IEquals(suffix, "start")) {
 		ent->fteam = Team::Free;
 		level.spawn.ffa.push_back(ent);
 		worr::Logf(worr::LogLevel::Trace, "{}: registered coop/solo spawn {}", __FUNCTION__, LogEntityLabel(ent));
