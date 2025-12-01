@@ -226,10 +226,11 @@ bool CheckGroundSpawnPoint(const Vector3& origin, const Vector3& entMins, const 
 	}
 
 	if (verticalGravity) {
-		if (M_CheckBottom_Fast_Generic(support.endPos + entMins, support.endPos + entMaxs, ceiling))
+		Vector3 gravityDir = ceiling ? Vector3(0, 0, 1) : Vector3(0, 0, -1);
+		if (M_CheckBottom_Fast_Generic(support.endPos + entMins, support.endPos + entMaxs, gravityDir))
 			return true;
 
-		if (M_CheckBottom_Slow_Generic(support.endPos, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, ceiling, false))
+		if (M_CheckBottom_Slow_Generic(support.endPos, entMins, entMaxs, nullptr, MASK_MONSTERSOLID, gravityDir, false))
 			return true;
 
 		return false;
