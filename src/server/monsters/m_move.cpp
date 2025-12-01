@@ -18,18 +18,24 @@ is not a staircase.
 
 =============
 */
-bool M_CheckBottom_Fast_Generic(const Vector3 &absmins, const Vector3 &absmaxs, bool ceiling) {
-	//  FIXME - this will only handle 0,0,1 and 0,0,-1 gravity vectors
-	Vector3 start{};
+bool M_CheckBottom_Fast_Generic(const Vector3 &absmins, const Vector3 &absmaxs, const Vector3 &gravityDir) {
+	Vector3 start;
+	int majorAxis = 0;
+	if (fabsf(gravityDir[1]) > fabsf(gravityDir[0])) majorAxis = 1;
+	if (fabsf(gravityDir[2]) > fabsf(gravityDir[majorAxis])) majorAxis = 2;
 
-	start[2] = absmins[2] - 1;
-	if (ceiling)
-		start[2] = absmaxs[2] + 1;
+	int axis1 = (majorAxis + 1) % 3;
+	int axis2 = (majorAxis + 2) % 3;
 
-	for (int x = 0; x <= 1; x++)
-		for (int y = 0; y <= 1; y++) {
-			start[0] = x ? absmaxs[0] : absmins[0];
-			start[1] = y ? absmaxs[1] : absmins[1];
+	if (gravityDir[majorAxis] > 0) // ceiling / up
+		start[majorAxis] = absmaxs[majorAxis] + 1;
+	else // floor / down
+		start[majorAxis] = absmins[majorAxis] - 1;
+
+	for (int i = 0; i <= 1; i++)
+		for (int j = 0; j <= 1; j++) {
+			start[axis1] = i ? absmaxs[axis1] : absmins[axis1];
+			start[axis2] = j ? absmaxs[axis2] : absmins[axis2];
 			if (gi.pointContents(start) != CONTENTS_SOLID)
 				return false;
 		}
@@ -37,36 +43,40 @@ bool M_CheckBottom_Fast_Generic(const Vector3 &absmins, const Vector3 &absmaxs, 
 	return true; // we got out easy
 }
 
-bool M_CheckBottom_Slow_Generic(const Vector3 &origin, const Vector3 &mins, const Vector3 &maxs, gentity_t *ignore, contents_t mask, bool ceiling, bool allow_any_step_height) {
-	Vector3 start{};
+bool M_CheckBottom_Slow_Generic(const Vector3 &origin, const Vector3 &mins, const Vector3 &maxs, gentity_t *ignore, contents_t mask, const Vector3 &gravityDir, bool allow_any_step_height) {
+	Vector3 start, stop;
+	int majorAxis = 0;
+	if (fabsf(gravityDir[1]) > fabsf(gravityDir[0])) majorAxis = 1;
+	if (fabsf(gravityDir[2]) > fabsf(gravityDir[majorAxis])) majorAxis = 2;
+
+	int axis1 = (majorAxis + 1) % 3;
+	int axis2 = (majorAxis + 2) % 3;
 
 	//
 	// check it for real...
 	//
 	Vector3 step_quadrant_size = (maxs - mins) * 0.5f;
-	step_quadrant_size.z = 0;
+	step_quadrant_size[majorAxis] = 0;
 
 	Vector3 half_step_quadrant = step_quadrant_size * 0.5f;
 	Vector3 half_step_quadrant_mins = -half_step_quadrant;
 
-	Vector3 stop;
+	start[axis1] = stop[axis1] = origin[axis1];
+	start[axis2] = stop[axis2] = origin[axis2];
 
-	start[0] = stop[0] = origin.x;
-	start[1] = stop[1] = origin.y;
-
-	if (!ceiling) {
-		start[2] = origin.z + mins.z;
-		stop[2] = start[2] - STEPSIZE * 2;
-	} else {
-		start[2] = origin.z + maxs.z;
-		stop[2] = start[2] + STEPSIZE * 2;
+	if (gravityDir[majorAxis] > 0) { // ceiling / up
+		start[majorAxis] = origin[majorAxis] + maxs[majorAxis];
+		stop[majorAxis] = start[majorAxis] + STEPSIZE * 2;
+	} else { // floor / down
+		start[majorAxis] = origin[majorAxis] + mins[majorAxis];
+		stop[majorAxis] = start[majorAxis] - STEPSIZE * 2;
 	}
 
-	Vector3 mins_no_z = mins;
-	Vector3 maxs_no_z = maxs;
-	mins_no_z.z = maxs_no_z.z = 0;
+	Vector3 mins_flat = mins;
+	Vector3 maxs_flat = maxs;
+	mins_flat[majorAxis] = maxs_flat[majorAxis] = 0;
 
-	trace_t trace = gi.trace(start, mins_no_z, maxs_no_z, stop, ignore, mask);
+	trace_t trace = gi.trace(start, mins_flat, maxs_flat, stop, ignore, mask);
 
 	if (trace.fraction == 1.0f)
 		return false;
@@ -75,37 +85,36 @@ bool M_CheckBottom_Slow_Generic(const Vector3 &origin, const Vector3 &mins, cons
 	if (allow_any_step_height)
 		return true;
 
-	start[0] = stop[0] = origin.x + ((mins.x + maxs.x) * 0.5f);
-	start[1] = stop[1] = origin.y + ((mins.y + maxs.y) * 0.5f);
+	start[axis1] = stop[axis1] = origin[axis1] + ((mins[axis1] + maxs[axis1]) * 0.5f);
+	start[axis2] = stop[axis2] = origin[axis2] + ((mins[axis2] + maxs[axis2]) * 0.5f);
 
-	float mid = trace.endPos[2];
+	float mid = trace.endPos[majorAxis];
 
 	// the corners must be within 16 of the midpoint
-	for (int32_t x = 0; x <= 1; x++)
-		for (int32_t y = 0; y <= 1; y++) {
+	for (int32_t i = 0; i <= 1; i++)
+		for (int32_t j = 0; j <= 1; j++) {
 			Vector3 quadrant_start = start;
 
-			if (x)
-				quadrant_start.x += half_step_quadrant.x;
+			if (i)
+				quadrant_start[axis1] += half_step_quadrant[axis1];
 			else
-				quadrant_start.x -= half_step_quadrant.x;
+				quadrant_start[axis1] -= half_step_quadrant[axis1];
 
-			if (y)
-				quadrant_start.y += half_step_quadrant.y;
+			if (j)
+				quadrant_start[axis2] += half_step_quadrant[axis2];
 			else
-				quadrant_start.y -= half_step_quadrant.y;
+				quadrant_start[axis2] -= half_step_quadrant[axis2];
 
 			Vector3 quadrant_end = quadrant_start;
-			quadrant_end.z = stop.z;
+			quadrant_end[majorAxis] = stop[majorAxis];
 
 			trace = gi.trace(quadrant_start, half_step_quadrant_mins, half_step_quadrant, quadrant_end, ignore, mask);
 
-			//  FIXME - this will only handle 0,0,1 and 0,0,-1 gravity vectors
-			if (ceiling) {
-				if (trace.fraction == 1.0f || trace.endPos[2] - mid > (STEPSIZE))
+			if (gravityDir[majorAxis] > 0) {
+				if (trace.fraction == 1.0f || trace.endPos[majorAxis] - mid > (STEPSIZE))
 					return false;
 			} else {
-				if (trace.fraction == 1.0f || mid - trace.endPos[2] > (STEPSIZE))
+				if (trace.fraction == 1.0f || mid - trace.endPos[majorAxis] > (STEPSIZE))
 					return false;
 			}
 		}
@@ -117,11 +126,11 @@ bool M_CheckBottom(gentity_t *ent) {
 	// if all of the points under the corners are solid world, don't bother
 	// with the tougher checks
 
-	if (M_CheckBottom_Fast_Generic(ent->s.origin + ent->mins, ent->s.origin + ent->maxs, ent->gravityVector[2] > 0))
+	if (M_CheckBottom_Fast_Generic(ent->s.origin + ent->mins, ent->s.origin + ent->maxs, ent->gravityVector))
 		return true; // we got out easy
 
 	contents_t mask = (ent->svFlags & SVF_MONSTER) ? MASK_MONSTERSOLID : (MASK_SOLID | CONTENTS_MONSTER | CONTENTS_PLAYER);
-	return M_CheckBottom_Slow_Generic(ent->s.origin, ent->mins, ent->maxs, ent, mask, ent->gravityVector[2] > 0, ent->spawnFlags.has(SPAWNFLAG_MONSTER_SUPER_STEP));
+	return M_CheckBottom_Slow_Generic(ent->s.origin, ent->mins, ent->maxs, ent, mask, ent->gravityVector, ent->spawnFlags.has(SPAWNFLAG_MONSTER_SUPER_STEP));
 }
 
 static bool IsBadAhead(gentity_t *self, gentity_t *bad, const Vector3 &move) {
