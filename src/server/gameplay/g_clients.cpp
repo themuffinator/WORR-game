@@ -40,6 +40,8 @@ namespace {
 		if (gi.TagFree)
 			gi.TagFree(ptr);
 	}
+
+	gclient_t dummy_client;
 }
 
 void AllocateClientArray(int maxClients) {
@@ -78,7 +80,7 @@ void FreeClientArray() {
 	// [KEX]: Unlink client pointers
 	if (g_entities && game.clients) {
 		for (int i = 0; i < game.maxClients; i++) {
-			g_entities[i + 1].client = nullptr;
+			g_entities[i + 1].client = &dummy_client;
 		}
 	}
 
