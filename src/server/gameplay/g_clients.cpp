@@ -64,9 +64,24 @@ void AllocateClientArray(int maxClients) {
 	game.maxLagOrigins = ComputeLagHistorySamples();
 	const std::size_t lagCount = static_cast<std::size_t>(game.maxClients) * static_cast<std::size_t>(game.maxLagOrigins);
 	game.lagOrigins = static_cast<Vector3*>(TagMallocChecked(sizeof(Vector3) * lagCount));
+
+	// [KEX]: Ensure client pointers are linked immediately to prevent engine crashes
+	// if SV_CalcPings runs before a client is fully connected.
+	if (g_entities) {
+		for (int i = 0; i < game.maxClients; i++) {
+			g_entities[i + 1].client = &game.clients[i];
+		}
+	}
 }
 
 void FreeClientArray() {
+	// [KEX]: Unlink client pointers
+	if (g_entities && game.clients) {
+		for (int i = 0; i < game.maxClients; i++) {
+			g_entities[i + 1].client = nullptr;
+		}
+	}
+
 	if (game.clients)
 		DestroyClients(game.clients, game.maxClients);
 
