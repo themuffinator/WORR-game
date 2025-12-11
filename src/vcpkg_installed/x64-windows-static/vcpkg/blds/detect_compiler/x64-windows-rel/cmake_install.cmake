@@ -1,8 +1,8 @@
-# Install script for directory: C:/Program Files/Microsoft Visual Studio/2022/Community/VC/vcpkg/scripts/detect_compiler
+# Install script for directory: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/vcpkg/scripts/detect_compiler
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
-  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/detect_compiler_x64-windows")
+  set(CMAKE_INSTALL_PREFIX "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/detect_compiler_x64-windows")
 endif()
 string(REGEX REPLACE "/$" "" CMAKE_INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 
@@ -47,6 +47,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-  file(WRITE "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/detect_compiler/x64-windows-rel/${CMAKE_INSTALL_MANIFEST}"
+  file(WRITE "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/detect_compiler/x64-windows-rel/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
 endif()

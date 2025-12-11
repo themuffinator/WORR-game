@@ -1,3 +1,3 @@
-# ninja log v6
-38	3174	7736894572251735	../../x64-windows-static-dbg/CMakeCache.txt	1b1556802ac6b60
-27	3175	7736894572136268	../CMakeCache.txt	b4c14bae6acb2226
+# ninja log v7
+40	6000	7868362655079250	../../x64-windows-static-dbg/CMakeCache.txt	fa1450c9cd4ad4ce
+25	6009	7868362654918390	../CMakeCache.txt	dcb032c7946d3fad

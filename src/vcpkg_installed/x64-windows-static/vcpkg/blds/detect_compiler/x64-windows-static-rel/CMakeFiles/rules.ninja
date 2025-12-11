@@ -29,7 +29,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\cmake-3.30.1-windows\cmake-3.30.1-windows-i386\bin\cmake.exe --regenerate-during-build -S"C:\Program Files\Microsoft Visual Studio\2022\Community\VC\vcpkg\scripts\detect_compiler" -B"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\wor\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-static-rel"
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\cmake-3.30.1-windows\cmake-3.30.1-windows-i386\bin\cmake.exe --regenerate-during-build -S"C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\vcpkg\scripts\detect_compiler" -B"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\worr-kex\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\detect_compiler\x64-windows-static-rel"
   description = Re-running CMake...
   generator = 1
 
@@ -38,7 +38,7 @@ rule RERUN_CMAKE
 # Rule for cleaning all built files.
 
 rule CLEAN
-  command = "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" $FILE_ARG -t clean $TARGETS
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\ninja\1.13.1-windows\ninja.exe $FILE_ARG -t clean $TARGETS
   description = Cleaning all built files...
 
 
@@ -46,6 +46,6 @@ rule CLEAN
 # Rule for printing all primary targets available.
 
 rule HELP
-  command = "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" -t targets
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\ninja\1.13.1-windows\ninja.exe -t targets
   description = All primary targets available:
 

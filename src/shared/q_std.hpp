@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <array>
 #include <string_view>
+#include <string>
 #include <numeric>
 #include <functional>
 
@@ -113,12 +114,16 @@ std::string join_strings(const T& cont, const char* separator) {
 	if (cont.empty())
 		return "";
 
-	return std::accumulate(++cont.begin(), cont.end(), *cont.begin(),
-		[separator](auto&& a, auto&& b) -> auto& {
-			a += separator;
-			a += b;
-			return a;
-		});
+	auto it = cont.begin();
+	std::string result = *it;
+	++it;
+
+	for (; it != cont.end(); ++it) {
+		result += separator;
+		result += *it;
+	}
+
+	return result;
 }
 
 using byte = uint8_t;

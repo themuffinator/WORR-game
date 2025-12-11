@@ -1,5 +1,5 @@
-prefix=C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/fmt_x64-windows-static
-exec_prefix=C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/fmt_x64-windows-static
+prefix=C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/fmt_x64-windows-static
+exec_prefix=C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/pkgs/fmt_x64-windows-static
 libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 

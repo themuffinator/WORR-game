@@ -22,7 +22,7 @@ msvc_deps_prefix = Note: including file:
 
 rule CXX_COMPILER__fmt_unscanned_Debug
   deps = msvc
-  command = ${LAUNCHER}${CODE_CHECK}C:\PROGRA~1\MICROS~4\2022\COMMUN~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\cl.exe   /TP $DEFINES $INCLUDES $FLAGS /showIncludes /Fo$out /Fd$TARGET_COMPILE_PDB /FS -c $in
+  command = ${LAUNCHER}${CODE_CHECK}C:\PROGRA~1\MICROS~4\18\Insiders\VC\Tools\MSVC\1450~1.357\bin\Hostx64\x64\cl.exe   /TP $DEFINES $INCLUDES $FLAGS /showIncludes /Fo$out /Fd$TARGET_COMPILE_PDB /FS -c $in
   description = Building CXX object $out
 
 
@@ -30,7 +30,7 @@ rule CXX_COMPILER__fmt_unscanned_Debug
 # Rule for linking CXX static library.
 
 rule CXX_STATIC_LIBRARY_LINKER__fmt_Debug
-  command = C:\WINDOWS\system32\cmd.exe /C "$PRE_LINK && C:\PROGRA~1\MICROS~4\2022\COMMUN~1\VC\Tools\MSVC\1444~1.352\bin\Hostx64\x64\lib.exe  $LINK_FLAGS /out:$TARGET_FILE $in && $POST_BUILD"
+  command = C:\WINDOWS\system32\cmd.exe /C "$PRE_LINK && C:\PROGRA~1\MICROS~4\18\Insiders\VC\Tools\MSVC\1450~1.357\bin\Hostx64\x64\lib.exe  $LINK_FLAGS /out:$TARGET_FILE $in && $POST_BUILD"
   description = Linking CXX static library $TARGET_FILE
   restat = $RESTAT
 
@@ -47,7 +47,7 @@ rule CUSTOM_COMMAND
 # Rule for re-running cmake.
 
 rule RERUN_CMAKE
-  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\cmake-3.30.1-windows\cmake-3.30.1-windows-i386\bin\cmake.exe --regenerate-during-build -S"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\wor\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\11.0.2-c30c0a133f.clean" -B"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\wor\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-dbg"
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\cmake-3.30.1-windows\cmake-3.30.1-windows-i386\bin\cmake.exe --regenerate-during-build -S"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\worr-kex\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\src\11.0.2-c30c0a133f.clean" -B"C:\Program Files (x86)\Steam\steamapps\common\Quake 2\rerelease\worr-kex\code\src\vcpkg_installed\x64-windows-static\vcpkg\blds\fmt\x64-windows-static-dbg"
   description = Re-running CMake...
   generator = 1
 
@@ -56,7 +56,7 @@ rule RERUN_CMAKE
 # Rule for cleaning all built files.
 
 rule CLEAN
-  command = "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" $FILE_ARG -t clean $TARGETS
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\ninja\1.13.1-windows\ninja.exe $FILE_ARG -t clean $TARGETS
   description = Cleaning all built files...
 
 
@@ -64,6 +64,6 @@ rule CLEAN
 # Rule for printing all primary targets available.
 
 rule HELP
-  command = "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\IDE\CommonExtensions\Microsoft\CMake\Ninja\ninja.exe" -t targets
+  command = C:\Users\djdac\AppData\Local\vcpkg\downloads\tools\ninja\1.13.1-windows\ninja.exe -t targets
   description = All primary targets available:
 

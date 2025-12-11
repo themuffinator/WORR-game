@@ -340,17 +340,9 @@
     <ClInclude Include="server\gameplay\g_harvester.hpp">
       <Filter>matches</Filter>
     </ClInclude>
+    <ClInclude Include="shared\logger.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="fmt.cc">
-      <Filter>external\\fmt</Filter>
-    </ClCompile>
-    <ClCompile Include="format.cc">
-      <Filter>external\\fmt</Filter>
-    </ClCompile>
-    <ClCompile Include="os.cc">
-      <Filter>external\\fmt</Filter>
-    </ClCompile>
     <ClCompile Include="server\gameplay\g_combat.cpp" />
     <ClCompile Include="server\gameplay\g_main.cpp" />
     <ClCompile Include="server\gameplay\g_misc.cpp" />
@@ -658,9 +650,9 @@
     <ClCompile Include="server\gameplay\g_spawn.cpp">
       <Filter>world</Filter>
     </ClCompile>
-      <ClCompile Include="server\gameplay\g_statusbar.cpp">
-        <Filter>world</Filter>
-      </ClCompile>
+    <ClCompile Include="server\gameplay\g_statusbar.cpp">
+      <Filter>world</Filter>
+    </ClCompile>
     <ClCompile Include="server\gameplay\g_items.cpp">
       <Filter>world</Filter>
     </ClCompile>
@@ -703,6 +695,9 @@
     <ClCompile Include="server\gameplay\g_teamplay.cpp">
       <Filter>matches</Filter>
     </ClCompile>
+    <ClCompile Include="format.cc" />
+    <ClCompile Include="os.cc" />
+    <ClCompile Include="shared\logger.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="bots">

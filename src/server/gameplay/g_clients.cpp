@@ -68,7 +68,7 @@ void AllocateClientArray(int maxClients) {
 	// [KEX]: Ensure client pointers are linked immediately to prevent engine crashes
 	// if SV_CalcPings runs before a client is fully connected.
 	if (g_entities) {
-		for (int i = 0; i < game.maxClients; i++) {
+		for (int i = 0; i < static_cast<int>(game.maxClients); i++) {
 			g_entities[i + 1].client = &game.clients[i];
 		}
 	}
@@ -77,7 +77,7 @@ void AllocateClientArray(int maxClients) {
 void FreeClientArray() {
 	// [KEX]: Unlink client pointers
 	if (g_entities && game.clients) {
-		for (int i = 0; i < game.maxClients; i++) {
+		for (int i = 0; i < static_cast<int>(game.maxClients); i++) {
 			g_entities[i + 1].client = nullptr;
 		}
 	}

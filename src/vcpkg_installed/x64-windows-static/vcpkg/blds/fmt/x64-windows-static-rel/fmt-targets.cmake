@@ -52,7 +52,7 @@ add_library(fmt::fmt STATIC IMPORTED)
 set_target_properties(fmt::fmt PROPERTIES
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_COMPILE_OPTIONS "\$<\$<AND:\$<COMPILE_LANGUAGE:CXX>,\$<CXX_COMPILER_ID:MSVC>>:/utf-8>"
-  INTERFACE_INCLUDE_DIRECTORIES "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/src/11.0.2-c30c0a133f.clean/include"
+  INTERFACE_INCLUDE_DIRECTORIES "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/src/11.0.2-c30c0a133f.clean/include"
 )
 
 # Create imported target fmt::fmt-header-only
@@ -62,14 +62,14 @@ set_target_properties(fmt::fmt-header-only PROPERTIES
   INTERFACE_COMPILE_DEFINITIONS "FMT_HEADER_ONLY=1"
   INTERFACE_COMPILE_FEATURES "cxx_std_11"
   INTERFACE_COMPILE_OPTIONS "\$<\$<AND:\$<COMPILE_LANGUAGE:CXX>,\$<CXX_COMPILER_ID:MSVC>>:/utf-8>"
-  INTERFACE_INCLUDE_DIRECTORIES "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/src/11.0.2-c30c0a133f.clean/include"
+  INTERFACE_INCLUDE_DIRECTORIES "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/src/11.0.2-c30c0a133f.clean/include"
 )
 
 # Import target "fmt::fmt" for configuration "Release"
 set_property(TARGET fmt::fmt APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
 set_target_properties(fmt::fmt PROPERTIES
   IMPORTED_LINK_INTERFACE_LANGUAGES_RELEASE "CXX"
-  IMPORTED_LOCATION_RELEASE "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/wor/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/x64-windows-static-rel/fmt.lib"
+  IMPORTED_LOCATION_RELEASE "C:/Program Files (x86)/Steam/steamapps/common/Quake 2/rerelease/worr-kex/code/src/vcpkg_installed/x64-windows-static/vcpkg/blds/fmt/x64-windows-static-rel/fmt.lib"
   )
 
 # This file does not depend on other imported targets which have
