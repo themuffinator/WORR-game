@@ -7,6 +7,7 @@ g_clients.cpp implementation.*/
 
 #include <algorithm>
 #include <cstddef>
+#include <new>
 
 namespace {
 	int ClampMaxClients(int maxClients) {
@@ -65,6 +66,9 @@ void AllocateClientArray(int maxClients) {
 	const std::size_t lagCount = static_cast<std::size_t>(game.maxClients) * static_cast<std::size_t>(game.maxLagOrigins);
 	game.lagOrigins = static_cast<Vector3*>(TagMallocChecked(sizeof(Vector3) * lagCount));
 
+	for (std::size_t i = 0; i < lagCount; ++i)
+		new (&game.lagOrigins[i]) Vector3();
+
 	// [KEX]: Ensure client pointers are linked immediately to prevent engine crashes
 	// if SV_CalcPings runs before a client is fully connected.
 	if (g_entities) {
@@ -86,6 +90,14 @@ void FreeClientArray() {
 		DestroyClients(game.clients, game.maxClients);
 
 	TagFreeChecked(game.clients);
+
+	if (game.lagOrigins) {
+		const std::size_t lagCount = static_cast<std::size_t>(game.maxClients) * static_cast<std::size_t>(game.maxLagOrigins);
+
+		for (std::size_t i = 0; i < lagCount; ++i)
+			game.lagOrigins[i].~Vector3();
+	}
+
 	TagFreeChecked(game.lagOrigins);
 
 	game.clients = nullptr;
