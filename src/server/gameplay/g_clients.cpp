@@ -79,10 +79,13 @@ void AllocateClientArray(int maxClients) {
 }
 
 void FreeClientArray() {
+	static gclient_t dummyClient;
+	dummyClient = gclient_t{};
+
 	// [KEX]: Unlink client pointers
 	if (g_entities && game.clients) {
 		for (int i = 0; i < static_cast<int>(game.maxClients); i++) {
-			g_entities[i + 1].client = nullptr;
+			g_entities[i + 1].client = &dummyClient;
 		}
 	}
 

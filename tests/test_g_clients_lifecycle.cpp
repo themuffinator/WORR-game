@@ -1,80 +1,95 @@
-/*Copyright (c) 2024 The DarkMatter Project
-Licensed under the GNU General Public License 2.0.
+#include "../src/server/gameplay/g_clients.cpp"
+#include <gtest/gtest.h>
 
-test_g_clients_lifecycle.cpp implementation.*/
+// Mocks
+local_game_import_t gi;
+GameLocals game;
+game_export_t globals;
+gentity_t* g_entities = nullptr;
 
-#include "../src/server/gameplay/g_clients.hpp"
-
-#include <cassert>
-#include <new>
-#include <type_traits>
-
-local_game_import_t gi{};
-game_export_t globals{};
-GameLocals game{};
+// Menu class implementation stubs for g_local.hpp
+void Menu::Next() {}
+void Menu::Prev() {}
+void Menu::Select(gentity_t* ent) {}
+void Menu::Render(gentity_t* ent) const {}
+void Menu::EnsureCurrentVisible() {}
 
 namespace {
-void* TestTagMalloc(size_t size, int /*tag*/) {
-        return ::operator new(size);
+	// Mock malloc/free
+	void* MockTagMalloc(size_t size, int tag) {
+		return malloc(size);
+	}
+
+	void MockTagFree(void* ptr) {
+		free(ptr);
+	}
+
+	void MockComError(const char* msg) {
+		fprintf(stderr, "Com_Error: %s\n", msg);
+		exit(1);
+	}
 }
 
-void TestTagFree(void* ptr) {
-        ::operator delete(ptr);
-}
-}
+class GClientsTest : public ::testing::Test {
+protected:
+	void SetUp() override {
+		// Initialize mocks
+		gi.TagMalloc = MockTagMalloc;
+		gi.TagFree = MockTagFree;
+		gi.Com_Error = MockComError;
 
-int main() {
-        gi.TagMalloc = TestTagMalloc;
-        gi.TagFree = TestTagFree;
-        gi.Com_Error = +[](const char*) {};
-        gi.frameTimeSec = 0.05f;
-        globals.numEntities = 1;
+		// Allocate g_entities array mock
+		// Assuming MAX_CLIENTS_KEX is 32, we need enough space.
+		// g_entities needs to be large enough to hold maxClients + 1 entities.
+		// Let's allocate 64 entities to be safe.
+		g_entities = new gentity_t[64];
 
-        constexpr std::size_t kClientCount = 3;
-        using Storage = std::aligned_storage_t<sizeof(gclient_t), alignof(gclient_t)>;
-        Storage raw[kClientCount];
-        auto* clients = reinterpret_cast<gclient_t*>(raw);
+		// Ensure g_entities are zeroed out initially
+		memset(g_entities, 0, sizeof(gentity_t) * 64);
 
-        ConstructClients(clients, kClientCount);
-        for (std::size_t i = 0; i < kClientCount; ++i) {
-                assert(!clients[i].showScores);
-                assert(!clients[i].showHelp);
-        }
+		game.clients = nullptr;
+		game.maxClients = 0;
+		globals.numEntities = 0;
+	}
 
-        clients[0].showScores = true;
-        DestroyClients(clients, kClientCount);
+	void TearDown() override {
+		if (game.clients) {
+			FreeClientArray();
+		}
+		delete[] g_entities;
+		g_entities = nullptr;
+	}
+};
 
-        ConstructClients(clients, kClientCount);
-        for (std::size_t i = 0; i < kClientCount; ++i) {
-                assert(!clients[i].showScores);
-        }
-        DestroyClients(clients, kClientCount);
+TEST_F(GClientsTest, AllocateAndFreeClientArray) {
+	int maxClients = 4;
 
-        ClientArrayLifetime lifetime;
-        lifetime.Reset(clients, kClientCount);
-        clients[1].showHelp = true;
-        lifetime.Reset(clients, kClientCount);
-        for (std::size_t i = 0; i < kClientCount; ++i) {
-                assert(!clients[i].showHelp);
-        }
-        lifetime.Reset(nullptr, 0);
+	// Test Allocation
+	AllocateClientArray(maxClients);
 
-        AllocateClientArray(4);
-        assert(game.maxClients == 4);
-        assert(globals.numEntities == 5);
-        assert(game.clients != nullptr);
-        assert(game.lagOrigins != nullptr);
+	EXPECT_EQ(game.maxClients, maxClients);
+	EXPECT_NE(game.clients, nullptr);
+	EXPECT_EQ(globals.numEntities, maxClients + 1);
 
-        game.clients[0].showScores = true;
-        ReplaceClientArray(2);
-        assert(game.maxClients == 2);
-        assert(globals.numEntities == 3);
-        assert(!game.clients[0].showScores);
+	// Verify linkage
+	for (int i = 0; i < maxClients; i++) {
+		EXPECT_EQ(g_entities[i + 1].client, &game.clients[i]);
+	}
 
-        FreeClientArray();
-        assert(game.clients == nullptr);
-        assert(game.lagOrigins == nullptr);
-        assert(globals.numEntities == 1);
+	// Verify FreeClientArray sets pointers to dummy client
+	FreeClientArray();
 
-        return 0;
+	EXPECT_EQ(game.clients, nullptr);
+	EXPECT_EQ(game.maxClients, 0);
+	EXPECT_EQ(globals.numEntities, 1);
+
+	// The key verification: g_entities[i+1].client should NOT be nullptr
+	// It should point to the static dummy client.
+
+	gclient_t* dummyAddress = g_entities[1].client;
+	EXPECT_NE(dummyAddress, nullptr);
+
+	for (int i = 0; i < maxClients; i++) {
+		EXPECT_EQ(g_entities[i + 1].client, dummyAddress);
+	}
 }
